@@ -32,7 +32,7 @@ async function responseForModule(moduleSlug: string | null) {
   return NextResponse.json({
     success: true,
     generatedAt: new Date().toISOString(),
-    sourceMode: snapshot.persistence.configured ? "supabase_snapshot" : runtimeConfig.mode,
+    sourceMode: "supabase_snapshot",
     externalApiConfigured: runtimeConfig.configured,
     module: integration.slug,
     integration: {
