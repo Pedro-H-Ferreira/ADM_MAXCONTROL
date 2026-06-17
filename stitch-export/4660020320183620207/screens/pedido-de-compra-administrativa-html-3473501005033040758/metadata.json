@@ -1,0 +1,53 @@
+{
+    "screenId":  "3473501005033040758",
+    "name":  "projects/4660020320183620207/screens/3473501005033040758",
+    "title":  "Pedido de Compra Administrativa.html",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "02861a2e-7fee-4563-bb69-31f05961d81d",
+                          "sourceScreen":  "projects/4660020320183620207/screens/3473501005033040758",
+                          "x":  2304,
+                          "y":  5307,
+                          "width":  600,
+                          "height":  900,
+                          "type":  "SCREEN_INSTANCE"
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\pedido-de-compra-administrativa-html-3473501005033040758",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/3473501005033038653",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBKNARIhYXBwX2NvbXBhbmlvbl91c2VyX3VwbG9hZGVkX2ZpbGVzGmgKM3VzZXJfdXBsb2FkZWRfaHRtbF8wMDA2NTQ3MzQ1MWQ0YTQyMDMzODVjYTc5ZTMzM2ZiMxILEgcQy4TU2ZgJGAGSASMKCnByb2plY3RfaWQSFUITNDY2MDAyMDMyMDE4MzYyMDIwNw\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\pedido-de-compra-administrativa-html-3473501005033040758\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\pedido-de-compra-administrativa-html-3473501005033040758\\screen.html",
+                                  "bytes":  126803,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  null,
+    "missing":  [
+                    "screenshot"
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/3473501005033040758",
+                   "title":  "Pedido de Compra Administrativa.html",
+                   "screenshot":  {
+
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/3473501005033038653",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBKNARIhYXBwX2NvbXBhbmlvbl91c2VyX3VwbG9hZGVkX2ZpbGVzGmgKM3VzZXJfdXBsb2FkZWRfaHRtbF8wMDA2NTQ3MzQ1MWQ0YTQyMDMzODVjYTc5ZTMzM2ZiMxILEgcQy4TU2ZgJGAGSASMKCnByb2plY3RfaWQSFUITNDY2MDAyMDMyMDE4MzYyMDIwNw\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                }
+               }
+}

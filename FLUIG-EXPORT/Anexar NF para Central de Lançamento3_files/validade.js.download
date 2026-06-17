@@ -1,0 +1,432 @@
+var beforeSendValidate = function( numState,nextState ) {
+    const ctx = "validate.js -> beforeSendValidate() -> ";
+    console.log( ctx + "Iniciado" );
+    
+    var inicio = 0;
+    var inicio1 = 4;
+    var realizarAjusteGestor = 93;
+    var AprovGestor = 60;
+    var AprovDiretor = 107;
+    var AprovGerenteRegional = 212;
+    var AprovPresidente = 196;
+    var realizarAjusteGerenteRegional = 225;
+    var realizarAjustePresidente = 206;
+    var realizarAjusteDiretor = 111;
+    var realizarAjusteControladoria = 181;
+    var realizarAnalisePagamento = 268;
+    var extraOrcamentario = 142;
+    var extraOrcamentarioCentral = 150;
+    var analisarLancarNF = 64;
+    var corrigirProblemaPublicacao = 102;
+	var providenciarAjustes = 5;
+	var providenciarAjustesAtraso = 18;
+	var cobrarAtendimentoDemanda = 20;
+	var verificarAjustesEncerrarChamado = 7;
+	var financeiro = 124;
+	var canhotofinanceiro = 170;
+	var realizarAjusteFinanceiro = 174;
+    var realizarAjusteContabil = 240;
+    var analiseContabil = 248;
+    var tomadaDecisaoTrava = 191;
+	var fim = 11;
+	var fim2 = 68;
+
+	
+	
+	try{
+		var atividade = WKNumState;
+		var processo = WKNumProces;
+		var msg = new Array();
+
+		if (atividade == inicio || atividade == inicio1) {
+			consultarTotalNFT();
+			requisicaoOrcamentoConsinco();
+
+		    // 1. CORREÇÃO: Adicionado String() e .trim() para garantir que a comparação funcione
+		    var responsavelEnvio = String($("#matResponsavelEnvio").val()).trim();
+		    var contaContabil = $("#ContaContabilConsinco").val();
+		    var totalFLUIG    = parseFloat($("#valorTotalExibicao").val()) || 0;
+		    var totalCONSINCO = parseFloat($("#valorTotalOrcamento").val()) || 0;
+		    var totalNF       = parseFloat($("#valorNFT").val()) || 0;
+		    var codigoNatureza = $("#codigonaturezaC").val();
+		    var codigoFornecedor = $("#fornecedorC").val();
+		    console.log("--- DEBUG ORÇAMENTO ---");
+		    console.log("Resp: '" + responsavelEnvio + "'");
+		    console.log("Fluig: " + totalFLUIG + " | Consinco: " + totalCONSINCO + " | NF: " + totalNF);
+        
+		    var saldoAtual = totalCONSINCO - totalFLUIG;
+		        
+		    // Arredonda para 2 casas para evitar erros como 100.000000001
+		    saldoAtual = parseFloat(saldoAtual.toFixed(2));
+		        
+		   console.log("Saldo Calculado: " + saldoAtual);
+		   console.log("Comparação: " + totalNF + " > " + saldoAtual + " ? " + (totalNF > saldoAtual));
+		   	// Exceção: Infra TI
+		   if (totalNF > saldoAtual && totalCONSINCO !== 123456789 && responsavelEnvio !== "00320" ) {
+			   
+			   if(codigoNatureza == '' || codigoNatureza == null || codigoNatureza == '-' ||codigoFornecedor =="0 - FORNECEDOR SEM CADASTRO - 0"){			   
+				   setaValor('permitePassar','sim');
+			   }else{
+				   msg.push("\n Não há orçamento disponível para esta natureza de despesa, favor entrar em contato com a controladoria.");
+			   }
+			   
+		            
+		    }
+		    setaValor("financeiroResp", "00035");
+		    setaValor("cadastroResp", "00307");
+
+		    if (codigoNatureza == '' || codigoNatureza == null || codigoNatureza == '-') {
+		        //setaValor("cadastroResp", "00107");
+		    	setaValor("cadastroResp","Pool:Group:Controladoria");
+		    }
+    
+		    //Aprovação de Gerentes Regionais
+		    
+			//var codigoF = $("#coFilial").val();
+            var codigoC = $("#codCentroCusto").val();
+            var codigoF = $("#coFilial").val();
+            
+            //Outros tipos de operação
+            var tipoOperacao = "outro";
+            setaValor("tipoOperacao",tipoOperacao);
+            
+		    if( codigoC == 3146001  || codigoC == 4414001){
+			    var tipoOperacao = "operacao";
+	            var gestorArea = $("#matGerenteLojaArea").val();
+	            var nomeGestorArea = $("#nomeGerenteLojaArea").val();
+		    	setaValor("tipoOperacao",tipoOperacao)
+		        setaValor("nomeGestor",nomeGestorArea)
+		    	setaValor("matGestorArea",gestorArea)
+		    	
+		   
+		    }
+			if($("input[name='radioExtraOrc']:checked").length == 0){
+				//msg.push("\n O campo Extraorçamentario não foi selecionado!")
+			}
+			if (codigoF == 21 || codigoF == 16 || codigoF == 40 || codigoF == 30 || codigoF == 8 || codigoF == 7 || codigoF == 26 || codigoF == 4){
+				
+				msg.push("\n Filiais bloqueadas (CONSINCO)!")
+			}
+			if (codigoC == 27 || codigoC == 33){
+							
+						setaValor("responsavelFLUXO",'00107')
+						}
+			else{
+				
+				var natureza = $("#codigonaturezaC").val();
+				
+				if (natureza.toLowerCase().includes("4010202")|| natureza.toLowerCase().includes("5040702") || natureza.toLowerCase().includes("5150110")){
+					setaValor("responsavelFLUXO",'00107')
+					
+				}else{
+					setaValor("responsavelFLUXO",'00105')
+				}
+				
+				
+				
+				
+				}
+
+			//Validação dos campos
+			let inputs = new Array(
+					"unidadeFilial",
+					"centroCusto",
+					"dataEmissaoNF",
+					"vencPagNota",
+					"nomeColaborador",
+					"valorNF",
+					"nNotaFiscal",
+					"matGerenteLojaArea",
+					"descricaoDemandaEnvio",
+					"codigonaturezaC",
+					"formaPagamento"
+			)
+			
+	
+
+			for(let i = 0; i < inputs.length; i++){
+			    let id = inputs[i];
+			    let elemento = $("#" + id);
+			    
+			    // Verifica se o campo está vazio
+			    if(elemento.val() == "" || elemento.val() == null){
+			        
+			        // Tenta pegar o texto da label usando jQuery
+			        let labelText = $("label[for='" + id + "']").text().trim();
+			        
+			        // Se o texto da label estiver vazio (ou a label não existir), usa o ID como "nome"
+			        let nomeCampo = labelText ? labelText : id; 
+			        
+			        // Remove : ou * que costumam ficar no final da label
+			        nomeCampo = nomeCampo.replace(/[:*]/g, '').trim();
+
+			        msg.push("\n O campo '" + nomeCampo + "' não foi preenchido");
+			    }
+			}
+
+			if(msg.length > 0){
+				throw(msg.toString())
+			}else{			
+
+				//Atualiza data de abertura
+				setaValor("dataEnvio",dataAbertura)
+			    //setaValor("numeroSolicitacao",processo)
+				
+				
+			}
+			//Validação de Duplicidade de NF no Envio do Processo
+				//Ajusta valorTotal
+			    var idvalorNF = parseFloat($("#valorNF").val().replace(/\./g,"").replace(",","."));
+			    $("#valorNFT").val(idvalorNF);
+			    var idNotaFiscal = +$("#nNotaFiscal").val();
+			    $("#nNotaFiscal").val(idNotaFiscal);
+			    var idCNPJ =$("#codCNPJ").val();
+				console.log("TesteVerificaNF"+idNotaFiscal);
+				console.log("TesteVerificaNFCNPJ"+idCNPJ);
+				const idDatasetFormulario = 'formAtendimentoCentralLancamento';
+			    //Cria as constraints para buscar os campos
+			    var constraintsFilhos = new Array();
+			    constraintsFilhos.push( DatasetFactory.createConstraint( "nNotaFiscal", idNotaFiscal,idNotaFiscal, ConstraintType.MUST ) );
+			    constraintsFilhos.push( DatasetFactory.createConstraint( "codCNPJ", idCNPJ ,idCNPJ, ConstraintType.MUST ) );
+			    //constraintsFilhos.push( DatasetFactory.createConstraint( "nNotaFiscal", "00" ,"00", ConstraintType.MUST_NOT ) );
+
+			            //Teste de retorno da informação coletada
+			            //Busca o dataset
+			    try {
+			        var datasetFilhos = DatasetFactory.getDataset( idDatasetFormulario, null, constraintsFilhos, null);
+
+			        var retornoNF;
+			        var retornoProcesso;
+			        var retornoDocId;
+			        var size = (datasetFilhos.values['length'])-(1);
+			    	console.log("TesteValidaçãoQuant"+size);
+
+			        retornoNF = datasetFilhos.values[size].nNotaFiscal;
+			        retornoProcesso = datasetFilhos.values[size].numeroSolicitacao;
+			        retornoDocId = datasetFilhos.values[size].documentid;
+
+			    	console.log("TesteValidaçãoNotaLançada"+retornoNF);
+			    	console.log("TesteValidaçãoProcesso"+retornoProcesso);
+			    	console.log("TesteValidaçãoDocId"+retornoDocId);
+
+			        //Teste de status do processo
+			        var constraintsFilhosProcesso = new Array();
+			        constraintsFilhosProcesso.push( DatasetFactory.createConstraint( "cardDocumentId", retornoDocId,retornoDocId, ConstraintType.MUST ) );
+
+			    	try{
+			            var retornoStatus;
+			            var datasetFilhosProcesso = DatasetFactory.getDataset( "workflowProcess", null, constraintsFilhosProcesso, null);
+			            retornoStatus = datasetFilhosProcesso.values[0].status;
+			    	    console.log("TesteValidaçãoStatus"+retornoStatus);
+			           } catch(erro) {
+
+			           }
+
+			    } catch(erro) {
+
+			    }
+			    
+			    if (retornoNF != "" && retornoNF != null  ){
+			        if (retornoStatus != '1'){
+			      
+			        $("#notaDuplicada").val('S');
+			        
+			        FLUIGC.message.alert({
+			            message: 'O Número de Nota Fiscal informado já foi incluído anteriomente para este fornecedor, verifique antes de realizar o lançamento!',
+			            title: 'Nota Fiscal Duplicada para o Fornecedor Selecionado',
+			            label: 'OK'
+			        });
+			        }else{
+			        	$("#notaDuplicada").val('N');
+			        }
+			        
+			    }else{
+			        $("#notaDuplicada").val('N');
+			    }
+
+		}
+		
+		
+		
+		
+		else if(atividade == AprovGestor){
+			
+			//setaValor("radioAreaGestorSim","sim")
+			//setaValor("obsAreaGestor","Aprovado")
+			setaValor("dataEnvioGestor",dataAbertura)
+		    setaValor("numeroSolicitacao",processo)
+		
+		}
+		else if(atividade == realizarAjusteGestor){
+			  setaValor("radioAreaGestorNao","nao")
+			  setaValor("numeroSolicitacao",processo)
+			
+			
+		}
+		
+		//Atividades com Trava Orçamentária - Situação: Fornecedor ou Natureza sem cadastro ou vínculo
+		else if(atividade == AprovDiretor || atividade == AprovGerenteRegional || AprovGestor){
+			consultarTotalNFT();
+			requisicaoOrcamentoConsinco();
+
+		    //Variáveis para a trava orçamentária
+		    var responsavelEnvio = String($("#matResponsavelEnvio").val()).trim();
+		    var contaContabil = $("#ContaContabilConsinco").val();
+		    var totalFLUIG    = parseFloat($("#valorTotalExibicao").val()) || 0;
+		    var totalCONSINCO = parseFloat($("#valorTotalOrcamento").val()) || 0;
+		    var totalNF       = parseFloat($("#valorNFT").val()) || 0;
+		    var codigoNatureza = $("#codigonaturezaC").val();
+		    var codigoFornecedor = $("#fornecedorC").val();
+		    
+		    console.log("--- DEBUG ORÇAMENTO ---");
+		    console.log("Resp: '" + responsavelEnvio + "'");
+		    console.log("Fluig: " + totalFLUIG + " | Consinco: " + totalCONSINCO + " | NF: " + totalNF);
+		    var saldoAtual = totalCONSINCO - totalFLUIG;
+		        
+		    // Arredonda para 2 casas para evitar erros como 100.000000001
+		    saldoAtual = parseFloat(saldoAtual.toFixed(2));
+		        
+		   console.log("Saldo Calculado: " + saldoAtual);
+		   console.log("Comparação: " + totalNF + " > " + saldoAtual + " ? " + (totalNF > saldoAtual));
+		   
+		   //Obtenção da concessão da trava
+		   var permite = $("#permitePassar").val();
+		   
+		   //Nova verificação para os que passaram na primeira etapa
+		   if (totalNF > saldoAtual && permite == 'nao' ) {
+			   msg.push("Não há orçamento disponível para o seu lançamento, favor verificar com a controladoria!");
+		    }
+			setaValor("dataEnvioDiretor",dataAbertura)
+			
+		}
+		else if(atividade == extraOrcamentario){
+			setaValor("radioAreaControladoria","Sim")
+			setaValor("dataEnvioControladoria",dataAbertura)
+			
+		}
+		
+		else if(atividade == extraOrcamentarioCentral){
+			setaValor("radioAreaControladoria","Sim")
+			setaValor("dataEnvioControladoria",dataAbertura)
+			
+		}
+
+		else if(atividade == analisarLancarNF || atividade == verificarAjustesEncerrarChamado){
+			//Edição do campo responsavel pelo financeiro
+
+		    var codigoF = $("#coFilial").val();
+		    
+			console.log("Filial t: " + codigoF);
+		    //var respAtend = 00131;
+		    if (codigoF == "2"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "5"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "9"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "10"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "11"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "14"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "20"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "23"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "24"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "31"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "36"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		  //Novas DVAs
+		    if (codigoF == "41"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "44"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "45"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "46"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "49"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "51"){
+		    	setaValor("financeiroResp","00131")
+		    }
+			
+			    setaValor("numeroSolicitacao",processo)
+			    let inputs = new Array(
+					"obsLancaInputNF"
+				)
+				
+				for(let i = 0; i<inputs.length; i++){
+					let id = inputs[i]
+					if($("#"+id).val() == "" || $("#"+id).val() == null){
+						msg.push("\n O campo " + $("label[for='"+id+"']")[0].innerHTML + " não foi preenchido")
+					}
+				}
+
+				if(msg.length > 0){
+					throw(msg.toString())
+				}else{
+
+					
+					
+					//Atualiza prazos
+					if($("#tipoUrgente").prop("checked") == true){
+						setaValor("prazoAtenderDemanda","001:00")
+						
+					}
+					
+	
+				}
+				
+				
+			
+			
+		}
+		
+		else if(atividade == providenciarAjustes || atividade == providenciarAjustesAtraso){
+			
+			let inputs = new Array(
+				"obsAtendimento"
+			)
+			
+			for(let i = 0; i<inputs.length; i++){
+				let id = inputs[i]
+				if($("#"+id).val() == "" || $("#"+id).val() == null){
+					msg.push("\n O campo " + $("label[for='"+id+"']")[0].innerHTML + " não foi preenchido")
+				}
+			}
+
+			if($("input[name='radioAtendimentoResolvida']:checked").length == 0){
+				msg.push("\n Informe se a demanda foi resolvida!")
+			}
+
+		}
+	
+		if(msg.length > 0){
+			throw(msg.toString())
+		}
+	}catch(e){
+		throw(e.toString())
+	}
+
+}

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Log de Sincronização Fluig - MaxControLADM</title>
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-highest": "#e2e2e7",
+              "surface-container-high": "#e8e8ed",
+              "primary-fixed": "#d9e2ff",
+              "inverse-primary": "#afc6ff",
+              "primary-fixed-dim": "#afc6ff",
+              "on-secondary-container": "#57627d",
+              "surface": "#f9f9fe",
+              "on-primary": "#ffffff",
+              "on-secondary-fixed-variant": "#3c4660",
+              "tertiary-fixed": "#ffdcc1",
+              "surface-variant": "#e2e2e7",
+              "secondary-fixed": "#d8e2ff",
+              "surface-bright": "#f9f9fe",
+              "on-surface-variant": "#434650",
+              "on-error": "#ffffff",
+              "surface-container-low": "#f3f3f9",
+              "on-secondary": "#ffffff",
+              "surface-container": "#eeedf3",
+              "outline": "#747781",
+              "inverse-surface": "#2f3035",
+              "secondary": "#535e79",
+              "surface-tint": "#3d5d9e",
+              "on-tertiary": "#ffffff",
+              "surface-dim": "#dad9df",
+              "on-secondary-fixed": "#0f1b33",
+              "tertiary": "#542d00",
+              "primary-container": "#2a4b8b",
+              "on-tertiary-container": "#faae69",
+              "secondary-container": "#d4dfff",
+              "on-primary-container": "#a2beff",
+              "secondary-fixed-dim": "#bbc6e5",
+              "inverse-on-surface": "#f0f0f6",
+              "on-tertiary-fixed-variant": "#6c3a00",
+              "on-background": "#1a1c20",
+              "tertiary-container": "#754000",
+              "outline-variant": "#c4c6d2",
+              "error": "#ba1a1a",
+              "on-error-container": "#93000a",
+              "on-surface": "#1a1c20",
+              "error-container": "#ffdad6",
+              "background": "#f9f9fe",
+              "primary": "#0a3473",
+              "tertiary-fixed-dim": "#ffb877",
+              "surface-container-lowest": "#ffffff",
+              "on-primary-fixed": "#001943",
+              "on-primary-fixed-variant": "#224585",
+              "on-tertiary-fixed": "#2e1600"
+            },
+            borderRadius: {
+              "DEFAULT": "0.125rem",
+              "lg": "0.25rem",
+              "xl": "0.5rem",
+              "full": "0.75rem"
+            },
+            spacing: {
+              "xl": "32px",
+              "topbar-height": "64px",
+              "base": "8px",
+              "sm": "8px",
+              "xs": "4px",
+              "md": "16px",
+              "sidenav-width": "240px",
+              "lg": "24px"
+            },
+            fontFamily: {
+              "headline-md": ["Inter"],
+              "body-md": ["Inter"],
+              "display-lg": ["Inter"],
+              "code-sm": ["Geist"],
+              "body-lg": ["Inter"],
+              "code-md": ["Geist"],
+              "body-sm": ["Inter"],
+              "headline-lg": ["Inter"]
+            },
+            fontSize: {
+              "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+              "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+              "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+              "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+              "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+              "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+              "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+              "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex antialiased">
+<!-- SideNavBar -->
+<aside class="fixed inset-y-0 left-0 z-40 flex flex-col bg-primary dark:bg-primary border-r border-outline-variant shadow-md h-full w-[240px]">
+<!-- Header -->
+<div class="p-6 border-b border-on-primary-fixed-variant">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container overflow-hidden">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2w3cPCWy_KNataoNheV1Qpp6eloceYFMDAxFHeXYr4nfoKDeXK_ggPofv6tDryd9WNLgVdbH8exur6adeJKACxC5P4K4PjkQhuihZZju0bvifBWBHW3RZYrMzRh82ZZi6oPpVEvwpOn3Su5geO78jfyPA4DuUoIEtZU6v-UQ93kevSf5beTiAnxjtCNq210nNO73G1-QVkVpIQnGbPZNJJvhv7oCfWczlvlrMXbsZNtDAnSzMJsjVKBJ1iTF4p8mJOMPEOcqr008"/>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-black text-on-primary tracking-tight">MaxControLADM</h1>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-inverse-primary opacity-80">Fluig Integration Shell</p>
+</div>
+<!-- CTA -->
+<div class="p-4">
+<button class="w-full flex items-center justify-center gap-2 bg-primary-container text-on-primary-container font-headline-md text-headline-md py-2 px-4 rounded-lg hover:bg-on-primary-fixed-variant transition-colors cursor-pointer">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+                Nova Solicitação
+            </button>
+</div>
+<!-- Main Navigation -->
+<nav class="flex-1 overflow-y-auto py-2 px-3 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-secondary-container bg-secondary-container rounded-lg font-bold transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined">sync_alt</span>
+                Painel Global
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors hover:text-on-primary-container transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined">payments</span>
+                Pagamentos
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors hover:text-on-primary-container transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+                Compras
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors hover:text-on-primary-container transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined">build</span>
+                Manutenção
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors hover:text-on-primary-container transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Configurações
+            </a>
+</nav>
+<!-- Footer Navigation -->
+<div class="p-3 border-t border-on-primary-fixed-variant mt-auto">
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined">help</span>
+                Suporte
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Sair
+            </a>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col min-h-screen ml-[240px]">
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 left-0 z-30 flex items-center justify-between px-6 ml-[240px] bg-surface border-b border-outline-variant w-full h-[64px]">
+<!-- Left: Search -->
+<div class="flex-1 max-w-md">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant text-on-surface rounded-full pl-10 pr-4 py-2 font-body-sm text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Pesquisar..." type="text"/>
+</div>
+</div>
+<!-- Center: Navigation Links -->
+<nav class="flex items-center gap-6 absolute left-1/2 -translate-x-1/2 h-full">
+<a class="h-full flex items-center px-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all font-body-sm text-body-sm active:scale-95" href="#">Dashboard</a>
+<a class="h-full flex items-center px-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all font-body-sm text-body-sm active:scale-95" href="#">Relatórios</a>
+<a class="h-full flex items-center px-2 text-primary border-b-2 border-primary font-semibold hover:bg-surface-container-high transition-all font-body-sm text-body-sm active:scale-95" href="#">Log de Sincro</a>
+</nav>
+<!-- Right: Actions & Profile -->
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary p-2 rounded-full hover:bg-surface-container-high transition-all active:scale-95 flex items-center justify-center">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary p-2 rounded-full hover:bg-surface-container-high transition-all active:scale-95 flex items-center justify-center">
+<span class="material-symbols-outlined">apps</span>
+</button>
+<div class="h-6 w-px bg-outline-variant mx-2"></div>
+<button class="font-headline-sm text-headline-sm text-primary font-medium hover:bg-surface-container-high px-4 py-2 rounded-lg transition-all active:scale-95">Consultar Status</button>
+<button class="font-headline-sm text-headline-sm bg-primary text-on-primary font-medium hover:bg-on-primary-fixed-variant px-4 py-2 rounded-lg transition-all active:scale-95 shadow-sm">Sincronizar</button>
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden border border-outline-variant ml-2">
+<img alt="Avatar do Administrador" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPCJl0xYxiE7JY83VkZZqX7HeROjAgEOdHyuHIXAZG4IQupUmX8Coydb5PZZE6KOLqVy2NB3tV5K76Pq5oj1DESHIg1Erp4FpwEaGALr44FHAC87SiGK63m7QfswLNgifUbN6lDAsPRVgjuFzAgGLomjASCEhCNIJ5_yubjKwSCKEZdOLQNXdaJSdsPUumPJZozkX_bDZs8ZLcF7Ab0WeiEIx0eabLrwPYcB42Tk6hXtcAAQGPQ2vXP8t65ycIsgoGvFEN6Fwz-Ss"/>
+</div>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 mt-[64px] p-6 bg-surface-container-low overflow-x-hidden">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface">Integração Fluig</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-1">Monitoramento em tempo real das solicitações capturadas.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 bg-surface text-on-surface border border-outline-variant px-4 py-2 rounded-lg font-headline-md text-headline-md hover:bg-surface-variant transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+                        Filtros Avançados
+                    </button>
+</div>
+</div>
+<!-- Data Table Card -->
+<div class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
+<!-- Table Toolbar -->
+<div class="p-4 border-b border-outline-variant bg-surface-bright flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-4 flex-1 min-w-[300px]">
+<div class="relative max-w-xs w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full bg-surface border border-outline-variant text-on-surface rounded-lg pl-9 pr-3 py-2 font-body-sm text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" placeholder="Buscar ID ou Centro de Custo..." type="text"/>
+</div>
+<select %23434650\"="" 0="" 24="" 24\"="" class="bg-surface border border-outline-variant text-on-surface rounded-lg px-3 py-2 font-body-sm text-body-sm focus:outline-none focus:border-primary appearance-none pr-8 bg-no-repeat" height='\"24\"' style="background-image: url('data:image/svg+xml;utf8,&lt;svg fill=\" viewbox='\"0' width='\"24\"' xmlns='\"http://www.w3.org/2000/svg\"'>'); background-position: right 8px center;"&gt;
+                            <option value="">Tipo de Processo</option>
+<option value="pagamentos">Pagamentos</option>
+<option value="compras">Compras</option>
+<option value="manutencao">Manutenção</option>
+</select>
+<select %23434650\"="" 0="" 24="" 24\"="" class="bg-surface border border-outline-variant text-on-surface rounded-lg px-3 py-2 font-body-sm text-body-sm focus:outline-none focus:border-primary appearance-none pr-8 bg-no-repeat" height='\"24\"' style="background-image: url('data:image/svg+xml;utf8,&lt;svg fill=\" viewbox='\"0' width='\"24\"' xmlns='\"http://www.w3.org/2000/svg\"'>'); background-position: right 8px center;"&gt;
+                            <option value="">Status Fluig</option>
+<option value="aberto">Aberto</option>
+<option value="aprovacao">Em Aprovação</option>
+<option value="finalizado">Finalizado</option>
+</select>
+</div>
+<div class="text-on-surface-variant font-body-sm text-body-sm">
+                        Exibindo <span class="font-semibold text-on-surface">1-10</span> de <span class="font-semibold text-on-surface">1,248</span> registros
+                    </div>
+</div>
+<!-- Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-highest border-b border-outline-variant">
+<tr>
+<th class="py-3 px-4 font-headline-md text-headline-md text-on-surface-variant font-semibold whitespace-nowrap">ID Solicitação</th>
+<th class="py-3 px-4 font-headline-md text-headline-md text-on-surface-variant font-semibold whitespace-nowrap">Tipo de Processo</th>
+<th class="py-3 px-4 font-headline-md text-headline-md text-on-surface-variant font-semibold whitespace-nowrap">Formulário</th>
+<th class="py-3 px-4 font-headline-md text-headline-md text-on-surface-variant font-semibold whitespace-nowrap">Centro de Custo</th>
+<th class="py-3 px-4 font-headline-md text-headline-md text-on-surface-variant font-semibold whitespace-nowrap">Status Fluig</th>
+<th class="py-3 px-4 font-headline-md text-headline-md text-on-surface-variant font-semibold whitespace-nowrap">Última Sincronização</th>
+<th class="py-3 px-4 font-headline-md text-headline-md text-on-surface-variant font-semibold text-right">Ações</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface divide-y divide-outline-variant bg-surface">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-3 px-4 font-code-md text-code-md text-primary font-medium">REQ-8492</td>
+<td class="py-3 px-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">payments</span>
+                                    Pagamentos
+                                </td>
+<td class="py-3 px-4">Pagamento de Fornecedor</td>
+<td class="py-3 px-4">CC-104 (TI)</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant font-body-sm text-body-sm font-medium border border-outline-variant">
+                                        Aberto
+                                    </span>
+</td>
+<td class="py-3 px-4 text-on-surface-variant">10/10/2023 14:30</td>
+<td class="py-3 px-4 text-right">
+<button class="text-on-surface-variant hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group bg-surface-bright">
+<td class="py-3 px-4 font-code-md text-code-md text-primary font-medium">REQ-8491</td>
+<td class="py-3 px-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">shopping_cart</span>
+                                    Compras
+                                </td>
+<td class="py-3 px-4">Aquisição de Hardware</td>
+<td class="py-3 px-4">CC-201 (Infra)</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-tertiary-container text-on-tertiary-container font-body-sm text-body-sm font-medium border border-tertiary-fixed-dim">
+                                        Em Aprovação
+                                    </span>
+</td>
+<td class="py-3 px-4 text-on-surface-variant">10/10/2023 14:28</td>
+<td class="py-3 px-4 text-right">
+<button class="text-on-surface-variant hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-3 px-4 font-code-md text-code-md text-primary font-medium">REQ-8490</td>
+<td class="py-3 px-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">build</span>
+                                    Manutenção
+                                </td>
+<td class="py-3 px-4">Reparo Preventivo Eq-A</td>
+<td class="py-3 px-4">CC-305 (Operações)</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-body-sm text-body-sm font-medium border border-secondary-fixed-dim">
+                                        Finalizado
+                                    </span>
+</td>
+<td class="py-3 px-4 text-on-surface-variant">10/10/2023 14:15</td>
+<td class="py-3 px-4 text-right">
+<button class="text-on-surface-variant hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group bg-surface-bright">
+<td class="py-3 px-4 font-code-md text-code-md text-primary font-medium">REQ-8489</td>
+<td class="py-3 px-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">payments</span>
+                                    Pagamentos
+                                </td>
+<td class="py-3 px-4">Reembolso Despesas</td>
+<td class="py-3 px-4">CC-102 (RH)</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant font-body-sm text-body-sm font-medium border border-outline-variant">
+                                        Aberto
+                                    </span>
+</td>
+<td class="py-3 px-4 text-on-surface-variant">10/10/2023 13:50</td>
+<td class="py-3 px-4 text-right">
+<button class="text-on-surface-variant hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-3 px-4 font-code-md text-code-md text-primary font-medium">REQ-8488</td>
+<td class="py-3 px-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">shopping_cart</span>
+                                    Compras
+                                </td>
+<td class="py-3 px-4">Material de Escritório</td>
+<td class="py-3 px-4">CC-101 (Adm)</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-body-sm text-body-sm font-medium border border-secondary-fixed-dim">
+                                        Finalizado
+                                    </span>
+</td>
+<td class="py-3 px-4 text-on-surface-variant">10/10/2023 13:10</td>
+<td class="py-3 px-4 text-right">
+<button class="text-on-surface-variant hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="p-4 border-t border-outline-variant bg-surface flex items-center justify-between">
+<button class="px-3 py-1 border border-outline-variant rounded text-on-surface-variant font-body-sm hover:bg-surface-variant transition-colors disabled:opacity-50" disabled="">Anterior</button>
+<div class="flex gap-1">
+<button class="w-8 h-8 flex items-center justify-center rounded bg-primary-container text-on-primary-container font-body-sm font-medium">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-variant text-on-surface-variant font-body-sm">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-variant text-on-surface-variant font-body-sm">3</button>
+<span class="w-8 h-8 flex items-center justify-center text-on-surface-variant font-body-sm">...</span>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-variant text-on-surface-variant font-body-sm">125</button>
+</div>
+<button class="px-3 py-1 border border-outline-variant rounded text-on-surface-variant font-body-sm hover:bg-surface-variant transition-colors">Próxima</button>
+</div>
+</div>
+</main>
+</div>
+</body></html>

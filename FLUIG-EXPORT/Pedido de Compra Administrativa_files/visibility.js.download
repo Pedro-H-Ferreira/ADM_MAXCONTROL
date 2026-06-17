@@ -1,0 +1,2383 @@
+// Código das atividades 
+var inicio = 0;
+var inicio1 = 4;
+
+var realizarAjusteGestor = 93;
+var AprovGestor = 60;
+var AprovDiretor = 107;
+var AprovGerenteRegional = 212;
+var AprovPresidente = 196;
+var realizarAjusteGerenteRegional = 225;
+var realizarAjustePresidente = 206;
+var realizarAjusteDiretor = 111;
+var realizarAjusteControladoria = 181;
+var analisarLancarNF = 64;
+var solicitarAjusteNF = 87;
+var corrigirProblemaPublicacao = 102;
+var extraOrcamentario = 142;
+var extraOrcamentarioCentral = 150;
+var providenciarAjustes = 5;
+var providenciarAjustesAtraso = 18;
+var cobrarAtendimentoDemanda = 20;
+var verificarAjustesEncerrarChamado = 7;
+var financeiro = 124;
+var canhotofinanceiro = 170;
+var realizarAjusteFinanceiro = 174;
+
+var aprovacaoGestorImediato = 260;
+var analisaCotar = 242;
+var aprovarCotacao = 245;
+var realizarCompra = 255;
+var anexarNF = 240;
+var fim = 11;
+var fim2 = 68;
+
+
+
+$(document).ready(function (obj) {
+//$(document).on("ready",function (obj){
+
+    initAtv();
+    view();
+
+    if(mobaiu == 'S'){
+        viewMobile();
+    }
+    
+  //Nova regra para inclusão da cotação  
+    $('#idAnalisarRadioCompra').on('click', function() {
+  	  console.log("Bloquear o painel da cotação");
+      adicionarCotacao();
+    });
+
+    //Atualiza numero da solicitação
+    if(AprovGestor == numProcess){
+        setaValor("numeroSolicitacao",WKNumProces)
+    }
+    
+    $("#idradiorateioNF").click(function(){
+        console.log("Boqueio do painel de Rateio");
+        showCamposRateio();
+    });
+    //Regra para o XML
+    $("#idradioParcelasNF").click(function(){
+        console.log("Boqueio do painel do XML");
+        showCamposParcelas();
+    });    
+    //Regra para o XML upload
+    $("#idFileUpload").click(function(){
+        console.log("Boqueio do painel os campos Filial e Fornecedor");
+        showCamposBloqueadosXML();
+    }); 
+    //Verificar o preenchimento de funcionario ou fornecedor  
+    $("#idDefinirNF").click(function(){
+        console.log("Boqueio do painel de Funcionario e Fornecedor");
+        showCamposDefinir();
+    });     
+    
+    $("#idRadioLancaInputNF").click(function(){
+        console.log("Boqueio do painel de Solicitação de Ajuste");
+        showCamposCentral();
+    });
+    
+    $("#idRadioPagamentoRealizado").click(function(){
+        console.log("Liberar o campo demanda para finaceiro");
+        showDemandaFinanceiro();
+    });
+    
+    $("#idDescricaoDemandaEnvio").click(function(){
+        console.log("Liberar o campo Carregamento");
+        showCamposCarregamento();
+    });
+    
+    $("#idNF").click(function(){
+        console.log("Liberar o campo Carregamento");
+        showCamposCarregamento();
+    });
+  
+    $("#topBtn").click(function(){
+        console.log("Liberar o campo Carregamento");
+        showCamposCarregamento();
+    });
+    
+    
+    
+    //Função de visualizar a data
+    var numProcess = WKNumProces;
+    if(numProcess == inicio){
+	$.each($("[data-date]"), function(i, o) {
+        var id = $(o).attr("id");
+		FLUIGC.calendar("#" + id);
+	});
+
+    } 
+
+    
+    
+});
+
+//Realiza ações funcionais
+function initAtv() {
+
+    var atividade = WKNumState;
+    
+    if ( atividade == inicio || atividade == inicio1 ) {
+        initCargo();
+        initFluigCalendar();
+    }    
+    
+    
+    
+}
+
+//Mostra, oculta, bloqueia e libera campos
+function view() {
+    var atividade = WKNumState;
+
+    
+    
+    
+    //bloqueios
+    if(atividade != inicio && atividade != inicio1 &&  atividade != realizarAjusteGestor && atividade != corrigirProblemaPublicacao && atividade != providenciarAjustes && atividade != providenciarAjustesAtraso && atividade !=  realizarAjusteFinanceiro && atividade !=  realizarAjusteControladoria && atividade !=  realizarAjusteGerenteRegional && atividade !=  realizarAjustePresidente){
+        protege("#accordionCabecalhoPedido")
+        protege("#solAccordionProdutos")
+        
+        
+    }
+    //Novas atividades
+    if(atividade != aprovacaoGestorImediato){
+        protege("#accordionAreaGestorImediato")
+    }
+    
+    if(atividade != analisaCotar){
+        protege("#accordionProdutosCompras")
+        protege("#accordionProdutos")
+    }
+    
+    if(atividade != aprovarCotacao){
+        protege("#accordionGestaoCompra")
+    }
+    
+    if(atividade != realizarCompra){
+        protege("#accordionGestaoCompraOrcComp")
+    }
+    
+    if(atividade != anexarNF){
+        protege("#accordionCabecalhoEnvio")
+        protege("#accordionListaNFEnvio")        
+    }
+    
+    if(atividade != AprovGestor && atividade != cobrarAtendimentoDemanda){
+        protege("#accordionAreaGestor")
+    }
+    
+    if(atividade != AprovGerenteRegional){
+        protege("#accordionAreaGerRegional")
+    }
+    
+    if(atividade != AprovPresidente){
+        protege("#accordionAreaPresidente")
+    }
+    
+    if(atividade != AprovDiretor){
+        protege("#accordionAreaDiretoria")
+    }
+    
+    
+    if(atividade != analisarLancarNF && atividade != verificarAjustesEncerrarChamado){
+        protege("#accordionLancaInputNF");
+        protege("#accordionLancaWinthor");
+        protege("#accordionCabecalho")
+    }
+
+    if(atividade != extraOrcamentario && atividade != extraOrcamentarioCentral){
+        protege("#accordionAreaControladoria")
+    }
+       
+    
+    if(atividade != providenciarAjustes && atividade != providenciarAjustesAtraso){
+        protege("#accordionAtendimento")
+    }
+
+    if(atividade != financeiro && atividade != canhotofinanceiro){
+        protege("#accordionFinanceiroDD")
+
+    }
+
+    
+    //liberações
+    
+    if(atividade == inicio || atividade == inicio1){
+    	
+    	//Novos paineis
+        $("#collapseCabecalhoPedido").show();
+        $("#solAccordionProdutos").show();
+        $("#accordionAreaGestorImediato").hide();
+        $("#accordionProdutosCompras").hide();
+        $("#accordionProdutos").hide();
+        $("#accordionGestaoCompra").hide();
+        $("#accordionGestaoCompraOrcComp").hide();
+        $("#accordionListaNFEnvio").hide();
+        
+
+        $("#accordionCabecalhoEnvio").hide();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAreaDiretoria").hide();
+        $("#accordionAreaGestor").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        //$("#accordionGestor").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaGerRegional").hide();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+        showCamposCarregamento();
+        
+		//filtroConta();
+		//filtroFuncionario();
+		//filtroFilial();
+		//filtroFornecedor();
+        
+        //GestorImediato
+        if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+            $("#accordionAreaGestorImediato").show();
+        }else{
+        	$("#accordionAreaGestorImediato").hide();
+        }
+        
+        
+        //Compras
+        if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+            $("#accordionProdutosCompras").show();
+        }else{
+        	$("#accordionProdutosCompras").hide();
+        }
+
+
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+        //Diretor
+        if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        
+        
+
+    }
+    
+    
+    if(atividade == aprovacaoGestorImediato){
+    	
+    	//Novos paineis
+        $("#collapseCabecalhoPedido").show();
+        $("#solAccordionProdutos").show();
+        $("#accordionAreaGestorImediato").show();
+        $("#accordionProdutosCompras").hide();
+        $("#accordionProdutos").hide();
+        $("#accordionGestaoCompra").hide();
+        $("#accordionGestaoCompraOrcComp").hide();
+
+        $("#accordionCabecalhoEnvio").hide();
+        $("#accordionListaNFEnvio").hide();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAreaDiretoria").hide();
+        $("#accordionAreaGestor").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        //$("#accordionGestor").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaGerRegional").hide();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+        showCamposCarregamento();
+        
+		//filtroConta();
+		//filtroFuncionario();
+		//filtroFilial();
+		//filtroFornecedor();
+        
+        
+        
+        //Compras
+        if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+            $("#accordionProdutosCompras").show();
+        }else{
+        	$("#accordionProdutosCompras").hide();
+        }
+
+
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+        //Diretor
+        if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        
+        
+
+    }
+    
+    if(atividade == analisaCotar){
+    	
+    	//Novos paineis
+        $("#collapseCabecalhoPedido").show();
+        $("#solAccordionProdutos").show();
+        $("#accordionAreaGestorImediato").show();
+        $("#accordionProdutosCompras").show();
+        $("#accordionProdutos").show();
+        $("#accordionGestaoCompra").hide();
+        $("#accordionGestaoCompraOrcComp").hide();
+
+        $("#accordionCabecalhoEnvio").hide();
+        $("#accordionListaNFEnvio").hide();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAreaDiretoria").hide();
+        $("#accordionAreaGestor").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        //$("#accordionGestor").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaGerRegional").hide();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+        showCamposCarregamento();
+        
+		//filtroConta();
+		//filtroFuncionario();
+		//filtroFilial();
+		//filtroFornecedor();
+        
+        /*
+        //GestorImediato
+        if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+            $("#accordionAreaGestorImediato").show();
+        }else{
+        	$("#accordionAreaGestorImediato").hide();
+        }
+
+       */
+
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+        //Diretor
+        if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        
+        
+
+    }
+    
+    
+    if(atividade == aprovarCotacao){
+    	
+    	//Novos paineis
+        $("#collapseCabecalhoPedido").show();
+        $("#solAccordionProdutos").show();
+        $("#accordionAreaGestorImediato").show();
+        $("#accordionProdutosCompras").show();
+        $("#accordionProdutos").show();
+        $("#accordionGestaoCompra").show();
+        $("#accordionGestaoCompraOrcComp").hide();
+
+        $("#accordionCabecalhoEnvio").hide();
+        $("#accordionListaNFEnvio").hide();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAreaDiretoria").hide();
+        $("#accordionAreaGestor").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        //$("#accordionGestor").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaGerRegional").hide();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+        showCamposCarregamento();
+        
+		//filtroConta();
+		//filtroFuncionario();
+		//filtroFilial();
+		//filtroFornecedor();
+        
+        
+        //GestorImediato
+        if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+            $("#accordionAreaGestorImediato").show();
+        }else{
+        	$("#accordionAreaGestorImediato").hide();
+        }
+
+
+
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+        //Diretor
+        if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        
+        
+
+    }
+    
+    if(atividade == realizarCompra){
+    	
+    	//Novos paineis
+        $("#collapseCabecalhoPedido").show();
+        $("#solAccordionProdutos").show();
+        $("#accordionAreaGestorImediato").show();
+        $("#accordionProdutosCompras").show();
+        $("#accordionProdutos").show();
+        $("#accordionGestaoCompra").show();
+        $("#accordionGestaoCompraOrcComp").show();
+
+        $("#accordionCabecalhoEnvio").hide();
+        $("#accordionListaNFEnvio").hide();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAreaDiretoria").show();
+        $("#accordionAreaGestor").show();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        //$("#accordionGestor").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionAreaPresidente").show();
+        $("#accordionAreaGerRegional").hide();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+        showCamposCarregamento();
+        
+		//filtroConta();
+		//filtroFuncionario();
+		//filtroFilial();
+		//filtroFornecedor();
+        
+        
+        //GestorImediato
+        if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+            $("#accordionAreaGestorImediato").show();
+        }else{
+        	$("#accordionAreaGestorImediato").hide();
+        }
+
+        
+/*
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+*/        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+/*        
+        //Diretor
+        if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+*/        
+        
+        
+
+    }
+    
+  
+    
+ 
+    
+  
+    if(atividade == AprovGestor){
+    	
+    	//Novos paineis
+        $("#collapseCabecalhoPedido").show();
+        $("#solAccordionProdutos").show();
+        $("#accordionAreaGestorImediato").show();
+        $("#accordionProdutosCompras").show();
+        $("#accordionProdutos").show();
+        $("#accordionGestaoCompra").show();
+        $("#accordionGestaoCompraOrcComp").hide();
+    	
+        $("#accordionCabecalhoEnvio").hide();
+        $("#accordionListaNFEnvio").hide();
+        $("#accordionListaNFEnvio").hide();
+        $("#accordionRateioNF").hide();//painel de Rateio
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaGerRegional").hide();
+        $("#accordionAreaDiretoria").hide();
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionFinanceiroDD").hide();
+        
+        $("#buttonRateio").hide();
+        
+  
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        ajustarDataCentral();
+        //showCamposDefinir();
+        //ajustadata();
+        //ajustaPrazoCentral();
+		//filtroFuncionario();
+        //GestorImediato
+        
+        if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+            $("#accordionAreaGestorImediato").show();
+        }else{
+        	$("#accordionAreaGestorImediato").hide();
+        }
+        
+        
+        //Compras
+        if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+            $("#accordionProdutosCompras").show();
+        }else{
+        	$("#accordionProdutosCompras").hide();
+        }
+
+/*
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+ */       
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+        //Diretor
+        if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+       
+    }
+    
+   if(atividade == realizarAjusteGestor){
+    	
+   	//Novos paineis
+       $("#collapseCabecalhoPedido").show();
+       $("#solAccordionProdutos").show();
+       $("#accordionAreaGestorImediato").show();
+       $("#accordionProdutosCompras").show();
+       $("#accordionProdutos").show();
+       $("#accordionGestaoCompra").show();
+       $("#accordionGestaoCompraOrcComp").hide();
+   	
+       $("#accordionCabecalhoEnvio").hide();
+       $("#accordionListaNFEnvio").hide();
+       $("#accordionRateioNF").hide();//painel de Rateio
+       $("#accordionAreaGestor").show();
+        $("#radioAreaGestorNao").val('nao');
+        $("#obsAreaGestor").val('Ajustar conforme informação na aba complemento');
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaDiretoria").hide();
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaGerRegional").hide();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+ 	    //filtroFuncionario();
+        //GestorImediato
+        
+        if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+            $("#accordionAreaGestorImediato").show();
+        }else{
+        	$("#accordionAreaGestorImediato").hide();
+        }
+        
+        
+        //Compras
+        if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+            $("#accordionProdutosCompras").show();
+        }else{
+        	$("#accordionProdutosCompras").hide();
+        }
+
+
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+       
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+        //Diretor
+        if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+
+ 
+    }
+   
+   
+   if(atividade == AprovDiretor){
+   	
+   	//Novos paineis
+       $("#collapseCabecalhoPedido").show();
+       $("#solAccordionProdutos").show();
+       $("#accordionAreaGestorImediato").show();
+       $("#accordionProdutosCompras").show();
+       $("#accordionProdutos").show();
+       $("#accordionGestaoCompra").show();
+       $("#accordionGestaoCompraOrcComp").hide();
+   	
+       $("#accordionCabecalhoEnvio").hide();
+       $("#accordionListaNFEnvio").hide();
+       $("#accordionRateioNF").hide();//painel de Rateio
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaGerRegional").hide();
+       $("#accordionAreaDiretoria").show();
+       $("#accordionAreaPresidente").hide();
+       $("#accordionAreaControladoria").hide();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionFinanceiroDD").hide();
+       
+       $("#buttonRateio").hide();
+       
+ 
+       
+       $("[id^=centroCustoRateio___]").attr('readonly', true);
+       $("[id^=valorRateio___]").attr('readonly', true);
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposCentral();
+       ajustarDataCentral();
+       //showCamposDefinir();
+       //ajustadata();
+       //ajustaPrazoCentral();
+		//filtroFuncionario();
+       //GestorImediato
+       
+       if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+           $("#accordionAreaGestorImediato").show();
+       }else{
+       	$("#accordionAreaGestorImediato").hide();
+       }
+       
+       
+       //Compras
+       if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+           $("#accordionProdutosCompras").show();
+       }else{
+       	$("#accordionProdutosCompras").hide();
+       }
+
+       //Gestor/Gerente
+       if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+           $("#accordionAreaGestor").show();
+       }else{
+       	$("#accordionAreaGestor").hide();
+       }
+     
+       //Gerente Regional
+       if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+           $("#accordionAreaGerRegional").show();
+       }else{
+       	$("#accordionAreaGerRegional").hide();
+       }
+       
+ /*      
+       //Diretor
+       if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+           $("#accordionAreaDiretoria").show();
+       }else{
+       	$("#accordionAreaDiretoria").hide();
+       }
+  */     
+       //Presidente
+       if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+           $("#accordionAreaPresidente").show();
+       }else{
+       	$("#accordionAreaPresidente").hide();
+       }
+       
+      
+   }
+    
+    
+   if(atividade == realizarAjusteDiretor){
+   	
+
+   	
+
+      	//Novos paineis
+       $("#collapseCabecalhoPedido").show();
+       $("#solAccordionProdutos").show();
+       $("#accordionAreaGestorImediato").show();
+       $("#accordionProdutosCompras").show();
+       $("#accordionProdutos").show();
+       $("#accordionGestaoCompra").show();
+       $("#accordionGestaoCompraOrcComp").hide();
+   	
+       $("#accordionCabecalhoEnvio").hide();
+       $("#accordionListaNFEnvio").hide();
+       $("#accordionRateioNF").hide();//painel de Rateio
+       $("#accordionAreaGestor").show();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaDiretoria").show();
+        $("#radioAreaDiretoriaNao").val('nao');
+        $("#obsAreaDiretoria").val('Ajustar conforme informação na aba complemento');
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaGerRegional").hide();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+ 	    //filtroFuncionario();
+        
+        //GestorImediato
+        
+        if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+            $("#accordionAreaGestorImediato").show();
+        }else{
+        	$("#accordionAreaGestorImediato").hide();
+        }
+        
+        
+        //Compras
+        if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+            $("#accordionProdutosCompras").show();
+        }else{
+        	$("#accordionProdutosCompras").hide();
+        }
+
+
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+       
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+   /*     
+        //Diretor
+        if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+    */    
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+
+
+   }
+   
+   if(atividade == AprovGerenteRegional){
+	   
+	   	//Novos paineis
+       $("#collapseCabecalhoPedido").show();
+       $("#solAccordionProdutos").show();
+       $("#accordionAreaGestorImediato").show();
+       $("#accordionProdutosCompras").show();
+       $("#accordionProdutos").show();
+       $("#accordionGestaoCompra").show();
+       $("#accordionGestaoCompraOrcComp").hide();
+   	
+       $("#accordionCabecalhoEnvio").hide();
+       $("#accordionListaNFEnvio").hide();
+       $("#accordionRateioNF").hide();//painel de Rateio
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaGerRegional").show();
+       $("#accordionAreaDiretoria").hide();
+       $("#accordionAreaPresidente").hide();
+       $("#accordionAreaControladoria").hide();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionFinanceiroDD").hide();
+       
+       $("#buttonRateio").hide();
+       
+ 
+       
+       $("[id^=centroCustoRateio___]").attr('readonly', true);
+       $("[id^=valorRateio___]").attr('readonly', true);
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposCentral();
+       ajustarDataCentral();
+       //showCamposDefinir();
+       //ajustadata();
+       //ajustaPrazoCentral();
+		//filtroFuncionario();
+       
+       //GestorImediato
+       
+       if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+           $("#accordionAreaGestorImediato").show();
+       }else{
+       	$("#accordionAreaGestorImediato").hide();
+       }
+       
+       
+       //Compras
+       if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+           $("#accordionProdutosCompras").show();
+       }else{
+       	$("#accordionProdutosCompras").hide();
+       }
+
+       //Gestor/Gerente
+       if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+           $("#accordionAreaGestor").show();
+       }else{
+       	$("#accordionAreaGestor").hide();
+       }
+  /*   
+       //Gerente Regional
+       if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+           $("#accordionAreaGerRegional").show();
+       }else{
+       	$("#accordionAreaGerRegional").hide();
+       }
+  */     
+       
+       //Diretor
+       if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+           $("#accordionAreaDiretoria").show();
+       }else{
+       	$("#accordionAreaDiretoria").hide();
+       }
+     
+       //Presidente
+       if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+           $("#accordionAreaPresidente").show();
+       }else{
+       	$("#accordionAreaPresidente").hide();
+       }
+       
+      
+   }
+   
+   
+   if(atividade == realizarAjusteGerenteRegional){
+
+     	//Novos paineis
+      $("#collapseCabecalhoPedido").show();
+      $("#solAccordionProdutos").show();
+      $("#accordionAreaGestorImediato").show();
+      $("#accordionProdutosCompras").show();
+      $("#accordionProdutos").show();
+      $("#accordionGestaoCompra").show();
+      $("#accordionGestaoCompraOrcComp").hide();
+  	
+      $("#accordionCabecalhoEnvio").hide();
+      $("#accordionListaNFEnvio").hide();
+      $("#accordionRateioNF").hide();//painel de Rateio
+      $("#accordionAreaGestor").show();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionInput").hide();
+       $("#accordionFinanceiroDD").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionAreaControladoria").hide();
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaDiretoria").show();
+       $("#radioAreaGerRegionalNao").val('nao');
+       $("#obsAreaGerRegional").val('Ajustar conforme informação na aba complemento'); 
+       $("#accordionAreaPresidente").hide();
+       $("#accordionAreaGerRegional").hide();
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposCentral();
+       showCamposDefinir();
+	    //filtroFuncionario();
+       
+       //GestorImediato
+       
+       if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+           $("#accordionAreaGestorImediato").show();
+       }else{
+       	$("#accordionAreaGestorImediato").hide();
+       }
+       
+       
+       //Compras
+       if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+           $("#accordionProdutosCompras").show();
+       }else{
+       	$("#accordionProdutosCompras").hide();
+       }
+
+
+       //Gestor/Gerente
+       if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+           $("#accordionAreaGestor").show();
+       }else{
+       	$("#accordionAreaGestor").hide();
+       }
+      
+       //Gerente Regional
+       if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+           $("#accordionAreaGerRegional").show();
+       }else{
+       	$("#accordionAreaGerRegional").hide();
+       }
+       
+       
+       //Diretor
+       if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+           $("#accordionAreaDiretoria").show();
+       }else{
+       	$("#accordionAreaDiretoria").hide();
+       }
+     
+       //Presidente
+       if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+           $("#accordionAreaPresidente").show();
+       }else{
+       	$("#accordionAreaPresidente").hide();
+       }
+
+   }
+   
+   
+   if(atividade == AprovPresidente){
+   	
+	   	//Novos paineis
+       $("#collapseCabecalhoPedido").show();
+       $("#solAccordionProdutos").show();
+       $("#accordionAreaGestorImediato").show();
+       $("#accordionProdutosCompras").show();
+       $("#accordionProdutos").show();
+       $("#accordionGestaoCompra").show();
+       $("#accordionGestaoCompraOrcComp").hide();
+   	
+       $("#accordionCabecalhoEnvio").hide();
+       $("#accordionListaNFEnvio").hide();
+       $("#accordionRateioNF").hide();//painel de Rateio
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaGerRegional").show();
+       $("#accordionAreaDiretoria").show();
+       $("#accordionAreaPresidente").show();
+       $("#accordionAreaControladoria").hide();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionFinanceiroDD").hide();
+       
+       $("#buttonRateio").hide();
+       
+ 
+       
+       $("[id^=centroCustoRateio___]").attr('readonly', true);
+       $("[id^=valorRateio___]").attr('readonly', true);
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposCentral();
+       ajustarDataCentral();
+       //showCamposDefinir();
+       //ajustadata();
+       //ajustaPrazoCentral();
+		//filtroFuncionario();
+       
+       //GestorImediato
+       
+       if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+           $("#accordionAreaGestorImediato").show();
+       }else{
+       	$("#accordionAreaGestorImediato").hide();
+       }
+       
+       
+       //Compras
+       if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+           $("#accordionProdutosCompras").show();
+       }else{
+       	$("#accordionProdutosCompras").hide();
+       }
+
+       //Gestor/Gerente
+       if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+           $("#accordionAreaGestor").show();
+       }else{
+       	$("#accordionAreaGestor").hide();
+       }
+   
+       //Gerente Regional
+       if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+           $("#accordionAreaGerRegional").show();
+       }else{
+       	$("#accordionAreaGerRegional").hide();
+       }
+     
+       
+       //Diretor
+       if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+           $("#accordionAreaDiretoria").show();
+       }else{
+       	$("#accordionAreaDiretoria").hide();
+       }
+     
+       //Presidente
+       if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+           $("#accordionAreaPresidente").show();
+       }else{
+       	$("#accordionAreaPresidente").hide();
+       }
+       
+      
+   
+   
+      
+   }
+   
+   if(atividade == realizarAjustePresidente){
+   	
+
+   	
+
+    	//Novos paineis
+       $("#collapseCabecalhoPedido").show();
+       $("#solAccordionProdutos").show();
+       $("#accordionAreaGestorImediato").show();
+       $("#accordionProdutosCompras").show();
+       $("#accordionProdutos").show();
+       $("#accordionGestaoCompra").show();
+       $("#accordionGestaoCompraOrcComp").hide();
+   	
+       $("#accordionCabecalhoEnvio").hide();
+       $("#accordionListaNFEnvio").hide();
+       $("#accordionRateioNF").hide();//painel de Rateio
+       $("#accordionAreaGestor").show();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaDiretoria").show();
+        $("#radioAreaPresidenteNao").val('nao');
+        $("#obsAreaPresidente").val('Ajustar conforme informação na aba complemento'); 
+        $("#accordionAreaPresidente").show();
+        $("#accordionAreaGerRegional").show();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+ 	    //filtroFuncionario();
+        
+        //GestorImediato
+        
+        if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+            $("#accordionAreaGestorImediato").show();
+        }else{
+        	$("#accordionAreaGestorImediato").hide();
+        }
+        
+        
+        //Compras
+        if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+            $("#accordionProdutosCompras").show();
+        }else{
+        	$("#accordionProdutosCompras").hide();
+        }
+
+
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+       
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+        //Diretor
+        if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+      /*
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        */
+
+    
+
+
+   }
+   
+   if(atividade == extraOrcamentario){
+   	
+   	   intNome();
+   	   //Novos paineis
+       $("#collapseCabecalhoPedido").show();
+       $("#solAccordionProdutos").show();
+       $("#accordionAreaGestorImediato").show();
+       $("#accordionProdutosCompras").show();
+       $("#accordionProdutos").show();
+       $("#accordionGestaoCompra").show();
+       $("#accordionGestaoCompraOrcComp").show();
+   	
+       $("#accordionCabecalhoEnvio").hide();
+       $("#accordionListaNFEnvio").hide();
+       $("#accordionRateioNF").hide();//painel de Rateio
+       $("#accordionAreaGestor").show();
+   	
+       //$("#radioAreaDiretoria").val('sim');
+       $("#obsAreaGestorImediato").val('Aprovado');
+       $("#obsAreaGestor").val('Aprovado');
+       $("#obsAreaDiretoria").val('Aprovado');
+       $("#obsAreaGerRegional").val('Aprovado');
+       $("#obsAreaPresidente").val('Aprovado');
+       $("#radioAreaDiretoria").hide();
+       //$("#collapseCabecalhoEnvio").show(); 
+       //$("#accordionNotasLancadas").show();
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaDiretoria").show();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionInput").hide();
+       //$("#accordionGestor").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionFinanceiroDD").hide();
+       $("#accordionAreaPresidente").show();
+       $("#accordionAreaGerRegional").show();
+       
+       $("#buttonRateio").hide();
+       
+       $("[id^=centroCustoRateio___]").attr('readonly', true);
+       $("[id^=valorRateio___]").attr('readonly', true);
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposCentral();
+       //showCamposDefinir();
+       //showDemandaFinanceiro();
+       //showCamposCarregamento();
+		//filtroFuncionario();
+       
+      
+   }
+   
+   if(atividade == anexarNF){
+	   	
+   	   //intNome();
+   	   //Novos paineis
+       $("#collapseCabecalhoPedido").show();
+       $("#solAccordionProdutos").show();
+       $("#accordionAreaGestorImediato").show();
+       $("#accordionProdutosCompras").show();
+       $("#accordionProdutos").show();
+       $("#accordionGestaoCompra").show();
+       $("#accordionGestaoCompraOrcComp").show();
+   	
+       $("#accordionCabecalhoEnvio").show();
+       $("#accordionListaNFEnvio").show();
+       $("#accordionRateioNF").show();//painel de Rateio
+       $("#accordionAreaGestor").show();
+   	
+       //$("#radioAreaDiretoria").val('sim');
+       $("#obsAreaGestorImediato").val('Aprovado');
+       $("#obsAreaGestor").val('Aprovado');
+       $("#obsAreaDiretoria").val('Aprovado');
+       $("#obsAreaGerRegional").val('Aprovado');
+       $("#obsAreaPresidente").val('Aprovado');
+       $("#radioAreaDiretoria").hide();
+       //$("#collapseCabecalhoEnvio").show(); 
+       //$("#accordionNotasLancadas").show();
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaDiretoria").show();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionInput").hide();
+       //$("#accordionGestor").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionFinanceiroDD").hide();
+       $("#accordionAreaPresidente").show();
+       $("#accordionAreaGerRegional").show();
+       
+       //$("#buttonRateio").hide();
+       
+       $("[id^=centroCustoRateio___]").attr('readonly', true);
+       $("[id^=valorRateio___]").attr('readonly', true);
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposCentral();
+       showCamposDefinir();
+       //showDemandaFinanceiro();
+       showCamposCarregamento();
+		//filtroFuncionario();
+       //GestorImediato
+       
+       if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+           $("#accordionAreaGestorImediato").show();
+       }else{
+       	$("#accordionAreaGestorImediato").hide();
+       }
+       
+       
+       //Compras
+       if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+           $("#accordionProdutosCompras").show();
+       }else{
+       	$("#accordionProdutosCompras").hide();
+       }
+
+       //Gestor/Gerente
+       if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+           $("#accordionAreaGestor").show();
+       }else{
+       	$("#accordionAreaGestor").hide();
+       }
+   
+       //Gerente Regional
+       if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+           $("#accordionAreaGerRegional").show();
+       }else{
+       	$("#accordionAreaGerRegional").hide();
+       }
+     
+       
+       //Diretor
+       if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+           $("#accordionAreaDiretoria").show();
+       }else{
+       	$("#accordionAreaDiretoria").hide();
+       }
+     
+       //Presidente
+       if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+           $("#accordionAreaPresidente").show();
+       }else{
+       	$("#accordionAreaPresidente").hide();
+       }
+      
+   }
+    
+    if(atividade == realizarAjusteControladoria){
+    	
+    	//Novos paineis
+        $("#collapseCabecalhoPedido").show();
+        $("#solAccordionProdutos").show();
+        $("#accordionAreaGestorImediato").show();
+        $("#accordionProdutosCompras").show();
+        $("#accordionProdutos").show();
+        $("#accordionGestaoCompra").show();
+        $("#accordionGestaoCompraOrcComp").show();
+    	
+        $("#accordionCabecalhoEnvio").hide();
+        $("#accordionListaNFEnvio").hide();
+        $("#accordionRateioNF").hide();//painel de Rateio
+        $("#accordionAreaGestor").show();
+         $("#accordionLancaInputNF").hide();
+         $("#accordionCabecalho").hide();
+         $("#accordionAtendimento").hide();
+         $("#accordionInput").hide();
+         $("#accordionFinanceiroDD").hide();
+         $("#accordionLancaWinthor").hide();
+         $("#accordionAreaControladoria").show();
+         $("#accordionAreaGestor").show();
+         $("#accordionAreaDiretoria").show();
+         $("#radioAreaPresidenteNao").val('nao');
+         $("#obsAreaPresidente").val('Ajustar conforme informação na aba complemento'); 
+         $("#accordionAreaPresidente").show();
+         $("#accordionAreaGerRegional").show();
+         showCamposParcelas();
+         showCamposRateio();
+         showCamposCentral();
+         showCamposDefinir();
+  	    //filtroFuncionario();
+         
+         //GestorImediato
+         
+         if($("#obsAreaGestorImediato").val() != "" && $("#obsAreaGestorImediato").val() != null){
+             $("#accordionAreaGestorImediato").show();
+         }else{
+         	$("#accordionAreaGestorImediato").hide();
+         }
+         
+         
+         //Compras
+         if($("#ObsCompra").val() != "" && $("#ObsCompra").val() != null){
+             $("#accordionProdutosCompras").show();
+         }else{
+         	$("#accordionProdutosCompras").hide();
+         }
+
+
+         //Gestor/Gerente
+         if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+             $("#accordionAreaGestor").show();
+         }else{
+         	$("#accordionAreaGestor").hide();
+         }
+        
+         //Gerente Regional
+         if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+             $("#accordionAreaGerRegional").show();
+         }else{
+         	$("#accordionAreaGerRegional").hide();
+         }
+         
+         
+         //Diretor
+         if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+             $("#accordionAreaDiretoria").show();
+         }else{
+         	$("#accordionAreaDiretoria").hide();
+         }
+       
+         //Presidente
+         if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+             $("#accordionAreaPresidente").show();
+         }else{
+         	$("#accordionAreaPresidente").hide();
+         }
+        
+
+     
+        //Controladoria
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+    }
+    
+   
+    
+    
+ 
+    
+    if(atividade == extraOrcamentarioCentral){
+    	
+    	intNome();
+    	
+        //$("#radioAreaDiretoria").val('sim');
+        //$("#obsAreaGestor").val('Aprovado');
+        //$("#obsAreaDiretoria").val('Aprovado');
+        //$("#radioAreaDiretoria").hide();
+        //$("#collapseCabecalhoEnvio").show(); 
+        //$("#accordionNotasLancadas").show();
+        //$("#accordionAreaGestor").show();
+        //$("#accordionAreaDiretoria").show();
+        //$("#accordionLancaInputNF").hide();
+        //$("#accordionCabecalho").hide();
+        //$("#accordionAtendimento").hide();
+        //$("#accordionInput").hide();
+        //$("#accordionGestor").hide();
+        //$("#accordionLancaWinthor").hide();
+       //$("#accordionFinanceiroDD").hide();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        //showCamposDefinir();
+        //showDemandaFinanceiro();
+        //showCamposCarregamento();
+		//filtroFuncionario();
+        
+        
+        
+        //regras da tela da controladoria
+    	$("#accordionCabecalho").show();
+        $("#accordionAreaGestor").show();
+        //$("#accordionAtendimento").show();
+        //$("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        //$("#accordionLancaWinthor").show();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show()
+        }else{
+        	$("#accordionAreaGestor").hide()
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+
+        if($("#obsAtendimento").val() != "" && $("#obsAtendimento").val() != null){
+            $("#accordionAtendimento").show()
+        }else{
+        	$("#accordionAtendimento").hide()
+        }
+        /*
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        */
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+             
+       
+    }    
+    
+    
+    
+    if(atividade == analisarLancarNF){
+    	
+    	
+    	//Novos paineis
+        $("#collapseCabecalhoPedido").show();
+        $("#solAccordionProdutos").show();
+        $("#accordionAreaGestorImediato").show();
+        $("#accordionProdutosCompras").show();
+        $("#accordionProdutos").show();
+        $("#accordionGestaoCompra").show();
+        $("#accordionGestaoCompraOrcComp").show();
+    	
+        $("#accordionCabecalhoEnvio").show();
+        $("#accordionListaNFEnvio").show();
+        //$("#accordionRateioNF").hide();//painel de Rateio
+       // $("#accordionAreaGestor").show();
+
+        $("#obsAreaGestor").val('Aprovado');
+        $("#obsAreaDiretoria").val('Aprovado');
+        $("#obsAreaGerRegional").val('Aprovado');
+        $("#obsAreaDiretoria").val('Aprovado');
+        $("#collapseCabecalhoEnvio").show(); 
+        $("#accordionLancaInputNF").show();
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaDiretoria").show();
+        //$("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        $("#accordionLancaWinthor").show();
+        $("#accordionAreaPresidente").show();
+        $("#accordionAreaGerRegional").show();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        //showCamposDefinir();
+        //showDemandaFinanceiro();
+        //showCamposCarregamento();
+		//filtroFuncionario();
+        
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+       
+    }
+    
+    if(atividade == fim2){
+
+        $("#collapseCabecalhoEnvio").show(); 
+        $("#accordionLancaInputNF").show();
+        $("#accordionCabecalho").hide();
+        //$("#accordionAtendimento").hide();
+        $("#accordionAtendimento").show();
+        $("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+        showDemandaFinanceiro();
+        showCamposCarregamento();
+		//filtroFuncionario();
+		
+
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        /*
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        */
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        if($("#NumLancW").val() != "" && $("#NumLancW").val() != null){
+            $("#accordionLancaWinthor").show();
+        }else{
+            $("#accordionLancaWinthor").hide();
+        }
+        
+        if($("#obsInput").val() != "" && $("#obsInput").val() != null){
+        	$("#accordionInput").show();
+        }else{
+        	$("#accordionInput").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+       
+    }
+    
+   
+    
+    
+    
+    if(atividade == providenciarAjustes || atividade == providenciarAjustesAtraso){
+
+    	setaValor("respAtendimento",nomeUsuario);
+    	//$("#accordionCabecalho").show();
+    	$("#accordionAtendimento").show();
+        //$("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        //$("#accordionLancaWinthor").hide();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+        showDemandaFinanceiro();
+        showCamposCarregamento();
+		filtroFuncionario();
+  
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show()
+        }else{
+        	$("#accordionAreaGestor").hide()
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        if($("#obsInput").val() != "" && $("#obsInput").val() != null){
+            $("#accordionInput").show()
+        }else{
+        	$("#accordionInput").hide()
+        }
+        
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+    }
+   
+    
+    
+    if(atividade == verificarAjustesEncerrarChamado){
+    	
+    	//$("#accordionCabecalho").show();
+        $("#accordionAreaGestor").show();
+        //$("#accordionAtendimento").show();
+        //$("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        //$("#accordionLancaWinthor").show();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+        showDemandaFinanceiro();
+        showCamposCarregamento();
+		//filtroFuncionario();
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show()
+        }else{
+        	$("#accordionAreaGestor").hide()
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+
+        if($("#obsAtendimento").val() != "" && $("#obsAtendimento").val() != null){
+            $("#accordionAtendimento").show()
+        }else{
+        	$("#accordionAtendimento").hide()
+        }
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+         
+
+    }
+    if(atividade == financeiro || atividade == canhotofinanceiro){
+
+        $("#obsAreaGestor").val('Aprovado');
+        $("#obsAreaDiretoria").val('Aprovado');
+        $("#collapseCabecalhoEnvio").show(); 
+        $("#accordionLancaInputNF").show();
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaDiretoria").show();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        $("#accordionLancaWinthor").show();
+        $("#accordionAreaPresidente").show();
+        $("#accordionAreaGerRegional").show();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+        showDemandaFinanceiro();
+        showCamposCarregamento();
+		//filtroFuncionario();
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        if($("#obsInput").val() != "" && $("#obsInput").val() != null){
+        	$("#accordionInput").show();
+        }else{
+        	$("#accordionInput").hide();
+        }
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+       
+    }
+    
+    
+    if(atividade == realizarAjusteFinanceiro){
+
+        $("#obsAreaGestor").val('Aprovado');
+        $("#obsAreaDiretoria").val('Aprovado');
+        $("#collapseCabecalhoEnvio").show(); 
+        $("#accordionLancaInputNF").show();
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaDiretoria").show();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        $("#accordionLancaWinthor").show();
+        $("#accordionAreaPresidente").show();
+        $("#accordionAreaGerRegional").show();
+        
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposCentral();
+        showCamposDefinir();
+        showDemandaFinanceiro();
+        showCamposCarregamento();
+		filtroFuncionario();
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        if($("#obsInput").val() != "" && $("#obsInput").val() != null){
+        	$("#accordionInput").show();
+        }else{
+        	$("#accordionInput").hide();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+        	$("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+       
+    }
+    
+    
+    
+    
+    
+    if(atividade == fim){
+        if($("#obsInput").val() != "" && $("#obsInput").val() != null){
+            $("#accordionInput").show()
+        }
+        
+        $("#accordionAtendimento").show();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+
+        
+        
+        if($("#obsGestor").val() != "" && $("#obsGestor").val() != null){
+            $("#accordionGestor").show();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        
+        if($("#NumLancW").val() != "" && $("#NumLancW").val() != null){
+            $("#accordionLancaWinthor").show();
+        }else{
+            $("#accordionLancaWinthor").hide();
+        }
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show()
+        }else{
+        	$("#accordionAreaGestor").hide()
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+        	$("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+
+        
+    }
+
+}
+
+
+
+function protege(div){
+    $(div).find("input[type='text'],textarea").attr("readonly",true)
+    $(div).find("input[type='radio']").attr("onclick",'return false')
+    $(div).find("input[type='checkbox']").attr("onclick",'return false')
+    
+    setTimeout(function(){ 
+        $(div).find("select[type='zoom']").each(function(){
+            window[$(this).attr("id")].disable(true)
+        })
+     }, 1000);
+     $(div).find("select").attr("disabled",true)
+     $(div).find("button").attr("disabled",true)
+}
+
+function viewMobile(){
+   // $("#checkPagForaPrazo").closest("div").parent().removeClass("fs-float-right").attr("style","")
+    $("#btnAnexar").hide()
+}
+
+
+/*
+//Função de bloqueio da tela Dados de Lançamento do Número de Transação
+function showPainelDadosTransacao() {
+    // Se tiver marcado que a o lançamento foi realizado, esconder os campos do painel
+    var radioTipoSolic = $('input[name=radioLancaInputNF]:checked').val();
+    if ( radioTipoSolic == "sim" ) {
+        $("#painelLancaWinthor").show();
+        $("#painelLancaWinthor").attr("style", "display: block");
+
+        
+    } else {
+        $("#painelLancaWinthor").hide();
+        $("#painelLancaWinthor").attr("style", "display: none");
+       
+    }
+ 
+}
+
+//Função de bloqueio da tela Dados de Lançamento do Número de Transação
+function showPainelDadosTransacao2() {
+    // Se tiver marcado que a o lançamento foi realizado, esconder os campos do painel
+    var radioTipoSolic = $('input[name=radioInputResolvida]:checked').val();
+    if ( radioTipoSolic == "sim" ) {
+        $("#painelLancaWinthor").show();
+        $("#painelLancaWinthor").attr("style", "display: block");
+
+        
+    } else {
+        $("#painelLancaWinthor").hide();
+        $("#painelLancaWinthor").attr("style", "display: none");
+       
+    }
+ 
+}
+
+*/
+
+/*
+//Função de bloqueio da tela Dados Bancários
+function showPainelDadosBancarios() {
+    // Se tiver marcado que a o lançamento foi realizado, esconder os campos do painel
+    var radioConta = $('input[name=radioDoc02]:checked').val();
+    if ( radioConta == "sim" ) {
+        $("#painelContaInputNF").show();
+        $("#painelContaInputNF").attr("style", "display: block");
+
+        
+    } else {
+        $("#painelContaInputNF").hide();
+        $("#painelContaInputNF").attr("style", "display: none");
+       
+    }
+ 
+}
+*/
+
+function showCamposRateio(){
+    // Verificando o seleção do rateio
+    var rateioNF = $('input[name=radiorateioNF]:checked').val();
+    if ( rateioNF == "sim" ) {
+        $("#painelRateioNF").show();
+        $("#valorNFRateioR").show();
+        
+    } else {
+        $("#painelRateioNF").hide();
+        $("#valorNFRateioR").hide();
+    }
+
+}
+
+function showCamposParcelas(){
+    // Verificando o seleção do rateio
+    var parcelasNF = $('input[name=radioParcelasNF]:checked').val();
+    if ( parcelasNF == "sim" ) {
+        $("#idpainelParcelasNF").show();
+        
+    } else {
+        $("#idpainelParcelasNF").hide();
+
+    }
+
+}
+
+function showCamposBloqueadosXML(){
+    $("#unidadeFilial").attr('readonly', true);
+    $("#fornecedorC").attr('readonly', true);
+    $("#funcionarioC").attr('readonly', true);
+    $("#nNotaFiscal").attr('readonly', true);
+    $("#dataEmissaoNF").attr('readonly', true);
+    $("#valorNF").attr('readonly', true);
+}
+
+
+
+function showCamposDefinir(){
+    // Verificando o seleção do rateio
+    var definirCF = $('input[name=definirNF]:checked').val();
+    if ( definirCF == "fornecedor" ) {
+        $("#idfornecedorC").show();
+        $("#idfuncionarioC").hide();
+       
+        
+    } else {
+        $("#idfornecedorC").hide();
+        $("#idfuncionarioC").show(); 
+    }
+
+}
+
+function showCamposCentral(){
+    // Verificando o seleção do rateio
+    var camposCentral = $('input[name=radioLancaInputNF]:checked').val();
+    if ( camposCentral == "nao" ) {
+        $("#painelCabecalho").show();
+        $("#painelLancaWinthor").hide();
+        
+    } else {
+        $("#painelCabecalho").hide();
+        $("#painelLancaWinthor").show();
+    }
+
+}
+
+function showDemandaFinanceiro(){
+    // Verificando o seleção do Demanda para financeiro
+    var campoDemanda = $('input[name=radioPagamentoRealizado]:checked').val();
+    if ( campoDemanda == "nao" ) {
+        $("#idZoomDemandaFinanceiro").show();
+        
+        
+    } else {
+        $("#idZoomDemandaFinanceiro").hide();
+        
+    }
+
+}
+//regra de interface do campo carregamento
+function showCamposCarregamento(){
+    // Verificando o seleção do Contrato
+    var camposCarregamento = $("#contaCentroCusto").val();
+    if ( camposCarregamento == "712009" ) {
+        $("#idNumeroCarregamento").show();
+
+        
+    } else {
+        $("#idNumeroCarregamento").hide();
+
+    }
+
+}
+
+function adicionarCotacao(){
+	var tag = 'adicionarCotacao() ->';
+	var atividade = WKNumState;
+	    // Verificando o seleção do Produto
+	if(atividade == 242){
+	    var painel = $('input[name=analisarRadioCompra]:checked').val();
+	    if ( painel == "sim" ) {
+	        $("#idPanelProdutos").hide();
+	        //$("#valorNFProdutoR").show();
+	        
+	    } 
+	    if ( painel == "nao" ) {
+	        $("#idPanelProdutos").show();
+	        //$("#valorNFProdutoR").hide();
+	    }
+}
+}
+

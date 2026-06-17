@@ -1,0 +1,68 @@
+{
+    "screenId":  "52ec2f89052c4b18b240d8114cb52597",
+    "name":  "projects/4660020320183620207/screens/52ec2f89052c4b18b240d8114cb52597",
+    "title":  "12.1. Nova Ordem de Serviço - MaxControLADM (1920x1080)",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "52ec2f89052c4b18b240d8114cb52597",
+                          "sourceScreen":  "projects/4660020320183620207/screens/52ec2f89052c4b18b240d8114cb52597",
+                          "x":  20224,
+                          "width":  1280,
+                          "height":  1024,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-1-nova-ordem-de-servico-maxcontroladm-1920x1080-52ec2f89052c4b18b240d8114cb52597",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/1054230894443626296",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY4MDNmODM1MTYwMjJkNDBhN2NhMGU5OTFiEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-1-nova-ordem-de-servico-maxcontroladm-1920x1080-52ec2f89052c4b18b240d8114cb52597\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-1-nova-ordem-de-servico-maxcontroladm-1920x1080-52ec2f89052c4b18b240d8114cb52597\\screen.html",
+                                  "bytes":  17606,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/7702389785949024506",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvqa6vZkObhcVO_aWGCcle9zWkbfe1enahgNbde7D3sPOSV0AyEVQCrx_7x7SModYhmfaHS98vGengcfX6L6PjjsYwqQDh_4ZvnArcgUXNqy2QeXKOgvKFMyFDklVN3zE4q2yuP_2A1vb_kOWKktnuVIrBK11zfEIP4jRMehw01JNI7vFq_3wsXl9q9muOksW2EJ6MN7FuFgfg8aO_dTzlVh-EuC2y3OD2gw4Dp2V6gqmGJ0hHuamvxbPg",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-1-nova-ordem-de-servico-maxcontroladm-1920x1080-52ec2f89052c4b18b240d8114cb52597\\screenshot.jpg",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-1-nova-ordem-de-servico-maxcontroladm-1920x1080-52ec2f89052c4b18b240d8114cb52597\\screenshot.jpg",
+                                        "bytes":  5986,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/jpeg",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/52ec2f89052c4b18b240d8114cb52597",
+                   "title":  "12.1. Nova Ordem de Serviço - MaxControLADM (1920x1080)",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/7702389785949024506",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvqa6vZkObhcVO_aWGCcle9zWkbfe1enahgNbde7D3sPOSV0AyEVQCrx_7x7SModYhmfaHS98vGengcfX6L6PjjsYwqQDh_4ZvnArcgUXNqy2QeXKOgvKFMyFDklVN3zE4q2yuP_2A1vb_kOWKktnuVIrBK11zfEIP4jRMehw01JNI7vFq_3wsXl9q9muOksW2EJ6MN7FuFgfg8aO_dTzlVh-EuC2y3OD2gw4Dp2V6gqmGJ0hHuamvxbPg"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/1054230894443626296",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY4MDNmODM1MTYwMjJkNDBhN2NhMGU5OTFiEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "2560",
+                   "height":  "2048",
+                   "deviceType":  "DESKTOP"
+               }
+}

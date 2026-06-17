@@ -1,0 +1,25 @@
+var Rocketchatnotify = SuperWidget.extend({
+
+  instanceId: null,
+  bindings: {
+    local: {}
+  },
+
+  init: function () {
+    var that = this;
+
+    FLUIGC.ajax({
+      type: 'GET',
+      url: '/api/public/2.0/tenants/getTenantData/rocketChatUrl',
+      contentType: 'application/json',
+      loading: false
+    }, function (err, data) {
+      if (err || !data.content.rocketChatUrl) {
+        return;
+      }
+      var $linkId = $('#rocketchatnotifylink_' + that.instanceId);
+      $linkId.attr('href', data.content.rocketChatUrl);
+      $linkId.removeClass('hidden');
+    });
+  }
+});

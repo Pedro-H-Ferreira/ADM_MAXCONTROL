@@ -1,0 +1,1071 @@
+;
+if ('undefined' === typeof socialGlobal) {
+	var socialGlobal = (function (window, document, undefined) {
+
+		var blackListPagesSocket = ['formsapp'];
+		var translations = {
+			'PT_BR': {
+				titleYes: 'Sim',
+				titleNo: 'Não',
+				titleOk: 'Ok',
+				labelLoading: 'Carregando',
+				titleModalShare: 'Compartilhar',
+				errorModalShare: 'Desculpe, não foi possível carregar a funcionalidade de compartilhar.',
+				titleModalLike: 'Pessoas que estão apoiando',
+				errorModalLike: 'Desculpe, não foi possível carregar a lista de usuários que apoiam este conteúdo.',
+				titleModalWatch: 'Pessoas que são notificadas',
+				errorModalWatch: 'Desculpe, não foi possível carregar a lista de usuários que acompanham este conteúdo.',
+				titleModalShares: 'Compartilhar com',
+				errorModalShares: 'Erro na listagem de compartilhar',
+				labelUser: 'Usuário',
+				labelCommunity: 'Comunidade',
+				labelNewTag: 'Nova',
+				error: "Houve um erro ao executar a ação",
+				realtimeServiceError: 'Se você está vendo o erro \'net::ERR_CONNECTION_REFUSED\', por favor verifique o status do serviço fluig_Realtime! \nPara mais informações acesse: http://tdn.totvs.com/pages/viewpage.action?pageId=287049626'
+			},
+			'ES': {
+				titleYes: 'Si',
+				titleNo: 'No',
+				titleOk: 'Ok',
+				labelLoading: 'Cargando',
+				titleModalShare: 'Compartir',
+				errorModalShare: 'Lo sentimos, no se pudo cargar la funcionalidad de la parte.',
+				titleModalLike: 'Las personas que estón apoyando',
+				errorModalLike: 'Lo sentimos, no se pudo cargar la lista de usuarios que apoyan este contenido.',
+				titleModalWatch: 'Las personas que se notifican',
+				errorModalWatch: 'Lo sentimos, no se pudo cargar la lista de usuarios que acompanña a este contenido.',
+				titleModalShares: 'Compartir con',
+				errorModalShares: 'Error en la lista de la cuota',
+				labelUser: 'Usuario',
+				labelCommunity: 'Comunidad',
+				labelNewTag: 'Nuevo',
+				error: "Houve um erro ao executar a ação",
+				realtimeServiceError: 'Si usted está viendo el error \'net::ERR_CONNECTION_REFUSED\', por favor verifique el estado del servicio fluig_Realtime! \nPara más información acceda: http://tdn.totvs.com/pages/viewpage.action?pageId=287049626'
+			},
+			'EN_US': {
+				titleYes: 'Yes',
+				titleNo: 'No',
+				titleOk: 'Ok',
+				labelLoading: 'Loading',
+				titleModalShare: 'Share',
+				errorModalShare: 'Sorry, could not load share functionality.',
+				titleModalLike: 'People who are supporting',
+				errorModalLike: 'Sorry, could not load the list of users that support this content.',
+				titleModalWatch: 'People who are notified',
+				errorModalWatch: 'Sorry, could not load the user list accompanying this content.',
+				titleModalShares: 'Share by',
+				errorModalShares: 'Error in list of share',
+				labelUser: 'User',
+				labelCommunity: 'Community',
+				labelNewTag: 'New',
+				error: "Houve um erro ao executar a ação",
+				realtimeServiceError: 'If you are getting \'net::ERR_CONNECTION_REFUSED\' error, please check the status of fluig_Realtime service! \nFor more information you can access our FAQ: http://tdn.totvs.com/pages/viewpage.action?pageId=287049626'
+			}
+		};
+
+		var timeoutMentionsInput = null;
+		var mentionsRequestQuery = '';
+		var socket;
+		var nodeEnabled;
+		var pageBlackList;
+		var socketURL = window.location.protocol + "//nossaempresa.fluig.cloudtotvs.com.br";
+		var socialUser = null;
+		var cachedEvents = {};
+		var ctrlPressed = false;
+		var socketReadyCallbacks = [];
+
+		$(document).ready(function () {
+			init();
+		});
+
+		function init() {
+			loadSociables();
+			loadFavorites();
+			globalEvents();
+			initSocket();
+		}
+
+		function initSocket() {
+			var curPageCode = WCMAPI.getPageCode();
+			pageBlackList = isPageBlackList(curPageCode);
+			nodeEnabled = isNodeEnabled();
+
+			// O realtime não é carregado quando estiver
+			// dentro do app nativo do fluig.
+			if (!WCMAPI.isMobileAppMode() && (nodeEnabled && !pageBlackList)) {
+				// import soket.io API
+				var s = document.createElement('script');
+				s.src = socketURL + "/socket.io/socket.io.js";
+				s.type = "text/javascript";
+				s.async = true;
+				s.defer = true;
+
+				document.body.appendChild(s);
+
+				$(s).on('load', function () {
+					socketLoaded();
+				});
+
+				$(s).on('error', function (err) {
+					socketLoadError();
+				});
+			}
+		}
+
+		function isNodeEnabled() {
+			try {
+				return true;
+			} catch (e) {
+				return false;
+			}
+		}
+
+		function isPageBlackList(curPageCode) {
+			return blackListPagesSocket.indexOf(curPageCode) !== -1;
+		}
+
+		function cl() {
+			return WCMAPI.getLocale().toUpperCase();
+		}
+
+		function getSourceImage(profileType, alias, size) {
+			var parameterType;
+
+			switch (profileType) {
+				case 'COMMUNITY':
+					parameterType = 'communities';
+					break;
+				case 'USER':
+				default:
+					parameterType = 'users';
+					break;
+			}
+
+			return "/collaboration/api/v3/" + parameterType + "/" + alias + "/picture?type=" + size + "&time=" + Date.now();
+		}
+
+		function updateImageProfile(ev, alias) {
+			var userAlias = alias || WCMAPI.getUserLogin(),
+				listOfImgElements = $('[data-update-image-profile]'),
+				profileType,
+				size,
+				src;
+
+			listOfImgElements.map(function (index, selector) {
+				image = $(selector);
+				userAlias = image.attr('data-update-image-profile');
+				profileType = image.attr('data-profile-type');
+				size = image.attr('data-image-size');
+				src = getSourceImage(profileType, userAlias, size);
+				image.attr('src', src);
+			});
+		}
+
+		function globalEvents() {
+			$(window).click(function (evt) {
+				ctrlPressed = false;
+
+				if (evt.metaKey || evt.ctrlKey || evt.button == 1) {
+					ctrlPressed = true;
+				};
+			});
+
+			$(window).on(
+				'fluig.update.image.profile',
+				updateImageProfile
+			);
+		}
+
+		function loadSociables() {
+			$(".sociable-object-load").map(
+				function (index, element) {
+					var elementId, that, objectClass, objectId, style, params, moreicons;
+
+					that = $(element);
+					elementId = that.attr("id");
+					objectClass = that.data("objectclass");
+					objectId = that.data("objectid");
+					showAllIds = that.data("showallids");
+					linkUrl = that.data("link");
+					style = that.data("style") || "DEFAULT";
+					moreicons = that.data("moreicons");
+					ommitLike = that.data("ommit-like") || false;
+					ommitShare = that.data("ommit-share") || false;
+					ommitComment = that.data("ommit-comment") || false;
+					ommitWatch = that.data("ommit-watch") || false, contentType = that.data("content-type") || '',
+						originUrl = that.data("origin-url") || '', previewTemplate = that.data("preview-template")
+						|| '';
+
+					if (showAllIds == null) {
+						showAllIds = false;
+					}
+
+					params = {
+						"social_obj_class": objectClass,
+						"social_obj_id": objectId,
+						"show_all_ids": showAllIds,
+						"link_url": linkUrl,
+						"style": style,
+						"customInstance": (new Date().getTime()).toString(),
+						ommitLike: ommitLike,
+						ommitShare: ommitShare,
+						ommitComment: ommitComment,
+						ommitWatch: ommitWatch,
+						contentType: contentType,
+						originUrl: originUrl,
+						previewTemplate: previewTemplate
+					};
+
+					WCMAPI.convertFtlAsync('sociable', 'view.ftl', JSON.stringify(params), function (data) {
+						that.removeClass("sociable-object-load").html(data);
+						if (moreicons) {
+							moreicons = moreicons.replace(/\'/g, '\"').replace(/\{(\w+)/g, '\"$1\"').replace(/,(\w+)/g,
+								',\"$1\"');
+							var arrayIcon = [];
+							try {
+								arrayIcon = JSON.parse(moreicons);
+								for (var i in arrayIcon) {
+									if (arrayIcon[i].action) {
+										$('#' + elementId + ' ul.sociable-more').append(
+											'<li class="sociable-list-actions-item"><span class="counter-group"><a href="#" '
+											+ arrayIcon[i].action + ' title="' + arrayIcon[i].title + '" class="'
+											+ arrayIcon[i].cssclass
+											+ '"></a><span class="counter counter-warning pos-right-bottom">'
+											+ arrayIcon[i].value + '</span></span></li>');
+									} else {
+										$('#' + elementId + ' ul.sociable-more').append(
+											'<li class="sociable-list-actions-item"><span class="counter-group"><span class="'
+											+ arrayIcon[i].cssclass
+											+ '"></span><span class="counter counter-warning pos-right-bottom">'
+											+ arrayIcon[i].value + '</span></span></li>');
+									}
+								}
+							} catch (e) {
+							}
+						}
+						loadWidgets();
+					});
+				});
+		}
+
+		function loadFavorites() {
+			$(".social-favorite-object-load").map(function (index, element) {
+				var that, objectClass, objectId, style, params;
+
+				that = $(element);
+				alias = that.data("alias");
+
+				params = {
+					"style": "iconic",
+					"alias": alias,
+					"customInstance": (new Date().getTime()).toString()
+				};
+
+				WCMAPI.convertFtlAsync('socialfavorite', 'viewIconic.ftl', JSON.stringify(params), function (data) {
+					that.removeClass("social-favorite-object-load").html(data);
+					loadWidgets();
+				});
+			});
+		}
+
+		function getCookie(name) {
+			var name = name + "=";
+			var ca = document.cookie.split(';');
+			for (var i = 0; i < ca.length; i++) {
+				var c = ca[i];
+				while (c.charAt(0) == ' ') { c = c.substring(1); }
+				if (c.indexOf(name) == 0) {
+					return c.substring(name.length, c.length);
+				}
+			}
+			return "";
+		}
+
+		function socketLoaded() {
+			var delayReconnect = 30000,
+				polling = "false" == "true" && WCMAPI.isIe9();
+
+			var options = {
+				'timeout': 10000, // Quanto tempo em ms até que ele desiste de se conectar com um transporte. Padrão:
+				// 20.000 (ms)
+				'reconnection': false, // Se ele tentará se reconectar depois de ser desconectado. Padrão: true
+				'reconnectionAttempts': 1,
+				'forceNew': true,
+				'transports': [polling ? 'polling' : 'websocket']
+			};
+
+			socket = io.connect(socketURL, options);
+
+			var intervalID = 0;
+			var reconnectCount = 0;
+
+			socket.on('connect', function () {
+				if (this.nsp == '/') {
+					socket.emit('authenticate', { tenantId: WCMAPI.getTenantId(), login: WCMAPI.userLogin });
+				} else {
+					reconnectCount = 0;
+				}
+			});
+
+			socket.on('authorized', function () {
+				this.connected = false;
+				this.nsp = '/tenant' + WCMAPI.getTenantId();
+				this.connect();
+			});
+
+			socket.on('connecting', function () {
+			});
+
+			socket.on('disconnect', function (msg) {
+				this.nsp = '/';
+				if (intervalID == 0) {
+					intervalID = setInterval(tryReconnect, delayReconnect);
+				}
+			});
+
+			socket.on('connect_failed', function () {
+			});
+
+			socket.on('error', function (err) {
+			});
+
+			socket.on('reconnect_failed', function () {
+			});
+
+			socket.on('reconnect', function () {
+				clearInterval(intervalID);
+				intervalID = 0;
+			});
+
+			socket.on('reconnecting', function () {
+			});
+
+			// recebe os eventos para o usuario logado
+			socket.on('RT_EVENT', function (data) {
+				WCMAPI.fireEvent(data.eventName, data.data);
+			});
+
+			// itera os callbacks das widgets que querem usar a socket
+			for (var i = 0; i < socketReadyCallbacks.length; i++) {
+				socketReadyCallbacks[i](socket);
+			}
+
+			var tryReconnect = function () {
+				++reconnectCount;
+				if (reconnectCount == 5) {
+					clearInterval(intervalID);
+				} else {
+					socket.io.reconnect();
+				}
+			};
+
+			if (WCMAPI.isIe9()) {
+				$(window).bind('beforeunload', function () {
+					if (socket && socket.connected) {
+						socket.disconnect();
+					}
+				});
+			}
+		}
+
+		function socketLoadError() {
+			console.warn('%c' + translations[cl()].realtimeServiceError, 'color: #F36F21; font-weight: bold; font-size: 12px');
+		}
+
+		function defaultURL() {
+			return WCMAPI.getContextPath() + "/p/" + WCMAPI.getTenantCode();
+		}
+
+		/*
+		 * If is a community page return alias community if no return null
+		 */
+		function getAliasCommunityPage() {
+			if (WCMAPI.getParentPageCode() === "subject") {
+				return WCMAPI.getPageCode();
+			}
+
+			return null;
+		}
+
+		function showEcmHome() {
+			openURL(this.defaultURL() + "/home");
+		}
+
+		function showHome() {
+			openURL(this.defaultURL() + "/social");
+		}
+
+		function showSocial(alias) {
+			var social = SocialAPI.SocialService.FINDSOCIALBYALIAS({
+				async: false
+			}, alias).content;
+			if (social.type == 'COMMUNITY') {
+				this.showCommunity(alias, social.customPage);
+			} else {
+				this.showUser(alias);
+			}
+		}
+
+		function showUser(alias) {
+			openURL(this.defaultURL() + "/social/" + alias);
+		}
+
+		function showGalleries(alias, type) {
+			openURL(this.defaultURL() + "/" + type + "/" + alias);
+		}
+
+		function showGallery(alias, type, gallery) {
+			openURL(this.defaultURL() + "/" + type + "/" + alias + "/" + gallery);
+		}
+
+		function showMedia(alias, type, gallery, media) {
+			openURL(this.defaultURL() + "/" + type + "/" + alias + "/" + gallery + "/" + media);
+		}
+
+		function showConnections(alias) {
+			openURL(this.defaultURL() + "/connections/" + alias);
+		}
+
+		function showFollowings(alias) {
+			openURL(this.defaultURL() + "/connections/" + alias + "/followings");
+		}
+
+		function showFollowers(alias) {
+			openURL(this.defaultURL() + "/connections/" + alias + "/followers");
+		}
+
+		function showParticipations(alias) {
+			openURL(this.defaultURL() + "/connections/" + alias + "/participations");
+		}
+
+		function showCommunities(alias) {
+			openURL(this.defaultURL() + "/communities/" + alias);
+		}
+
+		function showCommunity(alias, customPage) {
+			if (customPage) {
+				openURL(this.defaultURL() + "/subject/" + alias);
+			} else {
+				openURL(this.defaultURL() + "/community/" + alias);
+			}
+		}
+
+		function showProfile(alias) {
+			openURL(this.defaultURL() + "/profile/" + alias);
+		}
+
+		function showAlerts(alias) {
+			openURL(this.defaultURL() + "/alerts/" + alias);
+		}
+
+		function showSocialDocs(alias) {
+			openURL(this.defaultURL() + "/socialdocs/" + alias);
+		}
+
+		function showSearch(text, newTab) {
+			openURL(this.defaultURL() + "/searchresult?text=" + encodeURIComponent(preventXSS(text)), newTab);
+		}
+
+		function showPost(alias, postId) {
+			openURL(this.defaultURL() + "/post/" + alias + "/" + postId);
+		}
+
+		function openURL(url, newTab) {
+			if (ctrlPressed || newTab) {
+				window.open(url);
+			} else {
+				window.location.href = url;
+			}
+		}
+
+		function confirm(msg, cbYes, cbNo, title) {
+
+			var obj = $("<div style='display:none'>" + msg + "</div>"), titleYes = translations[cl()].titleYes, titleNo = translations[cl()].titleNo;
+
+			obj.css("z-index", WCMAPI.getZIndex() + 1);
+			$('body').append(obj);
+
+			var options = {
+				buttons: [{
+					text: titleYes,
+					click: function () {
+						if (cbYes) {
+							cbYes();
+							$(obj).dialog('close');
+						}
+					}
+				}, {
+					text: titleNo,
+					click: function () {
+						if (cbNo) {
+							cbNo();
+						}
+						$(obj).dialog('close');
+					}
+				}]
+			};
+
+			if (title) {
+				options.title = title;
+			}
+
+			obj.dialog(options);
+		}
+
+		function alert(msg, cb) {
+			var obj = $("<div style='display:none'>" + msg + "</div>")
+				// , titleOk = "${i18n.getTranslation('label.system.ok')}";
+				, titleOk = translations[cl()].titleOk;
+
+			$('body').append(obj);
+			obj.css("z-index", WCMAPI.getZIndex() + 1);
+
+			obj.dialog({
+				buttons: [{
+					text: titleOk,
+					click: function () {
+						if (cb) {
+							cb();
+						}
+						$(obj).dialog('close');
+					}
+				}]
+			});
+		};
+
+		/*
+		 * options = { type: '', //error, warning, info, success text: '', timeout: 1000 // milissegundos }
+		 */
+		function showLoading(options) {
+			var labelLoading, msgType = 'message-', obj, msgClass = 'social-ecm-message';
+
+			if (!options) {
+				options = {};
+				msgClass = 'social-ecm-loading';
+			}
+
+			labelLoading = options.text || translations[cl()].labelLoading;
+
+			msgType += options.type || 'warning';
+
+			obj = $("<div class='" + msgClass + " hidden'><p class='" + msgType + "'>" + labelLoading + "</p></div>");
+			obj.css("z-index", WCMAPI.getZIndex() + 1);
+
+			if (!$("#social-ecm-loading").length) {
+				$('body').append(obj);
+				obj.stop(true, true).fadeIn("fast");
+			}
+
+			if (options.timeout) {
+				setTimeout(hideMessage, options.timeout);
+			}
+		};
+
+		function hideLoading() {
+			var msgClass = '.social-ecm-loading';
+
+			$(msgClass).stop(true, true).fadeOut("fast", function () {
+				$(this).remove();
+			});
+		};
+
+		function hideMessage() {
+			var msgClass = '.social-ecm-message';
+
+			$(msgClass).stop(true, true).fadeOut("fast", function () {
+				$(this).remove();
+			});
+		};
+
+		function getSocialUser() {
+			if (!socialUser) {
+				socialUser = SocialAPI.SocialService.FINDSOCIAL({
+					async: false
+				}, '').content;
+			}
+			return socialUser;
+		};
+
+		function ev(sel, options, evName) {
+			if (evName && cachedEvents[evName]) {
+				// evento ja existe
+				return;
+			}
+
+			if (typeof options === 'function') {
+				$(document).on('click', sel, function (ev) {
+					ev.preventDefault();
+					options.call(this, ev);
+				});
+
+				cachedEvents[evName] = {
+					events: 'click',
+					sel: sel,
+					parent: document
+				};
+
+				return;
+			}
+
+			if (!options) {
+				options = {};
+			}
+
+			if (!options.parent) {
+				options.parent = document;
+			}
+
+			if (!options.events) {
+				options.events = 'click';
+			}
+
+			if (!options.fn) {
+				options.fn = function (ev) {
+				};
+			}
+
+			// saves the event config
+			var eventName = options.eventName || evName;
+			if (eventName) {
+				// se ja havia sido bindado, nao faz de novo
+				if (cachedEvents[eventName]) {
+					return;
+				}
+
+				cachedEvents[eventName] = {
+					events: options.events,
+					sel: sel,
+					parent: options.parent
+				};
+			}
+
+			$(options.parent).on(options.events, sel, function (ev) {
+				if (!options.doDefault) {
+					ev.preventDefault();
+				}
+
+				options.fn.call(options.scope || this, ev);
+			});
+		}
+
+		function removeEv(eventName) {
+			var ev = cachedEvents[eventName];
+			if (ev) {
+				$(ev.parent).off(ev.events, ev.sel);
+				delete cachedEvents[eventName];
+			}
+		}
+
+		function socialShare(sociableId, shareType, dialogClass, linkUrl, cb) {
+			var title = translations[cl()].titleModalShare, widgetsParams, zIndex;
+
+			if (dialogClass) {
+				dialogClass = dialogClass + ' w-fixed';
+			} else {
+				dialogClass = 'w-fixed';
+			}
+
+			// Garantir que o sociableId seja um INT.
+			sociableId = parseInt(sociableId);
+
+			widgetsParams = {
+				"objectId": sociableId,
+				"shareType": shareType,
+				"linkUrl": linkUrl
+			};
+
+			WCMAPI.convertFtlAsync('socialshareapi', 'view.ftl', widgetsParams, function (html) {
+				$(html).dialog({
+					title: title,
+					dialogClass: dialogClass,
+					width: 660,
+					open: function () {
+						// Bug de z-index no firefox. Se colocar um número muito
+						// alto de z-index, os inputs, buttons etc ficam indisponíveis.
+						if ($(".wcm-panel").length) {
+							zIndex = $(".wcm-panel").css("z-index");
+							zIndex = parseInt(zIndex) + 1;
+							$(this).parents('.ui-dialog').css({
+								zIndex: zIndex
+							});
+						}
+					},
+					close: function () {
+						$(this).remove();
+					}
+				});
+
+				if (cb) {
+					cb(null, html);
+				}
+			}, function (err) {
+				socialGlobal.message({
+					text: translations[cl()].errorModalShare,
+					type: 'error',
+					timeout: 2000
+				});
+
+				if (cb) {
+					cb(err);
+				}
+			});
+		}
+
+		function socialWatch(widgetParams, titleModal, cb) {
+			var title = translations[cl()].titleModalWatch;
+
+			if (titleModal) {
+				title = titleModal;
+			}
+
+			WCMAPI.convertFtlAsync('socialwatch', 'view.ftl', widgetParams, function (html) {
+				$(html).dialog({
+					title: title,
+					dialogClass: 'w-fixed',
+					height: 400,
+					width: 400
+				});
+
+				if (cb) {
+					cb(null, html);
+				}
+			}, function (err) {
+				socialGlobal.message({
+					text: translations[cl()].errorModalWatch,
+					type: 'error',
+					timeout: 2000
+				});
+
+				if (cb) {
+					cb(err);
+				}
+			});
+		}
+
+		function socialLike(widgetParams, titleModal, cb) {
+			var title = translations[cl()].titleModalLike;
+
+			if (titleModal) {
+				title = titleModal;
+			}
+
+			WCMAPI.convertFtlAsync('sociallike', 'view.ftl', widgetParams, function (html) {
+				$(html).dialog({
+					title: title,
+					dialogClass: 'w-fixed',
+					height: 400,
+					width: 400
+				});
+
+				if (cb) {
+					cb(null, html);
+				}
+			}, function (err) {
+				socialGlobal.message({
+					text: translations[cl()].errorModalLike,
+					type: 'error',
+					timeout: 2000
+				});
+
+				if (cb) {
+					cb(err);
+				}
+			});
+		}
+
+		function onSocketReady(cb) {
+			// se a socket ja existe, chama o callback com ela como parametro
+			if (socket) {
+				cb(socket);
+			} else {
+				socketReadyCallbacks.push(cb);
+			}
+		}
+
+		function getDOMElement(classname, iid) {
+			var fullcn = classname + '_' + iid, $el = $('.' + fullcn);
+
+			if (!$el.length) {
+				$('body').append("<div class='" + fullcn + "'></div>");
+			}
+
+			return $('.' + fullcn);
+		}
+
+		function findSocial(params) {
+			if ($("#socialFinderContainer").empty()) {
+				$("body").append("<div id='socialFinderContainer'></div>");
+			}
+			this.findSocialCallback = params.callback;
+			var data = params.data || {};
+			$("#socialFinderContainer").html(WCMAPI.convertFtl('socialfinder', 'finder.ftl', data));
+			$("#socialFinderContainer").dialog({
+				"title": params.title,
+				"width": 600,
+				"height": 600,
+				close: function (event, ui) {
+					$('#socialFinderContainer').remove();
+				}
+			});
+			loadWidgets();
+		}
+
+		function findSocialsFavoriteRelatedPriorityForMention(pattern, callback) {
+
+			var patternQuery = pattern.replace(/[-'`~!@#$%^&*()_|+=?;:'",.<>\{\}\[\]\\\/]/gi, '');
+			// mention don't use solr for improve the speed in search
+			var options = {
+				url: '/api/public/social/share/list/socialstoshare?pattern=' + patternQuery,
+				contentType: 'application/json',
+				dataType: 'json',
+				data: {
+					limit: 10,
+					offset: 0
+				}
+			};
+
+			$.ajax(options).done(function (data) {
+				callback(data);
+			}).fail(function (xhr, status, text) {
+				FLUIGC.toast({
+					message: translations[cl()].error,
+					type: 'danger'
+				});
+			});
+		}
+
+		function findSocialsFavoriteRelatedPriority(pattern, types, callback) {
+
+			var patternQuery = '&pattern=' + pattern.replace(/[-'`~!@#$%^&*()_|+=?;:'",.<>\{\}\[\]\\\/]/gi, '');
+			var typesQuery = '';
+
+			for (typeIndex in types) {
+				typesQuery = typesQuery + '&types=' + types[typeIndex];
+			}
+
+			$.ajax({
+				url: SocialAPI.SearchService.SEARCHSOCIALWITHFAVORITEANDRELATEDPRIORITY__PATH() + '?' + patternQuery
+					+ typesQuery,
+				dataType: 'json',
+				success: function (data) {
+					if (callback) {
+						callback(data);
+					}
+				},
+				error: function () {
+					alert('Error');
+				}
+			});
+		}
+
+		function suggestTags(pattern, limit, callback) {
+			var patternQuery = '?pattern=' + pattern.replace(/[-'`~!@#$%^&*()_|+=?;:'",<>\{\}\[\]\\\/]/gi, '');
+			var limitQuery = '&limit=' + limit;
+			$.ajax({
+				url: SocialAPI.TagSearchServiceRest.SUGGESTTAGS__PATH() + patternQuery + limitQuery,
+				dataType: 'json',
+				success: function (data) {
+					if (callback) {
+						callback(data);
+					}
+				},
+				error: function () {
+					alert('Error');
+				}
+			});
+		}
+
+		function findSocialCallback() {
+		}
+
+		function mentionsInput(element, elastic, onSelect) {
+
+			// Verificar se o plugin mentionsInput foi adicionado na pagina.
+			if ($.fn.mentionsInput !== undefined) {
+				var labelUser = translations[cl()].labelUser, labelCommunity = translations[cl()].labelCommunity, triggerCharTMP = null;
+
+				if (elastic === undefined) {
+					elastic = true;
+				}
+
+				var triggerChar = $(element).data('type-input');
+
+				if (triggerChar && triggerChar === 'tag') {
+					triggerCharTMP = ['#'];
+				} else if (triggerChar && triggerChar === 'mention') {
+					triggerCharTMP = ['@'];
+				} else {
+					triggerCharTMP = ['@', '#'];
+				}
+
+				$(element)
+					.mentionsInput(
+					{
+						triggerChar: triggerCharTMP,
+						elastic: elastic,
+						minChars: 0,
+						templates: {
+							autocompleteListItem: _
+								.template('<li data-ref-id="<%= id %>" data-ref-alias="<%= alias %>" data-ref-type="<%= type %>" data-display="<%= display %>"><span><%= content %></span><div class="mention-user-type <%= newClass %>" data-new="['
+								+ translations[cl()].labelNewTag + ']"><%= type %></div></li>'),
+							autocompleteListItemAvatar: _
+								.template('<div class="mention-container-avatar"><img src="<%= avatar %>" /></div>'),
+							mentionItemSyntax: _.template('@[<%= alias %>]'),
+							hashTagItemSyntax: _.template('<%= value %>'),
+						},
+						onSelectData: function (event) {
+							if (onSelect) { onSelect(event); }
+						},
+						onDataRequest: function (mode, query, fun, triggerChar) {
+							mentionsRequestQuery = query;
+							clearTimeout(timeoutMentionsInput);
+							timeoutMentionsInput = setTimeout(function () {
+								if (triggerChar == '@') {
+									findSocialsFavoriteRelatedPriorityForMention(query, function (data) {
+										if (query === mentionsRequestQuery) {
+											var obj = data.content, len = obj.length, i = 0, labelType;
+											for (i; i < len; i++) {
+												labelType = (obj[i].type === 'USER') ? labelUser : labelCommunity;
+												obj[i].avatar = '/social/api/rest/social/imagetype/' + obj[i].type
+													+ '/thumb/' + obj[i].alias;
+												obj[i].type = labelType;
+											}
+											fun.call(this, obj);
+										}
+									});
+								} else if (triggerChar == '#') {
+									if (query.length > 1) {
+										query = query.replace(/(\s)(\w+)/g, '');
+										suggestTags(query, 5, function (data) {
+											if (query === mentionsRequestQuery) {
+												var result = [], obj = [], hasItemQuery = false;
+												data.items.forEach(function (item, idx) {
+													for (field in item.fields) {
+														result = result.concat(item.fields[field]);
+													}
+												});
+												for (var i in result) {
+													obj[i] = {
+														name: '#' + result[i],
+														type: 'tag'
+													};
+													if (query === result[i]) {
+														hasItemQuery = true;
+													}
+												}
+												if (obj.length < 1 || !hasItemQuery) {
+													obj.push({
+														name: '#' + query,
+														type: 'tag',
+														newClass: 'new-class'
+													});
+												}
+												fun.call(this, obj);
+											}
+										});
+									}
+								}
+							}, 200);
+						}
+					});
+			}
+		}
+
+		function showCardPopover(selector) {
+
+			// Verificar se o plugin popover foi adicionado na pagina.
+			if ($.fn.totvsPopover !== undefined) {
+				var elSelector = '[data-user-popover]';
+
+				if (selector) {
+					elSelector = selector + ' [data-user-popover]';
+				}
+
+				$(elSelector).totvsPopover({
+					popoverPosition: 'auto',
+					startDelay: 600,
+					endDelay: 200,
+					fadeIn: 120,
+					width: 380,
+					height: 194,
+					subTop: 60,
+					calcHeight: 194,
+					calcWidth: 380,
+					onMouseEnter: function (el, ev) {
+						var alias = $(el).children('[data-user-popover]').attr('data-user-popover');
+						if (!$(el).find('.totvs-popover .widget-card-user').length) {
+							$(el).addClass('loading');
+							loadCardPopover(el, ev, alias);
+						}
+					},
+					onMouseLeave: function (el, ev) {
+						$(el).find('.totvs-popover .widget-card-user').remove();
+					}
+				});
+			}
+		}
+
+		function loadCardPopover(el, ev, alias) {
+			var params = {
+				aliasPage: alias,
+				cardPopover: true,
+				instanceIdPopover: (new Date().getTime()).toString()
+			};
+
+			WCMAPI.convertFtlAsync('socialcard', 'view.ftl', params, function (html) {
+				$(el).removeClass('loading');
+				$(el).find('.wrapper-popover').append(html);
+				loadFavorites();
+			});
+		}
+
+		function preventXSS(str) {
+			return str.replace(/<|>/gi, '');
+		}
+
+		return {
+			addEvent: ev,
+			alert: alert,
+			confirm: confirm,
+			defaultURL: defaultURL,
+			getSocialUser: getSocialUser,
+			hideLoading: hideLoading,
+			hideMessage: hideMessage,
+			loadSociables: loadSociables,
+			loadFavorites: loadFavorites,
+			onSocketReady: onSocketReady,
+			removeEvent: removeEv,
+			share: socialShare,
+			showAlerts: showAlerts,
+			showSocialDocs: showSocialDocs,
+			showCommunities: showCommunities,
+			showCommunity: showCommunity,
+			showUser: showUser,
+			showConnections: showConnections,
+			showFollowers: showFollowers,
+			showFollowings: showFollowings,
+			showGalleries: showGalleries,
+			showGallery: showGallery,
+			showHome: showHome,
+			showLoading: showLoading,
+			message: showLoading,
+			showMedia: showMedia,
+			showParticipations: showParticipations,
+			showPost: showPost,
+			showProfile: showProfile,
+			showSearch: showSearch,
+			showSocial: showSocial,
+			getDOMElement: getDOMElement,
+			findSocial: findSocial,
+			findSocialsFavoriteRelatedPriority: findSocialsFavoriteRelatedPriority,
+			findSocialsFavoriteRelatedPriorityForMention: findSocialsFavoriteRelatedPriorityForMention,
+			suggestTags: suggestTags,
+			findSocialCallback: findSocialCallback,
+			watchUsersList: socialWatch,
+			likeUsersList: socialLike,
+			mentionsInput: mentionsInput,
+			showCardPopover: showCardPopover,
+			getAliasCommunityPage: getAliasCommunityPage
+		};
+	})(window, document);
+}

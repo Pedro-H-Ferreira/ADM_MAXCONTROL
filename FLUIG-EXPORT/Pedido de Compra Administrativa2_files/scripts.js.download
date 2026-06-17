@@ -1,0 +1,1664 @@
+function initCargo(){
+    setaValor("responsavelPedido",nomeUsuario)
+    setaValor("matResponsavelEnvio",codigoUsuario)
+ 
+}
+
+function intNome(){
+setaValor("nomeControladoria",nomeUsuario)
+setaValor("matNomeControladoria",codigoUsuario)
+
+}
+
+function intDiretor(){
+	setaValor("nomeDiretor",nomeUsuario)
+	//setaValor("matNomeControladoria",codigoUsuario)
+
+}
+
+function setaValor(id,valor){
+	$("#"+id).attr("value",valor)
+    //document.getElementById(id).value = valor
+}
+
+function initFluigCalendar() {
+	  var fluigCalendar = ["#vencPagNota"];
+	  for (var a = 0; a < fluigCalendar.length; a++) {
+	    FLUIGC.calendar(fluigCalendar[a])
+	  };
+	}
+
+function documentoDP03(obj) {
+	
+	var idData = $("#dataEnvio").val();
+	var idNF = $("#nNotaFiscal").val();
+    var nomeDocumento = " Aprovação Diretoria "+" - "+idNF+ " - " +idData;
+    JSInterface.showCamera(nomeDocumento);
+    top.document.getElementsByClassName("topBtn")[0].click();
+} 
+//lançamento da nota 
+function comprovanteAnexarNF(obj) {
+	
+    var idNotaFiscal = $("#nNotaFiscal").val();
+    var idData = $("#vencPagNota").val();
+    var idFilial = $("#unidadeFilial").val();
+    var idvNota = $("#valorNF").val();
+    
+    var nomeDocumento = "Nº Nota Fiscal - " + idNotaFiscal + " - " + idFilial +  " - " + idData +  " - R$ " + idvNota;
+    JSInterface.showCamera(nomeDocumento);
+    top.document.getElementsByClassName("topBtn")[0].click();
+    
+
+}
+
+//lançamento da nota 
+function comprovanteAnexarNFXML(obj) {
+
+    var nomeDocumento = $("#chaveXML").val();
+    JSInterface.showCamera(nomeDocumento);
+    top.document.getElementsByClassName("topBtnXML")[0].click();
+ 
+}
+
+//nova versão do xml
+
+//Buscar dados do arquivo XML
+function dadosXML(){
+	//Variavel
+	var chaveXMLXML;
+	var modeloXML;
+    var serieXML;
+    var CFOPXML;
+    var dataEmissaoNFXML;
+	var valorNFXML;
+	var codCNPJXML;
+	var descricaoDemandaEnvioXML;
+	var nNotaFiscalXML;
+	var codCNPJFilialXML;
+	var vencXML;
+	$("#liberado").val('bloqueado');
+	
+	// copiando os dados da tag `book` para o objeto `Book`
+	var Book = function (node) {
+	  var that = this;
+	  this.id = node.id;      
+	  [].forEach.call(node.childNodes, function (child, indice) {
+	    if (child.nodeType == 1) {
+	      that[child.nodeName] = child.textContent;
+	    }
+	  });
+	}
+
+	// criando um link para um XML. 
+	var tbody = document.querySelector("tbody");
+
+	var fileUpload = document.getElementById("fileUpload");
+	
+	fileUpload.addEventListener("change", function (event) {
+
+	  var file = fileUpload.files[0];
+	  if (file.type.indexOf("xml") == -1)
+	    return;
+
+	  var url = URL.createObjectURL(file);
+	  var httpRequest = new XMLHttpRequest();
+	  httpRequest.open("GET", url, true)
+	  httpRequest.addEventListener("readystatechange", function () {
+	    if (httpRequest.readyState == 4) {
+	      var catalog = httpRequest.responseXML.getElementsByTagName("NFe")[0];
+	      var catalog1 = httpRequest.responseXML.getElementsByTagName("protNFe")[0];
+	      var catalog2 = httpRequest.responseXML.getElementsByTagName("infNFe")[0];
+	      //var catalog3 = httpRequest.responseXML.getElementsByTagName("dup")[0];
+	      var books = catalog.getElementsByTagName("ide");
+	      var books1 = catalog.getElementsByTagName("emit");
+	      var books2 = catalog.getElementsByTagName("dest");
+	      var books3 = catalog1.getElementsByTagName("infProt");
+	      var books4 = catalog2.getElementsByTagName("ICMSTot");
+	      var books5 = catalog.getElementsByTagName("prod");
+	      var books6 = catalog.getElementsByTagName("dup");
+	      [].forEach.call(books, function (node, indice) {
+	        var ide = new Book(node); 
+
+	        console.log("TesteXMLModelo"+ide.mod);
+	        console.log("TesteXMLNota"+ide.nNF);
+	        console.log("TesteXMLDtEmissão"+ide.dhEmi);
+	        console.log("TesteXMLSerie"+ide.serie);
+	        
+	    	nNotaFiscalXML=ide.nNF;
+	    	modeloXML=ide.mod;
+	    	serieXML=ide.serie;
+	    	dataEmissaoNFXML=ide.dhEmi;
+	    	
+
+	      });
+	      [].forEach.call(books1, function (node, indice) {
+		        var emit = new Book(node); 
+
+		        //Emissão
+		        console.log("TesteXMLCNPJ"+emit.CNPJ);
+		        console.log("TesteXMLNome"+emit.xNome);
+		        
+		    	codCNPJXML = emit.CNPJ;
+
+		      });
+	      [].forEach.call(books2, function (node, indice) {
+		        var dest = new Book(node); 
+
+		        //Emissão
+		        console.log("TesteXMLCNPJDest"+dest.CNPJ);
+		        
+		        codCNPJFilialXML=dest.CNPJ;
+
+		        
+
+		      });
+	      [].forEach.call(books3, function (node, indice) {
+		        var infProt = new Book(node); 
+
+		        //Emissão
+		        console.log("TesteXMLChave"+infProt.chNFe);
+		        
+		        chaveXMLXML=infProt.chNFe;
+
+		        
+
+		      });
+	      [].forEach.call(books4, function (node, indice) {
+		        var ICMSTot = new Book(node); 
+
+		        //Emissão
+		        console.log("TesteXMLTtotal"+ICMSTot.vNF);
+		        
+		        valorNFXML=ICMSTot.vNF;
+
+		        
+
+		      });
+	      [].forEach.call(books5, function (node, indice) {
+		        var prod = new Book(node); 
+
+		        //Emissão
+		        console.log("TesteXMLCFOPDest"+prod.CFOP);
+		        
+		        CFOPXML=prod.CFOP;
+
+		        
+
+		      });
+	      
+	      [].forEach.call(books6, function (node, indice) {
+		        var dup = new Book(node); 
+
+		        //Emissão
+		        console.log("TesteXMLVenciParc"+dup.dVenc);
+		        
+		        vencXML=dup.dVenc;
+
+
+
+		        
+
+		      });
+	      
+            //Converter data emissão tipo UTC
+	        var stringdataemissao = dataEmissaoNFXML;
+	        var resutadodataemissão = stringdataemissao.substring(0,10);
+	    	// Recuperando a data emissão informada no campo do XML
+	    	var prazoFormularioX = resutadodataemissão;
+	    	console.log("Datas0: " + prazoFormularioX);
+	        /* Extrai os dados da data do formulário para um array, para posteriormente transformar em data do Javascript */
+	        var arrayPrazoConclusaoX = prazoFormularioX.split("-");
+	        var anoX = arrayPrazoConclusaoX[0]; // Posição 0 do array é o dia
+	        var mesX = arrayPrazoConclusaoX[1] - 1; // Posição 1 do array é o mês (Subtraímos 1 porque na data do Javascript o mês vai de 0 a 11)
+	        var diaX = arrayPrazoConclusaoX[2]; // Posição 2 do array é o ano
+	        // Cria a data no Javascript
+	        var dataDoPrazoX = new Date();
+	        console.log("Ajuste data"+dataDoPrazoX);
+	        dataDoPrazoX.setDate(diaX);
+	        dataDoPrazoX.setMonth(mesX);
+	        dataDoPrazoX.setFullYear(anoX);
+	    	var diaX = dataDoPrazoX;
+	        
+	       // console.log("nova data"+diaX);
+	        
+	    	var today = diaX;
+	    	console.log("Datas3: " + today);
+	    	var year = today.getFullYear();
+	    	var month = (today.getMonth() + 1) < 10 ? '0' + (today.getMonth() + 1)	: (today.getMonth() + 1);
+	    	var day = today.getDate() < 10 ? '0' + today.getDate() : today.getDate();		
+	    	var hour = today.getHours() < 10 ? '0' + today.getHours() : today.getHours();
+	    	var minute = today.getMinutes() < 10 ? '0' + today.getMinutes() : today.getMinutes();
+	    	var second = today.getSeconds() < 10 ? '0' + today.getSeconds() : today.getSeconds();
+	    	var currentHour = hour + ":" + minute + ":" + second;
+	    	var currentDateXML = day + '/' + month + '/' + year;
+	    	//console.log("Datas4: " + currentDateXML);
+	        
+	      
+	  	    //Carregar os valores do XML
+	    	setaValor("nNotaFiscal",nNotaFiscalXML)
+	    	setaValor("codCNPJ",codCNPJXML)
+	    	setaValor("codCNPJXML",codCNPJFilialXML)
+	    	setaValor("chaveXML",chaveXMLXML)
+	    	//setaValor("valorNF",valorNFXML)
+	        setaValor("modelo",modeloXML)
+	        setaValor("serie",serieXML)
+	        setaValor("CFOP",CFOPXML)
+	        //setaValor("vencPagNota",vencXML)
+	        
+            //resultado da conversão da data
+	        setaValor("dataEmissaoNF",currentDateXML)
+	        $("#valorNF").val(mascaraBR('moeda', valorNFXML));
+	        
+	  	    //var nomeDocumento=chaveXMLXML;
+	        //top.document.getElementsByClassName("fileUpload");
+	  	    //JSInterface.showCamera(nomeDocumento);
+	  	    //Consulta para preenchimento da filial
+	  		var idCnpjFilial =$("#codCNPJXML").val();
+	  		const idDatasetFormulario = 'dsConsultaFilialDDRestXML';
+	  		  //Cria as constraints para buscar os campos
+	  		  var constraintsFilhos = new Array();
+	  		  constraintsFilhos.push( DatasetFactory.createConstraint( "CNPJ", idCnpjFilial,idCnpjFilial, ConstraintType.MUST ) );
+
+	  		          //Teste de retorno da informação coletada
+	  		          //Busca o dataset
+	  		          try {
+	  		              var datasetFilhos = DatasetFactory.getDataset( idDatasetFormulario, null, constraintsFilhos, null);
+
+	  		              var CNPJ;
+	  		              var CodFilial;
+	  		              var CodDescricao;
+	  		              var Descricao;
+	  		              CNPJ = datasetFilhos.values[0].CNPJ;
+	  		              CodFilial = datasetFilhos.values[0].CodFilial;
+	  		              CodDescricao = datasetFilhos.values[0].CodDescricao;
+	  		              Descricao = datasetFilhos.values[0].Descricao;
+
+	  		          	console.log("TesteCNPJFilial"+CNPJ);
+	  		          	console.log("TesteCodfilial"+CodFilial);
+	  		          	console.log("TesteFilialDescrição"+CodDescricao);
+	  		            console.log("TesteDescrição"+Descricao);
+	  		          	setaValor("unidadeFilial",CodDescricao)
+	  		          	setaValor("coFilial",CodFilial)
+
+	  		          	
+
+	  		          } catch(erro) {
+		  		          	setaValor("unidadeFilial",CodDescricao)
+		  		          	setaValor("coFilial",CodFilial)
+
+	  		          }
+	  		          
+	  		          //Filtro de fornecedor
+	  		        var idCnpjEmp =$("#codCNPJ").val();
+	  		  		//const idDatasetFormularioF = 'dsLeituraConsultaFornecedorPVRest';
+	  		  		const idDatasetFormularioF = 'dsConsultaFornecedoresRestXML';
+	  		  		  //Cria as constraints para buscar os campos
+	  		  		  var constraintsFilhosF = new Array();
+	  		  		  constraintsFilhosF.push( DatasetFactory.createConstraint( "CGC", idCnpjEmp,idCnpjEmp, ConstraintType.MUST ) );
+
+	  		  		          //Teste de retorno da informação coletada
+	  		  		          //Busca o dataset
+	  		  		          try {
+	  		  		              var datasetFilhosF = DatasetFactory.getDataset( idDatasetFormularioF, null, constraintsFilhosF, null);
+
+	  		  		              var CGC;
+	  		  		              var CodFornecedor;
+	  		  		              var CodDescricao;
+	  		  		              var Descricao;
+	  		  		              var CodDescricaoCGC;
+	  		  		              
+	  		  		              CGC = datasetFilhosF.values[0].CGC;
+	  		  		              CodFornecedor = datasetFilhosF.values[0].CodFornecedor;
+	  		  		              CodDescricao = datasetFilhosF.values[0].CodDescricao;
+	  		  		              Descricao = datasetFilhosF.values[0].Descricao;
+	  		  		              CodDescricaoCGC = datasetFilhosF.values[0].CodDescricaoCGC;
+
+	  		  		          	console.log("TesteCNPJForn"+CGC);
+	  		  		          	console.log("TesteCodForn"+CodFornecedor);
+	  		  		          	console.log("TesteFornDescrição"+CodDescricao);
+	  		  		            console.log("TesteDescriçãoForn"+Descricao);
+	  		  		            console.log("TesteDescriçãoForn"+CodDescricaoCGC);
+	  		  		          	//setaValor("codCNPJ",CGC)
+	  		  		          	setaValor("fornecedor",CodDescricao)
+	  		  		          	setaValor("fornecedorC",CodDescricaoCGC)
+
+	  		  		          	
+
+	  		  		          } catch(erro) {
+		  		  		          	//setaValor("codCNPJ",CGC)
+		  		  		          	setaValor("fornecedor",CodDescricao)
+		  		  		          	setaValor("fornecedorC",CodDescricaoCGC)
+
+	  		  		          }
+
+
+	        
+	    }
+	  });
+	  httpRequest.send();
+
+	});
+  
+	          
+
+
+
+	
+	
+	
+}
+
+//Verifca a Alçada de Aprovação
+function alcadaAprovacao(){
+    //var valorNFAlcada = $("#valorNF").val();
+    var valorNFAlcada = parseFloat($("#valorTotalPedido").val().replace(/\./g,"").replace(",","."));
+    var valor1 = 1500.00;
+    var valor2 =10000.00;
+    
+    $("#valorNFT").val(valorNFAlcada);
+
+    console.log("valorNF"+ valorNFAlcada);
+    
+   // var selecaoOrcamento = $("#radioExtraOrc").val();
+    var selecaoOrcamento = $('input[name=radioExtraOrc]:checked').val();
+    
+    console.log("Extra orc"+ selecaoOrcamento);
+    	
+    	//Alçada 1 REGIONAIS
+        if(valorNFAlcada <= valor1){
+        	setaValor("tipoAlcada","1")       	
+        }
+        //Alçada 2  APROVAÇÃO DIRETOR DE OPERAÇÕES
+        if(valorNFAlcada > valor1 && valorNFAlcada <= valor2){
+        	setaValor("tipoAlcada","2")
+        }
+      
+        //Alçada 3 APROVAÇÃO DIRETOR FINANCEIRO / ACIONISTAS
+        if(valorNFAlcada > valor2){
+        	setaValor("tipoAlcada","3")
+        }
+        		
+}
+
+
+//Retorna os dados de Gerente e Gerente regional
+function retornaGerente() {
+  console.log('Iniciando função de retornar gerente');
+  var idFilial =$("#codFilialPedido").val();
+  const idDatasetFormulario = 'dsLeituraCadastroGerenteRegionalDD';
+  //Cria as constraints para buscar os campos
+  var constraintsFilhos = new Array();
+  constraintsFilhos.push( DatasetFactory.createConstraint( "codFilial", idFilial,idFilial, ConstraintType.MUST ) );
+
+          //Teste de retorno da informação coletada
+          //Busca o dataset
+          try {
+              var datasetFilhos = DatasetFactory.getDataset( idDatasetFormulario, null, constraintsFilhos, null);
+
+              var retornoGerente;
+              var retornoNomeGerente;
+              var retornoGerenteRegional;
+              var retornoNomeGerenteRegional;
+              retornoGerente = datasetFilhos.values[0].codGerente;
+              retornoNomeGerente = datasetFilhos.values[0].descricaoFilial;
+              retornoNomeGerenteRegional = datasetFilhos.values[0].nomeGerenteRegional;
+              retornoGerenteRegional = datasetFilhos.values[0].codGerenteRegional;
+
+          	console.log("TesteValidaçãoGerente"+retornoGerente);
+          	console.log("TesteValidaçãoGerenteGeral"+retornoGerenteRegional);
+          	console.log("TesteValidaçãonomeGerenteGeral"+retornoNomeGerenteRegional);
+          	setaValor("matGerenteLojaArea",retornoGerente)
+          	setaValor("nomeGerenteLojaArea",retornoNomeGerente)
+          	setaValor("matGerenteRegionalArea",retornoGerenteRegional)
+          	setaValor("nomeGerRegional",retornoNomeGerenteRegional)
+          	
+
+          } catch(erro) {
+        	  	console.log('Deu erro ao consultar o retorno gerente: '+erro);
+            	setaValor("matGerenteLojaArea",retornoGerente)
+            	setaValor("nomeGerenteLojaArea",retornoNomeGerente)
+              	setaValor("matGerenteRegionalArea",retornoGerenteRegional)
+              	setaValor("nomeGerRegional",retornoNomeGerenteRegional)
+
+          }
+
+          
+
+
+	}
+
+
+//Retorna os das Contas Financeiras que possuem regras de Exceção
+function retornaContaExcecao() {
+
+  var idConta =$("#contaCentroCusto").val();
+  const idDatasetFormulario = 'dsConsultaCadastroExcecaoContasPrazosDD';
+  //Cria as constraints para buscar os campos
+  var constraintsFilhos = new Array();
+  constraintsFilhos.push( DatasetFactory.createConstraint( "codConta", idConta,idConta, ConstraintType.MUST ) );
+
+          //Teste de retorno da informação coletada
+          //Busca o dataset
+          try {
+              var datasetFilhos = DatasetFactory.getDataset( idDatasetFormulario, null, constraintsFilhos, null);
+
+              var retornoConta;
+              var retornoDescricao;
+              var retornoPrazoMinimo;
+              var retornoPrazoMaximo;
+              retornoConta = datasetFilhos.values[0].CodConta;
+              retornoDescricao = datasetFilhos.values[0].Descricao;
+              retornoPrazoMinimo = datasetFilhos.values[0].PrazoMinimo;
+              retornoPrazoMaximo = datasetFilhos.values[0].PrazoMaximo;
+
+          	console.log("TesteValidaçãoConta"+retornoConta);
+          	console.log("TesteValidaçãoContaDesc"+retornoDescricao);
+          	console.log("TesteValidaçãoMinimo"+retornoPrazoMinimo);
+          	console.log("TesteValidaçãoMaximo"+retornoPrazoMaximo);
+          	//setaValor("matGerenteLojaArea",retornoConta)
+          	//setaValor("nomeGerenteLojaArea",retornoDescricao)
+          	setaValor("prazoMinimo",retornoPrazoMinimo)
+          	setaValor("prazoMaximo",retornoPrazoMaximo)
+          	
+
+          } catch(erro) {
+            	//setaValor("matGerenteLojaArea",retornoGerente)
+            	//setaValor("nomeGerenteLojaArea",retornoNomeGerente)
+              	setaValor("prazoMinimo",20)
+              	setaValor("prazoMaximo",60)
+
+          }
+
+          
+
+
+	}
+
+
+
+//Verifica NF
+function verificaNF() {
+	
+	
+	var activity = WKNumState;
+	//Ajusta valorTotal
+    var idvalorNF = parseFloat($("#valorNF").val().replace(/\./g,"").replace(",","."));
+    $("#valorNFT").val(idvalorNF);
+    var idNotaFiscal = +$("#nNotaFiscal").val();
+    $("#nNotaFiscal").val(idNotaFiscal);
+    var idCNPJ =$("#codCNPJ").val();
+	console.log("TesteVerificaNF"+idNotaFiscal);
+	console.log("TesteVerificaNFCNPJ"+idCNPJ);
+
+
+	if(activity == 240){
+	//Cria as constraints para buscar os campos
+    const idDatasetFormulario = 'formAtendimentoCentralLancamento';
+    var constraintsFilhos = new Array();
+    constraintsFilhos.push( DatasetFactory.createConstraint( "nNotaFiscal", idNotaFiscal,idNotaFiscal, ConstraintType.MUST ) );
+    constraintsFilhos.push( DatasetFactory.createConstraint( "codCNPJ", idCNPJ ,idCNPJ, ConstraintType.MUST ) );
+    //constraintsFilhos.push( DatasetFactory.createConstraint( "nNotaFiscal", "00" ,"00", ConstraintType.MUST_NOT ) );
+
+            //Teste de retorno da informação coletada
+            //Busca o dataset
+    try {
+        var datasetFilhos = DatasetFactory.getDataset( idDatasetFormulario, null, constraintsFilhos, null);
+
+        var retornoNF;
+        var retornoProcesso;
+        var retornoDocId;
+        var size = (datasetFilhos.values['length'])-(1);
+    	console.log("TesteValidaçãoQuant"+size);
+
+        retornoNF = datasetFilhos.values[size].nNotaFiscal;
+        retornoProcesso = datasetFilhos.values[size].numeroSolicitacao;
+        retornoDocId = datasetFilhos.values[size].documentid;
+
+    	console.log("TesteValidaçãoNotaLançada"+retornoNF);
+    	console.log("TesteValidaçãoProcesso"+retornoProcesso);
+    	console.log("TesteValidaçãoDocId"+retornoDocId);
+
+        //Teste de status do processo
+        var constraintsFilhosProcesso = new Array();
+        constraintsFilhosProcesso.push( DatasetFactory.createConstraint( "cardDocumentId", retornoDocId,retornoDocId, ConstraintType.MUST ) );
+
+    	try{
+            var retornoStatus;
+            var datasetFilhosProcesso = DatasetFactory.getDataset( "workflowProcess", null, constraintsFilhosProcesso, null);
+            retornoStatus = datasetFilhosProcesso.values[0].status;
+    	    console.log("TesteValidaçãoStatus"+retornoStatus);
+           } catch(erro) {
+
+           }
+
+    } catch(erro) {
+
+    }
+    
+    if (retornoNF != "" && retornoNF != null  ){
+        if (retornoStatus != '1'){
+        //$("#notaDuplicada").val(retornoNF);
+        $("#notaDuplicada").val('S');
+        
+        FLUIGC.message.alert({
+            message: 'O Número de Nota Fiscal informado já foi incluído anteriomente para este fornecedor, verifique antes de realizar o lançamento!',
+            title: 'Nota Fiscal Duplicada para o Fornecedor Selecionado',
+            label: 'OK'
+        });
+        }else{
+        	$("#notaDuplicada").val('N');
+        }
+        
+    }else{
+        $("#notaDuplicada").val('N');
+    }
+    
+	}
+
+	}
+
+//Verifica NF Pedido
+function verificaNFP() {
+	
+	
+	var activity = WKNumState;
+	//Ajusta valorTotal
+    var idvalorNF = parseFloat($("#valorNF").val().replace(/\./g,"").replace(",","."));
+    $("#valorNFT").val(idvalorNF);
+    var idNotaFiscal = +$("#nNotaFiscal").val();
+    $("#nNotaFiscal").val(idNotaFiscal);
+    var idCNPJ =$("#codCNPJ").val();
+	console.log("TesteVerificaNF"+idNotaFiscal);
+	console.log("TesteVerificaNFCNPJ"+idCNPJ);
+
+
+	if(activity == 240){
+	//Cria as constraints para buscar os campos
+    const idDatasetFormulario = 'Formulario_Solicitacao_Compra_Administrativa';
+    var constraintsFilhos = new Array();
+    constraintsFilhos.push( DatasetFactory.createConstraint( "nNotaFiscal", idNotaFiscal,idNotaFiscal, ConstraintType.MUST ) );
+    constraintsFilhos.push( DatasetFactory.createConstraint( "codCNPJ", idCNPJ ,idCNPJ, ConstraintType.MUST ) );
+    //constraintsFilhos.push( DatasetFactory.createConstraint( "nNotaFiscal", "00" ,"00", ConstraintType.MUST_NOT ) );
+
+            //Teste de retorno da informação coletada
+            //Busca o dataset
+    try {
+        var datasetFilhos = DatasetFactory.getDataset( idDatasetFormulario, null, constraintsFilhos, null);
+
+        var retornoNF;
+        var retornoProcesso;
+        var retornoDocId;
+        var size = (datasetFilhos.values['length'])-(1);
+    	console.log("TesteValidaçãoQuant"+size);
+
+        retornoNF = datasetFilhos.values[size].nNotaFiscal;
+        retornoProcesso = datasetFilhos.values[size].numeroSolicitacao;
+        retornoDocId = datasetFilhos.values[size].documentid;
+
+    	console.log("TesteValidaçãoNotaLançada"+retornoNF);
+    	console.log("TesteValidaçãoProcesso"+retornoProcesso);
+    	console.log("TesteValidaçãoDocId"+retornoDocId);
+
+        //Teste de status do processo
+        var constraintsFilhosProcesso = new Array();
+        constraintsFilhosProcesso.push( DatasetFactory.createConstraint( "cardDocumentId", retornoDocId,retornoDocId, ConstraintType.MUST ) );
+
+    	try{
+            var retornoStatus;
+            var datasetFilhosProcesso = DatasetFactory.getDataset( "workflowProcess", null, constraintsFilhosProcesso, null);
+            retornoStatus = datasetFilhosProcesso.values[0].status;
+    	    console.log("TesteValidaçãoStatus"+retornoStatus);
+           } catch(erro) {
+
+           }
+
+    } catch(erro) {
+
+    }
+    
+    if (retornoNF != "" && retornoNF != null  ){
+        if (retornoStatus != '1'){
+        //$("#notaDuplicada").val(retornoNF);
+        $("#notaDuplicadaP").val('S');
+        
+        FLUIGC.message.alert({
+            message: 'O Número de Nota Fiscal informado já foi incluído anteriomente para este fornecedor, verifique antes de realizar o lançamento!',
+            title: 'Nota Fiscal Duplicada para o Fornecedor Selecionado',
+            label: 'OK'
+        });
+        }else{
+        	$("#notaDuplicadaP").val('N');
+        }
+        
+    }else{
+        $("#notaDuplicadaP").val('N');
+    }
+    
+	}
+
+	}
+
+
+
+
+//lançamento da Canhoto 
+function comprovanteAnexar(obj) {
+	
+    var idNotaFiscal = $("#nNotaFiscal").val();
+    var idData = $("#vencPagNota").val();
+    var idFilial = $("#unidadeFilial").val();
+    var idvNota = $("#valorNF").val();
+    
+    var nomeDocumento = "Canhoto da Nota Fiscal - " + idNotaFiscal + " - " + idFilial +  " - " + idData +  " - R$ " + idvNota;
+    JSInterface.showCamera(nomeDocumento);
+    top.document.getElementsByClassName("topBtnCanhoto")[0].click();
+    
+
+}
+
+
+
+//Edição do campo responsavel pelo financeiro
+function ajustaResp(){
+    var codigoF = $("#coFilail").val();
+    var respAtend = 00131;
+    if (codigoF == "23"){
+    	setaValor("financeiroResp",respAtend)
+    }
+    if (codigoF == "2"){
+    	setaValor("financeiroResp",respAtend)
+    }
+    if (codigoF == "11"){
+    	setaValor("financeiroResp",respAtend)
+    }
+   
+}
+
+
+//Abri a barra de anexos ao clicar no botão 'Visualizar/Remover Anexos'
+function btnViewDocuments(id) {
+  //var indexes = form.getChildrenIndexes("listaNF");
+  top.document.getElementsByClassName("topBtn")[0].click()
+  top.document.getElementById("attachments").className += " active"
+}
+/*
+//ShowCamera (Anexar NF)
+function comprovanteAnexarNF(obj) {
+  //var indexes = form.getChildrenIndexes("listaNF");	
+  var idObj = $(obj).attr('id'); // pega o atributo id do campo e armazena na variavel idObj 
+  var partes = idObj.split("_"); // Quebra em partes
+
+  initFluigCalendar(); //função para teste de carregamento de informação
+  checkNumProdutos();
+  valorTotal();
+  
+  var notaFiscal = "nNotaFiscal___" + partes[3];
+  var data = "vencPagNota___" + partes[3]; // pega o id do campo junto com o parte 3, o index do id
+  var filial = "unidadeFilial___" + partes[3];
+  var vNota = "valorNF___" + partes[3];
+  
+  var idNotaFiscal = $('#' + notaFiscal).val();
+  var idData = $('#' + data).val();
+  var idFilial = $('#' + filial).val();
+  var idvNota = $('#' + vNota).val();
+
+
+  if (idData != undefined && idData != "" && idFilial != undefined && idFilial != "" && idNotaFiscal != undefined && idNotaFiscal != "" && idvNota != undefined && idvNota != "") {
+    var nomeDocumento = "Nº Nota Fiscal - " + idNotaFiscal + " - " + idFilial +  " - " + idData +  " - R$ " + idvNota;
+    JSInterface.showCamera(nomeDocumento);
+    top.document.getElementsByClassName("topBtn")[0].click();
+  } else {
+    // Mensagem de alerta
+    FLUIGC.message.alert({
+      title: 'ERRO',
+      message: 'O campo Nota Fiscal, Data, Filial e valor da Nota deve ser preenchido primeiramente!!',
+      label: 'Ok'
+    });
+  }
+}
+*/
+/*
+function addChild(){
+    var row = wdkAddChild('Rateio'); //Adicionar filhos
+ 
+    MaskEvent.init(); //Atualiza os campos com 'mask'
+}
+*/
+
+/*
+// Adiciona filho
+function addDespesa() {
+  wdkAddChild('listaNF');
+  //var indexes = form.getChildrenIndexes("listaNF");
+  //document.getElementById("rowTabelaNotas___" + row).value = row;
+  MaskEvent.init();
+  valorTotal();
+  
+  
+  var indexAtual = document.getElementById("qtDespesas").value;
+  var indexYet = document.getElementById("indexTmp").value;
+  var indexNow = parseInt(indexAtual);
+  var indexGo = parseInt(indexYet);
+
+  indexNow = indexNow + 1;
+  indexGo = indexGo + 1;
+
+  document.getElementById("qtDespesas").value = indexNow;
+  document.getElementById("indexTmp").value = indexGo;
+  //showFieldsDespesaNF();
+  //checkNumProdutos(indexNow);
+  
+}
+*/
+//Adiciona filho
+function addRateio() {
+  //var row = wdkAddChild('Rateio');
+  wdkAddChild('Rateio');
+ 
+  MaskEvent.init();
+  valorTotalRateio();
+  //var indexes = form.getChildrenIndexes("listaNF");
+  //document.getElementById("rowTabelaNotas___" + row).value = row;
+  
+  //valorTotal();
+  
+  //var indexAtual = document.getElementById("qtDespesas").value;
+  //var indexYet = document.getElementById("indexTmp").value;
+  //var indexNow = parseInt(indexAtual);
+  //var indexGo = parseInt(indexYet);
+
+  //indexNow = indexNow + 1;
+  //indexGo = indexGo + 1;
+
+  //document.getElementById("qtDespesas").value = indexNow;
+  //document.getElementById("indexTmp").value = indexGo;
+  //showFieldsDespesaNF();
+  //checkNumProdutos(indexNow);
+  
+}
+//Adiciona filho
+function addParcelas() {
+  wdkAddChild('Parcelas');
+  
+  var indexAtual = document.getElementById("qtDespesas").value;
+  var indexYet = document.getElementById("indexTmp").value;
+  var indexNow = parseInt(indexAtual);
+  var indexGo = parseInt(indexYet);
+  indexNow = indexNow + 1;
+  indexGo = indexGo + 1;
+
+  document.getElementById("qtDespesas").value = indexNow;
+  document.getElementById("indexTmp").value = indexGo;
+  
+  MaskEvent.init();
+  valorTotalParcelas(); 
+}
+//Remove filho
+function delListaNF(oElement) {
+  var activity = WKNumState;
+
+  if (activity != 4) {
+    fnWdkRemoveChild(oElement);
+
+    var indexAtual = document.getElementById("qtDespesas").value;
+    var indexNow = parseInt(indexAtual);
+
+    indexAtual = indexAtual - 1;
+    document.getElementById("qtDespesas").value = indexAtual;
+  }
+
+}
+
+/*
+//Carregamemto padrão de Elementos do Fluig
+function loadDefault() {
+$.each($("[data-date]"), function (i, o) {
+    var id = $(o).attr("id");
+    FLUIGC.calendar("#" + id);
+  });
+}
+
+*/
+//Numero de notas incluidas
+function checkNumProdutos() {
+	 valorTotal();
+	 quantTotal();
+	  var num = 0;
+	  $('input[id^=numProduto___]').each(function(){
+	    num++;
+	    $( this ).val(num);
+	  })
+	  
+	  
+	}
+
+function checkNumQuant() {
+	  var num = 0;
+	  $('input[id^=qtDespesas___]').each(function(){
+	    num++;
+	    $( this ).val(num);
+	  })
+	  
+	  
+	}
+
+
+
+function valorTotal() {
+	  var total = 0;
+	  $("input[id^='valorNF___']").each(function () {
+	    if ($(this).val()) {
+	      total += parseFloat($(this).val().replaceAll(".", "").replace(",", "."));
+	    }
+	  });
+	  // Setando o valor total geral de despesas
+	  //$("#totalSol").val(mascaraBR('moeda', total));
+	  $("#valorNotaFiscal").val(mascaraBR('moeda', total));
+	  //calcularTotalGeralViagem();
+	}
+
+function valorTotalRateio() {
+	  var totalR = 0;
+	  $("input[id^='valorRateio___']").each(function () {
+	    if ($(this).val()) {
+	      totalR += parseFloat($(this).val().replaceAll(".", "").replace(",", "."));
+	    }
+	  });
+	  // Setando o valor total geral de despesas
+	  //$("#totalSol").val(mascaraBR('moeda', total));
+	  $("#valorNFRateio").val(mascaraBR('moeda', totalR));
+	  //calcularTotalGeralViagem();
+	}
+
+function valorTotalParcelas() {
+	  var totalP = 0;
+	  $("input[id^='valorParcelas___']").each(function () {
+	    if ($(this).val()) {
+	      totalP += parseFloat($(this).val().replaceAll(".", "").replace(",", "."));
+	    }
+	  });
+	  // Setando o valor total geral de despesas
+	  //$("#totalSol").val(mascaraBR('moeda', total));
+	  $("#valorNFParcelas").val(mascaraBR('moeda', totalP));
+	  //calcularTotalGeralViagem();
+	}
+
+//Carregamemto padrão de Elementos do Fluig
+function loadDefault() {
+  //permite digitar somente numeros
+  $('body').on('keypress', '[data-only-numbers]', function (ev) {
+    var k = ev.keyCode || ev.which;
+    //Permite apagar o conteúdo do do campo usando as teclas 'backspace' ou 'delete' no firefox.
+    //Nos outros navegadores o keypress não gera evento.
+    if (k == 8 || k == 46) {
+      return true;
+    }
+    k = String.fromCharCode(k);
+    if (isNaN(k)) {
+      return false;
+    }
+    return true;
+  });
+  $('.create-form-components').on('keyup', 'input[required="required"][type="text"], input[required="required"][type="number"], input[required="required"][type="date"], textarea[required="required"]', function () {
+    validationFieldsForm($(this), $(this).parents('.form-field').data('type'));
+  });
+  $('.create-form-components').on('change', 'input[required="required"][type="checkbox"], input[required="required"][type="radio"], select[required="required"]',
+    function () {
+      validationFieldsForm($(this), $(this).parents('.form-field').data('type'));
+    });
+
+  function validationFieldsForm(field, type) {
+    if (type === "checkbox" || type === "radio") {
+      if (!field.is(':checked')) {
+        field.parents('.form-field').addClass('required');
+      } else {
+        field.parents('.form-field').removeClass('required');
+      }
+    } else {
+      if (!field.val().trim()) {
+        field.parents('.form-field').addClass('required');
+      } else {
+        field.parents('.form-field').removeClass('required');
+      }
+    }
+  }
+  var $zoomPreview = $(".zoom-preview");
+  if ($zoomPreview.length) {
+    $zoomPreview.parent().removeClass("input-group");
+    $zoomPreview.remove();
+  }
+  var ratings = $(".rating");
+  if (ratings.length > 0)
+    ratingStars(ratings);
+
+  function ratingStars(stars) {
+    $.each(stars, function (i, obj) {
+      var field = $(this).closest(".form-group").find(
+        ".rating-value");
+      var tgt = $(obj);
+      tgt.html("");
+      var rating = FLUIGC.stars(tgt, {
+        value: field.val()
+      });
+      rating.on("click", function (o) {
+        field.val($(this).index() + 1);
+      });
+    });
+  }
+
+  $.each($("[data-date]"), function (i, o) {
+    var id = $(o).attr("id");
+    FLUIGC.calendar("#" + id);
+  });
+}
+
+function mascaraBR(tipo, valor) {
+
+	  if (tipo == "moeda") {
+
+	    var val = parseFloat(valor).toLocaleString('pt-BR', {
+	      style: 'currency',
+	      currency: 'BRL'
+	    }).replace("R$", "").trim()
+	    return val
+
+	  }
+
+	}
+
+function valorMask(v) {
+	  v = v.replace(/\D/g, ""); //Remove tudo o que não é dígito  
+	  v = v.replace(/(\d)(\d{8})$/, "$1.$2"); //coloca o ponto dos milhões  
+	  v = v.replace(/(\d)(\d{5})$/, "$1.$2"); //coloca o ponto dos milhares  
+	  v = v.replace(/(\d)(\d{2})$/, "$1,$2"); //coloca a virgula antes dos 2 últimos dígitos  
+	  return v;
+	}
+
+function fnCustomDelete(oElement){
+	 
+    //Customização
+    alert ("Cancelar Rateio!");
+ 
+    // Chamada a funcao padrao, NAO RETIRAR
+    fnWdkRemoveChild(oElement);
+    quantTotal();
+    valorTotal();
+    //bloqueiaDataLanc();
+ 
+    //Customização
+    //alert ("Nota Fiscal eliminada!");
+}
+
+function fnCustomDeleteParcelas(oElement){
+	 
+    //Customização
+    alert ("Excluir parcela!");
+ 
+    // Chamada a funcao padrao, NAO RETIRAR
+    fnWdkRemoveChild(oElement);
+
+
+    quantTotalParcelas()
+
+
+}
+
+/*
+function bloqueiaDataLanc(){
+	
+	var NAME = "vencPagNota___";
+	console.log("NumeroID Data >> " + NAME);
+	var FIELD = selectedItem.inputId;
+	
+	  if (FIELD.indexOf(NAME) > -1) {
+	      var seq = FIELD.split("_");
+	
+	//var idObj = $(obj).attr('id'); 
+	//console.log("NumeroID Data >> " + idObj);
+	//var partes = idObj.split("___1");
+	//var distancia = parseFloat($("#vencPagNota___" + partes[1]).val());
+	
+	// Esta linha cria a variável calendário que receberá a chamada FLUIGC.calendar():
+	var calendario = FLUIGC.calendar("#vencPagNota___" + seq);
+	console.log("NumeroData >> " + calendario + seq);
+	//console.log(calendario);
+	// Cria a variável com a data atual:
+	var dataAtual = new Date();
+	// Adiciona 3 dias na data atual, você pode alterar este valor conforme necessário:
+	var dias = 16;
+	// Incrementa a quantidade de dias na data atual:
+	dataAtual.setDate(dataAtual.getDate() + dias);
+	// Define que o valor mínimo a ser selecionado no calendário:
+	calendario.setMinDate(dataAtual);
+	  }
+	
+	
+	//var kmFinal = parseFloat($("#kmFinal___" + partes[1]).val());
+    //var diferencaKm = kmInicio - kmFinal;
+
+   // var totalValorKm = 
+	//var totalValorTotal = parseFloat($("#totalSol").val().replaceAll(".","").replace(",","."));
+	// $("input[id^='totalSol']")
+}
+*/
+
+
+
+/*
+
+function bloqueiaDataLanc(){
+	
+
+	  var id = 0;
+	  $("input[id^='numProduto___']").each(function () {
+	    if ($(this).val()) {
+	      id = parseFloat($(this).val());
+	    }
+	  });
+
+	console.log(id);
+
+
+	// Esta linha cria a variável calendário que receberá a chamada FLUIGC.calendar():
+	var calendario = FLUIGC.calendar("#vencPagNota___" + id);
+	console.log("NumeroData >> " + calendario);
+	console.log(calendario);
+	// Cria a variável com a data atual:
+	var dataAtual = new Date();
+	
+	// Adiciona 3 dias na data atual, você pode alterar este valor conforme necessário:
+	var dias = 16;
+	// Incrementa a quantidade de dias na data atual:
+	dataAtual.setDate(dataAtual.getDate() + dias);
+	
+	console.log("Nova data" + dataAtual);
+	
+
+	// Define que o valor mínimo a ser selecionado no calendário:
+	calendario.setMinDate(dataAtual);
+	
+	console.log("Data Atualizada" + calendario);
+}
+
+*/
+
+
+function bloqueiaDataLanc(){
+	
+
+	  var id = 0;
+	  $("input[id^='numProduto___']").each(function () {
+	    if ($(this).val()) {
+	      id = parseFloat($(this).val());
+	    }
+	  });
+
+	console.log(id);
+
+
+	// Esta linha cria a variável calendário que receberá a chamada FLUIGC.calendar():
+	var calendario = FLUIGC.calendar("#vencPagNota___" + id);
+	console.log("NumeroData >> " + calendario);
+	console.log(calendario);
+	// Cria a variável com a data atual:
+	var dataAtual = new Date();
+	
+	// Adiciona 3 dias na data atual, você pode alterar este valor conforme necessário:
+	var dias = 15;
+	// Incrementa a quantidade de dias na data atual:
+	dataAtual.setDate(dataAtual.getDate() + dias);
+	
+	console.log("Nova data" + dataAtual);
+	
+
+	// Define que o valor mínimo a ser selecionado no calendário:
+	calendario.setMinDate(dataAtual);
+	
+	console.log("Data Atualizada" + calendario);
+}
+
+function bloqueiaDataNF(){
+
+
+	// Esta linha cria a variável calendário que receberá a chamada FLUIGC.calendar():
+	var calendario = FLUIGC.calendar("#vencPagNota");
+	console.log("NumeroData >> " + calendario);
+	console.log(calendario);
+	// Cria a variável com a data atual:
+	var dataAtual = new Date();
+	
+	// Adiciona 3 dias na data atual, você pode alterar este valor conforme necessário:
+	var dias = 0;
+	// Incrementa a quantidade de dias na data atual:
+	dataAtual.setDate(dataAtual.getDate() + dias);
+	
+	console.log("Nova data" + dataAtual);
+	
+
+	// Define que o valor mínimo a ser selecionado no calendário:
+	calendario.setMinDate(dataAtual);
+	
+	console.log("Data Atualizada" + calendario);
+}
+/*
+function ajustarDataCentral(){
+	
+
+	var dia = $("#vencPagNota").val();
+	dia2.setDate(dia.getDate() - 3);
+/*
+	FLUIGC.calendar("#datemed", { 
+	  language: 'pt-br',
+	  minDate: dia,
+	  maxDate: $("#vencPagNota").val(),
+	  pickDate: true,
+	  pickTime: false 
+	});
+	
+
+	
+	//var dia2 = dia;
+	//dia2.setDate(dia.getDate() - 3);
+	$("#datemed").val(dia2);
+
+}
+*/
+function ajustadata(){
+    //var data = new Date();
+    
+    var data =$("#vencPagNota").val();
+	console.log("Datas1: " + data);
+    var datset = document.getElementById("datemed").value;
+    datset = datset.replace("/","");
+    var hoje3 = ("0" + (data.getDate()-3)).substr(-2) + "" + ("0" + (data.getMonth() + 1)).substr(-2) + "" + data.getFullYear();
+
+    var condicao = hoje3 - (datset.replace("/",""));
+
+    var mini = ("0" + (data.getDate()-3)).substr(-2) + "/" + ("0" + (data.getMonth() + 1)).substr(-2) + "/" + data.getFullYear();
+    console.log("Datas2: " + mini);
+    
+    if (condicao > 0){
+        FLUIGC.message.alert({
+            message: 'A data da ocorrência deve ser imputada somente com 3 dias atrás!',
+            title: 'Erro na Data da Ocorrência',
+            label: 'OK'
+        });
+       
+        document.getElementById("datemed").value = mini;
+    }
+	//$("#datemed").val(mini);
+}
+
+function ajustaPrazoCentral(){
+	
+	// Recuperando a data informada no campo do formulário
+    //var prazoFormulario = hAPI.getCardValue('dataEmissaoNF');
+	var prazoFormulario = $("#vencPagNota").val();
+	console.log("Datas0: " + prazoFormulario);
+    /* Extrai os dados da data do formulário para um array, para posteriormente transformar em data do Javascript */
+    var arrayPrazoConclusao = prazoFormulario.split("/");
+    var dia = arrayPrazoConclusao[0]; // Posição 0 do array é o dia
+    var mes = arrayPrazoConclusao[1] - 1; // Posição 1 do array é o mês (Subtraímos 1 porque na data do Javascript o mês vai de 0 a 11)
+    var ano = arrayPrazoConclusao[2]; // Posição 2 do array é o ano
+    // Cria a data no Javascript
+    var dataDoPrazo = new Date();
+    dataDoPrazo.setDate(dia);
+    dataDoPrazo.setMonth(mes);
+    dataDoPrazo.setFullYear(ano);
+	var dia = dataDoPrazo;
+	//var dia = new Date();
+	console.log("Datas1: " + dia);
+	//dia.setDate(dia.getDate() - 15);
+	
+	dia.setDate(dia.getDate() - 7);
+	console.log("Datas2: " + dia);
+	
+
+	FLUIGC.calendar("#vencPagNota", { 
+	  language: 'pt-br',
+	  minDate: dia,
+	  maxDate: new Date(),
+	  pickDate: true,
+	  pickTime: false 
+	});
+
+	var today = dia;
+	console.log("Datas3: " + today);
+	var year = today.getFullYear();
+	var month = (today.getMonth() + 1) < 10 ? '0' + (today.getMonth() + 1)	: (today.getMonth() + 1);
+	var day = today.getDate() < 10 ? '0' + today.getDate() : today.getDate();		
+	var hour = today.getHours() < 10 ? '0' + today.getHours() : today.getHours();
+	var minute = today.getMinutes() < 10 ? '0' + today.getMinutes() : today.getMinutes();
+	var second = today.getSeconds() < 10 ? '0' + today.getSeconds() : today.getSeconds();
+	var currentHour = hour + ":" + minute + ":" + second;
+	var currentDate = day + '/' + month + '/' + year;
+	console.log("Datas4: " + currentDate);
+	
+
+	$("#prazoAtenderCentral").val(currentDate);
+
+}
+
+/*
+function notificaPrazoInferior(){
+	
+	// Recuperando a data informada no campo do formulário
+    //var prazoFormulario = hAPI.getCardValue('dataEmissaoNF');
+	var prazoFormulario = $("#vencPagNota").val();
+	console.log("Datas0: " + prazoFormulario);
+    // Extrai os dados da data do formulário para um array, para posteriormente transformar em data do Javascript
+    var arrayPrazoConclusao = prazoFormulario.split("/");
+    var dia = arrayPrazoConclusao[0]; // Posição 0 do array é o dia
+    var mes = arrayPrazoConclusao[1] - 1; // Posição 1 do array é o mês (Subtraímos 1 porque na data do Javascript o mês vai de 0 a 11)
+    var ano = arrayPrazoConclusao[2]; // Posição 2 do array é o ano
+    // Cria a data no Javascript
+    var dataDoPrazo = new Date();
+    dataDoPrazo.setDate(dia);
+    dataDoPrazo.setMonth(mes);
+    dataDoPrazo.setFullYear(ano);
+	var dia = dataDoPrazo;
+	//var dia = new Date();
+	console.log("Datas1: " + dia);
+	//dia.setDate(dia.getDate() - 15);
+	
+	dia.setDate(dia.getDate() - 7);
+	console.log("Datas2: " + dia);
+	
+
+	FLUIGC.calendar("#vencPagNota", { 
+	  language: 'pt-br',
+	  minDate: dia,
+	  maxDate: new Date(),
+	  pickDate: true,
+	  pickTime: false 
+	});
+
+	var today = dia;
+	console.log("Datas3: " + today);
+	var year = today.getFullYear();
+	var month = (today.getMonth() + 1) < 10 ? '0' + (today.getMonth() + 1)	: (today.getMonth() + 1);
+	var day = today.getDate() < 10 ? '0' + today.getDate() : today.getDate();		
+	var hour = today.getHours() < 10 ? '0' + today.getHours() : today.getHours();
+	var minute = today.getMinutes() < 10 ? '0' + today.getMinutes() : today.getMinutes();
+	var second = today.getSeconds() < 10 ? '0' + today.getSeconds() : today.getSeconds();
+	var currentHour = hour + ":" + minute + ":" + second;
+	var currentDate = day + '/' + month + '/' + year;
+	console.log("Datas4: " + currentDate);
+	
+
+	$("#prazoAtenderCentral").val(currentDate);
+
+}
+*/
+
+function notificaPrazoInferior(){
+	
+	// Recuperando a data informada no campo do formulário
+    //var prazoFormulario = hAPI.getCardValue('dataEmissaoNF');
+	var bloqueioFornecedor = $("#codCNPJ").val();
+	var bloqueioConta = parseInt($("#contaCentroCusto").val(), 10);
+	var bloqueioNota = $("#codCentroCusto").val();
+	var codRespEnvio = $("#matResponsavelEnvio").val();
+	var prazoFormulario = $("#vencPagNota").val();
+	
+	var prazoMinimoNF = parseFloat($("#prazoMinimo").val());
+	var prazoMaximoNF = parseFloat($("#prazoMaximo").val());
+	
+	console.log("Datas0: " + prazoFormulario);
+    /* Extrai os dados da data do formulário para um array, para posteriormente transformar em data do Javascript */
+    var arrayPrazoConclusao = prazoFormulario.split("/");
+    var dia = arrayPrazoConclusao[0]; // Posição 0 do array é o dia
+    var mes = arrayPrazoConclusao[1] - 1; // Posição 1 do array é o mês (Subtraímos 1 porque na data do Javascript o mês vai de 0 a 11)
+    var ano = arrayPrazoConclusao[2]; // Posição 2 do array é o ano
+    //var diaPag = arrayPrazoConclusao;
+	//console.log("DatasNoti0: " + diaPag);
+    // Cria a data no Javascript
+    var dataDoPrazo = new Date();
+    var dataDoPrazo2 = new Date();
+    var dataDoPrazo3 = new Date();
+    
+    console.log("DatasNoti0: " + prazoMaximoNF);
+	console.log("DatasNoti1: " + dataDoPrazo);
+    dataDoPrazo.setMonth(mes);
+    dataDoPrazo.setDate(dia);
+    dataDoPrazo.setFullYear(ano);
+	var dia = dataDoPrazo;
+	//var dia = new Date();
+	console.log("Datas1: " + dia);
+	//dia.setDate(dia.getDate() - 5);
+	dataDoPrazo2.setDate(dataDoPrazo2.getDate() + 20);
+	//dataDoPrazo2.setDate(dataDoPrazo2.getDate() + prazoMinimoNF);
+	
+	dataDoPrazo3.setDate(dataDoPrazo3.getDate() + 60);
+	//dataDoPrazo3.setDate(dataDoPrazo3.getDate() + prazoMaximoNF);
+	console.log("DatasNoti2: " + dataDoPrazo2);
+	console.log("DatasNoti3: " + dataDoPrazo3);
+	//dia.setDate(dia.getDate() - 15);
+	console.log("Datas2: " + dia);
+	
+
+
+	FLUIGC.calendar("#vencPagNota", { 
+	  language: 'pt-br',
+	  minDate: dia,
+	  maxDate: new Date(),
+	  pickDate: true,
+	  pickTime: false 
+	});
+	
+    //var datset = dia;																		
+    //datset = datset.replace("/","");
+    //var hoje20 = ("0" + (dia.getDate()-20)).substr(-2) + "" + ("0" + (dia.getMonth() + 1)).substr(-2) + "" + dia.getFullYear();
+	//console.log("DatasNoti1: " + hoje20);
+    //var condicao = dia - dataDoPrazo2;
+	//var condicao = 0;
+	//condicao.setDate = (dataDoPrazo2.getDate()- dia.getDate());
+	//console.log("DatasNoti3: " + condicao);
+   // var mini = ("0" + (data.getDate()-3)).substr(-2) + "/" + ("0" + (data.getMonth() + 1)).substr(-2) + "/" + data.getFullYear();
+   // console.log("Datas2: " + mini);
+	//if(bloqueioNota!= 1  && bloqueioConta != 712003 && bloqueioConta != 705001 && bloqueioConta != 712009 && bloqueioConta != 707040 && bloqueioConta != 707004 && bloqueioConta != 707036 && bloqueioConta != 703002 && bloqueioConta != 707026 && bloqueioConta != 707030 && bloqueioConta != 712021 && bloqueioConta != 707011 && bloqueioConta != 712004 && bloqueioConta != 713001 && bloqueioConta != 703001 && bloqueioConta != 703007 && bloqueioConta != 717010 && bloqueioConta != 712015 && bloqueioConta != 705002 && bloqueioConta != 706004 && bloqueioConta != 706003 && bloqueioConta != 706005 && bloqueioConta != 800019 && bloqueioConta != 711004 && bloqueioConta != 711007 && bloqueioConta != 707042 && bloqueioConta != 709001 && bloqueioConta != 712011 && bloqueioConta != 711002 && bloqueioConta != 703004 && bloqueioConta != 716008 && bloqueioConta !=712008 && bloqueioConta !=703003 && bloqueioConta !=713002 && bloqueioConta !=711010 && bloqueioConta !=711012 && bloqueioConta !=711013){
+	//if(bloqueioNota!= 1  && bloqueioConta != 712003 && bloqueioConta != 705001 && bloqueioConta != 712009 && bloqueioConta != 707040 && bloqueioConta != 707004 && bloqueioConta != 707036 && bloqueioConta != 703002 && bloqueioConta != 707026 && bloqueioConta != 707030 && bloqueioConta != 712021 && bloqueioConta != 707011 && bloqueioConta != 712004){
+	/*
+	if(bloqueioNota!= 1){
+		
+    if (dataDoPrazo2 > dia ){
+        FLUIGC.message.alert({
+            message: 'A data do pagamento da Nota Fiscal está inferior ao prazo de '+ prazoMinimoNF + ' dias!',
+            title: 'Data de Pagamento inferior',
+            label: 'OK'
+        });
+    }
+
+    }
+	*/
+	
+	    //if(bloqueioNota!= 1  && bloqueioConta != 712003 && bloqueioConta != 705001 && bloqueioConta != 712009 && bloqueioConta != 707040 && bloqueioConta != 707004 && bloqueioConta != 707036 && bloqueioConta != 703002 && bloqueioConta != 707026 && bloqueioConta != 707030 && bloqueioConta != 712021 && bloqueioConta != 707011 && bloqueioConta != 712004 && bloqueioConta != 713001 && bloqueioConta != 703001 && bloqueioConta != 703007 && bloqueioConta != 717010 && bloqueioConta != 712015 && bloqueioConta != 705002 && bloqueioConta != 706004 && bloqueioConta != 706003 && bloqueioConta != 706005 && bloqueioConta != 800019 && bloqueioConta != 711004 && bloqueioConta != 711007 && bloqueioConta != 707042 && bloqueioConta != 709001 && bloqueioConta != 712011 && bloqueioConta != 711002 && bloqueioConta != 703004 && bloqueioConta != 716008 && bloqueioConta !=712008 && bloqueioConta !=703003 && bloqueioConta !=713002 && bloqueioConta !=711010 && bloqueioConta !=711012 && bloqueioConta !=711013 && bloqueioConta !=716065 && bloqueioConta !=707022){
+		//if(bloqueioNota!= 1  && bloqueioConta != 712003 && bloqueioConta != 705001 && bloqueioConta != 712009 && bloqueioConta != 707040 && bloqueioConta != 707004 && bloqueioConta != 707036 && bloqueioConta != 703002 && bloqueioConta != 707026 && bloqueioConta != 707030 && bloqueioConta != 712021 && bloqueioConta != 707011 && bloqueioConta != 712004){
+	   if(bloqueioNota!= 1 && bloqueioConta != 5050403 && bloqueioConta != 712003 && bloqueioConta != 705001 && bloqueioConta != 712009 && bloqueioConta != 707040 && bloqueioConta != 707004 && bloqueioConta != 707036 && bloqueioConta != 703002 && bloqueioConta != 707026 && bloqueioConta != 707030 && bloqueioConta != 712021 && bloqueioConta != 707011 && bloqueioConta != 712004 && bloqueioConta != 713001 && bloqueioConta != 703001 && bloqueioConta != 703007 && bloqueioConta != 717010 && bloqueioConta != 712015 && bloqueioConta != 705002 && bloqueioConta != 706004 && bloqueioConta != 706003 && bloqueioConta != 706005 && bloqueioConta != 800019 && bloqueioConta != 711004 && bloqueioConta != 711007 && bloqueioConta != 707042 && bloqueioConta != 709001 && bloqueioConta != 712011 && bloqueioConta != 711002 && bloqueioConta != 703004 && bloqueioConta != 716008 && bloqueioConta !=712008 && bloqueioConta !=703003 && bloqueioConta !=713002 && bloqueioConta !=711010 && bloqueioConta !=711012 && bloqueioConta !=711013 && bloqueioConta !=716065 && bloqueioConta !=707022 && bloqueioConta !=716004 && bloqueioConta !=716005 && bloqueioConta !=716006 && bloqueioConta !=716008 && bloqueioConta !=716009 && bloqueioConta !=716010 && bloqueioConta !=716012 && bloqueioConta !=716014 && bloqueioConta !=716015 && bloqueioConta !=716016 && bloqueioConta !=716017 && bloqueioConta !=716018 && bloqueioConta !=716019 && bloqueioConta !=716020 && bloqueioConta !=716021 && bloqueioConta !=716022 && bloqueioConta !=716023 && bloqueioConta !=716024 && bloqueioConta !=716025 && bloqueioConta !=716026 && bloqueioConta !=716027 && bloqueioConta !=716028 && bloqueioConta !=716030 && bloqueioConta !=716031 && bloqueioConta !=716032 && bloqueioConta !=716034 && bloqueioConta !=716035 && bloqueioConta !=716036 && bloqueioConta !=716037 && bloqueioConta !=716038 && bloqueioConta !=716039 && bloqueioConta !=716040 && bloqueioConta !=716041 && bloqueioConta !=716042 && bloqueioConta !=716043 && bloqueioConta !=716044 && bloqueioConta !=716045 && bloqueioConta !=716046 && bloqueioConta !=716047 && bloqueioConta !=716048 && bloqueioConta !=716049 && bloqueioConta !=716050 && bloqueioConta !=716050 && bloqueioConta !=716051 && bloqueioConta !=716052 && bloqueioConta !=716053 && bloqueioConta !=716054 && bloqueioConta !=716055 && bloqueioConta !=716056 && bloqueioConta !=716057 && bloqueioConta !=716058 && bloqueioConta !=716059 && bloqueioConta !=716060 && bloqueioConta !=716061 && bloqueioConta !=716062 && bloqueioConta !=716063 && bloqueioConta !=716064 && bloqueioConta !=716065 && bloqueioConta !=716066 && bloqueioConta !=716067 && bloqueioConta !=716068 && bloqueioConta !=716069 && bloqueioConta !=716070 && bloqueioConta !=716071 && bloqueioConta !=716072 && bloqueioConta !=716073 && bloqueioConta !=716074 && bloqueioConta !=716075 && bloqueioConta !=716076 && bloqueioConta !=716077 && bloqueioConta !=716078 && bloqueioConta !=716079 && bloqueioConta !=716080 && bloqueioConta !=716081 && bloqueioConta !=716082 && bloqueioConta !=716083 && bloqueioConta !=716084 && bloqueioConta !=716085 && bloqueioConta !=716086 && bloqueioConta !=716087 && bloqueioConta !=716088 && bloqueioConta !=716089 && bloqueioConta !=716090 && bloqueioConta !=716091 && bloqueioConta !=716092 && bloqueioConta !=716093 && bloqueioConta !=716094 && bloqueioConta !=716095 && bloqueioConta !=716096 && bloqueioConta !=716097 && bloqueioConta !=703005){	
+	    if (dataDoPrazo2 > dia ){
+	        FLUIGC.message.alert({
+	            message: 'A data do pagamento da Nota Fiscal está inferior ao prazo de 20 dias!!',
+	            title: 'Data de Pagamento inferior a 20 dias',
+	            label: 'OK'
+	        });
+	    }
+
+	    }
+	
+	/*
+	if(bloqueioConta != 709001){
+    if (dataDoPrazo3 < dia ){
+        FLUIGC.message.alert({
+            message: 'A data do pagamento da Nota Fiscal está superior ao prazo de '+ prazoMaximoNF + ' dias!',
+            title: 'Data de Pagamento superior',
+            label: 'OK'
+        });
+    }
+	}
+	*/
+	if(bloqueioConta != 709001){
+	    if (dataDoPrazo3 < dia ){
+	        FLUIGC.message.alert({
+	            message: 'A data do pagamento da Nota Fiscal está superior ao prazo de 60 dias!',
+	            title: 'Data de Pagamento superior a 60 dias',
+	            label: 'OK'
+	        });
+	    }
+		}
+
+}
+
+
+/*
+function CalculaQuant(){
+	
+	  var count = ($('input[id^=numProduto___]')- 1);
+	  $("#qtDespesas").value = count;
+	  console.log("Qtde. Despesas: " + count);
+}
+*/
+function quantTotal() {
+	  var total = 0;
+	  $("input[id^='numProduto___']").each(function () {
+	    if ($(this).val()) {
+	      total = parseFloat($(this).val());
+	    }
+	  });
+	  // Setando o valor total geral de despesas
+	  //$("#totalSol").val(mascaraBR('moeda', total));
+	  $("#qtDespesas").val(total);
+	  //calcularTotalGeralViagem();
+	}
+
+function quantTotalParcelas() {
+	  var total = 0;
+	  $("input[id^='parcelas___']").each(function () {
+	    if ($(this).val()) {
+	      total = parseFloat($(this).val());
+	    }
+	  });
+	  // Setando o valor total geral de despesas
+	  //$("#totalSol").val(mascaraBR('moeda', total));
+	  $("#qtDespesas").val(total);
+	  //calcularTotalGeralViagem();
+	}
+
+
+//Adiciona filho (Novo Registro)
+function adicionarProduto() {
+	//  alert("adicionarProduto")
+	var ctx = "main.js -> adicionarProduto() -> ";
+  //console.log(ctx + "Iniciado");
+  
+  row = wdkAddChild("tabelaProdutos");
+  document.getElementById("rowTabelaProdutos___" + row).value = row;
+//console.log("row")
+
+  $(`#valorProduto___${row}`).on('change', function() {
+    calcularValorTotalProduto(this);
+  })
+  
+  $(`#valorProduto___${row}`).on('keypress', function() {
+    mascaraMoeda(this, valorMask);
+  });
+
+  $(`#qtdProduto___${row}`).on('change', function() {
+    var qtd = $( this ).val();
+    //console.log(ctx, `Mudou qtde. do produto: ${qtd}`);
+
+    if ( qtd <= 0 ) {
+      //console.log(ctx, 'Qtd menor que 0. Substituindo valor');
+      $( this ).val( qtd );
+    }
+
+  });
+
+  checkNumProdutosCompra();
+
+}
+
+
+function calcularValorTotalProduto( obj ){
+	var ctx = "main.js -> calcularValorTotalProdutos() -> ";
+	//console.log( ctx + "Iniciado" );
+
+	var idObj = $( obj ).attr( 'id' ); 
+	var index = idObj.split( "___" )[ 1 ];
+  var qtde = $("#qtdProduto___" + index ).val();
+	var valor = parseFloat( $( "#valorProduto___" + index ).val().replaceAll(".","").replace(",",".") );
+
+	var total = qtde * valor;
+	
+    if ( total > 0 ) {
+		$( "#valorTotal___" + index ).val( mascaraBR( 'moeda', total ) );
+    } else {
+		$( "#valorTotal___" + index ).val( mascaraBR('moeda', '0.00' ) );
+	}
+
+	calcularValorTotalItens();
+}
+
+//Mascara de 'moeda' para o campos de valor
+function mascaraMoeda(o, f) {
+	v_obj = o
+	v_fun = f
+	setTimeout("execMascaraMoeda()", 1)
+}
+
+function checkNumProdutosCompra() {
+	  var num = 0;
+	  $('input[id^=numProduto___]').each(function(){
+	    num++;
+	    $( this ).val(num);
+	  })
+	}
+
+
+function calcularValorTotalItens() {
+    var total = 0;
+    $("input[id^='valorTotal___']").each(function() {
+        if ( $( this ).val() ) {
+            total += parseFloat( $( this ).val().replaceAll(".","").replace(",",".") ); 
+        }
+    });
+    // Setando o valor total geral de despesas
+	$( "#valorTotalPedido" ).val( mascaraBR( 'moeda', total ) );
+
+	//atualizarSaldo( false );
+}
+
+function execMascaraMoeda() {
+	v_obj.value = v_fun(v_obj.value)
+}
+
+
+//Remove filho (Deleta Registro)
+function removerProduto(oElement) {
+	var ctx = "main.js -> removerProduto() -> ";
+	//console.log(ctx + "Iniciado");
+
+  fnWdkRemoveChild(oElement);
+  calcularValorTotalItens();
+  checkNumProdutos();
+  solcheckNumProdutos();
+}
+
+function solcheckNumProdutos() {
+	  var num = 0;
+	  $('input[id^=numProduto___]').each(function(){
+	    num++;
+	    $( this ).val(num);
+	  })
+
+	 //var row = wdkAddChild('solTabelaProdutos'); 
+	 //console.log("solcheckNumProdutos");
+	}
+
+
+//Adiciona filho (Novo RegistroPedido)
+function adicionarProdutoPedido() {
+	//  alert("adicionarProduto")
+	var ctx = "main.js -> adicionarProdutoPedido() -> ";
+  //console.log(ctx + "Iniciado");
+  
+  row = wdkAddChild("solTabelaProdutos");
+  document.getElementById("solRowTabelaProdutos___" + row).value = row;
+//console.log("row")
+
+  $(`#solValorProduto${row}`).on('change', function() {
+    calcularValorTotalProdutoPedido(this);
+  })
+  
+  $(`#solValorProduto___${row}`).on('keypress', function() {
+    mascaraMoeda(this, valorMask);
+  });
+
+  $(`#solQtdProduto___${row}`).on('change', function() {
+    var qtd = $( this ).val();
+    //console.log(ctx, `Mudou qtde. do produto: ${qtd}`);
+
+    if ( qtd <= 0 ) {
+      //console.log(ctx, 'Qtd menor que 0. Substituindo valor');
+      $( this ).val( qtd );
+    }
+
+  });
+
+  checkNumProdutosPedido();
+  showFieldsIniciaisDespesaViagem();
+
+}
+
+
+function calcularValorTotalProdutoPedido( obj ){
+	var ctx = "main.js -> calcularValorTotalProdutoPedido() -> ";
+	//console.log( ctx + "Iniciado" );
+
+	var idObj = $( obj ).attr( 'id' ); 
+	var index = idObj.split( "___" )[ 1 ];
+  var qtde = $("#solQtdProduto___" + index ).val();
+	var valor = parseFloat( $( "#solValorProduto___" + index ).val().replaceAll(".","").replace(",",".") );
+
+	var total = qtde * valor;
+	
+    if ( total > 0 ) {
+		$( "#solValorTotal___" + index ).val( mascaraBR( 'moeda', total ) );
+    } else {
+		$( "#solValorTotal___" + index ).val( mascaraBR('moeda', '0.00' ) );
+	}
+
+	calcularValorTotalItensPedido();
+}
+
+//Mascara de 'moeda' para o campos de valor
+function mascaraMoeda(o, f) {
+	v_obj = o
+	v_fun = f
+	setTimeout("execMascaraMoeda()", 1)
+}
+
+function checkNumProdutosPedido() {
+	  var num = 0;
+	  $('input[id^=solnumProdutoPedido___]').each(function(){
+	    num++;
+	    $( this ).val(num);
+	  })
+	}
+
+
+function calcularValorTotalItensPedido() {
+    var total = 0;
+    $("input[id^='solValorTotal___']").each(function() {
+        if ( $( this ).val() ) {
+            total += parseFloat( $( this ).val().replaceAll(".","").replace(",",".") ); 
+        }
+    });
+    // Setando o valor total geral de despesas
+	$( "#valorTotalPedido" ).val( mascaraBR( 'moeda', total ) );
+
+	//atualizarSaldo( false );
+}
+
+
+
+//Remove filho (Deleta Registro)
+function removerProdutoPedido(oElement) {
+	var ctx = "main.js -> removerProduto() -> ";
+	//console.log(ctx + "Iniciado");
+
+	fnWdkRemoveChild(oElement);
+  calcularValorTotalItensPedido();
+  checkNumProdutosPedido();
+  solcheckNumProdutosPedido();
+}
+
+function solcheckNumProdutosPedido() {
+	  var num = 0;
+	  $('input[id^=solnumProdutoPedido___]').each(function(){
+	    num++;
+	    $( this ).val(num);
+	  })
+
+	 //var row = wdkAddChild('solTabelaProdutos'); 
+	 //console.log("solcheckNumProdutos");
+	}

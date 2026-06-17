@@ -1,0 +1,457 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Gestão de Usuários e Perfis | LogisticsPortal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#565e74",
+                        "tertiary-fixed-dim": "#dec29a",
+                        "on-surface-variant": "#45464d",
+                        "on-primary-container": "#7c839b",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#dcd9db",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#c6c6cd",
+                        "inverse-primary": "#bec6e0",
+                        "on-tertiary-fixed-variant": "#574425",
+                        "surface-variant": "#e4e2e4",
+                        "surface-container-highest": "#e4e2e4",
+                        "on-primary-fixed": "#131b2e",
+                        "on-tertiary-fixed": "#271901",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "primary-fixed-dim": "#bec6e0",
+                        "surface-container-low": "#f6f3f5",
+                        "error": "#ba1a1a",
+                        "primary": "#000000",
+                        "on-secondary-fixed-variant": "#005049",
+                        "on-surface": "#1b1b1d",
+                        "on-background": "#1b1b1d",
+                        "secondary-fixed": "#89f5e7",
+                        "surface-container": "#f0edef",
+                        "primary-container": "#131b2e",
+                        "surface-container-high": "#eae7e9",
+                        "primary-fixed": "#dae2fd",
+                        "background": "#fcf8fa",
+                        "tertiary": "#000000",
+                        "on-secondary-fixed": "#00201d",
+                        "surface-bright": "#fcf8fa",
+                        "on-secondary-container": "#006f66",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#fcdeb5",
+                        "secondary-container": "#86f2e4",
+                        "tertiary-container": "#271901",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#fcf8fa",
+                        "on-tertiary-container": "#98805d",
+                        "error-container": "#ffdad6",
+                        "outline": "#76777d",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#f3f0f2",
+                        "secondary": "#006a61",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "on-secondary": "#ffffff",
+                        "inverse-surface": "#303032"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "sidenav-width": "240px",
+                        "base": "8px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "topbar-height": "64px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "code-sm": ["Geist"],
+                        "code-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md min-h-screen">
+<!-- App Shell: SideNavBar -->
+<nav class="w-sidenav-width h-screen fixed left-0 top-0 border-r border-outline-variant flat no shadows bg-primary-container dark:bg-primary-container z-50">
+<div class="flex flex-col h-full">
+<!-- Header -->
+<div class="h-topbar-height flex flex-row items-center px-lg border-b border-outline-variant/30">
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md font-bold text-on-primary-fixed">Logística CD</span>
+<span class="font-body-sm text-body-sm text-on-primary-container opacity-80">Administrador Principal</span>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 overflow-y-auto py-md px-sm space-y-xs">
+<a class="flex items-center px-md py-sm rounded-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined mr-md">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center px-md py-sm rounded-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined mr-md">payments</span>
+<span class="font-body-md text-body-md">Despesas</span>
+</a>
+<a class="flex items-center px-md py-sm rounded-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined mr-md">description</span>
+<span class="font-body-md text-body-md">Contratos</span>
+</a>
+<a class="flex items-center px-md py-sm rounded-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined mr-md">local_shipping</span>
+<span class="font-body-md text-body-md">Fornecedores</span>
+</a>
+<a class="flex items-center px-md py-sm rounded-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined mr-md">inventory_2</span>
+<span class="font-body-md text-body-md">Produtos</span>
+</a>
+<a class="flex items-center px-md py-sm rounded-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined mr-md">shopping_cart</span>
+<span class="font-body-md text-body-md">Requisições</span>
+</a>
+<a class="flex items-center px-md py-sm rounded-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined mr-md">build</span>
+<span class="font-body-md text-body-md">Manutenção</span>
+</a>
+<a class="flex items-center px-md py-sm rounded-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined mr-md">assignment</span>
+<span class="font-body-md text-body-md">Tarefas</span>
+</a>
+<!-- ACTIVE TAB: Usuários -->
+<a class="flex items-center px-md py-sm rounded-lg border-l-4 border-secondary bg-surface-container-low text-on-surface" href="#">
+<span class="material-symbols-outlined mr-md filled">group</span>
+<span class="font-body-md text-body-md font-bold">Usuários</span>
+</a>
+<a class="flex items-center px-md py-sm rounded-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined mr-md">analytics</span>
+<span class="font-body-md text-body-md">Relatórios</span>
+</a>
+<a class="flex items-center px-md py-sm rounded-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined mr-md">settings</span>
+<span class="font-body-md text-body-md">Configurações</span>
+</a>
+</div>
+<!-- User Profile Area at bottom of sidenav -->
+<div class="p-md border-t border-outline-variant/30 mt-auto">
+<div class="flex items-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center mr-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">person</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-inverse-primary truncate">admin@logistica.com</span>
+</div>
+</div>
+</div>
+</div>
+</nav>
+<!-- App Shell: TopNavBar -->
+<header class="h-topbar-height fixed top-0 right-0 w-[calc(100%-240px)] z-40 bg-surface dark:bg-surface-dim border-b border-outline-variant shadow-sm flex justify-between items-center px-lg">
+<!-- Search on Left -->
+<div class="flex-1 flex items-center">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-xl pr-md py-sm bg-surface-container-low border border-outline-variant rounded-full font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all" placeholder="Buscar globalmente... (⌘K)" type="text">
+</div>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center space-x-sm">
+<button class="p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" title="domain">
+<span class="material-symbols-outlined">domain</span>
+</button>
+<button class="p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out relative" title="notifications">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" title="dark_mode">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-[240px] pt-[64px] min-h-screen bg-surface-bright flex flex-col">
+<!-- Page Header -->
+<div class="px-xl py-lg flex justify-between items-end border-b border-surface-container-high">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight mb-xs">Gestão de Usuários e Perfis</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Administre o acesso, funções e status dos colaboradores na plataforma.</p>
+</div>
+<div class="flex items-center space-x-md">
+<button class="flex items-center justify-center px-md py-sm bg-surface-container border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined mr-sm text-[18px]">download</span>
+                    Exportar
+                </button>
+<button class="flex items-center justify-center px-lg py-sm bg-primary text-on-primary rounded-lg font-body-md text-body-md font-medium hover:bg-primary/90 transition-colors shadow-sm">
+<span class="material-symbols-outlined mr-sm text-[18px]">person_add</span>
+                    Convidar Usuário
+                </button>
+</div>
+</div>
+<!-- Content Area -->
+<div class="p-xl flex-1 flex flex-col">
+<!-- Metrics Cards (Bento-style top row for context) -->
+<div class="grid grid-cols-4 gap-lg mb-xl">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-sm">Total de Usuários</span>
+<span class="font-display-lg text-display-lg text-on-surface">1.248</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-sm">Usuários Ativos</span>
+<div class="flex items-baseline space-x-sm">
+<span class="font-display-lg text-display-lg text-on-surface">1.192</span>
+<span class="font-body-sm text-body-sm text-secondary flex items-center"><span class="material-symbols-outlined text-[14px]">arrow_upward</span> 2%</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-sm">Convites Pendentes</span>
+<span class="font-display-lg text-display-lg text-on-surface">14</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-sm">Distribuição de Perfil</span>
+<div class="flex-1 flex items-end w-full h-8 mt-auto space-x-1">
+<div class="bg-primary w-1/3 h-full rounded-t-sm" title="Operacional"></div>
+<div class="bg-secondary w-1/4 h-3/4 rounded-t-sm" title="Líder"></div>
+<div class="bg-tertiary-fixed-dim w-1/5 h-1/2 rounded-t-sm" title="Gerência"></div>
+<div class="bg-outline-variant w-auto flex-1 h-1/4 rounded-t-sm" title="Admin"></div>
+</div>
+</div>
+</div>
+<!-- Enterprise Data Table Container (Level 1 Elevation) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] flex-1 flex flex-col overflow-hidden">
+<!-- Table Toolbar -->
+<div class="p-md border-b border-surface-container flex justify-between items-center bg-surface-bright">
+<div class="flex items-center space-x-md w-1/2">
+<div class="relative w-full max-w-sm">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+<input class="w-full pl-xl pr-sm py-[6px] bg-surface-container-lowest border border-outline-variant rounded-md font-body-md text-body-md focus:border-primary focus:ring-0 transition-colors" placeholder="Buscar por nome ou email..." type="text">
+</div>
+<div class="h-6 w-px bg-outline-variant/50"></div>
+<button class="flex items-center text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm px-sm py-xs rounded hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[16px] mr-xs">filter_list</span> Filtrar
+                        </button>
+</div>
+<div class="flex items-center space-x-md">
+<select class="bg-transparent border-none text-on-surface-variant font-body-sm text-body-sm cursor-pointer focus:ring-0">
+<option>Todos os Perfis</option>
+<option>Administrador</option>
+<option>Financeiro</option>
+<option>Operador CD</option>
+</select>
+<select class="bg-transparent border-none text-on-surface-variant font-body-sm text-body-sm cursor-pointer focus:ring-0">
+<option>Todas Unidades</option>
+<option>CD São Paulo</option>
+<option>CD Cajamar</option>
+<option>CD Extrema</option>
+</select>
+</div>
+</div>
+<!-- The Table -->
+<div class="flex-1 overflow-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low sticky top-0 z-10 border-b border-outline-variant">
+<tr>
+<th class="py-sm px-md font-body-sm text-body-sm text-on-surface-variant font-medium w-[30%]">
+<div class="flex items-center cursor-pointer hover:text-on-surface">Colaborador <span class="material-symbols-outlined text-[14px] ml-xs">arrow_downward</span></div>
+</th>
+<th class="py-sm px-md font-body-sm text-body-sm text-on-surface-variant font-medium">Perfil RBAC</th>
+<th class="py-sm px-md font-body-sm text-body-sm text-on-surface-variant font-medium">Unidade (CD)</th>
+<th class="py-sm px-md font-body-sm text-body-sm text-on-surface-variant font-medium">Último Acesso</th>
+<th class="py-sm px-md font-body-sm text-body-sm text-on-surface-variant font-medium">Status</th>
+<th class="py-sm px-md font-body-sm text-body-sm text-on-surface-variant font-medium text-right">Ações</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group h-[48px]">
+<td class="py-xs px-md">
+<div class="flex items-center">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-body-sm font-bold mr-sm">
+                                            CS
+                                        </div>
+<div>
+<div class="font-body-md text-body-md font-medium text-on-surface">Carlos Silva</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">carlos.silva@logistica.com</div>
+</div>
+</div>
+</td>
+<td class="py-xs px-md font-body-md text-body-md text-on-surface"><span class="inline-block px-2 py-0.5 bg-surface-variant rounded text-on-surface-variant text-xs">Administrador</span></td>
+<td class="py-xs px-md font-body-md text-body-md text-on-surface">Matriz - SP</td>
+<td class="py-xs px-md font-code-sm text-code-sm text-on-surface-variant">Hoje, 08:42</td>
+<td class="py-xs px-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#e6f4ea] text-[#137333]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#137333] mr-1.5"></span> Ativo
+                                    </span>
+</td>
+<td class="py-xs px-md text-right">
+<div class="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded" title="Editar Perfil">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded" title="Redefinir Senha">
+<span class="material-symbols-outlined text-[18px]">key</span>
+</button>
+<button class="p-1 text-on-surface-variant hover:text-error hover:bg-error-container rounded" title="Bloquear Acesso">
+<span class="material-symbols-outlined text-[18px]">block</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group h-[48px] bg-surface-container-lowest/50">
+<td class="py-xs px-md">
+<div class="flex items-center">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-body-sm font-bold mr-sm">
+                                            MR
+                                        </div>
+<div>
+<div class="font-body-md text-body-md font-medium text-on-surface">Mariana Ribeiro</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">mariana.r@logistica.com</div>
+</div>
+</div>
+</td>
+<td class="py-xs px-md font-body-md text-body-md text-on-surface"><span class="inline-block px-2 py-0.5 bg-surface-variant rounded text-on-surface-variant text-xs">Financeiro</span></td>
+<td class="py-xs px-md font-body-md text-body-md text-on-surface">CD Cajamar</td>
+<td class="py-xs px-md font-code-sm text-code-sm text-on-surface-variant">Ontem, 17:30</td>
+<td class="py-xs px-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#e6f4ea] text-[#137333]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#137333] mr-1.5"></span> Ativo
+                                    </span>
+</td>
+<td class="py-xs px-md text-right">
+<div class="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded" title="Editar Perfil">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded" title="Redefinir Senha">
+<span class="material-symbols-outlined text-[18px]">key</span>
+</button>
+<button class="p-1 text-on-surface-variant hover:text-error hover:bg-error-container rounded" title="Bloquear Acesso">
+<span class="material-symbols-outlined text-[18px]">block</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group h-[48px]">
+<td class="py-xs px-md">
+<div class="flex items-center">
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center font-body-sm font-bold mr-sm">
+                                            FP
+                                        </div>
+<div>
+<div class="font-body-md text-body-md font-medium text-on-surface">Fernando Pereira</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">fernando.p@logistica.com</div>
+</div>
+</div>
+</td>
+<td class="py-xs px-md font-body-md text-body-md text-on-surface"><span class="inline-block px-2 py-0.5 bg-surface-variant rounded text-on-surface-variant text-xs">Operador CD</span></td>
+<td class="py-xs px-md font-body-md text-body-md text-on-surface">CD Extrema</td>
+<td class="py-xs px-md font-code-sm text-code-sm text-on-surface-variant">12 Fev 2024</td>
+<td class="py-xs px-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#fce8e6] text-[#c5221f]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#c5221f] mr-1.5"></span> Inativo
+                                    </span>
+</td>
+<td class="py-xs px-md text-right">
+<div class="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded" title="Editar Perfil">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded" title="Reativar Acesso">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group h-[48px] bg-surface-container-lowest/50">
+<td class="py-xs px-md">
+<div class="flex items-center">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed-dim text-on-tertiary-fixed-variant flex items-center justify-center font-body-sm font-bold mr-sm">
+                                            AL
+                                        </div>
+<div>
+<div class="font-body-md text-body-md font-medium text-on-surface">Ana Luiza</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">ana.luiza@logistica.com</div>
+</div>
+</div>
+</td>
+<td class="py-xs px-md font-body-md text-body-md text-on-surface"><span class="inline-block px-2 py-0.5 bg-surface-variant rounded text-on-surface-variant text-xs">Gestor de Frota</span></td>
+<td class="py-xs px-md font-body-md text-body-md text-on-surface">CD Cajamar</td>
+<td class="py-xs px-md font-code-sm text-code-sm text-on-surface-variant">Hoje, 10:15</td>
+<td class="py-xs px-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#fef7e0] text-[#b06000]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#b06000] mr-1.5"></span> Pendente Convite
+                                    </span>
+</td>
+<td class="py-xs px-md text-right">
+<div class="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded" title="Reenviar Convite">
+<span class="material-symbols-outlined text-[18px]">send</span>
+</button>
+<button class="p-1 text-on-surface-variant hover:text-error hover:bg-error-container rounded" title="Cancelar Convite">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<div class="p-sm px-md border-t border-outline-variant bg-surface-bright flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Mostrando 1-4 de 1.248 usuários</span>
+<div class="flex items-center space-x-xs">
+<button class="p-xs text-on-surface-variant hover:bg-surface-container rounded disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-primary text-on-primary font-body-sm text-body-sm font-medium">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container text-on-surface font-body-sm text-body-sm">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container text-on-surface font-body-sm text-body-sm">3</button>
+<span class="text-on-surface-variant px-xs">...</span>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container text-on-surface font-body-sm text-body-sm">125</button>
+<button class="p-xs text-on-surface-variant hover:bg-surface-container rounded">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,577 @@
+
+
+
+// Função para salvar a natureza de despesa e extrair o código contábil
+function salvaNatureza(){
+    var naturezaC = $("#codigonaturezaC");
+    var valorCompleto = naturezaC.val(); 
+    
+    if (valorCompleto) {
+        var partes = valorCompleto.split('-'); 
+        var contaContabil = partes[0].trim(); // .trim() evita espaços ocultos
+        
+        $("#naturezaSalva").val(valorCompleto);
+        $("#ContaContabilConsinco").val(contaContabil);
+        console.log("Conta Contábil '" + contaContabil + "' salva no campo #ContaContabilConsinco.");
+        
+        // --- NOVO: Dispara as consultas automaticamente ao selecionar a natureza ---
+        requisicaoOrcamentoConsinco();
+        consultarTotalNFT();
+    }
+}
+
+// Função para consultar o orçamento
+function requisicaoOrcamentoConsinco() {
+    console.log("(Consulta Orçamento) Iniciando consulta...");
+
+    var vConta = $("#ContaContabilConsinco").val(); 
+    var vCentroCusto = $("#codCentroCusto").val();
+    var vFilial = $("#coFilial").val(); 
+    
+    if (vConta == "" || vCentroCusto == "" || vFilial == "") {
+        console.log("Aguardando preenchimento de Conta, CC e Filial para Orçamento...");
+        return; 
+    }
+
+    // Nome exato da constraint que o dataset espera: 'conta', 'centrocusto', 'filial'
+    var c1 = DatasetFactory.createConstraint("conta", vConta, vConta, ConstraintType.MUST);
+    var c2 = DatasetFactory.createConstraint("centrocusto", vCentroCusto, vCentroCusto, ConstraintType.MUST);
+    var c3 = DatasetFactory.createConstraint("filial", vFilial, vFilial, ConstraintType.MUST);
+    
+    var constraints = [c1, c2, c3];
+
+    var callback = {
+        success: function(data) {
+            var ds = data.values;
+            if (ds && ds.length > 0) {
+                var valorOrcamento = ds[0]["ORCAMENTO"];
+                var valorContaContabil = ds[0]["CONTA"];
+                var cnpjFilial = ds[0]["CNPJ_FILIAL"];
+                console.log("Orçamento retornado: " + valorOrcamento + " | Conta: " + valorContaContabil);
+                
+                $("#valorTotalOrcamento").val(valorOrcamento);
+                $("#cnpjFilial").val(cnpjFilial)
+                // Só preenche se a API tiver retornado uma conta válida para não limpar o campo existente
+                if (valorContaContabil && valorContaContabil !== "undefined") {
+                    $("#ContaContabilConsinco").val(valorContaContabil);
+                }
+            } else {
+                $("#valorTotalOrcamento").val("0.00");
+            }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            console.error("Erro ao consultar Orçamento: " + errorThrown);
+        }
+    };
+
+    DatasetFactory.getDataset("dsConsultaOrcamentoCONSINCO", null, constraints, null, callback);
+}
+
+// Corrigindo também as constraints da função consultarTotalNFT()
+function consultarTotalNFT() {
+    console.log("(Consulta Soma) Iniciando cálculo...");
+
+    var vFilial = $("#coFilial").val(); 
+    var vCentroCusto = $("#codCentroCusto").val();
+    var vContaContabil = $("#ContaContabilConsinco").val(); 
+    
+    if (vFilial == "" || vCentroCusto == "" || vContaContabil == "") {
+        console.log("(Consulta Soma) Aguardando preenchimento de todos os campos...");
+        return; 
+    }
+
+    // Lembre-se de validar se o seu dataset "dsConsultaLancamentosFLUIG" 
+    // espera os nomes "coFilial", "codCentroCusto" e "conta" nas constraints dele.
+    var c1 = DatasetFactory.createConstraint("coFilial", vFilial, vFilial, ConstraintType.MUST);
+    var c2 = DatasetFactory.createConstraint("codCentroCusto", vCentroCusto, vCentroCusto, ConstraintType.MUST);
+    var c3 = DatasetFactory.createConstraint("conta", vContaContabil, vContaContabil, ConstraintType.MUST); 
+    
+    var constraints = [c1, c2, c3];
+
+    var callback = {
+        success: function(data) {
+            var ds = data.values;
+            if (ds && ds.length > 0) {
+                var totalRetornado = ds[0]["TOTAL_VALORNFT"];
+                $("#valorTotalExibicao").val(totalRetornado);
+            } else {
+                $("#valorTotalExibicao").val("0.00");
+            }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            console.error("(Consulta Soma) Erro: " + errorThrown);
+        }
+    };
+
+    DatasetFactory.getDataset("dsConsultaLancamentosFLUIG", null, constraints, null, callback);
+}
+
+//Função para consultar o Total do Dataset 1
+function consultarTotalNFT() {
+    console.log("(Consulta Soma) Iniciando cálculo...");
+
+    // 1. Pega os valores dos campos da tela que servirão de filtro
+    // Certifique-se que os IDs ("#id...") batem com o seu HTML
+    var vFilial = $("#coFilial").val(); 
+    var vCentroCusto = $("#codCentroCusto").val();
+    var vContaContabil = $("#ContaContabilConsinco").val(); // ou id do campo de conta
+    
+    // 2. Validação: Só consulta se tiver os dados mínimos preenchidos
+    if (vFilial == "" || vCentroCusto == "" || vContaContabil == "") {
+        console.log("(Consulta Soma) Aguardando preenchimento de todos os campos...");
+        return; // Para a execução se faltar dado
+    }
+
+    // 3. Monta as Constraints (Filtros) para enviar ao Dataset 1
+    var c1 = DatasetFactory.createConstraint("coFilial", vFilial, vFilial, ConstraintType.MUST);
+    var c2 = DatasetFactory.createConstraint("codCentroCusto", vCentroCusto, vCentroCusto, ConstraintType.MUST);
+    var c3 = DatasetFactory.createConstraint("ContaContabilConsinco", vContaContabil, vContaContabil, ConstraintType.MUST);
+    
+    // Constraints array
+    var constraints = [c1, c2, c3];
+
+    // 4. Chamada Assíncrona ao Dataset (Recomendado para não travar a tela)
+    var callback = {
+        success: function(data) {
+        	console.log("Objeto DATA Bruto:", data);
+            console.log("(Consulta Soma) Retorno recebido!");
+            var ds = data.values;
+            
+            if (ds.length > 0) {
+                // Pega o valor da coluna TOTAL_VALORNFT da primeira linha
+                var totalRetornado = ds[0]["TOTAL_VALORNFT"];
+                
+                console.log("Total encontrado: " + totalRetornado);
+
+                // 5. Joga o valor no campo de destino na tela
+                $("#valorTotalExibicao").val(totalRetornado);
+              
+            } else {
+                // Caso não retorne nada (raro, pois seu dataset trata erro, mas por segurança)
+                $("#valorTotalExibicao").val("0.00");
+            }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            console.error("(Consulta Soma) Erro ao consultar dataset: " + errorThrown);
+            // Mostra erro na tela se necessário
+            FLUIGC.toast({
+                title: 'Erro: ',
+                message: 'Não foi possível calcular o total NFT.',
+                type: 'danger'
+            });
+        }
+    };
+
+    // NOME DO DATASET (Substitua pelo nome exato que você salvou no Eclipse)
+    DatasetFactory.getDataset("dsConsultaLancamentosFLUIG", null, constraints, null, callback);
+}
+// Função para consulta de fornecedores na CONSINCO
+function filtroFornecedor(pesquisaliberada) {
+	
+	console.log("(Pesquisa fornecedor) Entrando na função de filtro fornecedor");
+	
+	// Variáveis úteis
+	var urlCodigo
+	var activity = WKNumState;
+	var fornecedor = $("#fornecedorC").val();
+	var pesquisaLiberada = $("#liberado").val();
+
+	// URL para consulta de fornecedores na CONSINCO
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaFornecedoresRestCONSINCO&searchField=Descricao&";
+	
+	// Variável para setar o campo Zoom no formulário
+	var Fornecedorsettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'CodDescricaoCGC',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+	console.log("(Pesquisa fornecedor) Consulta realizada na API da CONSINCO");
+	
+	
+	// Se a pesquisa tiver liberada, ativa o campo Zoom
+	if (pesquisaLiberada=="liberado"){
+		console.log('Pesquisa Liberada!');
+		var FornecedorFilter = FLUIGC.filter('#fornecedorC', Fornecedorsettings);
+		
+	}
+
+	
+
+
+	// Função automática toda vez que o usuário selecionar um fornecedor
+	FornecedorFilter.on('fluig.filter.item.added', function(data) {
+
+	    // Obtém o retorno da API
+	    $("#codCNPJ").val(data.item.CGC);
+	    $("#fornecedor").val(data.item.CodDescricao);
+
+	    // --- Início da Lógica para o Dropdown de Naturezas ---
+
+	    // Define o elemento do dropdown
+	    var dropdownNatureza = $('#codigonaturezaC');
+
+	    // 1. Limpa todas as opções antigas do dropdown
+	    dropdownNatureza.empty();
+
+	    // 2. Pega a string do campo "Naturezas" e a transforma em um array (lista)
+	    var listaDeNaturezas = data.item.NaturezasF.split(',');
+
+	    // 3. Adiciona uma primeira opção padrão para instruir o usuário
+	    dropdownNatureza.append($('<option>', {
+	        value: '', // Valor vazio
+	        text: 'Selecione uma natureza...' // Texto que o usuário vê
+	    }));
+
+	    // 4. Itera sobre a lista de naturezas e cria uma <option> para cada uma
+	    $(listaDeNaturezas).each(function(index, item) {
+	        // .trim() remove espaços em branco antes e depois de cada item
+	        var valorLimpo = item.trim(); 
+	        
+	        // Adiciona a nova opção ao dropdown
+	        dropdownNatureza.append($('<option>', {
+	            value: valorLimpo,
+	            text: valorLimpo
+	        }));
+	    });
+	});
+	console.log("(Pesquisa fornecedor) Dados salvos com sucesso no formulário!");
+}
+
+// Função para realizar a consulta API para retornar as filiais da CONSINCO
+function filtroFilial(pesquisaLiberada) {
+	console.log("(Pesquisa Filial) Entrando na função...");
+	
+	//Variáveis úteis
+	var urlCodigo
+	var activity = WKNumState;
+	var filial = $("#unidadeFilial").val();
+	var pesquisaLiberada = $("#liberado").val();
+
+	//URL da API Consinco para consulta de filiais.
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaFilialDDRestCONSINCO&searchField=Descricao&";
+	
+	
+	var Filialsettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'CodDescricao',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+	console.log("(Pesquisa Filial) Consulta realizada na API da CONSINCO...");
+	
+	//trava da consulta via API
+	if (pesquisaLiberada=="liberado"){
+		console.log("(Pesquisa Filial) Pesquisa liberada!");
+		var FilialFilter = FLUIGC.filter('#unidadeFilial', Filialsettings);
+		
+	}
+	
+	//Função automática quando usuário seleciona uma filial
+	FilialFilter.on('fluig.filter.item.added', function (data) {
+		console.log("(Pesquisa Filial) Filial escolhida com sucesso!");
+		//Preenche o código da filial de escolha do usuário
+		$("#coFilial").val(data.item.CodFilial);
+		retornaGerente();
+		consultarTotalNFT();
+		requisicaoOrcamentoConsinco();
+	});
+}
+
+
+// Função para buscar os funcionários cadastrados na CONSINCO
+function filtroFuncionario(pesquisaLiberada) {
+	
+	console.log("(Pesquisa Funcionário) Entrando na função de pesquisa...")
+	
+	//Variavéis úteis
+	var urlCodigo
+	var activity = WKNumState;
+	var funcionarioC = $("#funcionarioC").val();
+	var pesquisaLiberada = $("#liberado").val();
+
+	//URL para consulta API de funcionários na consulta
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaUsuarioDDCONSINCO&searchField=Nome&";
+	
+
+	// Variável para carregamento de campo Zoom
+	var Funcionariosettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'CodNomeCPF',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+	console.log("(Pesquisa Funcionário) Consulta na API realizada com sucesso!");
+	
+	//trava da consulta via API
+	if (pesquisaLiberada=="liberado"){
+		var FuncionarioFilter = FLUIGC.filter('#funcionarioC', Funcionariosettings);
+		}
+	
+	//Função automática quando usuário escolhe um funcionário
+	FuncionarioFilter.on('fluig.filter.item.added', function (data) {
+		//Seta o código CPF do usuário como CNPJ
+		$("#codCNPJ").val(data.item.CPF);
+		//Seta o nome do funcionário como Fornecedor
+		$("#fornecedor").val(data.item.Nome);
+	});
+
+	console.log("(Pesquisa Funcionário) Funcionário escolhido com sucesso!");
+}
+
+
+//FUNÇÃO INATIVA!
+function filtroConta() {
+    console.log("filtro Conta");
+    var activity = WKNumState;
+    var codContaFin = $("#codContaFin").val();
+    var pesquisaLiberada = $("#liberado").val();
+
+    // Montar URL com o parâmetro de pesquisa
+    var urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaMaterialCONSINCO&searchField=DESCREDUZIDA," + encodeURIComponent(codContaFin);
+
+    var Contasettings = {
+        source: {
+            url: urlCodigo,
+            contentType: 'application/json',
+            root: 'content',
+            pattern: '',
+            limit: 10,
+            offset: 0,
+            patternKey: 'searchValue',
+            limitkey: 'limit',
+            offsetKey: 'offset'
+        },
+        displayKey: 'DESCREDUZIDA',
+        valueKey: 'Num Conta' // Campo que será retornado no data.item.CodConta
+    };
+
+    if (activity == 0 || activity == 4 || activity == 93 || activity == 225 || activity == 111 || activity == 206 || activity == 181 || activity == 5 || activity == 18 || activity == 240) {
+        if (pesquisaLiberada == "liberado") {
+            var ContaFilter = FLUIGC.filter('#codContaFin', Contasettings);
+        }
+    }
+
+    ContaFilter.on('fluig.filter.item.added', function(data) {
+        $("#contaCentroCusto").val(data.item['Num Conta']); // Acesse o campo correto
+        $("#natDespesa").val(data.item['Natureza']);
+        
+    });
+}
+
+
+//Função para buscar colaboradores na CONSINCO
+function filtroColaborador(pesquisaliberada) {
+	console.log("(Pesquisa Colaborador) Entrando na função de pesquisa...");
+
+	//Variáveis úteis 
+	var activity = WKNumState;
+	var urlCodigo
+	var funcionarioC = $("#nomeColaborador").val();
+
+	//URL para consulta API da CONSINCO
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaUsuarioDDCONSINCO&searchField=Nome&";
+	
+	var Funcionariosettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'CodNome',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+
+	console.log("(Pesquisa Colaborador) Consulta realizada com sucesso!");
+	
+	//trava da consulta via API
+	if (pesquisaliberada=="liberado") {
+	var FuncionarioFilter = FLUIGC.filter('#nomeColaborador', Funcionariosettings);
+	}
+
+
+	//Função automática, sem necessidade de alterações adicionais
+	FuncionarioFilter.on('fluig.filter.item.added', function (data) {
+		
+	});
+	console.log("(Pesquisa Colaborador) Colaborador selecionado com sucesso!");
+
+}
+
+
+// FUNÇÃO INATIVA!
+function filtroNatureza() {
+	console.log("filtro Natureza")
+	var activity = WKNumState;
+	var urlCodigo
+	//var pesquisaFuncionario = $("#PesquisaFornecPor").val();
+	var funcionarioC = $("#codigonatureza").val();
+
+	var fornecedor = $('#fornecedor').val();
+		
+	// 3. Divide a string no " - " e pega a primeira parte (índice 0)
+	var codigo = fornecedor.split(' - ')[0];
+	
+	console.log('Fornecedor:'+codigo);
+	
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=&";
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaNaturezaRestCONSINCO&searchField=natureza&";
+	
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=coca&";
+	console.log()
+	var Funcionariosettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue='+codigo+'&',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'NATUREZACOMPLETA',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+
+	//trava da consulta via API
+	
+	if (activity == 0 ||activity == 4 ||activity == 93 ||activity == 225 ||activity == 111||activity == 206 ||activity == 181 ||activity == 240) {
+	var FuncionarioFilter = FLUIGC.filter('#codigonaturezaC', Funcionariosettings);
+	}
+
+
+
+	FuncionarioFilter.on('fluig.filter.item.added', function (data) {
+
+		//$("#codCNPJ").val(data.item.CPF);
+		//$("#fornecedor").val(data.item.Nome);
+	});
+
+}
+
+

@@ -1,0 +1,69 @@
+{
+    "screenId":  "90fe5e29f0e144bab49ae5e16f202473",
+    "name":  "projects/4660020320183620207/screens/90fe5e29f0e144bab49ae5e16f202473",
+    "title":  "15. Relatórios e Exportações - Portal Administrativo CD (1920x1080)",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "90fe5e29f0e144bab49ae5e16f202473",
+                          "sourceScreen":  "projects/4660020320183620207/screens/90fe5e29f0e144bab49ae5e16f202473",
+                          "x":  79838,
+                          "y":  2627,
+                          "width":  1815,
+                          "height":  1080,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\15-relatorios-e-exportacoes-portal-administrativo-cd-1920x1080-90fe5e29f0e144bab49ae5e16f202473",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/1613701543205641700",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjE3MTAxM2YwMWE2MmRmZDgzMWEzMzQyEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\15-relatorios-e-exportacoes-portal-administrativo-cd-1920x1080-90fe5e29f0e144bab49ae5e16f202473\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\15-relatorios-e-exportacoes-portal-administrativo-cd-1920x1080-90fe5e29f0e144bab49ae5e16f202473\\screen.html",
+                                  "bytes":  30143,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/db66376ef6d34f62bb7b3a576a1b5a90",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuqWJ3ULji5bYL1sgEzYDlKGBQk_9APSAgT9pgneGc-l0ArA8CVwWPDDgZoRxltG2y5neAJI5vtziBP7ZHCMuoC2OuKY4QqeevkR9L-ThIEZNw2WGY3vHbkHPDSZBWF3Pn4mQlET1HTezS7tp72tO-iUwzfed-6vJVKz168yqJTi7treqmxdn3ZwoSZTlM6N3n_S1_9XRuM9iesxR3ObLidsCvjhiLXV69HjL8Pe2s-_D6jYcWg9WVnLg",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\15-relatorios-e-exportacoes-portal-administrativo-cd-1920x1080-90fe5e29f0e144bab49ae5e16f202473\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\15-relatorios-e-exportacoes-portal-administrativo-cd-1920x1080-90fe5e29f0e144bab49ae5e16f202473\\screenshot.png",
+                                        "bytes":  44955,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/90fe5e29f0e144bab49ae5e16f202473",
+                   "title":  "15. Relatórios e Exportações - Portal Administrativo CD (1920x1080)",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/db66376ef6d34f62bb7b3a576a1b5a90",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuqWJ3ULji5bYL1sgEzYDlKGBQk_9APSAgT9pgneGc-l0ArA8CVwWPDDgZoRxltG2y5neAJI5vtziBP7ZHCMuoC2OuKY4QqeevkR9L-ThIEZNw2WGY3vHbkHPDSZBWF3Pn4mQlET1HTezS7tp72tO-iUwzfed-6vJVKz168yqJTi7treqmxdn3ZwoSZTlM6N3n_S1_9XRuM9iesxR3ObLidsCvjhiLXV69HjL8Pe2s-_D6jYcWg9WVnLg"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/1613701543205641700",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjE3MTAxM2YwMWE2MmRmZDgzMWEzMzQyEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

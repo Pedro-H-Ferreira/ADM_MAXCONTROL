@@ -1,0 +1,475 @@
+<!DOCTYPE html><html class="light" lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Requisições de Compra - Logística CD</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#ffffff",
+                        "primary-container": "#131b2e",
+                        "inverse-primary": "#bec6e0",
+                        "on-tertiary-container": "#98805d",
+                        "outline-variant": "#c6c6cd",
+                        "tertiary-fixed-dim": "#dec29a",
+                        "primary": "#000000",
+                        "on-background": "#1b1b1d",
+                        "outline": "#76777d",
+                        "surface-container-low": "#f6f3f5",
+                        "on-secondary-fixed-variant": "#005049",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "secondary-container": "#86f2e4",
+                        "inverse-on-surface": "#f3f0f2",
+                        "surface-variant": "#e4e2e4",
+                        "surface-dim": "#dcd9db",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#eae7e9",
+                        "surface-tint": "#565e74",
+                        "tertiary": "#000000",
+                        "on-primary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#303032",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "primary-fixed": "#dae2fd",
+                        "on-tertiary-fixed-variant": "#574425",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#fcf8fa",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#271901",
+                        "surface-container-highest": "#e4e2e4",
+                        "on-primary-container": "#7c839b",
+                        "secondary-fixed": "#89f5e7",
+                        "on-tertiary-fixed": "#271901",
+                        "secondary": "#006a61",
+                        "on-secondary-container": "#006f66",
+                        "on-secondary-fixed": "#00201d",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#f0edef",
+                        "background": "#fcf8fa",
+                        "surface-bright": "#fcf8fa",
+                        "on-primary-fixed": "#131b2e",
+                        "tertiary-fixed": "#fcdeb5",
+                        "on-surface": "#1b1b1d",
+                        "on-surface-variant": "#45464d",
+                        "primary-fixed-dim": "#bec6e0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "sidenav-width": "240px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "base": "8px",
+                        "xl": "32px",
+                        "topbar-height": "64px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "code-sm": ["Geist"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "code-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md w-[1920px] h-[1080px] overflow-hidden relative mx-auto">
+<!-- SideNavBar -->
+<nav class="hidden md:flex w-sidenav-width h-full absolute left-0 top-0 border-r border-outline-variant bg-primary-container flex-col font-body-md text-body-md z-50">
+<div class="p-lg flex items-center gap-md border-b border-outline-variant/20">
+<div class="w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-headline-md text-headline-md font-bold shrink-0">
+                LC
+            </div>
+<div class="overflow-hidden">
+<h1 class="font-headline-md text-headline-md font-bold text-on-primary-fixed truncate">Logística CD</h1>
+<p class="font-body-sm text-body-sm text-on-primary-container truncate">Administrador Principal</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto py-md px-sm space-y-xs">
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span>Despesas</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Contratos</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span>Fornecedores</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span>Produtos</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT border-l-4 border-secondary bg-surface-container-low text-on-surface transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_cart" style="font-variation-settings: 'FILL' 1;">shopping_cart</span>
+<span class="font-bold">Requisições</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="build">build</span>
+<span>Manutenção</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span>Tarefas</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Usuários</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Relatórios</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Configurações</span>
+</a>
+</div>
+</nav>
+<!-- TopNavBar -->
+<header class="h-topbar-height absolute top-0 right-0 w-full md:w-[calc(100%-240px)] z-40 bg-surface shadow-sm border-b border-outline-variant flex justify-between items-center px-lg font-body-md text-body-md transition-all duration-200 ease-in-out">
+<div class="flex items-center gap-md md:hidden">
+<button class="p-xs rounded-DEFAULT hover:bg-surface-container-high text-primary">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<span class="font-headline-md text-headline-md text-on-surface font-bold">LogisticsPortal</span>
+</div>
+<div class="hidden md:flex items-center bg-surface-container rounded-full px-md py-xs border border-outline-variant/50 w-96 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<span class="material-symbols-outlined text-on-surface-variant mr-sm" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 w-full text-on-surface placeholder:text-on-surface-variant font-body-md text-body-md py-1" placeholder="Pesquisar requisições, fornecedores..." type="text">
+<span class="text-on-surface-variant font-code-sm text-code-sm bg-surface rounded-DEFAULT px-1 border border-outline-variant/30">⌘K</span>
+</div>
+<div class="flex items-center gap-sm">
+<button aria-label="Notificações" class="p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button aria-label="Modo Escuro" class="p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-outline-variant ml-sm cursor-pointer">
+<img alt="Administrator" class="w-full h-full object-cover" data-alt="A professional headshot of a mature male administrator in a brightly lit modern office setting. The lighting is soft and natural, emphasizing a high-end corporate aesthetic. The man wears a crisp white shirt, projecting authority and reliability. The background is slightly blurred, showing minimal office architecture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCh0zhPZLmS_sYbB9P3935rjTFzDewgTOKdrWi-Ay0QsjAm5253FkuqHyD_oadwZI2mIhlldIV9SiYZE6sf9UISA1vczpAfAY_HhL6ctkQ2Na0wei77d9q92nnKhFw8NW5qBt1B-_HhAhJuaiaB4LJgUlgxB9nVZ5eVHD_mSfFuzUVdno2qMwmr-xVxSmEabV1ikxcOzk0osfwsaEZIhYt9zsKXrenSlQHvVjASXmAjXLIDnJBd2SOFOK0ITDsWPTIS-XnRba1Jt9Q">
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-[calc(64px+32px)] md:pl-[calc(240px+32px)] px-md md:px-xl pb-xl h-full overflow-y-auto w-full">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-md mb-xl">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Requisições de Compra</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Gerencie e aprove as solicitações de suprimentos para o centro de distribuição.</p>
+</div>
+<div class="flex items-center gap-sm">
+<button class="flex items-center gap-sm px-md py-sm bg-surface border border-outline-variant text-primary rounded-DEFAULT hover:bg-surface-container-high transition-colors font-body-md text-body-md font-medium">
+<span class="material-symbols-outlined text-xl" data-icon="filter_list">filter_list</span>
+                    Filtrar
+                </button>
+<button class="flex items-center gap-sm px-md py-sm bg-primary text-on-primary rounded-DEFAULT hover:bg-primary/90 transition-colors font-body-md text-body-md font-medium shadow-sm">
+<span class="material-symbols-outlined text-xl" data-icon="add">add</span>
+                    Nova Requisição
+                </button>
+</div>
+</div>
+<!-- KPI Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-lg mb-xl">
+<div class="bg-surface rounded-lg border border-outline-variant p-lg flex items-start justify-between shadow-sm">
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-sm">Pendentes</p>
+<p class="font-display-lg text-display-lg text-on-surface text-5xl">24</p>
+</div>
+<div class="w-12 h-12 rounded-full bg-error-container text-error flex items-center justify-center">
+<span class="material-symbols-outlined text-[28px]" data-icon="pending_actions">pending_actions</span>
+</div>
+</div>
+<div class="bg-surface rounded-lg border border-outline-variant p-lg flex items-start justify-between shadow-sm">
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-sm">Em Cotação</p>
+<p class="font-display-lg text-display-lg text-on-surface text-5xl">12</p>
+</div>
+<div class="w-12 h-12 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[28px]" data-icon="request_quote">request_quote</span>
+</div>
+</div>
+<div class="bg-surface rounded-lg border border-outline-variant p-lg flex items-start justify-between shadow-sm">
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-sm">Aprovadas (Mês)</p>
+<p class="font-display-lg text-display-lg text-on-surface text-5xl">148</p>
+</div>
+<div class="w-12 h-12 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-[28px]" data-icon="check_circle">check_circle</span>
+</div>
+</div>
+</div>
+<!-- Data Grid -->
+<div class="bg-surface rounded-lg border border-outline-variant shadow-sm overflow-hidden flex flex-col h-[calc(100%-340px)]">
+<div class="overflow-x-auto flex-1">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant font-code-md text-code-md text-on-surface-variant uppercase sticky top-0 z-10">
+<tr>
+<th class="py-md px-lg font-medium whitespace-nowrap">ID</th>
+<th class="py-md px-lg font-medium">Título da Solicitação</th>
+<th class="py-md px-lg font-medium">Solicitante</th>
+<th class="py-md px-lg font-medium">Data Necessária</th>
+<th class="py-md px-lg font-medium">Urgência</th>
+<th class="py-md px-lg font-medium">Status / Fluxo</th>
+<th class="py-md px-lg font-medium text-right">Ações</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant font-body-md text-body-md text-on-surface">
+<!-- Row 1: Pendente Urgente -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-md px-lg font-code-md text-code-md">REQ-2023-0891</td>
+<td class="py-md px-lg font-medium">Paletes de Madeira Padrão PBR (Lote 500)</td>
+<td class="py-md px-lg text-on-surface-variant">Roberto Carlos <span class="block text-body-sm font-body-sm text-outline">Operações CD1</span></td>
+<td class="py-md px-lg">24/10/2023</td>
+<td class="py-md px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-sm bg-error-container text-error font-code-sm text-code-sm font-semibold">
+<span class="material-symbols-outlined text-[16px]" data-icon="error" style="font-variation-settings: 'FILL' 1;">error</span> Alta
+                                </span>
+</td>
+<td class="py-md px-lg">
+<div class="flex items-center gap-sm">
+<span class="px-2 py-1 rounded-sm border border-outline-variant bg-surface text-on-surface font-code-sm text-code-sm">Pendente</span>
+<div class="flex gap-xs items-center opacity-70">
+<div class="w-2 h-2 rounded-full bg-error"></div>
+<div class="w-4 h-px bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-surface-variant border border-outline"></div>
+<div class="w-4 h-px bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-surface-variant border border-outline"></div>
+</div>
+</div>
+</td>
+<td class="py-md px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+<button class="p-xs text-on-surface-variant hover:text-secondary"><span class="material-symbols-outlined" data-icon="check">check</span></button>
+</td>
+</tr>
+<!-- Row 2: Em Cotação -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-md px-lg font-code-md text-code-md">REQ-2023-0890</td>
+<td class="py-md px-lg font-medium">Empilhadeira Elétrica Retrátil</td>
+<td class="py-md px-lg text-on-surface-variant">Ana Souza <span class="block text-body-sm font-body-sm text-outline">Diretoria Logística</span></td>
+<td class="py-md px-lg">15/11/2023</td>
+<td class="py-md px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-sm bg-tertiary-fixed text-on-tertiary-fixed font-code-sm text-code-sm font-medium">
+                                    Média
+                                </span>
+</td>
+<td class="py-md px-lg">
+<div class="flex items-center gap-sm">
+<span class="px-2 py-1 rounded-sm border border-tertiary-fixed bg-surface-container-low text-on-surface font-code-sm text-code-sm">Em Cotação</span>
+<div class="flex gap-xs items-center opacity-70">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<div class="w-4 h-px bg-secondary"></div>
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed animate-pulse"></div>
+<div class="w-4 h-px bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-surface-variant border border-outline"></div>
+</div>
+</div>
+</td>
+<td class="py-md px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+</td>
+</tr>
+<!-- Row 3: Aprovada -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-md px-lg font-code-md text-code-md">REQ-2023-0885</td>
+<td class="py-md px-lg font-medium">Filme Stretch Automático (100 Rolos)</td>
+<td class="py-md px-lg text-on-surface-variant">Carlos Mendes <span class="block text-body-sm font-body-sm text-outline">Embalagem</span></td>
+<td class="py-md px-lg">20/10/2023</td>
+<td class="py-md px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-sm bg-surface-container-high text-on-surface-variant font-code-sm text-code-sm font-medium">
+                                    Baixa
+                                </span>
+</td>
+<td class="py-md px-lg">
+<div class="flex items-center gap-sm">
+<span class="px-2 py-1 rounded-sm bg-secondary-fixed text-on-secondary-fixed font-code-sm text-code-sm font-medium">Aprovada</span>
+<div class="flex gap-xs items-center">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<div class="w-4 h-px bg-secondary"></div>
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<div class="w-4 h-px bg-secondary"></div>
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+</div>
+</div>
+</td>
+<td class="py-md px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-md px-lg font-code-md text-code-md">REQ-2023-0884</td>
+<td class="py-md px-lg font-medium">Manutenção Preventiva Câmara Fria</td>
+<td class="py-md px-lg text-on-surface-variant">João Pereira <span class="block text-body-sm font-body-sm text-outline">Infraestrutura</span></td>
+<td class="py-md px-lg">18/10/2023</td>
+<td class="py-md px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-sm bg-error-container text-error font-code-sm text-code-sm font-semibold">
+<span class="material-symbols-outlined text-[16px]" data-icon="error" style="font-variation-settings: 'FILL' 1;">error</span> Alta
+                                </span>
+</td>
+<td class="py-md px-lg">
+<div class="flex items-center gap-sm">
+<span class="px-2 py-1 rounded-sm border border-tertiary-fixed bg-surface-container-low text-on-surface font-code-sm text-code-sm">Em Cotação</span>
+<div class="flex gap-xs items-center opacity-70">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<div class="w-4 h-px bg-secondary"></div>
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed animate-pulse"></div>
+<div class="w-4 h-px bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-surface-variant border border-outline"></div>
+</div>
+</div>
+</td>
+<td class="py-md px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-md px-lg font-code-md text-code-md">REQ-2023-0881</td>
+<td class="py-md px-lg font-medium">Fitas Adesivas Transparentes</td>
+<td class="py-md px-lg text-on-surface-variant">Carlos Mendes <span class="block text-body-sm font-body-sm text-outline">Embalagem</span></td>
+<td class="py-md px-lg">25/10/2023</td>
+<td class="py-md px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-sm bg-surface-container-high text-on-surface-variant font-code-sm text-code-sm font-medium">
+                                    Baixa
+                                </span>
+</td>
+<td class="py-md px-lg">
+<div class="flex items-center gap-sm">
+<span class="px-2 py-1 rounded-sm border border-outline-variant bg-surface text-on-surface font-code-sm text-code-sm">Pendente</span>
+<div class="flex gap-xs items-center opacity-70">
+<div class="w-2 h-2 rounded-full bg-error"></div>
+<div class="w-4 h-px bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-surface-variant border border-outline"></div>
+<div class="w-4 h-px bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-surface-variant border border-outline"></div>
+</div>
+</div>
+</td>
+<td class="py-md px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+<button class="p-xs text-on-surface-variant hover:text-secondary"><span class="material-symbols-outlined" data-icon="check">check</span></button>
+</td>
+</tr>
+<!-- Row 6 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-md px-lg font-code-md text-code-md">REQ-2023-0879</td>
+<td class="py-md px-lg font-medium">EPIs - Luvas de Proteção</td>
+<td class="py-md px-lg text-on-surface-variant">Roberto Carlos <span class="block text-body-sm font-body-sm text-outline">Operações CD1</span></td>
+<td class="py-md px-lg">22/10/2023</td>
+<td class="py-md px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-sm bg-tertiary-fixed text-on-tertiary-fixed font-code-sm text-code-sm font-medium">
+                                    Média
+                                </span>
+</td>
+<td class="py-md px-lg">
+<div class="flex items-center gap-sm">
+<span class="px-2 py-1 rounded-sm bg-secondary-fixed text-on-secondary-fixed font-code-sm text-code-sm font-medium">Aprovada</span>
+<div class="flex gap-xs items-center">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<div class="w-4 h-px bg-secondary"></div>
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<div class="w-4 h-px bg-secondary"></div>
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+</div>
+</div>
+</td>
+<td class="py-md px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+</td>
+</tr>
+<!-- Row 7 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-md px-lg font-code-md text-code-md">REQ-2023-0875</td>
+<td class="py-md px-lg font-medium">Novo Servidor de Banco de Dados</td>
+<td class="py-md px-lg text-on-surface-variant">Maria Silva <span class="block text-body-sm font-body-sm text-outline">TI Logística</span></td>
+<td class="py-md px-lg">10/11/2023</td>
+<td class="py-md px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-sm bg-tertiary-fixed text-on-tertiary-fixed font-code-sm text-code-sm font-medium">
+                                    Média
+                                </span>
+</td>
+<td class="py-md px-lg">
+<div class="flex items-center gap-sm">
+<span class="px-2 py-1 rounded-sm border border-tertiary-fixed bg-surface-container-low text-on-surface font-code-sm text-code-sm">Em Cotação</span>
+<div class="flex gap-xs items-center opacity-70">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<div class="w-4 h-px bg-secondary"></div>
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed animate-pulse"></div>
+<div class="w-4 h-px bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-surface-variant border border-outline"></div>
+</div>
+</div>
+</td>
+<td class="py-md px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<div class="bg-surface border-t border-outline-variant p-md flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<span>Mostrando 1 a 7 de 24 registros</span>
+<div class="flex items-center gap-sm">
+<button class="p-xs border border-outline-variant rounded-sm hover:bg-surface-container-high disabled:opacity-50" disabled=""><span class="material-symbols-outlined text-[18px]" data-icon="chevron_left">chevron_left</span></button>
+<span class="px-2">Página 1 de 4</span>
+<button class="p-xs border border-outline-variant rounded-sm hover:bg-surface-container-high"><span class="material-symbols-outlined text-[18px]" data-icon="chevron_right">chevron_right</span></button>
+</div>
+</div>
+</div>
+</main>
+</body></html>

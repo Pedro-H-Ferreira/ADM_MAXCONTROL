@@ -1,0 +1,330 @@
+import { execFile } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { promisify } from "node:util";
+import { getServerEnv } from "@/lib/env";
+import type { FluigProcessMap } from "@/lib/fluig/process-map";
+
+const execFileAsync = promisify(execFile);
+
+export type FluigIntegrationMode = "disabled" | "external_api" | "direct_runner";
+
+export type FluigRuntimeConfig = {
+  mode: FluigIntegrationMode;
+  configured: boolean;
+  apiBaseUrl: string | null;
+  directRunnerRoot: string | null;
+  missing: string[];
+};
+
+export type DirectScriptResult<T = unknown> = {
+  success: boolean;
+  sourceMode: "direct_runner";
+  stdout: string;
+  stderr: string;
+  outputPath: string | null;
+  data: T | null;
+};
+
+export type FluigHistoryOutput = {
+  generatedAt: string;
+  query: Record<string, unknown>;
+  inspected: Array<Record<string, unknown>>;
+  totalItems: number;
+  items: FluigHistoryItem[];
+};
+
+export type FluigHistoryItem = {
+  processInstanceId: string;
+  processId: string;
+  processVersion: string;
+  status: string;
+  startDate: string | null;
+  requesterId: string | null;
+  requesterName: string | null;
+  formFields: Record<string, string>;
+  sourceUrl: string;
+  raw: Record<string, unknown>;
+};
+
+export type FluigStatusOutput = {
+  processed: number;
+  taskUserId: string;
+  processedAt: string;
+  items: FluigStatusItem[];
+};
+
+export type FluigStatusItem = {
+  numeroFluig: string;
+  vencimentoPagamento?: string | null;
+  vencPagNota?: string;
+  etapaAtual?: string;
+  responsavelAtual?: string;
+  stateSequence?: number | null;
+  movementSequence?: number | null;
+  responsavelCodigo?: string;
+  responsavelLogin?: string;
+  currentStates?: Array<Record<string, unknown>>;
+  statusProcesso?: string;
+  active?: boolean;
+  slaExpirado?: boolean;
+  cancelavel?: boolean;
+  prazoTexto?: string;
+  dataUltimaConsulta?: string;
+  error?: string;
+};
+
+export type FluigOpenOutput = {
+  sourceRequestId: string;
+  generatedRequestId: string;
+  processId: string;
+  processVersion: string;
+  taskUserId: string;
+  selectedState: number;
+  selectedColleague: string[];
+  cancelAfter: boolean;
+  fieldOverrideCount: number;
+  attachmentCount: number;
+  sendResponse: Record<string, unknown>;
+  cancelResponse: Record<string, unknown> | null;
+  finalDetails: Record<string, unknown> | null;
+  processedAt: string;
+};
+
+export type FluigCancelOutput = {
+  requestIds: string[];
+  cancelComment: string;
+  processedAt: string;
+  items: Array<Record<string, unknown>>;
+};
+
+function existingDefaultRunnerRoot() {
+  const candidate = "D:\\PROJETOS\\FLUIG_WEB_AUTOMATION_NEXUS";
+  return fs.existsSync(path.join(candidate, "scripts", "fluig", "api", "session.js")) ? candidate : null;
+}
+
+export function getFluigRuntimeConfig(): FluigRuntimeConfig {
+  const env = getServerEnv();
+  const explicitMode = String(env.fluigIntegrationMode || "").trim().toLowerCase();
+  const apiBaseUrl = env.fluigApiBaseUrl?.trim() || null;
+  const directRunnerRoot = env.fluigDirectRunnerRoot?.trim() || existingDefaultRunnerRoot();
+  const mode: FluigIntegrationMode =
+    explicitMode === "external_api" || explicitMode === "direct_runner" || explicitMode === "disabled"
+      ? explicitMode
+      : apiBaseUrl
+        ? "external_api"
+        : directRunnerRoot
+          ? "direct_runner"
+          : "disabled";
+
+  const missing: string[] = [];
+  if (mode === "external_api" && !apiBaseUrl) missing.push("FLUIG_API_BASE_URL");
+  if (mode === "direct_runner" && !directRunnerRoot) missing.push("FLUIG_DIRECT_RUNNER_ROOT");
+  if (mode === "direct_runner" && directRunnerRoot && !fs.existsSync(path.join(directRunnerRoot, "scripts", "fluig"))) {
+    missing.push("scripts/fluig no FLUIG_DIRECT_RUNNER_ROOT");
+  }
+
+  return {
+    mode,
+    configured: mode !== "disabled" && missing.length === 0,
+    apiBaseUrl,
+    directRunnerRoot,
+    missing,
+  };
+}
+
+function ensureDirectRunner() {
+  const config = getFluigRuntimeConfig();
+
+  if (config.mode !== "direct_runner" || !config.configured || !config.directRunnerRoot) {
+    throw new Error(
+      `Runner direto do Fluig nao configurado. Configure FLUIG_INTEGRATION_MODE=direct_runner e FLUIG_DIRECT_RUNNER_ROOT. Faltando: ${
+        config.missing.join(", ") || "modo direct_runner"
+      }`
+    );
+  }
+
+  return config.directRunnerRoot;
+}
+
+function resolveAdmScript(scriptName: string) {
+  return path.join(process.cwd(), "scripts", scriptName);
+}
+
+function resolveRunnerScript(runnerRoot: string, scriptName: string) {
+  return path.join(runnerRoot, "scripts", "fluig", scriptName);
+}
+
+function assertSubpath(parent: string, child: string) {
+  const parentResolved = path.resolve(parent).toLowerCase();
+  const childResolved = path.resolve(child).toLowerCase();
+  if (childResolved !== parentResolved && !childResolved.startsWith(`${parentResolved}${path.sep}`)) {
+    throw new Error(`Arquivo de saida fora do runner Fluig: ${child}`);
+  }
+}
+
+function extractTaggedPath(stdout: string, tag: string) {
+  const line = stdout
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(`${tag} `));
+
+  return line ? line.slice(tag.length).trim() : null;
+}
+
+async function readTaggedJson<T>(runnerRoot: string, stdout: string, tag: string) {
+  const outputPath = extractTaggedPath(stdout, tag);
+
+  if (!outputPath) {
+    return { outputPath: null, data: null };
+  }
+
+  assertSubpath(runnerRoot, outputPath);
+  const raw = await fs.promises.readFile(outputPath, "utf8");
+  return { outputPath, data: JSON.parse(raw) as T };
+}
+
+async function runNodeScript<T>({
+  runnerRoot,
+  scriptPath,
+  args,
+  resultTag,
+  timeoutMs = 600000,
+}: {
+  runnerRoot: string;
+  scriptPath: string;
+  args: string[];
+  resultTag: string;
+  timeoutMs?: number;
+}) {
+  const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args], {
+    cwd: runnerRoot,
+    env: {
+      ...process.env,
+      FLUIG_DIRECT_RUNNER_ROOT: runnerRoot,
+      FLUIG_RUNNER_ROOT: runnerRoot,
+    },
+    timeout: timeoutMs,
+    windowsHide: true,
+    maxBuffer: 20 * 1024 * 1024,
+  });
+  const parsed = await readTaggedJson<T>(runnerRoot, String(stdout || ""), resultTag);
+
+  return {
+    success: true,
+    sourceMode: "direct_runner" as const,
+    stdout: String(stdout || ""),
+    stderr: String(stderr || ""),
+    outputPath: parsed.outputPath,
+    data: parsed.data,
+  };
+}
+
+export async function queryFluigHistory(
+  processMap: FluigProcessMap,
+  input: {
+    days?: number;
+    start?: string;
+    end?: string;
+    pageSize?: number;
+    maxPages?: number;
+  } = {}
+): Promise<DirectScriptResult<FluigHistoryOutput>> {
+  const runnerRoot = ensureDirectRunner();
+  const args = [
+    `--runner-root=${runnerRoot}`,
+    `--process-id=${processMap.processId}`,
+    `--process-version=${processMap.processVersions.join(",")}`,
+    `--days=${input.days ?? 90}`,
+    `--page-size=${input.pageSize ?? 100}`,
+    `--max-pages=${input.maxPages ?? 5}`,
+  ];
+
+  if (input.start) args.push(`--start=${input.start}`);
+  if (input.end) args.push(`--end=${input.end}`);
+
+  return runNodeScript<FluigHistoryOutput>({
+    runnerRoot,
+    scriptPath: resolveAdmScript("fluig-adm-query-history.cjs"),
+    args,
+    resultTag: "ADM_FLUIG_HISTORY_RESULT",
+  });
+}
+
+export async function syncFluigStatus(
+  requestIds: string[],
+  input: { taskUserId?: string } = {}
+): Promise<DirectScriptResult<FluigStatusOutput>> {
+  const runnerRoot = ensureDirectRunner();
+  const args = [...requestIds];
+
+  if (input.taskUserId) {
+    args.push(`--task-user-id=${input.taskUserId}`);
+  }
+
+  return runNodeScript<FluigStatusOutput>({
+    runnerRoot,
+    scriptPath: resolveRunnerScript(runnerRoot, "syncFluigStatus.js"),
+    args,
+    resultTag: "SYNC_FLUIG_STATUS_RESULT",
+  });
+}
+
+export async function openFluigFromSource(input: {
+  processMap: FluigProcessMap;
+  sourceRequestId: string;
+  fieldOverrides: Record<string, string>;
+  attachmentPaths?: Array<{ path: string; name?: string }>;
+  targetState?: number | string;
+  taskUserId?: string;
+  comment?: string;
+  cancelAfter?: boolean;
+  keepOpen?: boolean;
+}): Promise<DirectScriptResult<FluigOpenOutput>> {
+  const runnerRoot = ensureDirectRunner();
+  const args = [
+    `--runner-root=${runnerRoot}`,
+    `--source-request-id=${input.sourceRequestId}`,
+    `--task-user-id=${input.taskUserId || input.processMap.defaultTaskUserId}`,
+  ];
+
+  if (input.targetState) args.push(`--target-state=${input.targetState}`);
+  if (input.comment) args.push(`--comment=${input.comment}`);
+  if (input.cancelAfter) args.push("--cancel-after");
+  if (input.keepOpen) args.push("--keep-open");
+
+  for (const [field, value] of Object.entries(input.fieldOverrides)) {
+    args.push(`--set=${field}=${value}`);
+  }
+
+  for (const attachment of input.attachmentPaths || []) {
+    args.push(`--attachment-path=${attachment.path}`);
+    if (attachment.name) args.push(`--attachment-name=${attachment.name}`);
+  }
+
+  return runNodeScript<FluigOpenOutput>({
+    runnerRoot,
+    scriptPath: resolveAdmScript("fluig-adm-open-from-source.cjs"),
+    args,
+    resultTag: "ADM_FLUIG_OPEN_RESULT",
+  });
+}
+
+export async function cancelFluigRequests(input: {
+  requestIds: string[];
+  comment?: string;
+}): Promise<DirectScriptResult<FluigCancelOutput>> {
+  const runnerRoot = ensureDirectRunner();
+  const args = [...input.requestIds];
+
+  if (input.comment) {
+    args.push(`--comment=${input.comment}`);
+  }
+
+  return runNodeScript<FluigCancelOutput>({
+    runnerRoot,
+    scriptPath: resolveRunnerScript(runnerRoot, "cancelViaApi.js"),
+    args,
+    resultTag: "CANCEL_VIA_API_RESULT",
+  });
+}

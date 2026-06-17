@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard - Administrativo CD</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#ffffff",
+                        "primary-container": "#131b2e",
+                        "inverse-primary": "#bec6e0",
+                        "on-tertiary-container": "#98805d",
+                        "outline-variant": "#c6c6cd",
+                        "tertiary-fixed-dim": "#dec29a",
+                        "primary": "#000000",
+                        "on-background": "#1b1b1d",
+                        "outline": "#76777d",
+                        "surface-container-low": "#f6f3f5",
+                        "on-secondary-fixed-variant": "#005049",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "secondary-container": "#86f2e4",
+                        "inverse-on-surface": "#f3f0f2",
+                        "surface-variant": "#e4e2e4",
+                        "surface-dim": "#dcd9db",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#eae7e9",
+                        "surface-tint": "#565e74",
+                        "tertiary": "#000000",
+                        "on-primary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#303032",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "primary-fixed": "#dae2fd",
+                        "on-tertiary-fixed-variant": "#574425",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#fcf8fa",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#271901",
+                        "surface-container-highest": "#e4e2e4",
+                        "on-primary-container": "#7c839b",
+                        "secondary-fixed": "#89f5e7",
+                        "on-tertiary-fixed": "#271901",
+                        "secondary": "#006a61",
+                        "on-secondary-container": "#006f66",
+                        "on-secondary-fixed": "#00201d",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#f0edef",
+                        "background": "#fcf8fa",
+                        "surface-bright": "#fcf8fa",
+                        "on-primary-fixed": "#131b2e",
+                        "tertiary-fixed": "#fcdeb5",
+                        "on-surface": "#1b1b1d",
+                        "on-surface-variant": "#45464d",
+                        "primary-fixed-dim": "#bec6e0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "sidenav-width": "240px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "base": "8px",
+                        "xl": "32px",
+                        "topbar-height": "64px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "code-sm": ["Geist"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "code-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
+                        'bar-grow': 'barGrow 1s ease-out forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'shimmer': 'shimmer 2s linear infinite'
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        barGrow: {
+                            '0%': { transform: 'scaleY(0)' },
+                            '100%': { transform: 'scaleY(1)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-1000px 0' },
+                            '100%': { backgroundPosition: '1000px 0' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #fcf8fa; color: #1b1b1d; }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
+        .delay-500 { animation-delay: 500ms; }
+        
+        .bar-chart-origin { transform-origin: bottom; }
+        
+        .skeleton {
+            background: linear-gradient(90deg, #f0edef 25%, #e4e2e4 50%, #f0edef 75%);
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite linear;
+        }
+
+        .data-loaded .skeleton-hide { display: none; }
+        .data-loaded .skeleton-show { opacity: 1; transition: opacity 0.3s; }
+        .skeleton-show { opacity: 0; }
+    </style>
+</head>
+<body class="font-body-md text-body-md antialiased w-screen h-screen" style="width: 1920px; height: 1080px; min-width: 1920px; min-height: 1080px; overflow: hidden; display: block; position: relative;">
+<!-- TopNavBar -->
+<header class="bg-surface h-topbar-height fixed top-0 right-0 w-[calc(100%-80px)] z-40 border-b border-outline-variant shadow-sm flex justify-between items-center px-lg transition-all duration-300" style="width: 1840px; left: 80px;">
+<div class="flex items-center gap-md w-1/3">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">MaxControLADM</span>
+<div class="relative w-full max-w-sm ml-lg">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-body-md">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded pl-10 pr-4 py-1.5 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-all hover:shadow-md" placeholder="Buscar no portal... (⌘K)" type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<div class="flex items-center gap-sm mr-lg">
+<label class="font-body-sm text-body-sm text-on-surface-variant">CD Selecionado:</label>
+<select class="bg-surface-container border border-outline-variant rounded py-1 px-2 font-code-sm text-code-sm text-on-surface focus:outline-none focus:border-primary hover:shadow-sm transition-shadow">
+<option>CD São Paulo (Matriz)</option>
+<option>CD Rio de Janeiro</option>
+<option>CD Minas Gerais</option>
+</select>
+</div>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high hover:scale-105 hover:shadow-sm transition-all duration-200 ease-in-out rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="domain">domain</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high hover:scale-105 hover:shadow-sm transition-all duration-200 ease-in-out rounded-full flex items-center justify-center relative">
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full animate-pulse-slow"></span>
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high hover:scale-105 hover:shadow-sm transition-all duration-200 ease-in-out rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant overflow-hidden ml-sm cursor-pointer hover:opacity-80 hover:scale-105 hover:shadow-md transition-all">
+<img alt="Administrator" class="w-full h-full object-cover" data-alt="A professional headshot of an administrator in a corporate setting. The lighting is bright and even, casting soft shadows, consistent with a clean, modern B2B logistics application environment. The overall tone is authoritative yet approachable." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-OkxTGKsfI7CYQ_QGPE1JN-6dC_VTbYFOSn29XKQEMPqseBWMO0edleM9i9xbveolhYRRvIiqjidbQepyvboi1vbv4egzDbY4x5o4YAaB95KscIvP2I-6dgaF5ofJlZTbCdzjoaSDhPrH0AmVQUrkr6Rb-HoX-AQ3Nc9FNX8_ogZXy2A5hrN8Sb78Qt6jiGTPk7s9SDBdkOy5vovEKvcg68NlSRFXsS57bLC_tV_iD9WIgsnUA4221xckZb_shUAA_193HUn9jmg"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<nav class="bg-primary-container w-20 hover:w-sidenav-width fixed left-0 top-0 border-r border-outline-variant flex flex-col h-full z-50 transition-all duration-300 ease-in-out group/sidebar overflow-hidden shadow-lg hover:shadow-xl">
+<div class="p-md border-b border-outline-variant flex items-center gap-sm mb-sm"><div class="flex items-center gap-sm min-w-max"><div class="w-8 h-8 rounded-DEFAULT bg-secondary flex items-center justify-center shrink-0 transition-transform duration-300 group-hover/sidebar:rotate-12"><span class="material-symbols-outlined text-on-secondary text-[20px]">local_shipping</span></div><div class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap"><h1 class="font-headline-md text-headline-md font-bold text-on-primary-fixed">MaxControLADM</h1><p class="font-body-sm text-body-sm text-on-primary-container">Administrador Administrativo</p></div></div></div>
+<div class="flex-1 overflow-y-auto py-sm flex flex-col gap-xs">
+<a class="flex items-center gap-md px-md py-2 border-l-4 border-secondary bg-surface-container-low text-on-surface transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-secondary transition-transform group-hover/sidebar:scale-110" data-weight="fill" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-body-md text-body-md font-medium opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-2 border-l-4 border-transparent text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined transition-transform group-hover/sidebar:scale-110">payments</span>
+<span class="font-body-md text-body-md opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Despesas</span>
+</a>
+<a class="flex items-center gap-md px-md py-2 border-l-4 border-transparent text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined transition-transform group-hover/sidebar:scale-110">description</span>
+<span class="font-body-md text-body-md opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Contratos</span>
+</a>
+<a class="flex items-center gap-md px-md py-2 border-l-4 border-transparent text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined transition-transform group-hover/sidebar:scale-110">local_shipping</span>
+<span class="font-body-md text-body-md opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Fornecedores</span>
+</a>
+<a class="flex items-center gap-md px-md py-2 border-l-4 border-transparent text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined transition-transform group-hover/sidebar:scale-110">inventory_2</span>
+<span class="font-body-md text-body-md opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Produtos</span>
+</a>
+<a class="flex items-center gap-md px-md py-2 border-l-4 border-transparent text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined transition-transform group-hover/sidebar:scale-110">shopping_cart</span>
+<span class="font-body-md text-body-md opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Requisições</span>
+</a>
+<a class="flex items-center gap-md px-md py-2 border-l-4 border-transparent text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined transition-transform group-hover/sidebar:scale-110">build</span>
+<span class="font-body-md text-body-md opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Manutenção</span>
+</a>
+<a class="flex items-center gap-md px-md py-2 border-l-4 border-transparent text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined transition-transform group-hover/sidebar:scale-110">assignment</span>
+<span class="font-body-md text-body-md opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Tarefas</span>
+</a>
+<a class="flex items-center gap-md px-md py-2 border-l-4 border-transparent text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined transition-transform group-hover/sidebar:scale-110">group</span>
+<span class="font-body-md text-body-md opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Usuários</span>
+</a>
+<a class="flex items-center gap-md px-md py-2 border-l-4 border-transparent text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined transition-transform group-hover/sidebar:scale-110">analytics</span>
+<span class="font-body-md text-body-md opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Relatórios</span>
+</a>
+</div>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 min-w-max mt-auto" href="#"><span class="material-symbols-outlined text-[20px] shrink-0 transition-transform group-hover/sidebar:rotate-90">settings</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300">Configurações</span></a>
+</nav>
+<!-- Main Content Canvas -->
+<main class="ml-20 mt-[64px] h-[calc(100%-64px)] overflow-y-auto bg-background p-md w-[calc(100%-80px)] transition-all duration-300 data-loaded" id="main-content" style="width: 1840px; height: 1016px; margin-left: 80px; margin-top: 64px;">
+<!-- KPIs Row -->
+<div class="grid grid-cols-4 gap-md mb-md">
+<!-- KPI 1 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-md shadow-sm relative overflow-hidden group hover:border-primary transition-all hover:scale-105 hover:shadow-md opacity-0 animate-fade-in-up delay-100">
+<div class="flex justify-between items-start mb-sm">
+<span class="font-body-sm text-body-sm text-on-surface-variant font-medium uppercase tracking-wide">Contas a Pagar (7d)</span>
+<span class="material-symbols-outlined text-secondary bg-secondary-container/20 p-1 rounded transition-transform group-hover:scale-110">payments</span>
+</div>
+<div class="skeleton h-10 w-32 mb-xs rounded skeleton-hide"></div>
+<div class="font-headline-lg text-headline-lg text-on-surface font-bold mb-xs skeleton-show">R$ 142.850</div>
+<div class="skeleton h-4 w-24 rounded skeleton-hide"></div>
+<div class="flex items-center gap-xs text-error font-body-sm text-body-sm skeleton-show">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span class="">+12.4% vs semana ant.</span>
+</div>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-surface-variant skeleton-show">
+<div class="h-full bg-error w-3/4 transition-all duration-1000 ease-out" onload="this.style.width='75%'" style="width: 0%"></div>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-md shadow-sm relative overflow-hidden group hover:border-primary transition-all hover:scale-105 hover:shadow-md opacity-0 animate-fade-in-up delay-200">
+<div class="flex justify-between items-start mb-sm">
+<span class="font-body-sm text-body-sm text-on-surface-variant font-medium uppercase tracking-wide">Contratos Vencendo</span>
+<span class="material-symbols-outlined text-on-tertiary-container bg-tertiary-fixed/30 p-1 rounded transition-transform group-hover:scale-110">history_edu</span>
+</div>
+<div class="skeleton h-10 w-16 mb-xs rounded skeleton-hide"></div>
+<div class="font-headline-lg text-headline-lg text-on-surface font-bold mb-xs skeleton-show">8</div>
+<div class="skeleton h-4 w-32 rounded skeleton-hide"></div>
+<div class="flex items-center gap-xs text-on-surface-variant font-body-sm text-body-sm skeleton-show">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="">Nos próximos 30 dias</span>
+</div>
+</div>
+<!-- KPI 3 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-md shadow-sm relative overflow-hidden group hover:border-primary transition-all hover:scale-105 hover:shadow-md opacity-0 animate-fade-in-up delay-300">
+<div class="flex justify-between items-start mb-sm">
+<span class="font-body-sm text-body-sm text-on-surface-variant font-medium uppercase tracking-wide">OS Pendentes (Manut.)</span>
+<span class="material-symbols-outlined text-primary bg-primary-fixed/50 p-1 rounded transition-transform group-hover:scale-110">build</span>
+</div>
+<div class="skeleton h-10 w-16 mb-xs rounded skeleton-hide"></div>
+<div class="font-headline-lg text-headline-lg text-on-surface font-bold mb-xs skeleton-show">24</div>
+<div class="skeleton h-4 w-28 rounded skeleton-hide"></div>
+<div class="flex items-center gap-xs text-secondary font-body-sm text-body-sm skeleton-show">
+<span class="material-symbols-outlined text-[16px]">trending_down</span>
+<span class="">-5% vs semana ant.</span>
+</div>
+</div>
+<!-- KPI 4 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-md shadow-sm relative overflow-hidden group hover:border-primary transition-all hover:scale-105 hover:shadow-md opacity-0 animate-fade-in-up delay-400">
+<div class="flex justify-between items-start mb-sm">
+<span class="font-body-sm text-body-sm text-on-surface-variant font-medium uppercase tracking-wide">Requisições Abertas</span>
+<span class="material-symbols-outlined text-on-surface bg-surface-variant p-1 rounded transition-transform group-hover:scale-110">shopping_cart</span>
+</div>
+<div class="skeleton h-10 w-20 mb-xs rounded skeleton-hide"></div>
+<div class="font-headline-lg text-headline-lg text-on-surface font-bold mb-xs skeleton-show">156</div>
+<div class="skeleton h-4 w-36 rounded skeleton-hide"></div>
+<div class="flex items-center gap-xs text-on-surface-variant font-body-sm text-body-sm skeleton-show">
+<span class="material-symbols-outlined text-[16px]">sync</span>
+<span class="">42 aguardando aprovação</span>
+</div>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-md h-[500px]">
+<!-- Main Chart Area (Spans 8 cols) -->
+<div class="col-span-8 bg-surface border border-outline-variant rounded-lg p-md shadow-sm flex flex-col opacity-0 animate-fade-in-up delay-500 hover:shadow-md transition-shadow">
+<div class="flex justify-between items-center mb-md">
+<h2 class="font-headline-md text-headline-md text-on-surface">Despesas Mensais</h2>
+<button class="text-on-surface-variant hover:text-on-surface flex items-center gap-xs font-body-sm text-body-sm border border-outline-variant rounded px-2 py-1 hover:bg-surface-container-low transition-colors hover:shadow-sm">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+                        Últimos 6 Meses
+                    </button>
+</div>
+<div class="flex-1 w-full bg-surface-container-lowest rounded border border-surface-variant relative overflow-hidden flex items-center justify-center">
+<!-- Fake Line Chart Representation -->
+<div class="absolute bottom-0 left-0 w-full h-[80%] flex items-end px-md gap-sm opacity-50 skeleton-show">
+<div class="w-full bg-primary-fixed rounded-t bar-chart-origin animate-bar-grow delay-100" style="height: 40%;"></div>
+<div class="w-full bg-primary-fixed rounded-t bar-chart-origin animate-bar-grow delay-200" style="height: 55%;"></div>
+<div class="w-full bg-primary-fixed rounded-t bar-chart-origin animate-bar-grow delay-300" style="height: 45%;"></div>
+<div class="w-full bg-primary-fixed rounded-t bar-chart-origin animate-bar-grow delay-400" style="height: 70%;"></div>
+<div class="w-full bg-primary-fixed rounded-t bar-chart-origin animate-bar-grow delay-500" style="height: 60%;"></div>
+<div class="w-full bg-primary rounded-t bar-chart-origin animate-bar-grow delay-[600ms]" style="height: 85%;"></div>
+</div>
+<div class="skeleton w-full h-full skeleton-hide absolute inset-0"></div>
+<span class="font-code-md text-code-md text-on-surface-variant relative z-10 bg-surface px-2 py-1 rounded border border-outline-variant shadow-sm skeleton-show">[Gráfico de Linha Interativo: Despesas Totais vs Previsto]</span>
+</div>
+</div>
+<!-- Side Column (Spans 4 cols) -->
+<div class="col-span-4 flex flex-col gap-md h-full">
+<!-- Quick Actions -->
+<div class="bg-primary-container text-on-primary-container rounded-lg p-md shadow-sm flex-1 opacity-0 animate-fade-in-up delay-[600ms] hover:shadow-md transition-shadow">
+<h3 class="font-body-lg text-body-lg text-on-primary-fixed font-semibold mb-sm flex items-center gap-xs">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+                        Ações Rápidas
+                    </h3>
+<div class="grid grid-cols-2 gap-sm skeleton-show">
+<button class="bg-surface-container-low hover:bg-surface text-on-surface rounded p-2 flex flex-col items-center justify-center text-center transition-all border border-outline-variant/20 h-full hover:scale-105 hover:shadow-sm group">
+<span class="material-symbols-outlined mb-1 text-secondary group-hover:scale-110 transition-transform">add_circle</span>
+<span class="font-body-sm text-body-sm">Nova Despesa</span>
+</button>
+<button class="bg-surface-container-low hover:bg-surface text-on-surface rounded p-2 flex flex-col items-center justify-center text-center transition-all border border-outline-variant/20 h-full hover:scale-105 hover:shadow-sm group">
+<span class="material-symbols-outlined mb-1 text-secondary group-hover:scale-110 transition-transform">inventory</span>
+<span class="font-body-sm text-body-sm">Requisitar Item</span>
+</button>
+<button class="bg-surface-container-low hover:bg-surface text-on-surface rounded p-2 flex flex-col items-center justify-center text-center transition-all border border-outline-variant/20 h-full hover:scale-105 hover:shadow-sm group">
+<span class="material-symbols-outlined mb-1 text-secondary group-hover:scale-110 transition-transform">construction</span>
+<span class="font-body-sm text-body-sm">Abrir OS</span>
+</button>
+<button class="bg-surface-container-low hover:bg-surface text-on-surface rounded p-2 flex flex-col items-center justify-center text-center transition-all border border-outline-variant/20 h-full hover:scale-105 hover:shadow-sm group">
+<span class="material-symbols-outlined mb-1 text-secondary group-hover:scale-110 transition-transform">description</span>
+<span class="font-body-sm text-body-sm">Novo Contrato</span>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-sm skeleton-hide h-[80%]">
+<div class="skeleton rounded h-full"></div>
+<div class="skeleton rounded h-full"></div>
+<div class="skeleton rounded h-full"></div>
+<div class="skeleton rounded h-full"></div>
+</div>
+</div>
+<!-- Donut Chart Miniature -->
+<div class="bg-surface border border-outline-variant rounded-lg p-md shadow-sm flex-1 flex flex-col opacity-0 animate-fade-in-up delay-[700ms] hover:shadow-md transition-shadow">
+<h3 class="font-body-md text-body-md text-on-surface font-semibold mb-xs">Despesas por Categoria</h3>
+<div class="skeleton h-24 w-24 rounded-full mx-auto skeleton-hide"></div>
+<div class="flex-1 flex items-center justify-center skeleton-show">
+<div class="w-24 h-24 rounded-full border-[8px] border-surface-variant relative flex items-center justify-center hover:scale-105 transition-transform cursor-pointer">
+<!-- CSS Fake Donut -->
+<div class="absolute inset-[-8px] rounded-full border-[8px] border-secondary transition-all duration-1000 ease-out" style="clip-path: polygon(50% 50%, 100% 0, 100% 100%, 0 100%, 0 0, 50% 0);"></div>
+<div class="absolute inset-[-8px] rounded-full border-[8px] border-primary transition-all duration-1000 ease-out delay-500" style="clip-path: polygon(50% 50%, 50% 0, 100% 0);"></div>
+<span class="font-code-sm text-code-sm font-bold text-on-surface">100%</span>
+</div>
+</div>
+<div class="flex justify-center gap-sm font-body-sm text-body-sm mt-xs skeleton-show">
+<span class="flex items-center gap-1 hover:scale-105 transition-transform"><div class="w-2 h-2 rounded-full bg-secondary"></div> Operacional</span>
+<span class="flex items-center gap-1 hover:scale-105 transition-transform"><div class="w-2 h-2 rounded-full bg-primary"></div> Manut.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Critical Alerts Full Width Row -->
+<div class="mt-md bg-error-container border border-error/30 rounded-lg p-md shadow-sm opacity-0 animate-fade-in-up delay-[800ms] hover:shadow-md transition-shadow">
+<h2 class="font-headline-md text-headline-md text-on-error-container flex items-center gap-sm mb-sm">
+<span class="material-symbols-outlined text-error">warning</span>
+                Alertas Críticos
+            </h2>
+<div class="skeleton h-32 w-full rounded skeleton-hide"></div>
+<div class="bg-surface rounded border border-outline-variant overflow-hidden skeleton-show">
+<table class="w-full text-left font-body-sm text-body-sm">
+<thead class="bg-surface-container-low text-on-surface-variant border-b border-outline-variant">
+<tr>
+<th class="p-2 font-medium">Severidade</th>
+<th class="p-2 font-medium">Origem</th>
+<th class="p-2 font-medium">Descrição</th>
+<th class="p-2 font-medium">Ação</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr class="hover:bg-surface-container-lowest transition-colors cursor-pointer group hover:shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]">
+<td class="p-2"><span class="bg-error text-on-error px-2 py-0.5 rounded text-[10px] uppercase font-bold animate-pulse-slow inline-block">Alta</span></td>
+<td class="p-2 font-code-sm text-code-sm">Contratos</td>
+<td class="p-2">Fornecedor 'Transportes Silva' sem contrato ativo há 2 dias.</td>
+<td class="p-2"><button class="text-secondary hover:underline font-medium group-hover:scale-105 transition-transform">Revisar</button></td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors cursor-pointer group hover:shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]">
+<td class="p-2"><span class="bg-tertiary-fixed-dim text-on-tertiary-fixed-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold">Média</span></td>
+<td class="p-2 font-code-sm text-code-sm">Manutenção</td>
+<td class="p-2">Empilhadeira EMP-04 atrasada na preventiva (&gt; 15 dias).</td>
+<td class="p-2"><button class="text-secondary hover:underline font-medium group-hover:scale-105 transition-transform">Agendar</button></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+<script>
+    // Simulate loading data to show skeleton effect
+    setTimeout(() => {
+        document.getElementById('main-content').classList.add('data-loaded');
+        // Trigger bar chart animation after skeleton hides
+        const bars = document.querySelectorAll('.animate-bar-grow');
+        bars.forEach(bar => {
+            bar.style.animation = 'none';
+            bar.offsetHeight; /* trigger reflow */
+            bar.style.animation = null; 
+        });
+    }, 1500);
+</script>
+</body></html>

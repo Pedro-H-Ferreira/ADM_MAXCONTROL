@@ -1,0 +1,69 @@
+{
+    "screenId":  "8de5ae43260b491daf61fb62a31d92a0",
+    "name":  "projects/4660020320183620207/screens/8de5ae43260b491daf61fb62a31d92a0",
+    "title":  "13. Tarefas e Checklists Animada - MaxControLADM (1920x1080) Fixed",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "8de5ae43260b491daf61fb62a31d92a0",
+                          "sourceScreen":  "projects/4660020320183620207/screens/8de5ae43260b491daf61fb62a31d92a0",
+                          "x":  28326,
+                          "y":  4289,
+                          "width":  1280,
+                          "height":  1080,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\13-tarefas-e-checklists-animada-maxcontroladm-1920x1080-fixed-8de5ae43260b491daf61fb62a31d92a0",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/df6c0c8599bf45ca8deee2bbe4e2c13c",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2Y4MjViYjMxMWMxYzQxOGY4NmYzMTQ0YTljNjgyMTQ3EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\13-tarefas-e-checklists-animada-maxcontroladm-1920x1080-fixed-8de5ae43260b491daf61fb62a31d92a0\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\13-tarefas-e-checklists-animada-maxcontroladm-1920x1080-fixed-8de5ae43260b491daf61fb62a31d92a0\\screen.html",
+                                  "bytes":  39318,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/59640ff4570e4775a322b4543f8c61e6",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtKVajSaMoXy3I3FFsh7MPLTz4jr7o7yTQkzHFzZRYblDJ_vyEpUvDvmdxicEGCjwHPU1WTInoGAd210N0eBaaNme7-3o5VnBAdhCDAyYrgPmVGS2GeKWSZoO0nTTl0pEGHf2sUOU-38VeNcE0rHqJ_0Aska4yMsEDkGcYHIEGQtaJVLqGbwvbJFx-YeGk-7H7xm6PRXy_2JrUeNjBrPyEYrNIGgh-Kz0A_9H_5Wzn4frKxpzyC0hr95nc",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\13-tarefas-e-checklists-animada-maxcontroladm-1920x1080-fixed-8de5ae43260b491daf61fb62a31d92a0\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\13-tarefas-e-checklists-animada-maxcontroladm-1920x1080-fixed-8de5ae43260b491daf61fb62a31d92a0\\screenshot.png",
+                                        "bytes":  31988,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/8de5ae43260b491daf61fb62a31d92a0",
+                   "title":  "13. Tarefas e Checklists Animada - MaxControLADM (1920x1080) Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/59640ff4570e4775a322b4543f8c61e6",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtKVajSaMoXy3I3FFsh7MPLTz4jr7o7yTQkzHFzZRYblDJ_vyEpUvDvmdxicEGCjwHPU1WTInoGAd210N0eBaaNme7-3o5VnBAdhCDAyYrgPmVGS2GeKWSZoO0nTTl0pEGHf2sUOU-38VeNcE0rHqJ_0Aska4yMsEDkGcYHIEGQtaJVLqGbwvbJFx-YeGk-7H7xm6PRXy_2JrUeNjBrPyEYrNIGgh-Kz0A_9H_5Wzn4frKxpzyC0hr95nc"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/df6c0c8599bf45ca8deee2bbe4e2c13c",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2Y4MjViYjMxMWMxYzQxOGY4NmYzMTQ0YTljNjgyMTQ3EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "4000",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

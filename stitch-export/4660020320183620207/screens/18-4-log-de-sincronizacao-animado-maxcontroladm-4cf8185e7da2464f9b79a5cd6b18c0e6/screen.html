@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>18.4. Log de Sincronização e Auditoria - MaxControLADM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-surface": "#2f3035",
+                      "on-secondary-fixed": "#0f1b33",
+                      "inverse-on-surface": "#f0f0f6",
+                      "surface-dim": "#dad9df",
+                      "on-secondary-fixed-variant": "#3c4660",
+                      "tertiary-fixed-dim": "#ffb877",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-highest": "#e2e2e7",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-container": "#754000",
+                      "on-primary-container": "#a2beff",
+                      "inverse-primary": "#afc6ff",
+                      "tertiary-fixed": "#ffdcc1",
+                      "primary-container": "#2a4b8b",
+                      "on-background": "#1a1c20",
+                      "on-tertiary-fixed": "#2e1600",
+                      "on-primary-fixed": "#001943",
+                      "secondary-fixed-dim": "#bbc6e5",
+                      "on-surface-variant": "#434650",
+                      "primary-fixed": "#d9e2ff",
+                      "on-surface": "#1a1c20",
+                      "on-primary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface": "#f9f9fe",
+                      "secondary-container": "#d4dfff",
+                      "outline-variant": "#c4c6d2",
+                      "primary-fixed-dim": "#afc6ff",
+                      "on-secondary": "#ffffff",
+                      "on-primary-fixed-variant": "#224585",
+                      "surface-variant": "#e2e2e7",
+                      "surface-bright": "#f9f9fe",
+                      "secondary": "#535e79",
+                      "surface-container-low": "#f3f3f9",
+                      "surface-container": "#eeedf3",
+                      "error-container": "#ffdad6",
+                      "on-error-container": "#93000a",
+                      "error": "#ba1a1a",
+                      "secondary-fixed": "#d8e2ff",
+                      "outline": "#747781",
+                      "surface-container-high": "#e8e8ed",
+                      "tertiary": "#542d00",
+                      "primary": "#0a3473",
+                      "on-secondary-container": "#57627d",
+                      "background": "#f9f9fe",
+                      "on-tertiary-fixed-variant": "#6c3a00",
+                      "on-tertiary-container": "#faae69",
+                      "surface-tint": "#3d5d9e"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "topbar-height": "64px",
+                      "xl": "32px",
+                      "sidenav-width": "240px",
+                      "lg": "24px",
+                      "base": "8px",
+                      "sm": "8px",
+                      "xs": "4px",
+                      "md": "16px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "code-md": [
+                              "Geist"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "code-sm": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "36px",
+                              {
+                                      "lineHeight": "44px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "code-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "code-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        /* Custom scrollbar for data density areas */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #434650; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #535e79; 
+        }
+        
+        .code-container {
+            font-family: 'Geist', monospace;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+        }
+        
+        /* Syntax highlighting mock */
+        .token-string { color: #ce9178; }
+        .token-number { color: #b5cea8; }
+        .token-boolean { color: #569cd6; }
+        .token-key { color: #9cdcfe; }
+        .token-punctuation { color: #d4d4d4; }
+
+        /* Animations */
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in {
+            animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+        }
+
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
+        .delay-500 { animation-delay: 500ms; }
+      </style>
+</head>
+<body class="bg-surface dark:bg-inverse-surface text-on-surface dark:text-surface-bright font-body-md min-h-screen flex antialiased w-[1920px] mx-auto overflow-x-hidden">
+<!-- App Shell: SideNav -->
+<nav class="fixed left-0 top-0 h-full w-[72px] hover:w-[240px] bg-[#0f172a] shadow-lg flex flex-col py-md z-40 transition-all duration-300 ease-in-out hidden lg:flex group overflow-hidden">
+<!-- Header -->
+<div class="px-4 mb-xl flex items-center gap-4 whitespace-nowrap">
+<div class="w-10 h-10 rounded bg-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">dataset</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+<div class="font-headline-md text-headline-md text-white truncate">Admin Logística</div>
+<div class="font-body-sm text-body-sm text-slate-400 truncate">Integração Fluig</div>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<div class="flex-1 overflow-y-auto px-2 space-y-2 whitespace-nowrap">
+<a class="flex items-center gap-4 px-3 py-3 text-slate-400 hover:text-white hover:bg-slate-800 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined shrink-0 text-xl">dashboard</span>
+<span class="font-body-md text-body-md font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">Dashboard</span>
+</a>
+<a class="flex items-center gap-4 bg-primary text-white rounded-lg px-3 py-3" href="#">
+<span class="material-symbols-outlined shrink-0 text-xl" style="font-variation-settings: 'FILL' 1;">history_edu</span>
+<span class="font-body-md text-body-md font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">Sincronização</span>
+</a>
+<a class="flex items-center gap-4 px-3 py-3 text-slate-400 hover:text-white hover:bg-slate-800 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined shrink-0 text-xl">account_tree</span>
+<span class="font-body-md text-body-md font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">Workflows</span>
+</a>
+<a class="flex items-center gap-4 px-3 py-3 text-slate-400 hover:text-white hover:bg-slate-800 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined shrink-0 text-xl">database</span>
+<span class="font-body-md text-body-md font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">Metadados</span>
+</a>
+<a class="flex items-center gap-4 px-3 py-3 text-slate-400 hover:text-white hover:bg-slate-800 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined shrink-0 text-xl">settings</span>
+<span class="font-body-md text-body-md font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">Configurações</span>
+</a>
+</div>
+<!-- Footer -->
+<div class="px-2 mt-auto pt-md border-t border-slate-800 space-y-2 whitespace-nowrap">
+<a class="flex items-center gap-4 px-3 py-3 text-slate-400 hover:text-white hover:bg-slate-800 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined shrink-0 text-xl">help</span>
+<span class="font-body-md text-body-md font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">Suporte</span>
+</a>
+<a class="flex items-center gap-4 px-3 py-3 text-slate-400 hover:text-white hover:bg-slate-800 transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined shrink-0 text-xl">logout</span>
+<span class="font-body-md text-body-md font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">Sair</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col lg:pl-[72px] min-w-0 transition-all duration-300">
+<!-- App Shell: TopBar -->
+<header class="fixed top-0 w-full z-30 lg:w-[calc(100%-72px)] flex justify-between items-center h-topbar-height px-md bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-outline shadow-sm transition-all duration-300 animate-fade-in">
+<div class="flex items-center gap-md">
+<button class="lg:hidden p-2 text-primary dark:text-primary-fixed-dim hover:bg-surface-container-high dark:hover:bg-secondary-fixed-dim rounded-full transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="font-headline-lg text-headline-lg font-black text-primary dark:text-primary-fixed-dim tracking-tight hidden md:block">MaxControLADM</div>
+</div>
+<!-- Global Search - Left aligned as per spec -->
+<div class="flex-1 max-w-md mx-md">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full h-10 pl-10 pr-4 bg-surface-container-lowest dark:bg-surface-dim border border-outline-variant rounded-full text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-outline" placeholder="Buscar ID de transação, payload..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-secondary-fixed-dim transition-colors rounded-full active:scale-95 duration-150">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<button class="p-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-secondary-fixed-dim transition-colors rounded-full active:scale-95 duration-150 relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-secondary-fixed-dim transition-colors rounded-full active:scale-95 duration-150">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Canvas -->
+<div class="flex-1 mt-topbar-height p-md lg:p-lg overflow-y-auto">
+<!-- Context Header -->
+<div class="mb-lg flex flex-col md:flex-row md:items-center justify-between gap-md animate-fade-in delay-100">
+<div>
+<div class="flex items-center gap-sm mb-1">
+<a class="text-primary hover:underline font-body-sm text-body-sm flex items-center" href="#">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                            Voltar para Sincronizações
+                        </a>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface dark:text-surface-bright">Log de Sincronização e Auditoria</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Detalhamento técnico da transação entre Fluig e ERP Logístico</p>
+</div>
+<div class="flex gap-sm">
+<button class="px-4 py-2 bg-surface-container-lowest dark:bg-surface-dim border border-outline-variant rounded flex items-center gap-2 text-body-md font-medium text-on-surface hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                        Exportar JSON
+                    </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded flex items-center gap-2 text-body-md font-medium hover:bg-primary-fixed-variant transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+                        Reprocessar
+                    </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-md">
+<!-- ID & Status Card (Span 4) -->
+<div class="xl:col-span-4 bg-surface-container-lowest dark:bg-inverse-surface border border-outline-variant/30 rounded-xl shadow-sm p-lg flex flex-col animate-fade-in delay-200">
+<div class="flex justify-between items-start mb-md">
+<div>
+<div class="font-body-sm text-body-sm text-outline uppercase tracking-wider mb-1">ID da Solicitação Fluig</div>
+<div class="font-code-md text-code-md text-on-surface dark:text-surface-bright text-xl">REQ-20231024-9982</div>
+</div>
+<div class="px-3 py-1 bg-error-container text-on-error-container rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] font-bold">error</span>
+<span class="font-body-sm text-body-sm font-semibold">Falha Crítica</span>
+</div>
+</div>
+<div class="space-y-4 flex-1">
+<div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Direção</span>
+<span class="font-body-md text-body-md font-medium flex items-center gap-1">Fluig <span class="material-symbols-outlined text-[16px]">arrow_right_alt</span> ERP</span>
+</div>
+<div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Entidade</span>
+<span class="font-body-md text-body-md font-medium">Nota Fiscal (INBOUND)</span>
+</div>
+<div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Início</span>
+<span class="font-body-md text-body-md font-medium">24/10/2023 14:32:01.442</span>
+</div>
+<div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Duração</span>
+<span class="font-body-md text-body-md font-medium">1.24s</span>
+</div>
+<div class="flex justify-between items-center py-2">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Tentativas</span>
+<span class="font-body-md text-body-md font-medium">3/3 (Max)</span>
+</div>
+</div>
+</div>
+<!-- Error Alert Banner (Span 8) -->
+<div class="xl:col-span-8 bg-error-container/20 border-l-4 border-error rounded-r-xl shadow-sm p-md flex items-start gap-md animate-fade-in delay-200">
+<span class="material-symbols-outlined text-error text-[32px] shrink-0 mt-1" style="font-variation-settings: 'FILL' 1;">warning</span>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-error-container mb-2">Erro de Validação de Regra de Negócio (HTTP 422)</h3>
+<p class="font-body-md text-body-md text-on-error-container mb-4">O ERP rejeitou o payload recebido do Fluig. O campo <code class="font-code-sm bg-error-container/50 px-1 py-0.5 rounded">cfop_code</code> informado na linha 2 da fatura não é válido para a operação de entrada especificada.</p>
+<div class="bg-surface-container-lowest dark:bg-inverse-surface border border-error/30 rounded p-sm font-code-sm text-code-sm text-on-surface dark:text-surface-bright overflow-x-auto">
+                            "error_code": "ERR_CFOP_INVALID",<br/>
+                            "message": "CFOP 5102 não é permitido para tipo de movimento ENTRADA.",<br/>
+                            "details": { "line": 2, "item_sku": "SKU-99821" }
+                        </div>
+</div>
+</div>
+<!-- Technical Timeline (Span 5) -->
+<div class="xl:col-span-5 bg-surface-container-lowest dark:bg-inverse-surface border border-outline-variant/30 rounded-xl shadow-sm p-lg flex flex-col h-[600px] animate-fade-in delay-300">
+<h3 class="font-headline-md text-headline-md mb-md border-b border-outline-variant/20 pb-2">Timeline de Eventos API</h3>
+<div class="flex-1 overflow-y-auto pr-2 relative">
+<!-- Vertical line -->
+<div class="absolute left-[15px] top-4 bottom-4 w-[2px] bg-outline-variant/30 z-0"></div>
+<!-- Timeline Items -->
+<div class="relative z-10 space-y-6">
+<!-- Event 1 -->
+<div class="flex gap-md group">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center shrink-0 border-4 border-surface-container-lowest dark:border-inverse-surface">
+<span class="material-symbols-outlined text-[16px] text-on-primary-fixed">input</span>
+</div>
+<div class="flex-1 bg-surface-container-low dark:bg-surface-dim rounded p-sm border border-transparent group-hover:border-outline-variant/50 transition-colors">
+<div class="flex justify-between items-start mb-1">
+<div class="font-code-md text-code-md font-semibold">Fluig Webhook Received</div>
+<div class="font-code-sm text-code-sm text-outline">14:32:01.442</div>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Payload validado (Schema v2.4). Queue iniciada.</div>
+</div>
+</div>
+<!-- Event 2 -->
+<div class="flex gap-md group">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed flex items-center justify-center shrink-0 border-4 border-surface-container-lowest dark:border-inverse-surface">
+<span class="material-symbols-outlined text-[16px] text-on-tertiary-fixed">transform</span>
+</div>
+<div class="flex-1 bg-surface-container-low dark:bg-surface-dim rounded p-sm border border-transparent group-hover:border-outline-variant/50 transition-colors">
+<div class="flex justify-between items-start mb-1">
+<div class="font-code-md text-code-md font-semibold">Data Transformation (Map)</div>
+<div class="font-code-sm text-code-sm text-outline">14:32:01.510</div>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Conversão Fluig XML &gt; ERP JSON Concluída.</div>
+</div>
+</div>
+<!-- Event 3 -->
+<div class="flex gap-md group">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center shrink-0 border-4 border-surface-container-lowest dark:border-inverse-surface">
+<span class="material-symbols-outlined text-[16px] text-on-secondary-fixed">cloud_sync</span>
+</div>
+<div class="flex-1 bg-surface-container-low dark:bg-surface-dim rounded p-sm border border-transparent group-hover:border-outline-variant/50 transition-colors">
+<div class="flex justify-between items-start mb-1">
+<div class="font-code-md text-code-md font-semibold">ERP API Request Sent</div>
+<div class="font-code-sm text-code-sm text-outline">14:32:01.555</div>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">POST /api/v1/inbound/invoice</div>
+</div>
+</div>
+<!-- Event 4 (Error) -->
+<div class="flex gap-md group">
+<div class="w-8 h-8 rounded-full bg-error text-on-error flex items-center justify-center shrink-0 border-4 border-surface-container-lowest dark:border-inverse-surface shadow-md shadow-error/20 z-20">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">error</span>
+</div>
+<div class="flex-1 bg-error-container/10 border border-error/50 rounded p-sm">
+<div class="flex justify-between items-start mb-1">
+<div class="font-code-md text-code-md font-semibold text-error">ERP API Response (422)</div>
+<div class="font-code-sm text-code-sm text-outline">14:32:02.682</div>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mb-2">Unprocessable Entity. Regra fiscal rejeitada.</div>
+<span class="px-2 py-0.5 bg-error text-on-error text-[10px] rounded uppercase font-bold tracking-wider">Failed</span>
+</div>
+</div>
+<!-- Event 5 -->
+<div class="flex gap-md group">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center shrink-0 border-4 border-surface-container-lowest dark:border-inverse-surface">
+<span class="material-symbols-outlined text-[16px] text-outline">pause_circle</span>
+</div>
+<div class="flex-1 bg-surface-container-low dark:bg-surface-dim rounded p-sm border border-transparent opacity-60">
+<div class="flex justify-between items-start mb-1">
+<div class="font-code-md text-code-md font-semibold">Retry Queue Suspended</div>
+<div class="font-code-sm text-code-sm text-outline">14:32:02.700</div>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Max retries reached. Alert dispatched.</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Payload Viewer (Span 7) -->
+<div class="xl:col-span-7 bg-surface-container-lowest dark:bg-inverse-surface border border-outline-variant/30 rounded-xl shadow-sm flex flex-col h-[600px] overflow-hidden animate-fade-in delay-400">
+<!-- Tabs -->
+<div class="flex border-b border-outline-variant/20 bg-surface-container-low dark:bg-surface-dim">
+<button class="px-lg py-3 font-code-md text-code-md font-semibold text-primary border-b-2 border-primary bg-surface-container-lowest dark:bg-inverse-surface">
+                            Request Payload (POST)
+                        </button>
+<button class="px-lg py-3 font-code-md text-code-md font-medium text-surface-variant hover:text-on-surface transition-colors">
+                            Response (422)
+                        </button>
+<button class="px-lg py-3 font-code-md text-code-md font-medium text-surface-variant hover:text-on-surface transition-colors">
+                            Headers
+                        </button>
+<div class="flex-1 flex justify-end items-center pr-sm">
+<button class="p-1.5 text-outline hover:text-primary transition-colors rounded hover:bg-surface-variant" title="Copiar">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+<button class="p-1.5 text-outline hover:text-primary transition-colors rounded hover:bg-surface-variant" title="Expandir">
+<span class="material-symbols-outlined text-[18px]">fullscreen</span>
+</button>
+</div>
+</div>
+<!-- Code Area -->
+<div class="flex-1 p-md overflow-auto code-container text-sm leading-relaxed">
+<pre><code><span class="token-punctuation">{</span>
+  <span class="token-key">"transaction_id"</span><span class="token-punctuation">:</span> <span class="token-string">"REQ-20231024-9982"</span><span class="token-punctuation">,</span>
+  <span class="token-key">"source_system"</span><span class="token-punctuation">:</span> <span class="token-string">"FLUIG_PROD_01"</span><span class="token-punctuation">,</span>
+  <span class="token-key">"timestamp"</span><span class="token-punctuation">:</span> <span class="token-string">"2023-10-24T14:32:01.442Z"</span><span class="token-punctuation">,</span>
+  <span class="token-key">"operation_type"</span><span class="token-punctuation">:</span> <span class="token-string">"INBOUND_INVOICE"</span><span class="token-punctuation">,</span>
+  <span class="token-key">"payload"</span><span class="token-punctuation">:</span> <span class="token-punctuation">{</span>
+    <span class="token-key">"invoice_header"</span><span class="token-punctuation">:</span> <span class="token-punctuation">{</span>
+      <span class="token-key">"number"</span><span class="token-punctuation">:</span> <span class="token-string">"000045892"</span><span class="token-punctuation">,</span>
+      <span class="token-key">"series"</span><span class="token-punctuation">:</span> <span class="token-string">"1"</span><span class="token-punctuation">,</span>
+      <span class="token-key">"issue_date"</span><span class="token-punctuation">:</span> <span class="token-string">"2023-10-24"</span><span class="token-punctuation">,</span>
+      <span class="token-key">"supplier_cnpj"</span><span class="token-punctuation">:</span> <span class="token-string">"12.345.678/0001-90"</span><span class="token-punctuation">,</span>
+      <span class="token-key">"total_value"</span><span class="token-punctuation">:</span> <span class="token-number">15420.50</span>
+    <span class="token-punctuation">}</span><span class="token-punctuation">,</span>
+    <span class="token-key">"lines"</span><span class="token-punctuation">:</span> <span class="token-punctuation">[</span>
+      <span class="token-punctuation">{</span>
+        <span class="token-key">"line_number"</span><span class="token-punctuation">:</span> <span class="token-number">1</span><span class="token-punctuation">,</span>
+        <span class="token-key">"item_sku"</span><span class="token-punctuation">:</span> <span class="token-string">"SKU-88210"</span><span class="token-punctuation">,</span>
+        <span class="token-key">"quantity"</span><span class="token-punctuation">:</span> <span class="token-number">100</span><span class="token-punctuation">,</span>
+        <span class="token-key">"unit_price"</span><span class="token-punctuation">:</span> <span class="token-number">54.20</span><span class="token-punctuation">,</span>
+        <span class="token-key">"cfop_code"</span><span class="token-punctuation">:</span> <span class="token-string">"1102"</span>
+      <span class="token-punctuation">}</span><span class="token-punctuation">,</span>
+      <span class="token-punctuation">{</span>
+        <span class="token-key">"line_number"</span><span class="token-punctuation">:</span> <span class="token-number">2</span><span class="token-punctuation">,</span>
+        <span class="token-key">"item_sku"</span><span class="token-punctuation">:</span> <span class="token-string">"SKU-99821"</span><span class="token-punctuation">,</span>
+        <span class="token-key">"quantity"</span><span class="token-punctuation">:</span> <span class="token-number">50</span><span class="token-punctuation">,</span>
+        <span class="token-key">"unit_price"</span><span class="token-punctuation">:</span> <span class="token-number">200.00</span><span class="token-punctuation">,</span>
+        <span class="token-key">"cfop_code"</span><span class="token-punctuation">:</span> <span class="token-string">"5102"</span> <span class="token-comment" style="color: #6a9955;">// &lt;-- Erro originado aqui (CFOP de Saída em Inbound)</span>
+      <span class="token-punctuation">}</span>
+    <span class="token-punctuation">]</span>
+  <span class="token-punctuation">}</span>
+<span class="token-punctuation">}</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

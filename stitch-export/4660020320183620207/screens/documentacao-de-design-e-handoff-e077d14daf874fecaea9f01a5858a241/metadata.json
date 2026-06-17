@@ -1,0 +1,55 @@
+{
+    "screenId":  "e077d14daf874fecaea9f01a5858a241",
+    "name":  "projects/4660020320183620207/screens/e077d14daf874fecaea9f01a5858a241",
+    "title":  "Documentação de Design e Handoff",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "e077d14daf874fecaea9f01a5858a241",
+                          "sourceScreen":  "projects/4660020320183620207/screens/e077d14daf874fecaea9f01a5858a241",
+                          "x":  -2985,
+                          "y":  2951,
+                          "width":  600,
+                          "height":  600
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\documentacao-de-design-e-handoff-e077d14daf874fecaea9f01a5858a241",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/a71ac42e3dc942179b03aa0ca6c21bb1",
+                 "mimeType":  "text/markdown",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2RiM2JjY2QwMzkzNzQ5YmE4MGU3YWMxNGMyMGRmYmNlEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\documentacao-de-design-e-handoff-e077d14daf874fecaea9f01a5858a241\\screen.md",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\documentacao-de-design-e-handoff-e077d14daf874fecaea9f01a5858a241\\screen.md",
+                                  "bytes":  1202,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/markdown",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  null,
+    "missing":  [
+                    "screenshot"
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/e077d14daf874fecaea9f01a5858a241",
+                   "title":  "Documentação de Design e Handoff",
+                   "screenshot":  {
+
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/a71ac42e3dc942179b03aa0ca6c21bb1",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2RiM2JjY2QwMzkzNzQ5YmE4MGU3YWMxNGMyMGRmYmNlEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/markdown"
+                                },
+                   "width":  "0",
+                   "height":  "0",
+                   "deviceType":  "DESKTOP"
+               }
+}

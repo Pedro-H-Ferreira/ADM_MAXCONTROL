@@ -1,0 +1,55 @@
+{
+    "screenId":  "0623329591a74560a0591ee741ec44f9",
+    "name":  "projects/4660020320183620207/screens/0623329591a74560a0591ee741ec44f9",
+    "title":  "Especificação Técnica do Produto",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "0623329591a74560a0591ee741ec44f9",
+                          "sourceScreen":  "projects/4660020320183620207/screens/0623329591a74560a0591ee741ec44f9",
+                          "x":  -1297,
+                          "y":  2940,
+                          "width":  600,
+                          "height":  600
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\especificacao-tecnica-do-produto-0623329591a74560a0591ee741ec44f9",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/e883165c55124f608580fb2fe408ca1e",
+                 "mimeType":  "text/markdown",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2IyZjM1MTlkMWRhNTQyYmQ5YjA4Y2JlYTdlNDg0ZGViEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\especificacao-tecnica-do-produto-0623329591a74560a0591ee741ec44f9\\screen.md",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\especificacao-tecnica-do-produto-0623329591a74560a0591ee741ec44f9\\screen.md",
+                                  "bytes":  1746,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/markdown",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  null,
+    "missing":  [
+                    "screenshot"
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/0623329591a74560a0591ee741ec44f9",
+                   "title":  "Especificação Técnica do Produto",
+                   "screenshot":  {
+
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/e883165c55124f608580fb2fe408ca1e",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2IyZjM1MTlkMWRhNTQyYmQ5YjA4Y2JlYTdlNDg0ZGViEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/markdown"
+                                },
+                   "width":  "0",
+                   "height":  "0",
+                   "deviceType":  "DESKTOP"
+               }
+}

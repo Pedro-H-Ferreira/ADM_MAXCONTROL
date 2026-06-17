@@ -1,0 +1,460 @@
+// Código das atividades 
+
+var inicio = 0;
+var inicio1 = 4;
+var EmissaoNF = 5;
+var MovimentarAtivo = 14;
+var InformarRetorno = 30;
+var RealizarUpload = 19;
+var RealizarAjuste = 37;
+var ConfirmarMovimentacao = 49;
+var ConfirmarTransferencia = 53;
+var fim = 21;
+
+
+
+
+$(document).ready(function (obj) {
+//$(document).on("ready",function (obj){	
+
+    initAtv();
+    view();
+
+    if(mobaiu == 'S'){
+        viewMobile();
+    }
+
+    //Atualiza numero da solicitação
+    if(WKNumState == 5 || WKNumState == 4){
+        setaValor("numeroSolicitacao",WKNumProces)
+    }
+    
+
+    
+    $("#idPainelTipoTransacao").click(function(){
+        console.log("Liberar Seleção");
+        showCampos();
+    });
+    
+    $("#idpainelTipoBaixa").click(function(){
+        console.log("Liberar Seleção");
+        showCamposBaixa();
+    });
+//Disponibilizar o seletor demanda para:
+    $("#idradioAjuste").click(function(){
+        console.log("Liberar Seleção Colaborador");
+        showCamposColaborador();
+    });
+    //Painel do Patrimonio
+    $("#idRadioAtivo").click(function(){
+        console.log("Boqueio do painel de Patrimonio");
+        showCamposPatrimonio();
+    });
+/*
+  //Disponibilizar campo patrimonio:
+    $("#radioAtivoNao").click(function(){
+        console.log("Liberar Cod Patrimonio");
+        $("#idCodPatrimonio").hide();
+        //showCamposColaborador();
+    });
+    //Disponibilizar campo patrimonio:
+    $("#radioAtivoSim").click(function(){
+        console.log("Liberar Cod Patrimonio");
+        $("#idCodPatrimonio").show();
+        //showCamposColaborador();
+    });
+  
+ */   
+    
+    //Função de visualizar a data
+    var numProcess = WKNumProces;
+    if(numProcess == inicio){
+	$.each($("[data-date]"), function(i, o) {
+        var id = $(o).attr("id");
+		FLUIGC.calendar("#" + id);
+	});
+
+    } 
+    
+    
+});
+
+//Realiza ações funcionais
+function initAtv() {
+
+    var atividade = WKNumState;
+    
+    if ( atividade == inicio || atividade == inicio1 ) {
+        initCargo();
+        //initFluigCalendar();
+    }    
+    
+    
+    
+}
+
+//Mostra, oculta, bloqueia e libera campos
+function view() {
+    var atividade = WKNumState;
+
+    
+    
+    
+    //bloqueios
+    if(atividade != inicio && atividade != inicio1 && atividade != RealizarAjuste ){
+        protege("#accordionCabecalhoEnvio") 
+        protege("#accordionPatrimonio")
+    }
+    if(atividade != EmissaoNF){
+        protege("#accordionAtivo")
+    }
+    
+    if(atividade != MovimentarAtivo){
+        protege("#accordionAdministrativo")
+    }
+    
+    if(atividade != RealizarAjuste){
+        protege("#accordionColaborador")
+    }
+    
+    if(atividade != RealizarUpload && atividade != ConfirmarMovimentacao && atividade != ConfirmarTransferencia){
+        protege("#accordionColaboradorConfirmar")
+    }
+    
+    
+    //liberações
+    
+    
+    if(atividade == inicio || atividade == inicio1){
+
+        $("#accordionCabecalhoEnvio").show();
+        $("#accordionAtivo").hide();
+        $("#accordionAdministrativo").hide();
+        $("#accordionColaborador").hide();
+        $("#accordionColaboradorConfirmar").hide();
+
+        showCampos();
+        showCamposBaixa();
+        showCamposColaborador();
+        showCamposPatrimonio();
+
+    }
+    
+    
+    if(atividade == EmissaoNF){
+        $("#accordionCabecalhoEnvio").show();
+        $("#accordionAtivo").show();
+        $("#accordionAdministrativo").hide();
+        $("#accordionColaboradorConfirmar").hide();
+        //$("#accordionColaborador").hide();
+        
+        //Colaborador
+        if($("#obsColaborador").val() != "" && $("#obsColaborador").val() != null){
+            $("#accordionColaborador").show();
+        }else{
+        	$("#accordionColaborador").hide();
+        }
+
+        showCampos();
+        showCamposBaixa();
+        showCamposColaborador();
+        showCamposPatrimonio();
+        
+    }
+    
+    if(atividade == MovimentarAtivo){
+        $("#accordionCabecalhoEnvio").show();
+        $("#accordionAtivo").show();
+        $("#accordionAdministrativo").show();
+        $("#accordionColaborador").show();
+        $("#accordionColaboradorConfirmar").hide();
+        
+        //Colaborador
+        if($("#obsColaborador").val() != "" && $("#obsColaborador").val() != null){
+            $("#accordionColaborador").show();
+        }else{
+        	$("#accordionColaborador").hide();
+        }
+
+        showCampos();
+        showCamposBaixa();
+        showCamposColaborador();
+        showCamposPatrimonio();
+        
+
+    }
+    
+    if(atividade == InformarRetorno){
+        $("#accordionCabecalhoEnvio").show();
+        $("#accordionAtivo").show();
+        $("#accordionAdministrativo").show();
+        $("#accordionColaborador").show();
+        $("#accordionColaboradorConfirmar").hide();
+        
+        //Colaborador
+        if($("#obsColaborador").val() != "" && $("#obsColaborador").val() != null){
+            $("#accordionColaborador").show();
+        }else{
+        	$("#accordionColaborador").hide();
+        }
+
+        showCampos();
+        showCamposBaixa();
+        showCamposColaborador();
+        showCamposPatrimonio();
+        
+
+    }    
+    
+    if(atividade == RealizarUpload){
+        $("#accordionCabecalhoEnvio").show();
+        $("#accordionAtivo").show();
+        $("#accordionAdministrativo").show();
+        $("#accordionColaborador").show();
+        $("#accordionColaboradorConfirmar").show();
+        
+        //Colaborador
+        if($("#obsColaborador").val() != "" && $("#obsColaborador").val() != null){
+            $("#accordionColaborador").show();
+        }else{
+        	$("#accordionColaborador").hide();
+        }
+
+        showCampos();
+        showCamposBaixa();
+        showCamposColaborador();
+        showCamposPatrimonio();
+        
+
+    }
+    
+    if(atividade == RealizarAjuste){
+        $("#accordionCabecalhoEnvio").show();
+        $("#accordionAtivo").show();
+        $("#accordionAdministrativo").hide();
+        $("#accordionColaborador").show();
+        $("#accordionColaboradorConfirmar").hide();
+
+        showCampos();
+        showCamposBaixa();
+        showCamposColaborador();
+        showCamposPatrimonio();
+        
+
+    }
+    if(atividade == ConfirmarMovimentacao){
+        $("#accordionCabecalhoEnvio").show();
+        $("#accordionAtivo").show();
+        $("#accordionAdministrativo").hide();
+        $("#accordionColaborador").show();
+        $("#accordionColaboradorConfirmar").show();
+
+        showCampos();
+        showCamposBaixa();
+        showCamposColaborador();
+        showCamposPatrimonio();
+        
+
+    }
+    if(atividade == ConfirmarTransferencia){
+        $("#accordionCabecalhoEnvio").show();
+        $("#accordionAtivo").show();
+        $("#accordionAdministrativo").hide();
+        $("#accordionColaborador").show();
+        $("#accordionColaboradorConfirmar").show();
+
+        showCampos();
+        showCamposBaixa();
+        showCamposColaborador();
+        showCamposPatrimonio();
+        
+
+    }
+ 
+    if(atividade == fim){
+        $("#accordionCabecalhoEnvio").show();
+        $("#accordionAtivo").show();
+        $("#accordionAdministrativo").show();
+        $("#accordionColaborador").show();
+        $("#accordionColaboradorConfirmar").show();
+
+        showCampos();
+        showCamposBaixa();
+        showCamposColaborador();
+        showCamposPatrimonio();
+}
+}    
+
+function protege(div){
+    $(div).find("input[type='text'],textarea").attr("readonly",true)
+    $(div).find("input[type='radio']").attr("onclick",'return false')
+    $(div).find("input[type='checkbox']").attr("onclick",'return false')
+    //$(div).find("input[type='select']").attr("readonly",true)
+    
+    setTimeout(function(){ 
+        $(div).find("select[type='zoom']").each(function(){
+            window[$(this).attr("id")].disable(true)
+        })
+     }, 1000);
+
+     $(div).find("button").attr("disabled",true)
+     //$(div).find("select").attr("disabled",true)
+}
+
+function viewMobile(){
+   // $("#checkPagForaPrazo").closest("div").parent().removeClass("fs-float-right").attr("style","")
+    $("#btnAnexar").hide()
+}
+
+
+
+
+
+
+
+
+function showCampos(){
+    // Verificando o seleção do Produto
+	console.log("função campo")
+    //var Campos = $('input[name=tipoTransacao]:checked').val();
+	var Campos = document.getElementById("tipoTransacao").value;
+	//var Campos =  $("#tipoTransacao").val();
+	console.log("função valor campo"+Campos)
+	if ( Campos == "Baixa" ) {
+        $("#idpainelTipoBaixa").show();
+        $("#idPainelFilialDestino").hide();
+        $("#idpaineldescAtivo").show();
+        $("#idpainelfilial").show();
+        $("#idcpfCNPJ").hide();
+        $("#idnomeComprador").hide();
+        $("#idtelefoneComprador").hide();
+        $("#idBotaoFoto").hide();
+        $("#idDataPrevSaida").hide();
+        $("#idDataPrevRetorno").hide(); 
+        $("#idBotaoCarrega").show();
+
+        
+    } 
+	else if ( Campos == "Transferência" ) {
+        $("#idpainelTipoBaixa").hide();
+        $("#idPainelFilialDestino").show();
+        $("#idpaineldescAtivo").show();
+        $("#idpainelfilial").show();
+        $("#idcpfCNPJ").hide();
+        $("#idnomeComprador").hide();
+        $("#idtelefoneComprador").hide();
+        $("#idBotaoFoto").hide();
+        $("#idDataPrevSaida").hide();
+        $("#idDataPrevRetorno").hide(); 
+        $("#idBotaoCarrega").show();
+
+
+    }	
+	else if ( Campos == "Manutenção" ) {
+        $("#idpainelTipoBaixa").hide();
+        $("#idPainelFilialDestino").hide();
+        $("#idpaineldescAtivo").show();
+        $("#idpainelfilial").show();
+        $("#idcpfCNPJ").show();
+        $("#idnomeComprador").show();
+        $("#idtelefoneComprador").show();
+        $("#idBotaoFoto").hide();
+        $("#idDataPrevSaida").show();
+        $("#idDataPrevRetorno").show();
+        $("#idBotaoCarrega").hide();
+
+
+    }
+	else{
+        $("#idpainelTipoBaixa").hide();
+        $("#idPainelFilialDestino").hide();
+        $("#idpaineldescAtivo").hide();
+        $("#idpainelfilial").hide();
+        $("#idcpfCNPJ").hide();
+        $("#idnomeComprador").hide();
+        $("#idtelefoneComprador").hide();
+        $("#idBotaoFoto").hide();
+        $("#idDataPrevSaida").hide();
+        $("#idDataPrevRetorno").hide(); 
+        $("#idBotaoCarrega").show();
+
+    }
+   
+
+}
+
+function showCamposBaixa(){
+    // Verificando o seleção do Produto
+	console.log("função campo Baixa")
+    //var Campos = $('input[name=tipoTransacao]:checked').val();
+	var CamposBaixa = document.getElementById("tipoBaixa").value;
+	//var Campos =  $("#tipoTransacao").val();
+	console.log("função valor campo"+CamposBaixa)
+	if ( CamposBaixa == "Baixa por venda" ) {
+        $("#idcpfCNPJ").show();
+        $("#idnomeComprador").show();
+        $("#idtelefoneComprador").show();
+        $("#idDataPrevSaida").hide();
+        $("#idDataPrevRetorno").hide();         
+        $("#idBotaoFoto").hide();
+
+
+        
+    } 
+	else if ( CamposBaixa == "Baixa por obsolescência" || CamposBaixa == "Baixa por avaria" || CamposBaixa == "Baixa por sucateamento" ) {
+        $("#idcpfCNPJ").hide();
+        $("#idnomeComprador").hide();
+        $("#idtelefoneComprador").hide();
+        $("#idDataPrevSaida").hide();
+        $("#idDataPrevRetorno").hide(); 
+        $("#idBotaoFoto").show();
+
+    }
+	
+	/*
+	else {
+        $("#idcpfCNPJ").hide();
+        $("#idnomeComprador").hide();
+        $("#idtelefoneComprador").hide();
+        $("#idDataPrevSaida").hide();
+        $("#idDataPrevRetorno").hide(); 
+        $("#idBotaoFoto").hide();
+	}
+   */
+
+}
+
+function showCamposColaborador(){
+    // Verificando o seleção do Demanda
+    var campoAtivo = $('input[name=radioAjuste]:checked').val();
+    //var campoAtivo = document.getElementById("radioAjuste").value
+    
+    if ( campoAtivo == "sim" ) {
+        $("#idzoomDemandaPara").show();
+        $("#idObsFiscal").show();
+        $("#idNTransacao").hide();
+        
+        
+    } else {
+        $("#idzoomDemandaPara").hide();
+        $("#idObsFiscal").hide();
+        $("#idNTransacao").show();
+        
+        
+        
+    }
+}
+
+function showCamposPatrimonio(){
+    // Verificando o seleção do rateio
+    var codPatrimonioDD = $('input[name=radioAtivo]:checked').val();
+    if ( codPatrimonioDD == "sim" ) {
+        $("#painelPatrimonio").show();
+        
+    } else {
+        $("#painelPatrimonio").hide();
+
+    }
+
+}
+

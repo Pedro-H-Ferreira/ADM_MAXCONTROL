@@ -1,0 +1,306 @@
+/*******************************************************************************
+ * Preenche a tabela com os dados preenchidos
+ ******************************************************************************/
+function imprimirTabela() {
+	  document.getElementById("divPrincipal").setAttribute("style", "display: none"); 
+	  
+	  document.getElementById("divImpressao").setAttribute("style", "display: "); 
+	  
+	  document.getElementById("imprimirForm").setAttribute("style", "display: none"); 
+	  
+	  
+	}
+function voltarimprimirTabela() {
+	  document.getElementById("divPrincipal").setAttribute("style", "display: "); 
+	  
+	  document.getElementById("divImpressao").setAttribute("style", "display: none"); 
+	  
+	  document.getElementById("imprimirForm").setAttribute("style", "display: "); 
+	}
+
+
+/*
+function populaTabela() {
+
+	
+	var x = document.getElementById("tableItens").rows.length;
+	console.log("tamanho tabela = " + x);
+
+	var table = document.getElementById("bodyTabela");
+	for (var c = 1; c < x; c++) {
+		var tr = document.createElement('tr');
+		tr.setAttribute("id", "idTr" + c);
+
+		// Cria as TD da tabela
+		var tdNitens = document.createElement('td');
+		var tdNnotaFiscal = document.createElement('td');
+		var tddataPag = document.createElement('td');
+		var tdFilial = document.createElement('td');
+		var tdValorTotal = document.createElement('td');
+		//var tdradioExtraOrc = document.createElement('td');
+		
+
+
+		// Define o ID para a TD
+		tdNitens.setAttribute("id", "numProduto" + c);
+		tdNnotaFiscal.setAttribute("id", "nNotaFiscal" + c);
+		tddataPag.setAttribute("id", "vencPagNota" + c);
+		tdFilial.setAttribute("id", "unidadeFilial" + c);
+		tdValorTotal.setAttribute("id", "valorNF" + c);
+		//tdradioExtraOrc.setAttribute("id", "radioExtraOrc" + c);
+
+		
+
+		// Add as Linhas
+		tr.appendChild(tdNitens);
+		tr.appendChild(tdNnotaFiscal);
+		tr.appendChild(tddataPag);
+		tr.appendChild(tdFilial);
+		tr.appendChild(tdValorTotal);
+		//tr.appendChild(tdradioExtraOrc);
+
+
+		table.appendChild(tr);
+	}
+
+	//document.getElementById("bodyTabela").appendChild(table);
+
+	for (var i = 1; i < x; i++) {
+		var num = parseInt(i);
+		// alert(num)
+		// Captura os valores
+
+		var vnumProduto = document.getElementById("numProduto___" + i).value;
+		var vnNotaFiscal = document.getElementById("nNotaFiscal___" + i).value;
+		var vvencPagNota = document.getElementById("vencPagNota___" + i).value;
+		var vunidadeFilial = document.getElementById("unidadeFilial___" + i).value;
+		var vvalorNF = document.getElementById("valorNF___" + i).value;
+		//var vradioExtraOrc = document.getElementById("radioExtraOrc___" + i).value;
+
+		
+
+		// Grava na TD Criada anteriormente
+		document.getElementById("numProduto" + i).innerHTML = vnumProduto;
+		document.getElementById("nNotaFiscal" + i).innerHTML = vnNotaFiscal;
+		document.getElementById("vencPagNota" + i).innerHTML = vvencPagNota;
+		document.getElementById("unidadeFilial" + i).innerHTML = vunidadeFilial;
+		document.getElementById("valorNF" + i).innerHTML = vvalorNF;
+		//document.getElementById("radioExtraOrc" + i).innerHTML = vradioExtraOrc;
+
+		
+
+	}
+
+
+	
+	
+	
+	
+}
+*/
+
+
+//Popular tabela de rateio
+
+function populaTabelaRateio() {
+
+	
+	var x = document.getElementById("tableItens").rows.length;
+	console.log("tamanho tabela = " + x);
+
+	var table = document.getElementById("bodyTabela");
+	for (var c = 1; c < x; c++) {
+		var tr = document.createElement('tr');
+		tr.setAttribute("id", "idTr" + c);
+
+		// Cria as TD da tabela
+		//var tdNFRateio = document.createElement('td');
+		var tdcentroCustoRateio = document.createElement('td');
+		var tdvalorRateio = document.createElement('td');
+
+
+
+		// Define o ID para a TD
+		//tdNFRateio.setAttribute("id", "NFRateio" + c);
+		tdcentroCustoRateio.setAttribute("id", "centroCustoRateio" + c);
+		tdvalorRateio.setAttribute("id", "valorRateio" + c);
+
+
+		
+
+		// Add as Linhas
+		//tr.appendChild(tdNFRateio);
+		tr.appendChild(tdcentroCustoRateio);
+		tr.appendChild(tdvalorRateio);
+
+
+
+		table.appendChild(tr);
+	}
+
+	//document.getElementById("bodyTabela").appendChild(table);
+
+	for (var i = 1; i < x; i++) {
+		var num = parseInt(i);
+		// alert(num)
+		// Captura os valores
+
+		//var vNFRateio = document.getElementById("NFRateio___" + i).value;
+		var vcentroCustoRateio = document.getElementById("centroCustoRateio___" + i).value;
+		var vvalorRateio = document.getElementById("valorRateio___" + i).value;
+
+
+		
+
+		// Grava na TD Criada anteriormente
+		//document.getElementById("NFRateio" + i).innerHTML = vNFRateio;
+		document.getElementById("centroCustoRateio" + i).innerHTML = vcentroCustoRateio;
+		document.getElementById("valorRateio" + i).innerHTML = vvalorRateio;
+
+
+		
+
+	}
+
+	
+	
+	
+	
+}
+
+
+function populaDadosTabela(){
+	
+	/***************************
+	 * 
+	 *****************************/
+	
+	var vlrresponsavelEnvio = document.getElementById("responsavelEnvio").value;
+	var vlrdataEnvio = document.getElementById("dataEnvio").value;
+	
+	var vlrnumeroSolicitacao = document.getElementById("numeroSolicitacao").value;
+	var vlrcentroCusto = document.getElementById("centroCusto").value;
+	
+	var vlrcontaCentroCusto = document.getElementById("codContaFin").value;
+	var vlrnatdespesa = document.getElementById("natDespesa").value;
+	var vlrfornecedor = document.getElementById("fornecedor").value;
+	var vlrcodCNPJ = document.getElementById("codCNPJ").value;
+	var vlrnomeColaborador = document.getElementById("nomeColaborador").value;
+	var vlrdescricaoDemandaEnvio = document.getElementById("descricaoDemandaEnvio").value;
+	var vlrcodBanco = document.getElementById("codBanco").value;
+	var vlrcodAG = document.getElementById("codAG").value;
+	var vlrcodConta = document.getElementById("codConta").value;
+
+	//var vlrqtDespesas = document.getElementById("qtDespesas").value;
+	//var vlrvalorNotaFiscal = document.getElementById("valorNotaFiscal").value;
+	
+	var vlrnNotaFiscal = document.getElementById("nNotaFiscal").value;
+	var vlrvencPagNota = document.getElementById("vencPagNota").value;
+	var vlrunidadeFilial = document.getElementById("unidadeFilial").value;
+	var vlrvalorNF = document.getElementById("valorNF").value;
+	var vlrvalorNFRateio = document.getElementById("valorNFRateio").value;
+	//var vlrradioExtraOrc = document.getElementById("radioExtraOrc").value;
+	
+	//var vlrdataEnvioGestor = document.getElementById("dataEnvioGestor").value;
+	var vlrnomeGestor = document.getElementById("nomeGestor").value;
+	var vlrradioAreaGestorSim = document.getElementById("radioAreaGestorSim").value;
+	var vlrobsAreaGestor = document.getElementById("obsAreaGestor").value;
+	//var vlrdataEnvioDiretor = document.getElementById("dataEnvioDiretor").value;
+    var vlrnomeDiretor = document.getElementById("nomeDiretor").value;	
+	var vlrradioAreaDiretoriaSim = document.getElementById("radioAreaDiretoriaSim").value;
+	var vlrobsAreaDiretoria = document.getElementById("obsAreaDiretoria").value;
+	
+	//Gerente Regional e Presidente
+    var vlrnomeGerenteReg = document.getElementById("nomeGerRegional").value;	
+	var vlrradioAreaGerenteRegSim = document.getElementById("radioAreaGerRegionalSim").value;
+	var vlrobsAreaGerenteReg = document.getElementById("obsAreaGerRegional").value;
+    var vlrnomePresidente = document.getElementById("nomePresidente").value;	
+	var vlrradioAreaPresidenteSim = document.getElementById("radioAreaPresidenteSim").value;
+	var vlrobsAreaPresidenteReg = document.getElementById("obsAreaPresidente").value;
+
+	//var vlrradioLancaInputNFSim = document.getElementById("radioLancaInputNFSim").value;
+	//var vlrdataEnvioControladoria = document.getElementById("dataEnvioControladoria").value;
+    var vlrnomeControladoria = document.getElementById("nomeControladoria").value;	
+	var vlrradioAreaControladoriaSim = document.getElementById("radioAreaControladoriaSim").value;
+	var vlrobsAreaControladoria = document.getElementById("obsAreaControladoria").value;
+	
+	
+	var vlrobsLancaInputNF = document.getElementById("obsLancaInputNF").value;
+	
+	
+	var vlrcolaboradorInput = document.getElementById("colaboradorInput").value;
+	
+	var vlrcodWinthor = document.getElementById("codWinthor").value;
+	var vlrNumLancW = document.getElementById("NumLancW").value;
+	var vlrobsAtendimentoFin = document.getElementById("obsAtendimentoFin").value;
+
+	
+	
+	
+	
+	
+	
+	// Grava na TD Criada anteriormente
+
+	document.getElementById("vlrresponsavelEnvio").innerHTML = vlrresponsavelEnvio;
+	document.getElementById("vlrdataEnvio").innerHTML = vlrdataEnvio;
+	
+	document.getElementById("vlrnumeroSolicitacao").innerHTML = vlrnumeroSolicitacao;
+	document.getElementById("vlrcentroCusto").innerHTML = vlrcentroCusto;
+	
+	document.getElementById("vlrcontaCentroCusto").innerHTML = vlrcontaCentroCusto;
+	document.getElementById("natDespesa").innerHTML = vlrnatdespesa;
+	document.getElementById("vlrfornecedor").innerHTML = vlrfornecedor;
+	document.getElementById("vlrcodCNPJ").innerHTML = vlrcodCNPJ;
+	document.getElementById("vlrnomeColaborador").innerHTML = vlrnomeColaborador;
+	document.getElementById("vlrdescricaoDemandaEnvio").innerHTML = vlrdescricaoDemandaEnvio;
+	document.getElementById("vlrcodBanco").innerHTML = vlrcodBanco;
+	document.getElementById("vlrcodAG").innerHTML = vlrcodAG;
+	document.getElementById("vlrcodConta").innerHTML = vlrcodConta;
+	
+	//document.getElementById("vlrqtDespesas").innerHTML = vlrqtDespesas;
+	//document.getElementById("vlrvalorNotaFiscal").innerHTML = vlrvalorNotaFiscal;
+	
+
+    
+	document.getElementById("vlrnNotaFiscal").innerHTML = vlrnNotaFiscal;
+	document.getElementById("vlrvencPagNota").innerHTML = vlrvencPagNota;
+	document.getElementById("vlrunidadeFilial").innerHTML = vlrunidadeFilial;
+	document.getElementById("vlrvalorNF").innerHTML = vlrvalorNF;
+	document.getElementById("vlrvalorNFRateio").innerHTML = vlrvalorNFRateio;
+	//document.getElementById("vlrradioExtraOrc").innerHTML = vlrradioExtraOrc;
+	
+	//document.getElementById("vlrdataEnvioGestor").innerHTML = vlrdataEnvioGestor;
+	document.getElementById("vlrnomeGestor").innerHTML = vlrnomeGestor;
+	document.getElementById("vlrradioAreaGestorSim").innerHTML = vlrradioAreaGestorSim;
+	document.getElementById("vlrobsAreaGestor").innerHTML = vlrobsAreaGestor;
+	//document.getElementById("vlrdataEnvioDiretor").innerHTML = vlrdataEnvioDiretor;	
+	document.getElementById("vlrnomeDiretor").innerHTML = vlrnomeDiretor;
+	document.getElementById("vlrradioAreaDiretoriaSim").innerHTML = vlrradioAreaDiretoriaSim;	
+	document.getElementById("vlrobsAreaDiretoria").innerHTML = vlrobsAreaDiretoria;
+	
+	//Gerente Regional e Presidente
+	document.getElementById("vlrnomeGerenteReg").innerHTML = vlrnomeGerenteReg;
+	document.getElementById("vlrradioAreaGerenteRegSim").innerHTML = vlrradioAreaGerenteRegSim;	
+	document.getElementById("vlrobsAreaGerenteReg").innerHTML = vlrobsAreaGerenteReg;
+	document.getElementById("vlrnomePresidente").innerHTML = vlrnomePresidente;
+	document.getElementById("vlrradioAreaPresidenteSim").innerHTML = vlrradioAreaPresidenteSim;	
+	document.getElementById("vlrobsAreaPresidenteReg").innerHTML = vlrobsAreaPresidenteReg;
+
+
+	//document.getElementById("vlrradioLancaInputNFSim").innerHTML = vlrradioLancaInputNF;
+
+	//document.getElementById("vlrdataEnvioControladoria").innerHTML = vlrdataEnvioControladoria;	
+	document.getElementById("vlrnomeControladoria").innerHTML = vlrnomeControladoria;
+	document.getElementById("vlrradioAreaControladoriaSim").innerHTML = vlrradioAreaControladoriaSim;	
+	document.getElementById("vlrobsAreaControladoria").innerHTML = vlrobsAreaControladoria;
+
+	document.getElementById("vlrobsLancaInputNF").innerHTML = vlrobsLancaInputNF;
+	
+	document.getElementById("vlrcolaboradorInput").innerHTML = vlrcolaboradorInput;
+    document.getElementById("vlrcodWinthor").innerHTML = vlrcodWinthor;	
+	document.getElementById("vlrNumLancW").innerHTML = vlrNumLancW;
+	
+	document.getElementById("vlrobsAtendimentoFin").innerHTML = vlrobsAtendimentoFin;
+	
+}

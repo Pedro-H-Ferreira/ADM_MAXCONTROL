@@ -1,0 +1,69 @@
+{
+    "screenId":  "83a52e782cb948eabe5b5ee35bbcf32a",
+    "name":  "projects/4660020320183620207/screens/83a52e782cb948eabe5b5ee35bbcf32a",
+    "title":  "04. Despesas - Listagem - Portal Administrativo CD (1920x1080)",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "83a52e782cb948eabe5b5ee35bbcf32a",
+                          "sourceScreen":  "projects/4660020320183620207/screens/83a52e782cb948eabe5b5ee35bbcf32a",
+                          "x":  60852,
+                          "y":  2627,
+                          "width":  1815,
+                          "height":  1080,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\04-despesas-listagem-portal-administrativo-cd-1920x1080-83a52e782cb948eabe5b5ee35bbcf32a",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/11716217925367764241",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjE2NjFlNGIwOTI1Yzc1MTFlMGMyNjM5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\04-despesas-listagem-portal-administrativo-cd-1920x1080-83a52e782cb948eabe5b5ee35bbcf32a\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\04-despesas-listagem-portal-administrativo-cd-1920x1080-83a52e782cb948eabe5b5ee35bbcf32a\\screen.html",
+                                  "bytes":  28135,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/c545bd17dc0249768e2c55494791e4cd",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtGYLr_T-C8RgRmA_NZuAmKu8IkJnMK3vb8TR26uCPr5CSk4QFvYSFgNAI84S68tWkMKTzFkmSr7biK2R0pXRL5tnmsLaoJQo9Jp7TQ-8ZDlDVQt1g5i9OLpeUgNoVsst5c_AnbelTQlnPiK4xZoAPSTATJTQVzg7Ovnl13ZHZCIWveBrLWFVdIbWIdy8WKEOnCb4AIXR3IgZx166pc_EbWXxz0ktqJx6Tt5-ZRNakj4h6enrgy3LuSwZo",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\04-despesas-listagem-portal-administrativo-cd-1920x1080-83a52e782cb948eabe5b5ee35bbcf32a\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\04-despesas-listagem-portal-administrativo-cd-1920x1080-83a52e782cb948eabe5b5ee35bbcf32a\\screenshot.png",
+                                        "bytes":  27083,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/83a52e782cb948eabe5b5ee35bbcf32a",
+                   "title":  "04. Despesas - Listagem - Portal Administrativo CD (1920x1080)",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/c545bd17dc0249768e2c55494791e4cd",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtGYLr_T-C8RgRmA_NZuAmKu8IkJnMK3vb8TR26uCPr5CSk4QFvYSFgNAI84S68tWkMKTzFkmSr7biK2R0pXRL5tnmsLaoJQo9Jp7TQ-8ZDlDVQt1g5i9OLpeUgNoVsst5c_AnbelTQlnPiK4xZoAPSTATJTQVzg7Ovnl13ZHZCIWveBrLWFVdIbWIdy8WKEOnCb4AIXR3IgZx166pc_EbWXxz0ktqJx6Tt5-ZRNakj4h6enrgy3LuSwZo"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/11716217925367764241",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjE2NjFlNGIwOTI1Yzc1MTFlMGMyNjM5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

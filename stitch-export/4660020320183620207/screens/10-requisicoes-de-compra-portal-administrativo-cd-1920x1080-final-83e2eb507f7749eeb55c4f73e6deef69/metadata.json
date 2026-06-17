@@ -1,0 +1,69 @@
+{
+    "screenId":  "83e2eb507f7749eeb55c4f73e6deef69",
+    "name":  "projects/4660020320183620207/screens/83e2eb507f7749eeb55c4f73e6deef69",
+    "title":  "10. Requisições de Compra - Portal Administrativo CD (1920x1080) Final",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "83e2eb507f7749eeb55c4f73e6deef69",
+                          "sourceScreen":  "projects/4660020320183620207/screens/83e2eb507f7749eeb55c4f73e6deef69",
+                          "x":  45023,
+                          "y":  2627,
+                          "width":  1210,
+                          "height":  1080,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\10-requisicoes-de-compra-portal-administrativo-cd-1920x1080-final-83e2eb507f7749eeb55c4f73e6deef69",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/11942285577030216440",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjFhZWM4NWMwOTI1Yzc1MTFlMGMyNjM5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\10-requisicoes-de-compra-portal-administrativo-cd-1920x1080-final-83e2eb507f7749eeb55c4f73e6deef69\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\10-requisicoes-de-compra-portal-administrativo-cd-1920x1080-final-83e2eb507f7749eeb55c4f73e6deef69\\screen.html",
+                                  "bytes":  28396,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/c0e063f5b3cc47fa877b0421274a5644",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLujBpPTSw3QQv79IPINVdNgIVCXRIzoHid9PzIa9eFiofPq4pkM8OKz0vEjBfjTojna6Z7aRvXKDUmz_UlxcD5W9LRjERqIukqBrxbDyTHK_j_fwHM6bnwRfRUcr3d5rfeGbJpgORcBaFtKTXr07s4y0ioPylvlxhqKDUrt9VlyI9TWLaYyQJZ7CLbTR_5sAwzoYR5wyv18zo1fupMEOYb-MQG0m962dK2iGRQ3DRhZP7NeC4qkC5MPJ0U",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\10-requisicoes-de-compra-portal-administrativo-cd-1920x1080-final-83e2eb507f7749eeb55c4f73e6deef69\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\10-requisicoes-de-compra-portal-administrativo-cd-1920x1080-final-83e2eb507f7749eeb55c4f73e6deef69\\screenshot.png",
+                                        "bytes":  40657,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/83e2eb507f7749eeb55c4f73e6deef69",
+                   "title":  "10. Requisições de Compra - Portal Administrativo CD (1920x1080) Final",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/c0e063f5b3cc47fa877b0421274a5644",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLujBpPTSw3QQv79IPINVdNgIVCXRIzoHid9PzIa9eFiofPq4pkM8OKz0vEjBfjTojna6Z7aRvXKDUmz_UlxcD5W9LRjERqIukqBrxbDyTHK_j_fwHM6bnwRfRUcr3d5rfeGbJpgORcBaFtKTXr07s4y0ioPylvlxhqKDUrt9VlyI9TWLaYyQJZ7CLbTR_5sAwzoYR5wyv18zo1fupMEOYb-MQG0m962dK2iGRQ3DRhZP7NeC4qkC5MPJ0U"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/11942285577030216440",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjFhZWM4NWMwOTI1Yzc1MTFlMGMyNjM5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

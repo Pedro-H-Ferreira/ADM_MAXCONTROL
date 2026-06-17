@@ -1,0 +1,69 @@
+{
+    "screenId":  "b87abcc25a6c4715a9b55aeb1f58a1c5",
+    "name":  "projects/4660020320183620207/screens/b87abcc25a6c4715a9b55aeb1f58a1c5",
+    "title":  "17. Ajuda e Suporte Animada - MaxControLADM (1920x1080) Fixed",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "b87abcc25a6c4715a9b55aeb1f58a1c5",
+                          "sourceScreen":  "projects/4660020320183620207/screens/b87abcc25a6c4715a9b55aeb1f58a1c5",
+                          "x":  20247,
+                          "y":  4329,
+                          "width":  1280,
+                          "height":  720,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\17-ajuda-e-suporte-animada-maxcontroladm-1920x1080-fixed-b87abcc25a6c4715a9b55aeb1f58a1c5",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/eebb9cb95c994301a15e38ebf565e626",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2JjZDI1ZDJkYzUzZjRjMGE4NDdkN2JhZjc3YjFkNGM0EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\17-ajuda-e-suporte-animada-maxcontroladm-1920x1080-fixed-b87abcc25a6c4715a9b55aeb1f58a1c5\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\17-ajuda-e-suporte-animada-maxcontroladm-1920x1080-fixed-b87abcc25a6c4715a9b55aeb1f58a1c5\\screen.html",
+                                  "bytes":  28818,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/10edf35316cb40a4939326830b1c46e0",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLu-27OYsZ6a_mgT-XS2pCJG_7ZcGYc6g3Zp3WzUt0FvDETlPZ11wFJb8a-aDGSLegYSJ59tjmT39P3l3WOL5EhO8vd_MlhSgYih42OWyETsIoSbOJVLDF9X52_vjeZJaj9gw_xf-RrBRZp0-Dxc2yYucneyZ8eOFmDmBp6vPOqZwG6q-KNgTkR00r3MB6XlR5XObICL8QBATRr8jGrJMy7j8kynKtEakl5sFkf2waUvMtUGSwInq879FA",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\17-ajuda-e-suporte-animada-maxcontroladm-1920x1080-fixed-b87abcc25a6c4715a9b55aeb1f58a1c5\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\17-ajuda-e-suporte-animada-maxcontroladm-1920x1080-fixed-b87abcc25a6c4715a9b55aeb1f58a1c5\\screenshot.png",
+                                        "bytes":  39610,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/b87abcc25a6c4715a9b55aeb1f58a1c5",
+                   "title":  "17. Ajuda e Suporte Animada - MaxControLADM (1920x1080) Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/10edf35316cb40a4939326830b1c46e0",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLu-27OYsZ6a_mgT-XS2pCJG_7ZcGYc6g3Zp3WzUt0FvDETlPZ11wFJb8a-aDGSLegYSJ59tjmT39P3l3WOL5EhO8vd_MlhSgYih42OWyETsIoSbOJVLDF9X52_vjeZJaj9gw_xf-RrBRZp0-Dxc2yYucneyZ8eOFmDmBp6vPOqZwG6q-KNgTkR00r3MB6XlR5XObICL8QBATRr8jGrJMy7j8kynKtEakl5sFkf2waUvMtUGSwInq879FA"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/eebb9cb95c994301a15e38ebf565e626",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2JjZDI1ZDJkYzUzZjRjMGE4NDdkN2JhZjc3YjFkNGM0EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

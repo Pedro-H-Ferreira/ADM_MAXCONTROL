@@ -1,0 +1,105 @@
+body {
+	background-color: #F7F7F7;
+}
+
+.content-liquid {
+	height: 100%;
+}
+
+.footer-liquid {
+    position: relative;
+}
+
+.wcm-all-content > #wcm-content{
+	background-color: #f7f7f7 !important;
+	padding: 0 25px 0 0 !important;
+}
+
+#wcm_footer {
+	margin-left: -20px;
+    width: calc(100% + 20px) !important;
+}
+
+.wcm-all-content{
+    height: 100%;
+    padding-top: 118px;
+}
+
+.wcm-all-content .wcm_widget{
+	padding: 10px;
+	border-radius: 4px;
+	background-color: #ffffff;
+	margin: 8px;
+	-webkit-box-shadow: rgba(0, 0, 0, 0.03) 0px 1px 5px 0px, rgba(0, 0, 0, 0.06) 0px 2px 3px 0px;
+	box-shadow: rgba(0, 0, 0, 0.03) 0px 1px 5px 0px, rgba(0, 0, 0, 0.06) 0px 2px 3px 0px;
+}
+
+.wcm-all-content .wcm_widget .wcm_corpo_widget_single{
+	width: 100%;
+}
+
+#SlotUsePolicy .wcm_widget {
+	background-color: inherit !important;
+}
+
+div[appcode="usepolicy"] .wcm_widget{
+	padding: 0px !important;
+	border-radius: none !important;
+	background-color: none !important;
+	margin: 0px;
+	-webkit-box-shadow:none !important;
+	box-shadow:none !important;
+}
+
+div[appcode="fluigchat"] .wcm_widget{
+	padding: 0px !important;
+	border-radius: none !important;
+	background-color: none !important;
+	margin: 0px;
+	-webkit-box-shadow:none !important;
+	box-shadow:none !important;
+}
+
+#wcm_wrap{
+	background-color: transparent !important;
+}
+
+#visualizacaoPagina .layout-2-3left {
+	padding-right: 0px;
+}
+
+#visualizacaoPagina .slotfull .slotint{
+	background-color: transparent !important;
+}
+
+.wcm_widget_full {
+	background-color: transparent !important;
+}
+
+.fluig-style-guide .help-button-toggle{
+	top: 7px !important;
+    right: 7px !important;
+}
+
+.workflow-card-view-frame {
+	padding-left: 40px !important;
+	padding-right: 40px !important;
+}
+
+#ecm-centralTask-container{
+	background-color: white;
+	float: none !important;
+}
+
+.newRequest{
+	right: 42px !important;
+}
+
+h2.pageTitle {
+	background-color:transparent !important;
+}
+
+.adjustmentwidget {
+	    padding-left: 90px !important;
+}
+

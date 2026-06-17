@@ -1,0 +1,852 @@
+var ResponsiveNotify = SuperWidget.extend({
+
+	instanceId: null,
+	alertCentralBS: null,
+	timeInteraction: null,
+	notifyPopover: null,
+	cacheExpiresTime: 300000, // 5 minutos em milisegundos
+	cacheTime: null,
+	cacheNotifications: null,
+
+	bindings: {
+		local: {
+			'timeline-link-supported': ['click_peopleList'],
+			'mark-all-read': ['click_markAllRead'],
+			'actions-notification': ['click_executeAction'],
+			'show-note': ['click_showNote'],
+			'search-action': ['click_searchAction'],
+			'open-answer-form': ['click_openAnswerForm'],
+			'toggle-small-notification': ['click_toggleSmallNotifications'],
+			'popover-notifications': ['shown.bs.popover_getNotificationsPopover'],
+			'mark-read': ['click_markAlertAsRead'],
+		},
+		global: {}
+	},
+
+	init() {
+
+		WCMAPI.addListener(this, 'closePopoverNotify', () => {
+			this.hideSmallNotifications();
+		});
+
+		this.timeInteraction = FLUIGC.timeInteraction;
+
+		this.popoverNotifications();
+
+		// TODO: Mover os métodos desse código para dentro de outro js
+		this.alertCentralBS = AlertCentralBS.instance(
+			this.instanceId,
+			this.DOM[0].id,
+			{}
+		);
+
+		this.countUnreadAlerts();
+		this.listenNotifications();
+
+		// TODO: Mover os métodos desse código para dentro de outro js
+		// bypassando o bind da SuperWidget para poder bindar todos
+		// os <a> das notificações
+		$(this.DOM).on('click', '[data-alert-id] a', (ev) => {
+			const $el = $(ev.currentTarget);
+
+			this.markAlertAsRead(
+				$el.parent('[data-alert-id]').find('[data-mark-read]')[0],
+				ev
+			);
+
+			if (!$el.data('open-answer-form')) {
+				const openInNewBlank = ev.currentTarget.href.match(/^(.*)(#blank)$/);
+
+				if (openInNewBlank) {
+					ev.preventDefault();
+					window.open(openInNewBlank[1], '_blank');
+				} else {
+					window.location.href = ev.currentTarget.href;
+				}
+			}
+		});
+
+		this.initHidePopoverNotify();
+	},
+
+	// Esconde o popover de notificações caso o usuário
+	// clique em algum lugar da tela fora ele.
+	initHidePopoverNotify() {
+		$(document).on('click', (el) => {
+			if (
+				!$(el.target).closest('.popover-notify').length &&
+				!$(el.target).closest('[data-popover-notifications]').length
+			) {
+				this.hideSmallNotifications();
+			}
+		});
+	},
+
+	async popoverNotifications() {
+
+		const notificationHTML = await this.getWidgetPopover();
+
+		const content = Mustache.render(
+			this.templates['popover-notifications-template'],
+			null,
+			{ notificationHTML }
+		);
+
+		const template = Mustache.render(
+			this.templates['popover-notifications-master-template']
+		);
+
+		this.notifyPopover = FLUIGC.popover('[data-popover-notifications]', {
+			container: '.responsive-header-popover-container',
+			trigger: 'click',
+			placement: 'bottom',
+			html: true,
+			content,
+			template,
+		});
+	},
+
+	getNotificationsPopover(el, ev) {
+		WCMAPI.fireEvent('closePopoverProfile');
+		WCMAPI.fireEvent('openPopoverNotify');
+		this.getNotificationList(true);
+	},
+
+	toggleSmallNotifications() {
+		if (window.innerWidth < 768) {
+			$('.inner-header-navbar:first', this.DOM)
+				.toggleClass('hide');
+
+			$('.inner-header-notification-navbar', this.DOM)
+				.toggleClass('hide');
+
+			if ($('.inner-header-notification-navbar', this.DOM).is(':hidden')) {
+				this.notifyPopover && this.notifyPopover.popover('hide');
+			}
+		}
+	},
+
+	hideSmallNotifications() {
+		$('.inner-header-navbar:first', this.DOM)
+			.removeClass('hide');
+
+		$('.inner-header-notification-navbar', this.DOM)
+			.addClass('hide');
+
+		this.notifyPopover && this.notifyPopover.popover('hide');
+	},
+
+	showNote(el, ev) {
+		const $el = $(el);
+		const parent = $el.parents('li.list-group-item');
+		const isVisible = parent.data('is-note-visible');
+		const alertId = parent.data('alert-id');
+		const $note = $('#note' + alertId);
+
+		ev.preventDefault();
+		ev.stopPropagation();
+
+		if (isVisible) {
+			$note.remove();
+		} else {
+			if ($el.data('note-html')) {
+				parent.append($el.data('note-html'));
+			} else {
+				const options = {
+					url: '/api/public/mention/findMentions',
+					contentType: 'application/json',
+					dataType: 'json',
+					type: 'GET',
+					data: {
+						mentioningId: alertId,
+						mentioningClass: 'com.totvs.technology.foundation.alert.entity.FDNAlert'
+					}
+				};
+				this.baseAjax(options, (err, data) => {
+					if (err) {
+						return false;
+					}
+
+					// TODO: trocar por template mustache
+					let html = '<div class="well well-sm fs-no-margin-bottom" id="note' + alertId + '"><small>';
+					html += '<a href="#" class="fluigicon fluigicon-remove-circle fs-no-text-underline pull-right" title="Fechar nota" ';
+					html += 'data-note="{{object.note}}" data-show-note></a>';
+					html += this.generateContentTextFormatted($el.data('note'), data);
+					html += '</small></div>';
+					parent.append(html);
+					$el.data('note-html', html);
+				});
+			}
+		}
+
+		parent.data('is-note-visible', !isVisible);
+	},
+
+	openAnswerForm(el, ev) {
+		const $el = $(el);
+		const formId = $el.data('open-answer-form');
+
+		ev.preventDefault();
+		ev.stopPropagation();
+
+		if (isNaN(formId)) {
+			FLUIGC.toast({
+				message: 'Não foi possível localizar o formulário compartilhado',
+				type: 'danger'
+			});
+		} else {
+			SOCIALBC.openAnswerForm(formId);
+		}
+	},
+
+	countUnreadAlerts() {
+		this.alertCentralBS.countUnreadAlerts((err, data) => {
+			if (err) {
+				FLUIGC.toast({
+					type: 'info',
+					message: 'Não foi possível recuperar o total de notificações',
+					timeout: 2000
+				});
+				return;
+			}
+
+			this.updateNotificationIcon(data);
+		});
+	},
+
+	updateNotificationIcon(unreadAlerts) {
+		const $badge = $('[data-global-notifications-badge]', this.DOM);
+		$badge[unreadAlerts > 0 ? 'removeClass' : 'addClass']('hide');
+	},
+
+	peopleList(el, ev) {
+		const $el = $(el);
+
+		FLUIGC.modal({
+			title: $el.data('dialog-title'),
+			content: {
+				widgetCode: 'alertuserlist',
+				ftl: 'view.ftl',
+				data: {
+					'alertId': $el.data('alert-id')
+				}
+			}
+		});
+	},
+
+	markAllRead(el, ev) {
+		const loading = FLUIGC.loading(window);
+
+		ev.preventDefault();
+
+		loading.show();
+
+		this.alertCentralBS.markAllAlertsAsRead((err, data) => {
+			if (err) {
+				FLUIGC.toast({
+					type: 'danger',
+					message: 'Ocorreu um erro ao tentar marcar as notificações como lidas'
+				});
+			} else {
+				FLUIGC.toast({
+					type: 'success',
+					message: 'As notificações foram marcadas como lidas',
+					timeout: 2000
+				});
+
+				this.getNotificationList(false);
+			}
+
+			this.updateAlertCounter();
+
+			loading.hide();
+		});
+	},
+
+	// Este método atualiza o número de notificações.
+	updateAlertCounter() {
+		this.countUnreadAlerts();
+	},
+
+	refreshPeriods() {
+		this.timeInteraction.init();
+	},
+
+	// Registra os listeners para eventos de novas notificações
+	listenNotifications() {
+		WCMAPI.addListener(this, 'countunreadalerts', (evName, data) => {
+			this.getNotificationList(false);
+			this.updateNotificationIcon(data.unreadalerts);
+		});
+
+		// atualiza a lista de notificações
+		WCMAPI.addListener(this, 'refreshNotificationList', (evName, data) => {
+			this.getNotificationList(false);
+		});
+	},
+
+	async getNotificationList(cached) {
+
+		try {
+			const notificationList = await this.getNotificationListPromise(cached);
+
+			const html = this.notificationList(notificationList);
+
+			$('#popover-content', this.DOM).html(html);
+
+			FLUIGC.utilities.isolatedScroll('#popover-content');
+
+			this.refreshPeriods();
+		} catch (err) {
+			FLUIGC.toast({
+				message: 'Não foi possível recuperar as notificações',
+				type: 'danger'
+			});
+		}
+	},
+
+	isValidCache() {
+		return this.cacheTime && Date.now() < this.cacheTime + this.cacheExpiresTime;
+	},
+
+	getNotificationListPromise(cached) {
+		return new Promise((resolve, reject) => {
+
+			// Retorna as notificações cacheadas caso existam
+			// e estejam validas ainda
+			if (cached && this.cacheNotifications && this.isValidCache()) {
+				resolve(
+					this.cacheNotifications
+				);
+				return false;
+			}
+
+			this.alertCentralBS.notificationList((err, data) => {
+				if (!err) {
+					this.cacheNotifications = data;
+					this.cacheTime = Date.now();
+					resolve(
+						this.cacheNotifications
+					);
+				} else {
+					reject(err);
+				}
+			}, 5, 0);
+		});
+	},
+
+	/*
+	 * Esta função de listar notificações foi isolada para reaproveita-lá na renderização de uma única noticifação.
+	 */
+	notificationList(data) {
+
+		function hasNotifications() {
+			if (data.length) {
+				return true;
+			}
+			return false;
+		}
+
+		function descriptionNotEmpty() {
+			return this.description !== '';
+		}
+
+		function getEvent() {
+			if (this.senders.length > 1) {
+				return this.event.groupDescription;
+			}
+			return this.event.singleDescription;
+		}
+
+		function getEventIcon() {
+			return this.event.icon;
+		}
+
+		function hasEventIcon() {
+			return this.event.icon ? true : false;
+		}
+
+		function getComunityIcon() {
+			if (this.object.link) {
+				const linkPath = this.object.link;
+				const linkSplit = linkPath.split('/');
+				const comunityAlias = linkSplit[linkSplit.length - 1];
+				const iconPath = '/social/api/rest/social/image/profile/' + comunityAlias + '/X_SMALL_PICTURE';
+				return iconPath;
+			}
+			return false;
+		}
+
+		function getSenders() {
+			const name = socialGlobal.getSocialUser().name;
+			const senders = this.senders.length > 3 ? this.senders.slice(0, 2) : this.senders.slice(0, 3);
+
+			senders.map((el) => {
+				if (name === el.user.fullName) {
+					el.user.fullName = "Você";
+				}
+				return el;
+			});
+
+			if (senders.length > 1) {
+				for (i = 1; i <= senders.length; i++) {
+					if (i < senders.length) {
+						senders[i - 1].user.fullName = senders[i - 1].user.fullName + ","
+					}
+				}
+			}
+
+			return senders;
+		}
+
+		function hasMorePeople() {
+			return this.senders.length > 3;
+		}
+
+		function getAdditionalPeople() {
+			if (this.senders) {
+				return this.senders.slice(2);
+			}
+
+			return '';
+		}
+
+		function getNumAdditionalPeople() {
+			if (this.senders) {
+				return this.senders.slice(2).length;
+			}
+
+			return 0;
+		}
+
+		function getSenderLink() {
+			return defaultURL() + '/social/' + this.user.login;
+		}
+
+		function defaultURL() {
+			return socialGlobal.defaultURL();
+		}
+
+		function hasSenders() {
+			if (this.senders && this.senders.length > 0) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		function getLastSenderLogin() {
+			const sender = this.senders[0];
+			return sender.user.login;
+		}
+
+		// Valida se existe ação na notificação.
+		function hasActionsNotification() {
+			if (this.actions) {
+				return true;
+			}
+			return false;
+		}
+
+		// Retorna as ações referentes aquela notificação.
+		function getActionsNotification() {
+			return this.actions;
+		}
+
+		/*
+		 * Retorna a ação já executada
+		 */
+		function getExecutedActionsNotification() {
+			const actions = this.actions;
+			for (i in actions) {
+				if (actions[i].executed) {
+					return actions[i];
+				}
+			}
+		}
+
+		/*
+		 * Verifica se a ações não são em grupo, ( menor ou igual a 2 ações ) e se ação foi executada.
+		 */
+		function hasNotificationsSingleActions() {
+			if (this.actions) {
+				return this.actions.length <= 2 && !hasAlreadyExecutedAnyAction(this.actions);
+			}
+			return false;
+		}
+		/*
+		 * Verifica se a ações são em grupo, ( maior que 2 ações ) e se nenhuma a exe utada.
+		 */
+		function hasNotificationsGroupActions() {
+			if (this.actions) {
+				return this.actions.length > 2 && !hasAlreadyExecutedAnyAction(this.actions);
+			}
+			return false;
+		}
+
+		/*
+		 * Verifica se alguma ação já foi executada.
+		 */
+		function hasAlreadyExecutedAnyAction(actions) {
+			for (i in actions) {
+				if (actions[i].executed) {
+					return true;
+				}
+			}
+			return false;
+		}
+		/*
+		 * Verifica qual é o tipo de botão para retornar a classe correta. Pintar o botã cor c rreta.
+		 */
+		function getClassButtonType() {
+			if (this.actionType === 'MAIN') {
+				return 'btn-primary';
+			}
+			return 'btn-default';
+		}
+
+		/*
+		 * Verifica se a notificação possui uma nota.
+		 */
+		function hasNote() {
+			if (this.object == null) {
+				return false
+			}
+			return this.object.note == null ? false : true;
+		}
+
+		/*
+		 * Verifica se o objeto da notificação possui um link.
+		 */
+		function hasLink() {
+			return this.link == null ? false : true;
+		}
+		/*
+		 * Verifica se o link externo para a notificação informado pelo usuário é uma URL válida
+		 */
+		function hasExternalLink() {
+			if (this.link !== null) {
+				const exp = /(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/igm;
+				const regExp = new RegExp(exp);
+
+				const testRegExp = regExp.test(this.link);
+
+				if (testRegExp && this.link.search(/^http[s]?\:\/\//) === -1) {
+					this.link = 'http://' + this.link;
+				}
+
+				return testRegExp;
+			}
+
+			return false;
+		}
+		/*
+		 * Verifica se o objeto da notificação é um formulário.
+		 */
+		function isForm() {
+			if (this.typeDescriptionKey == 'sociable.the.form') {
+				return true;
+			}
+			return false;
+		}
+		/*
+		 * Verifica se a notificacao é do tipo watch para efetuar uma personalização.
+		 */
+		function isEventKeyWatch() {
+			if (this.event) {
+				if (this.event.eventKey) {
+					return this.event.eventKey == "WATCH_COMMENT";
+				}
+			}
+			return false;
+		}
+		/*
+		 * Retorna o valor do form se houver.
+		 */
+		function formId() {
+			let formIdentifier;
+			if (this.link) {
+				if (this.typeDescriptionKey == 'sociable.the.form') {
+					if (this.link.indexOf('ecmnavigation?app_ecm_navigation_doc=') > -1) {
+						const indexOf1 = this.link.indexOf('=');
+						const indexOf2 = this.link.indexOf('&');
+						if (indexOf2 && indexOf1) {
+							formIdentifier = this.link.substring(indexOf1 + 1, indexOf2);
+						}
+					} else {
+						formIdentifier = this.link.split('/');
+						formIdentifier = formIdentifier[formIdentifier.length - 1];
+					}
+				}
+			}
+			return formIdentifier;
+		}
+
+		/*
+		 * Verifica se a notificação possui uma nota.
+		 */
+		function isNoteVisible() {
+			const $el = $('#note' + this.id);
+			return !!$el.length;
+		}
+
+		function noteValue() {
+			const $el = $('#note' + this.id);
+			if ($el.length) {
+				return $('<div></div>').append($('#note' + this.id).clone()).html();
+			} else {
+				return '';
+			}
+		}
+		
+		function isFolderDownload() {
+			if (this.event) {
+				if (this.event.eventKey) {
+					return this.event.eventKey == "FOLDER_DOWNLOAD_ENDED";
+				}
+			}
+			return false;
+		}
+
+		const html = Mustache.render(this.templates['notification-list-popover-template'], {
+			defaultURL: defaultURL,
+			hasNotifications: hasNotifications,
+			notifications: data,
+			getEvent: getEvent,
+			getEventIcon: getEventIcon,
+			hasSenders: hasSenders,
+			getSenders: getSenders,
+			hasMorePeople: hasMorePeople,
+			getAdditionalPeople: getAdditionalPeople,
+			getNumAdditionalPeople: getNumAdditionalPeople,
+			getSenderLink: getSenderLink,
+			getLastSenderLogin: getLastSenderLogin,
+			hasActionsNotification: hasActionsNotification,
+			hasAlreadyExecutedAnyAction: hasAlreadyExecutedAnyAction,
+			getActionsNotification: getActionsNotification,
+			getExecutedActionsNotification: getExecutedActionsNotification,
+			hasNotificationsSingleActions: hasNotificationsSingleActions,
+			hasNotificationsGroupActions: hasNotificationsGroupActions,
+			getClassButtonType: getClassButtonType,
+			hasNote: hasNote,
+			hasLink: hasLink,
+			isFolderDownload: isFolderDownload,
+			hasExternalLink: hasExternalLink,
+			isNoteVisible: isNoteVisible,
+			noteValue: noteValue,
+			isForm: isForm,
+			formId: formId,
+			isEventKeyWatch: isEventKeyWatch,
+			hasEventIcon: hasEventIcon,
+			getComunityIcon: getComunityIcon,
+			descriptionNotEmpty: descriptionNotEmpty
+		}, {
+			genericTemplate: this.templates['notification-object-generic-template'],
+			folderTemplate: this.templates['notification-object-folder-template']
+		});
+
+		return html;
+	},
+
+	executeAction(el, ev) {
+		const actionType = $(el).data('notification-action-type');
+		const actionUrl = $(el).data('notification-action-url');
+		const actionId = $(el).data('actions-notification');
+		const notificationId = $(el).parents('.list-group-item').data('alert-id');
+		const arrNotificationId = [];
+
+		if (actionType === 'NONE' && actionUrl !== '') {
+			arrNotificationId.push(notificationId);
+			this.alertCentralBS.markSelectedAsRead(arrNotificationId, () => {
+				this.countUnreadAlerts();
+				this.getNotification(notificationId);
+
+				WCMAPI.fireEvent('newalertid', {
+					alertid: notificationId
+				});
+			});
+
+			const openInNewBlank = actionUrl.match(/^(.*)(#blank)$/);
+
+			if (openInNewBlank) {
+				window.open(WCMAPI.getProtectedContextPath() + openInNewBlank[1], '_blank');
+			} else {
+				window.location = WCMAPI.getProtectedContextPath() + actionUrl;
+			}
+
+			return false;
+		}
+
+		this.alertCentralBS.executeAction(actionId, (err, data) => {
+			if (err) {
+				FLUIGC.toast({
+					type: 'danger',
+					message: 'Ocorreu um erro ao tentar executar esta ação'
+				});
+				return;
+			}
+			if (data) {
+				arrNotificationId.push(notificationId);
+				this.alertCentralBS.markSelectedAsRead(arrNotificationId, () => {
+					this.countUnreadAlerts();
+					this.getNotification(notificationId);
+
+					WCMAPI.fireEvent('newalertid', {
+						alertid: notificationId
+					});
+				});
+				return;
+			}
+		});
+	},
+
+	markAlertAsRead(el, ev) {
+		const $target = $(ev.target);
+
+		// valida se a notificação ja foi lida (quando não possui a classe "notification-unread")
+		// e quando clicar no botão dropdown não marca ela como lida também.
+		if ($(el).closest('.notification-unread') && !$target.is('[data-toggle="dropdown"]')) {
+			const alertId = $(el).data('alert-id') || $(el).parent('[data-alert-id]').data('alert-id');
+
+			if (alertId) {
+				this.alertCentralBS.markSelectedAsRead([alertId], () => {
+					this.getNotificationList(false);
+					this.countUnreadAlerts();
+				}, () => {
+					FLUIGC.toast({
+						type: 'danger',
+						message: 'Ocorreu um erro ao tentar marcar as notificações como lidas'
+					});
+				});
+			}
+		}
+	},
+
+	getNotification(id) {
+		const notificationId = {};
+		const dataNotification = [];
+
+		notificationId.alertid = id;
+
+		this.alertCentralBS.getNotification(notificationId, (err, data) => {
+			/*
+			 * Ao tentar buscar a notificação, se a notificação foi removida o sistema devolve um erro e então
+			 * removemos a notificação da tela. É necessário fazer um tratamento mais correto para essa situação.
+			 */
+			if (err) {
+				$('[data-alert-id="' + id + '"]').remove();
+				return;
+			}
+
+			dataNotification.push(data);
+
+			const html = this.notificationList(dataNotification);
+
+			$('[data-alert-id="' + id + '"]', this.DOM).replaceWith(html);
+		});
+	},
+
+	generateContentTextFormatted(text, mentions) {
+		if (!text) {
+			return '';
+		}
+
+		text = FLUIGC.utilities.preventXSS(text);
+		text = this.formatSeeMore(text);
+		text = this.formatMentions(text, mentions);
+		text = this.formatLink(text);
+		text = this.formatTags(text);
+		text = this.formatLineBreak(text);
+
+		return text;
+	},
+
+	formatSeeMore(text) {
+
+		if (text.length >= 80) {
+			text = text.substring(0, 60);
+			const html = Mustache.render(this.templates['social-alertpopover-seemore'], {
+				tenantURI: socialGlobal.defaultURL()
+			});
+			text = text + "..." + html;
+		}
+
+		return text;
+	},
+
+	formatMentions(text, mentions) {
+
+		const data = {};
+
+		for (let mention in mentions.content) {
+			const regex = new RegExp('\\@\\[' + mention + '\\]', 'ig');
+			data.alias = mention;
+			data.name = mentions.content[mention];
+			data.tenantURI = socialGlobal.defaultURL();
+			const html = Mustache.render(
+				this.templates['social-timeline-mention-template'],
+				data
+			);
+			text = text.replace(regex, html);
+		}
+
+		return text;
+	},
+
+	formatTags(text) {
+		const html = Mustache.render(
+			this.templates['social-timeline-tag-template']
+		);
+		return text.replace(/(#[à-ú,\p{L}\w]+)/ig, html);
+	},
+
+	formatLink(text) {
+		const html = Mustache.render(
+			this.templates['social-timeline-link-template']
+		);
+		return text.replace(/((((https?|ftp|file):\/\/)|(www))[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, html);
+	},
+
+	formatLineBreak(text) {
+		const html = Mustache.render(
+			this.templates['social-timeline-line-break-template']
+		);
+		return text.replace(/\n/g, html);
+	},
+
+	searchAction(el, ev) {
+		socialGlobal.showSearch($(el).text());
+	},
+
+	baseAjax(options, cb) {
+		options = options || {};
+
+		$.ajax(options)
+			.done((data) => {
+				cb(null, data);
+			}).fail((xhr, status, text) => {
+				cb(xhr);
+			});
+	},
+
+	getWidgetPopover() {
+		return this.basePromiseConvertFtl(
+			'alertpopover',
+			'popover.ftl',
+			null
+		);
+	},
+
+	basePromiseConvertFtl(code, ftl, options) {
+		return new Promise((resolve, reject) => {
+			WCMAPI.convertFtlAsync(
+				code,
+				ftl,
+				options,
+				(data) => resolve(data),
+				(error) => reject(error),
+			);
+		});
+	},
+
+});

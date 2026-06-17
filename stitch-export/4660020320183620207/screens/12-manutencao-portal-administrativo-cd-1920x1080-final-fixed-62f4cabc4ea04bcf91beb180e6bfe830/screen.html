@@ -1,0 +1,479 @@
+<!DOCTYPE html><html lang="pt-BR" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>LogisticsPortal - Gestão de Manutenção 1</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error": "#ffffff",
+                      "primary-container": "#131b2e",
+                      "inverse-primary": "#bec6e0",
+                      "on-tertiary-container": "#98805d",
+                      "outline-variant": "#c6c6cd",
+                      "tertiary-fixed-dim": "#dec29a",
+                      "primary": "#000000",
+                      "on-background": "#1b1b1d",
+                      "outline": "#76777d",
+                      "surface-container-low": "#f6f3f5",
+                      "on-secondary-fixed-variant": "#005049",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "secondary-container": "#86f2e4",
+                      "inverse-on-surface": "#f3f0f2",
+                      "surface-variant": "#e4e2e4",
+                      "surface-dim": "#dcd9db",
+                      "on-error-container": "#93000a",
+                      "surface-container-high": "#eae7e9",
+                      "surface-tint": "#565e74",
+                      "tertiary": "#000000",
+                      "on-primary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "inverse-surface": "#303032",
+                      "secondary-fixed-dim": "#6bd8cb",
+                      "primary-fixed": "#dae2fd",
+                      "on-tertiary-fixed-variant": "#574425",
+                      "on-tertiary": "#ffffff",
+                      "surface": "#fcf8fa",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#271901",
+                      "surface-container-highest": "#e4e2e4",
+                      "on-primary-container": "#7c839b",
+                      "secondary-fixed": "#89f5e7",
+                      "on-tertiary-fixed": "#271901",
+                      "secondary": "#006a61",
+                      "on-secondary-container": "#006f66",
+                      "on-secondary-fixed": "#00201d",
+                      "error-container": "#ffdad6",
+                      "surface-container": "#f0edef",
+                      "background": "#fcf8fa",
+                      "surface-bright": "#fcf8fa",
+                      "on-primary-fixed": "#131b2e",
+                      "tertiary-fixed": "#fcdeb5",
+                      "on-surface": "#1b1b1d",
+                      "on-surface-variant": "#45464d",
+                      "primary-fixed-dim": "#bec6e0"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "sm": "8px",
+                      "sidenav-width": "240px",
+                      "md": "16px",
+                      "xs": "4px",
+                      "base": "8px",
+                      "xl": "32px",
+                      "topbar-height": "64px",
+                      "lg": "24px"
+              },
+              "fontFamily": {
+                      "body-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "code-sm": ["Geist"],
+                      "headline-md": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "code-md": ["Geist"]
+              },
+              "fontSize": {
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                      "headline-lg": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                      "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "code-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Custom Scrollbar for dense tables */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f0edef; /* surface-container */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c6c6cd; /* outline-variant */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #76777d; /* outline */
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md flex overflow-hidden w-[1920px] h-[1080px] relative" style="width: 1920px; height: 1080px; position: absolute; left: 12px; top: 12px;">
+<!-- SideNavBar (Shared Component) -->
+<nav class="h-full fixed left-0 top-0 bg-primary-container border-r border-outline-variant flex flex-col z-50 transition-all duration-300 group/sidebar w-20 hover:w-sidenav-width">
+<!-- Brand/Header -->
+<div class="h-topbar-height flex items-center px-lg border-b border-outline-variant/20">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-on-secondary font-headline-md">
+                    LC
+                </div>
+<div class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden"><h1 class="font-headline-md text-headline-md font-bold text-on-primary-fixed">MaxControLADM</h1><p class="font-body-sm text-body-sm text-on-primary-container">Administrativo Principal</p></div>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 overflow-y-auto py-md flex flex-col gap-xs">
+<a class="flex items-center gap-md px-lg py-sm mx-sm rounded font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined" data-icon="dashboard">dashboard</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Dashboard</span></a>
+<a class="flex items-center gap-md px-lg py-sm mx-sm rounded font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined" data-icon="payments">payments</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Despesas</span></a>
+<a class="flex items-center gap-md px-lg py-sm mx-sm rounded font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined" data-icon="description">description</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Contratos</span></a>
+<a class="flex items-center gap-md px-lg py-sm mx-sm rounded font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Fornecedores</span></a>
+<a class="flex items-center gap-md px-lg py-sm mx-sm rounded font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Produtos</span></a>
+<a class="flex items-center gap-md px-lg py-sm mx-sm rounded font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Requisições</span></a>
+<!-- Active State: Manutenção -->
+<a class="flex items-center gap-md px-lg py-sm mx-sm rounded font-body-md text-body-md border-l-4 border-secondary bg-surface-container-low text-on-surface transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined icon-fill" data-icon="build">build</span><span class="font-bold opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Manutenção</span></a>
+<a class="flex items-center gap-md px-lg py-sm mx-sm rounded font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined" data-icon="assignment">assignment</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Tarefas</span></a>
+<a class="flex items-center gap-md px-lg py-sm mx-sm rounded font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined" data-icon="group">group</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Usuários</span></a>
+<a class="flex items-center gap-md px-lg py-sm mx-sm rounded font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined" data-icon="analytics">analytics</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Relatórios</span></a>
+
+</div>
+</nav>
+<!-- TopNavBar (Shared Component) -->
+<header class="h-topbar-height fixed top-0 right-0 z-40 bg-surface border-b border-outline-variant shadow-sm flex justify-between items-center px-lg duration-200 ease-in-out w-[1840px]" style="width: calc(100% - 80px); left: 80px;">
+<!-- Left: Product Name & Search -->
+<div class="flex items-center gap-xl">
+<span class="font-headline-md text-headline-md text-on-surface">MaxControLADM</span>
+<div class="relative hidden lg:flex items-center">
+<span class="material-symbols-outlined absolute left-sm text-on-surface-variant" data-icon="search">search</span>
+<input class="pl-xl pr-md py-sm rounded-full bg-surface-container-high border-none focus:ring-2 focus:ring-primary w-96 text-body-md font-body-md text-on-surface placeholder-on-surface-variant transition-all hover:bg-surface-variant" placeholder="Pesquisar Ordens de Serviço..." type="text">
+<span class="absolute right-md text-code-sm font-code-sm text-outline px-sm py-xs border border-outline-variant rounded bg-surface-container">⌘K</span>
+</div>
+</div>
+<!-- Right: Actions & Profile -->
+<div class="flex items-center gap-md">
+<button class="p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined" data-icon="domain">domain</span>
+</button>
+<button class="p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-error"></span>
+</button>
+<button class="p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<div class="w-8 h-8 rounded-full ml-sm overflow-hidden border border-outline-variant cursor-pointer">
+<img alt="Administrator" class="w-full h-full object-cover" data-alt="A professional headshot of a mature male logistics administrator. He is wearing a crisp blue collared shirt and has a neutral, focused expression. The lighting is soft and natural, suggesting a modern corporate office environment. The background is slightly blurred, emphasizing his face." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmq13u-XIrLfYHz3oFkvPvCk_FOV6sSYHXffqjc6CI516WRkC19TQJovUgk17eHa1Yf6vxy7cge9LZaEOyzEwsWqAymenAy0Dpz08DHRkKr48tnOtx7tWIBi7ZIji9WZn_mWLPT8PAGQ9pmPjmtXNIfdBERY5qVMZXgNwASvc_gGz_dAK0YkyvVb92PL23xQbmlhRV4-qiHSIxZa9_r_rLFjkq4CYCuy4zJL_d1lo8SKTkmeQULzj1sfCT_FrmH6C7RGlZmt1qYko">
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="mt-topbar-height p-md w-[1840px] h-[1016px] overflow-x-hidden flex flex-col gap-md ml-20" style="width: calc(100% - 80px); height: calc(100% - 64px); margin-left: 80px;">
+<!-- Page Header -->
+<div class="flex justify-between items-center mb-sm">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Gestão de Manutenção</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Visão geral e controle de Ordens de Serviço.</p>
+</div>
+<button class="bg-primary text-on-primary font-body-md text-body-md px-lg py-sm rounded flex items-center gap-sm hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                Nova OS
+            </button>
+</div>
+<!-- KPI Cards (Bento Grid approach) -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md mb-sm">
+<!-- KPI 1 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-lg shadow-sm relative overflow-hidden group">
+<div class="absolute -right-6 -top-6 w-32 h-32 bg-primary-fixed rounded-full opacity-50 group-hover:scale-110 transition-transform duration-300"></div>
+<div class="flex justify-between items-start relative z-10">
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-sm">OS Abertas</p>
+<h3 class="font-display-lg text-[48px] leading-[56px] font-bold text-on-surface">42</h3>
+</div>
+<div class="p-md bg-primary-container rounded-lg text-on-primary-container">
+<span class="material-symbols-outlined text-[32px]" data-icon="assignment_late">assignment_late</span>
+</div>
+</div>
+<div class="mt-lg flex items-center gap-sm text-error font-body-md text-body-md relative z-10">
+<span class="material-symbols-outlined text-[20px]" data-icon="trending_up">trending_up</span>
+<span class="">+12% vs last week</span>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-lg shadow-sm relative overflow-hidden group">
+<div class="absolute -right-6 -top-6 w-32 h-32 bg-secondary-fixed rounded-full opacity-50 group-hover:scale-110 transition-transform duration-300"></div>
+<div class="flex justify-between items-start relative z-10">
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-sm">Em Execução</p>
+<h3 class="font-display-lg text-[48px] leading-[56px] font-bold text-on-surface">18</h3>
+</div>
+<div class="p-md bg-secondary-container rounded-lg text-on-secondary-container">
+<span class="material-symbols-outlined text-[32px]" data-icon="engineering">engineering</span>
+</div>
+</div>
+<div class="mt-lg flex items-center gap-sm text-secondary font-body-md text-body-md relative z-10">
+<span class="material-symbols-outlined text-[20px]" data-icon="trending_down">trending_down</span>
+<span class="">-5% vs last week</span>
+</div>
+</div>
+<!-- KPI 3 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-lg shadow-sm relative overflow-hidden group">
+<div class="absolute -right-6 -top-6 w-32 h-32 bg-tertiary-fixed rounded-full opacity-50 group-hover:scale-110 transition-transform duration-300"></div>
+<div class="flex justify-between items-start relative z-10">
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-sm">Prioridade Alta</p>
+<h3 class="font-display-lg text-[48px] leading-[56px] font-bold text-on-surface">07</h3>
+</div>
+<div class="p-md bg-error-container rounded-lg text-on-error-container">
+<span class="material-symbols-outlined text-[32px]" data-icon="warning">warning</span>
+</div>
+</div>
+<div class="mt-lg flex items-center gap-sm text-on-surface-variant font-body-md text-body-md relative z-10">
+<span class="material-symbols-outlined text-[20px]" data-icon="horizontal_rule">horizontal_rule</span>
+<span class="">Sem alteração</span>
+</div>
+</div>
+<!-- KPI 4 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-lg shadow-sm relative overflow-hidden group">
+<div class="absolute -right-6 -top-6 w-32 h-32 bg-surface-container-high rounded-full opacity-50 group-hover:scale-110 transition-transform duration-300"></div>
+<div class="flex justify-between items-start relative z-10">
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-sm">Tempo Médio (TMA)</p>
+<h3 class="font-display-lg text-[48px] leading-[56px] font-bold text-on-surface">4.2h</h3>
+</div>
+<div class="p-md bg-surface-variant rounded-lg text-on-surface-variant">
+<span class="material-symbols-outlined text-[32px]" data-icon="timer">timer</span>
+</div>
+</div>
+<div class="mt-lg flex items-center gap-sm text-secondary font-body-md text-body-md relative z-10">
+<span class="material-symbols-outlined text-[20px]" data-icon="trending_down">trending_down</span>
+<span class="">-0.5h vs last week</span>
+</div>
+</div>
+</div>
+<!-- Filters & Table Area -->
+<div class="bg-surface border border-outline-variant rounded-lg shadow-sm flex-1 flex flex-col overflow-hidden">
+<!-- Table Toolbar (Filters) -->
+<div class="p-md border-b border-outline-variant bg-surface-container-lowest flex flex-wrap gap-md items-center justify-between">
+<div class="flex gap-md items-center">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="filter_list">filter_list</span>
+<span class="font-body-md text-body-md text-on-surface font-semibold">Filtros:</span>
+<!-- Área Select -->
+<select class="bg-surface-container border border-outline-variant rounded py-sm px-md text-body-md font-body-md text-on-surface focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer">
+<option value="all">Todas as Áreas</option>
+<option value="refrigeracao">Refrigeração</option>
+<option value="eletrica">Elétrica</option>
+<option value="civil">Civil</option>
+</select>
+<!-- Tipo Select -->
+<select class="bg-surface-container border border-outline-variant rounded py-sm px-md text-body-md font-body-md text-on-surface focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer">
+<option value="all">Todos os Tipos</option>
+<option value="preventiva">Preventiva</option>
+<option value="corretiva">Corretiva</option>
+</select>
+<!-- Prioridade Select -->
+<select class="bg-surface-container border border-outline-variant rounded py-sm px-md text-body-md font-body-md text-on-surface focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer">
+<option value="all">Todas as Prioridades</option>
+<option value="alta">Alta</option>
+<option value="media">Média</option>
+<option value="baixa">Baixa</option>
+</select>
+</div>
+<div class="flex gap-md">
+<button class="p-sm rounded border border-outline-variant text-on-surface hover:bg-surface-variant transition-colors" title="Exportar CSV">
+<span class="material-symbols-outlined" data-icon="download">download</span>
+</button>
+<button class="p-sm rounded border border-outline-variant text-on-surface hover:bg-surface-variant transition-colors" title="Atualizar">
+<span class="material-symbols-outlined" data-icon="refresh">refresh</span>
+</button>
+</div>
+</div>
+<!-- Data Table Container -->
+<div class="flex-1 overflow-auto">
+<table class="w-full text-left border-collapse">
+<thead class="sticky top-0 bg-surface-container-low border-b border-outline-variant z-10">
+<tr>
+<th class="py-md px-lg font-body-md text-body-md font-semibold text-on-surface-variant whitespace-nowrap">Nº da OS</th>
+<th class="py-md px-lg font-body-md text-body-md font-semibold text-on-surface-variant">Área</th>
+<th class="py-md px-lg font-body-md text-body-md font-semibold text-on-surface-variant">Tipo</th>
+<th class="py-md px-lg font-body-md text-body-md font-semibold text-on-surface-variant">Prioridade</th>
+<th class="py-md px-lg font-body-md text-body-md font-semibold text-on-surface-variant">Status</th>
+<th class="py-md px-lg font-body-md text-body-md font-semibold text-on-surface-variant">Prazo</th>
+<th class="py-md px-lg font-body-md text-body-md font-semibold text-on-surface-variant text-right">Ações</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface divide-y divide-outline-variant/50">
+<!-- Row 1 (Alta, Corretiva, Em Execução) -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-lg px-lg font-code-md text-code-md font-medium">OS-2023-0891</td>
+<td class="py-lg px-lg">Refrigeração</td>
+<td class="py-lg px-lg">Corretiva</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded bg-error-container text-on-error-container font-medium">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+                                    Alta
+                                </span>
+</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded border border-secondary text-secondary">
+<span class="material-symbols-outlined text-[16px]" data-icon="sync">sync</span>
+                                    Em Execução
+                                </span>
+</td>
+<td class="py-lg px-lg text-error font-medium">Hoje, 14:00</td>
+<td class="py-lg px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-xs"><span class="material-symbols-outlined" data-icon="edit">edit</span></button>
+<button class="text-on-surface-variant hover:text-error transition-colors p-xs"><span class="material-symbols-outlined" data-icon="delete">delete</span></button>
+</td>
+</tr>
+<!-- Row 2 (Média, Preventiva, Aberta) -->
+<tr class="hover:bg-surface-container-lowest transition-colors bg-surface-container-low/30 group">
+<td class="py-lg px-lg font-code-md text-code-md font-medium">OS-2023-0892</td>
+<td class="py-lg px-lg">Elétrica</td>
+<td class="py-lg px-lg">Preventiva</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded bg-tertiary-fixed text-on-tertiary-fixed font-medium">
+<span class="w-2 h-2 rounded-full bg-tertiary-container"></span>
+                                    Média
+                                </span>
+</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded border border-outline text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+                                    Aberta
+                                </span>
+</td>
+<td class="py-lg px-lg">Amanhã, 10:00</td>
+<td class="py-lg px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-xs"><span class="material-symbols-outlined" data-icon="edit">edit</span></button>
+<button class="text-on-surface-variant hover:text-error transition-colors p-xs"><span class="material-symbols-outlined" data-icon="delete">delete</span></button>
+</td>
+</tr>
+<!-- Row 3 (Baixa, Preventiva, Concluída) -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-lg px-lg font-code-md text-code-md font-medium text-on-surface-variant line-through">OS-2023-0888</td>
+<td class="py-lg px-lg text-on-surface-variant">Civil</td>
+<td class="py-lg px-lg text-on-surface-variant">Preventiva</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded bg-surface-variant text-on-surface-variant font-medium">
+                                    Baixa
+                                </span>
+</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded bg-surface-container-high text-on-surface-variant opacity-75">
+<span class="material-symbols-outlined text-[16px]" data-icon="check_circle">check_circle</span>
+                                    Concluída
+                                </span>
+</td>
+<td class="py-lg px-lg text-on-surface-variant">12/10/2023</td>
+<td class="py-lg px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-xs" title="Visualizar"><span class="material-symbols-outlined" data-icon="visibility">visibility</span></button>
+</td>
+</tr>
+<!-- Row 4 (Alta, Corretiva, Aberta) -->
+<tr class="hover:bg-surface-container-lowest transition-colors bg-surface-container-low/30 group">
+<td class="py-lg px-lg font-code-md text-code-md font-medium">OS-2023-0895</td>
+<td class="py-lg px-lg">Elétrica</td>
+<td class="py-lg px-lg">Corretiva</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded bg-error-container text-on-error-container font-medium">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+                                    Alta
+                                </span>
+</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded border border-outline text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+                                    Aberta
+                                </span>
+</td>
+<td class="py-lg px-lg text-error font-medium">Hoje, 16:30</td>
+<td class="py-lg px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-xs"><span class="material-symbols-outlined" data-icon="edit">edit</span></button>
+<button class="text-on-surface-variant hover:text-error transition-colors p-xs"><span class="material-symbols-outlined" data-icon="delete">delete</span></button>
+</td>
+</tr>
+<!-- Row 5 (Média, Corretiva, Em Execução) -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="py-lg px-lg font-code-md text-code-md font-medium">OS-2023-0896</td>
+<td class="py-lg px-lg">Refrigeração</td>
+<td class="py-lg px-lg">Corretiva</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded bg-tertiary-fixed text-on-tertiary-fixed font-medium">
+<span class="w-2 h-2 rounded-full bg-tertiary-container"></span>
+                                    Média
+                                </span>
+</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded border border-secondary text-secondary">
+<span class="material-symbols-outlined text-[16px]" data-icon="sync">sync</span>
+                                    Em Execução
+                                </span>
+</td>
+<td class="py-lg px-lg font-medium">Amanhã, 12:00</td>
+<td class="py-lg px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-xs"><span class="material-symbols-outlined" data-icon="edit">edit</span></button>
+<button class="text-on-surface-variant hover:text-error transition-colors p-xs"><span class="material-symbols-outlined" data-icon="delete">delete</span></button>
+</td>
+</tr>
+<!-- Row 6 (Baixa, Preventiva, Aberta) -->
+<tr class="hover:bg-surface-container-lowest transition-colors bg-surface-container-low/30 group">
+<td class="py-lg px-lg font-code-md text-code-md font-medium">OS-2023-0897</td>
+<td class="py-lg px-lg">Civil</td>
+<td class="py-lg px-lg">Preventiva</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded bg-surface-variant text-on-surface-variant font-medium">
+                                    Baixa
+                                </span>
+</td>
+<td class="py-lg px-lg">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded border border-outline text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+                                    Aberta
+                                </span>
+</td>
+<td class="py-lg px-lg">15/10/2023</td>
+<td class="py-lg px-lg text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-xs"><span class="material-symbols-outlined" data-icon="edit">edit</span></button>
+<button class="text-on-surface-variant hover:text-error transition-colors p-xs"><span class="material-symbols-outlined" data-icon="delete">delete</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer / Pagination -->
+<div class="p-md border-t border-outline-variant bg-surface-container-lowest flex justify-between items-center text-body-md font-body-md text-on-surface-variant">
+<span class="">Mostrando 1 a 6 de 42 registros</span>
+<div class="flex items-center gap-md">
+<button class="p-sm rounded border border-outline-variant disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<span class="px-md">Página 1 de 7</span>
+<button class="p-sm rounded border border-outline-variant hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+
+
+
+
+
+
+</body></html>

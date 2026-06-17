@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=1920, height=1080, initial-scale=1.0" name="viewport"/>
+<title>MaxControLADM - Recuperação de Senha</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=Geist:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- GLSL Canvas -->
+<script src="https://rawgit.com/patriciogonzalezvivo/glslCanvas/master/dist/GlslCanvas.js" type="text/javascript"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        }
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.6s ease-out forwards'
+                    },
+                    "colors": {
+                        "on-tertiary-container": "#faae69",
+                        "on-secondary-fixed": "#0f1b33",
+                        "tertiary-fixed": "#ffdcc1",
+                        "outline-variant": "#c4c6d2",
+                        "on-primary-container": "#a2beff",
+                        "tertiary-fixed-dim": "#ffb877",
+                        "tertiary": "#542d00",
+                        "secondary-container": "#d4dfff",
+                        "surface-tint": "#3d5d9e",
+                        "primary-fixed-dim": "#afc6ff",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary": "#0a3473",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#afc6ff",
+                        "surface-container-high": "#e8e8ed",
+                        "on-background": "#1a1c20",
+                        "on-tertiary-fixed-variant": "#6c3a00",
+                        "on-surface-variant": "#434650",
+                        "inverse-surface": "#2f3035",
+                        "secondary-fixed-dim": "#bbc6e5",
+                        "outline": "#747781",
+                        "surface-container-highest": "#e2e2e7",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1a1c20",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-tertiary-fixed": "#2e1600",
+                        "on-secondary-fixed-variant": "#3c4660",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#535e79",
+                        "surface-container-low": "#f3f3f9",
+                        "on-error-container": "#93000a",
+                        "surface": "#f9f9fe",
+                        "on-primary-fixed": "#001943",
+                        "tertiary-container": "#754000",
+                        "surface-bright": "#f9f9fe",
+                        "inverse-on-surface": "#f0f0f6",
+                        "background": "#f9f9fe",
+                        "surface-variant": "#e2e2e7",
+                        "surface-dim": "#dad9df",
+                        "primary-fixed": "#d9e2ff",
+                        "on-primary-fixed-variant": "#224585",
+                        "error": "#ba1a1a",
+                        "primary-container": "#2a4b8b",
+                        "surface-container": "#eeedf3",
+                        "on-secondary-container": "#57627d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "md": "16px",
+                        "sm": "8px",
+                        "base": "8px",
+                        "sidenav-width": "240px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "topbar-height": "64px"
+                    },
+                    "fontFamily": {
+                        "code-sm": [
+                                "Geist"
+                        ],
+                        "code-md": [
+                                "Geist"
+                        ],
+                        "body-sm": [
+                                "Inter"
+                        ],
+                        "display-lg": [
+                                "Inter"
+                        ],
+                        "headline-md": [
+                                "Inter"
+                        ],
+                        "body-md": [
+                                "Inter"
+                        ],
+                        "headline-lg": [
+                                "Inter"
+                        ],
+                        "body-lg": [
+                                "Inter"
+                        ]
+                    },
+                    "fontSize": {
+                        "code-sm": [
+                                "12px",
+                                {
+                                        "lineHeight": "16px",
+                                        "fontWeight": "500"
+                                }
+                        ],
+                        "code-md": [
+                                "14px",
+                                {
+                                        "lineHeight": "20px",
+                                        "fontWeight": "500"
+                                }
+                        ],
+                        "body-sm": [
+                                "12px",
+                                {
+                                        "lineHeight": "16px",
+                                        "fontWeight": "400"
+                                }
+                        ],
+                        "display-lg": [
+                                "36px",
+                                {
+                                        "lineHeight": "44px",
+                                        "letterSpacing": "-0.02em",
+                                        "fontWeight": "700"
+                                }
+                        ],
+                        "headline-md": [
+                                "20px",
+                                {
+                                        "lineHeight": "28px",
+                                        "fontWeight": "600"
+                                }
+                        ],
+                        "body-md": [
+                                "14px",
+                                {
+                                        "lineHeight": "20px",
+                                        "fontWeight": "400"
+                                }
+                        ],
+                        "headline-lg": [
+                                "28px",
+                                {
+                                        "lineHeight": "36px",
+                                        "fontWeight": "600"
+                                }
+                        ],
+                        "body-lg": [
+                                "16px",
+                                {
+                                        "lineHeight": "24px",
+                                        "fontWeight": "400"
+                                }
+                        ]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Subtle background animation */
+        @keyframes subtle-drift {
+            0% { transform: translateY(0) scale(1); opacity: 0.5; }
+            50% { transform: translateY(-20px) scale(1.05); opacity: 0.8; }
+            100% { transform: translateY(0) scale(1); opacity: 0.5; }
+        }
+        .bg-blob {
+            animation: subtle-drift 15s infinite ease-in-out alternate;
+        }
+    </style>
+</head>
+<body class="bg-surface-container-low text-on-surface font-body-md w-[1920px] h-[1080px] flex items-center justify-center relative overflow-hidden antialiased"><div class="absolute top-xl left-xl z-50 flex flex-col gap-xs"><span class="text-on-surface-variant/70 font-code-sm uppercase tracking-widest">Position 2</span><h2 class="text-headline-md font-bold text-on-surface">02. Recuperação de Senha</h2></div>
+<!-- Professional Background Gradient/Texture -->
+<div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+
+</div>
+<!-- Main Card Container -->
+<main class="w-full max-w-[480px] mx-md z-10 animate-fade-in-up">
+<!-- Brand Anchor above card -->
+<div class="flex justify-center mb-lg">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined fill text-primary" style="font-size: 32px;">local_shipping</span>
+<span class="font-headline-md text-headline-md font-bold text-primary tracking-tight">MaxControLADM</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden relative">
+<!-- Top indicator line -->
+<div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+<div class="p-xl flex flex-col gap-lg">
+<!-- View 1: Request Form -->
+<div class="flex flex-col gap-lg transition-opacity duration-300" id="recovery-form-view">
+<header class="flex flex-col gap-xs text-center">
+<h1 class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">Recuperação de Senha</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Informe seu e-mail corporativo administrativo. Enviaremos um link seguro para redefinição.</p>
+</header>
+<form class="flex flex-col gap-md" id="recovery-form" novalidate="">
+<div class="flex flex-col gap-xs">
+<label class="font-body-sm text-body-sm text-on-surface font-medium" for="email">E-mail Corporativo</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-sm text-on-surface-variant" style="font-size: 20px;">mail</span>
+<input class="w-full bg-surface border border-outline-variant rounded-lg pl-xl pr-sm py-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" id="email" name="email" placeholder="nome@empresa.com.br" required="" type="email"/>
+</div>
+<span class="hidden font-body-sm text-body-sm text-error mt-xs flex items-center gap-xs" id="email-error">
+<span class="material-symbols-outlined" style="font-size: 16px;">error</span>
+                                E-mail inválido ou não preenchido.
+                            </span>
+</div>
+<button class="w-full bg-primary text-on-primary font-body-md text-body-md font-bold py-[10px] rounded-lg flex items-center justify-center gap-sm hover:bg-on-primary-fixed-variant hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group relative overflow-hidden" id="submit-btn" type="submit">
+<span class="">Enviar link</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" style="font-size: 20px;">arrow_forward</span>
+</button>
+</form>
+</div>
+<!-- View 2: Success State (Hidden initially) -->
+<div class="hidden flex-col items-center gap-md text-center py-sm opacity-0 transition-opacity duration-300" id="success-view">
+<div class="w-16 h-16 rounded-full bg-secondary-fixed/20 flex items-center justify-center mb-xs">
+<span class="material-symbols-outlined fill text-secondary" style="font-size: 32px;">check_circle</span>
+</div>
+<h2 class="font-headline-md text-headline-md font-bold text-on-surface">Link Enviado!</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                        Se o e-mail <strong><span class="text-on-surface font-medium" id="submitted-email"></span></strong> estiver registrado, você receberá as instruções em breve.
+                    </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-sm">
+                        Não recebeu? Verifique sua caixa de spam ou contate o suporte TI.
+                    </p>
+</div>
+</div>
+<!-- Footer Action -->
+<div class="bg-surface-container-low border-t border-outline-variant p-md flex justify-center">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-xs font-medium group" href="#">
+<span class="material-symbols-outlined group-hover:-translate-x-1 transition-transform" style="font-size: 18px;">arrow_back</span>
+                    Voltar para o login
+                </a>
+</div>
+</div>
+<!-- System Footer -->
+<div class="text-center mt-lg font-body-sm text-body-sm text-on-surface-variant/70">
+            © 2024 LogiCore Systems. Uso corporativo restrito.
+        </div>
+</main>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('recovery-form');
+            const emailInput = document.getElementById('email');
+            const emailError = document.getElementById('email-error');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            const formView = document.getElementById('recovery-form-view');
+            const successView = document.getElementById('success-view');
+            const submittedEmailSpan = document.getElementById('submitted-email');
+
+            const validateEmail = (email) => {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            };
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const email = emailInput.value.trim();
+                
+                if (!email || !validateEmail(email)) {
+                    emailInput.classList.add('border-error', 'focus:border-error', 'focus:ring-error');
+                    emailInput.classList.remove('border-outline-variant', 'focus:border-primary', 'focus:ring-primary');
+                    emailError.classList.remove('hidden');
+                    return;
+                }
+
+                // Simulate processing state
+                const originalBtnContent = submitBtn.innerHTML;
+                submitBtn.innerHTML = `<span class="material-symbols-outlined animate-spin" style="font-size: 20px;">progress_activity</span><span>Enviando...</span>`;
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+
+                // Simulate API Call
+                setTimeout(() => {
+                    // Update success view with the email
+                    submittedEmailSpan.textContent = email;
+
+                    // Transition to success state
+                    formView.classList.add('opacity-0');
+                    
+                    setTimeout(() => {
+                        formView.classList.add('hidden');
+                        successView.classList.remove('hidden');
+                        
+                        // Small reflow delay before fading in
+                        requestAnimationFrame(() => {
+                            successView.classList.remove('opacity-0');
+                            successView.classList.add('opacity-100');
+                        });
+                    }, 300); // Matches transition duration
+                    
+                }, 1000);
+            });
+
+            // Reset error state on typing
+            emailInput.addEventListener('input', () => {
+                emailInput.classList.remove('border-error', 'focus:border-error', 'focus:ring-error');
+                emailInput.classList.add('border-outline-variant', 'focus:border-primary', 'focus:ring-primary');
+                emailError.classList.add('hidden');
+            });
+        });
+    </script>
+</body></html>

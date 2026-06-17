@@ -1,0 +1,68 @@
+{
+    "screenId":  "7535db74ed1e4ad6b9fdcc40d97ba105",
+    "name":  "projects/4660020320183620207/screens/7535db74ed1e4ad6b9fdcc40d97ba105",
+    "title":  "07. Contratos - Portal Administrativo CD (1920x1080) Final Fixed",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "7535db74ed1e4ad6b9fdcc40d97ba105",
+                          "sourceScreen":  "projects/4660020320183620207/screens/7535db74ed1e4ad6b9fdcc40d97ba105",
+                          "x":  8128,
+                          "width":  1280,
+                          "height":  1024,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\07-contratos-portal-administrativo-cd-1920x1080-final-fixed-7535db74ed1e4ad6b9fdcc40d97ba105",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/373971552333754643",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY4MDJkMzIxNDUwNTAzYzkyZGMwMjcwNjljEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\07-contratos-portal-administrativo-cd-1920x1080-final-fixed-7535db74ed1e4ad6b9fdcc40d97ba105\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\07-contratos-portal-administrativo-cd-1920x1080-final-fixed-7535db74ed1e4ad6b9fdcc40d97ba105\\screen.html",
+                                  "bytes":  27214,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/12873590881983970052",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvdH4nnuLYYApC_v2wNrTn1ccM8ssC16WfxLEvGxcR7HDIpj5tMQNFiEPY9f0fyQdReQNXsKk1OlZHgIwOS6wn9PhKx2TMTPlkI5-OUNZR0I1HqmuAVtz6YEySnqswuPEXVFutFjFioFob5waIHUoy2aq2ke97v8JLead9bFi-V-vgdb-NqOLVO6GO5-k03j_17UD-RVigi7zqH8NlzvKY60_1VdJyNGqpPwWsfg2mNM7MlJuTc6g8-OoE",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\07-contratos-portal-administrativo-cd-1920x1080-final-fixed-7535db74ed1e4ad6b9fdcc40d97ba105\\screenshot.jpg",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\07-contratos-portal-administrativo-cd-1920x1080-final-fixed-7535db74ed1e4ad6b9fdcc40d97ba105\\screenshot.jpg",
+                                        "bytes":  5506,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/jpeg",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/7535db74ed1e4ad6b9fdcc40d97ba105",
+                   "title":  "07. Contratos - Portal Administrativo CD (1920x1080) Final Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/12873590881983970052",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvdH4nnuLYYApC_v2wNrTn1ccM8ssC16WfxLEvGxcR7HDIpj5tMQNFiEPY9f0fyQdReQNXsKk1OlZHgIwOS6wn9PhKx2TMTPlkI5-OUNZR0I1HqmuAVtz6YEySnqswuPEXVFutFjFioFob5waIHUoy2aq2ke97v8JLead9bFi-V-vgdb-NqOLVO6GO5-k03j_17UD-RVigi7zqH8NlzvKY60_1VdJyNGqpPwWsfg2mNM7MlJuTc6g8-OoE"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/373971552333754643",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY4MDJkMzIxNDUwNTAzYzkyZGMwMjcwNjljEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "2560",
+                   "height":  "2048",
+                   "deviceType":  "DESKTOP"
+               }
+}

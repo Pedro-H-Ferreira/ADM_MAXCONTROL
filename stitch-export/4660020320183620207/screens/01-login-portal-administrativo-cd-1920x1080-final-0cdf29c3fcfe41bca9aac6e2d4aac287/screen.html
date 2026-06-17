@@ -1,0 +1,209 @@
+<!DOCTYPE html><html class="light" lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Logística CD - Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#ffffff",
+                        "primary-container": "#131b2e",
+                        "inverse-primary": "#bec6e0",
+                        "on-tertiary-container": "#98805d",
+                        "outline-variant": "#c6c6cd",
+                        "tertiary-fixed-dim": "#dec29a",
+                        "primary": "#000000",
+                        "on-background": "#1b1b1d",
+                        "outline": "#76777d",
+                        "surface-container-low": "#f6f3f5",
+                        "on-secondary-fixed-variant": "#005049",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "secondary-container": "#86f2e4",
+                        "inverse-on-surface": "#f3f0f2",
+                        "surface-variant": "#e4e2e4",
+                        "surface-dim": "#dcd9db",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#eae7e9",
+                        "surface-tint": "#565e74",
+                        "tertiary": "#000000",
+                        "on-primary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#303032",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "primary-fixed": "#dae2fd",
+                        "on-tertiary-fixed-variant": "#574425",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#fcf8fa",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#271901",
+                        "surface-container-highest": "#e4e2e4",
+                        "on-primary-container": "#7c839b",
+                        "secondary-fixed": "#89f5e7",
+                        "on-tertiary-fixed": "#271901",
+                        "secondary": "#006a61",
+                        "on-secondary-container": "#006f66",
+                        "on-secondary-fixed": "#00201d",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#f0edef",
+                        "background": "#fcf8fa",
+                        "surface-bright": "#fcf8fa",
+                        "on-primary-fixed": "#131b2e",
+                        "tertiary-fixed": "#fcdeb5",
+                        "on-surface": "#1b1b1d",
+                        "on-surface-variant": "#45464d",
+                        "primary-fixed-dim": "#bec6e0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "sidenav-width": "240px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "base": "8px",
+                        "xl": "32px",
+                        "topbar-height": "64px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "code-sm": ["Geist"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "code-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            height: 100%;
+        }
+        @media (min-width: 1024px) {
+            .split-layout {
+                grid-template-columns: 5fr 4fr;
+            }
+        }
+        .bg-pattern {
+            background-image: radial-gradient(var(--tw-colors-outline-variant) 1px, transparent 1px);
+            background-size: 24px 24px;
+            background-color: var(--tw-colors-surface-container-low);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen antialiased flex items-center justify-center overflow-x-hidden">
+<div class="w-[1920px] h-[1080px] max-w-full relative shrink-0 shadow-2xl overflow-hidden bg-background">
+<div class="split-layout w-full h-full">
+<!-- Left Side: Atmospheric / Brand Graphic -->
+<div class="hidden lg:flex relative flex-col justify-between p-xl overflow-hidden bg-primary-container">
+<!-- Background Image -->
+<div class="absolute inset-0 z-0">
+<img alt="Abstract logistics nodes" class="w-full h-full object-cover opacity-20 mix-blend-luminosity" data-alt="A striking digital installation art piece featuring glowing, generative geometric shapes suspended in a vast, minimalist gallery space representing a modern high-tech distribution center. The room is illuminated by high-key, soft white lighting that creates a bright, modern light-mode aesthetic. The artwork relies on a sophisticated palette of deep blacks and pristine whites, punctuated by intense accents of vibrant teal and secondary brand colors. The mood is serene yet technologically advanced, emphasizing scale and precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVSIzAzUiNYNRHOxrsAqoqvBtsCpp0xSvVK4LwMfG-tqc1BtBibaUrGQd0jl7Ljuq6TsGSRkSyPOBVcvLdNN9Q5j1Z9zvFtGAzDgokejrYB3YwDLsdjVj2pp0cxQ6YBu6Px3ZHmlhaJL24p-mUdQgQAgq0btlJhMRT83x8E30Haruq8qgHanXLpOLHee07_vVqMvYqjQI1GvJLRgj9dSgQaopfxYLX1CFoA51Lroqor4VnxB9TbVGFrxmR0rNOpzgmP6AsYFdeT8c">
+<div class="absolute inset-0 bg-gradient-to-t from-primary-container via-primary-container/80 to-transparent"></div>
+</div>
+<!-- Content Over Graphic -->
+<div class="relative z-10">
+<div class="flex items-center gap-sm text-on-primary font-headline-lg">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1; font-size: 32px;">domain</span>
+                    Logística CD
+                </div>
+</div>
+<div class="relative z-10 max-w-lg mt-auto">
+<h1 class="font-display-lg text-on-primary mb-md">Sistemas de Alta Performance para Distribuição</h1>
+<p class="font-body-lg text-on-primary-container">Gerencie milhares de SKUs e fluxos de logística com precisão matemática. Plataforma administrativa construída para velocidade de cognição e densidade de dados.</p>
+</div>
+</div>
+<!-- Right Side: Login Form -->
+<div class="flex flex-col justify-center px-md py-xl sm:px-xl lg:px-24 bg-surface relative z-10 shadow-[-8px_0_32px_rgba(0,0,0,0.05)] bg-pattern pl-ml-sm">
+<div class="w-full mx-auto bg-surface-container-lowest p-lg sm:p-xl rounded-xl shadow-sm border border-outline-variant/30 max-w-lg">
+<!-- Mobile Logo (Visible only on smaller screens) -->
+<div class="flex lg:hidden items-center gap-sm text-primary font-headline-lg mb-xl justify-center">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1; font-size: 32px;">domain</span>
+                    Logística CD
+                </div>
+<div class="text-center lg:text-left mb-xl">
+<h2 class="font-headline-lg text-primary mb-xs">Bem-vindo de volta</h2>
+<p class="font-body-md text-on-surface-variant">Faça login para continuar no portal administrativo.</p>
+</div>
+<form action="#" class="space-y-md" method="POST">
+<!-- Email Field -->
+<div>
+<label class="block font-code-md text-on-surface mb-xs" for="email">Email institucional</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">mail</span>
+</div>
+<input autocomplete="email" class="block w-full pl-xl pr-sm py-sm font-body-md text-on-surface bg-surface border border-outline-variant rounded focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-150" id="email" name="email" placeholder="usuario@logisticacd.com" required="" type="email">
+</div>
+</div>
+<!-- Password Field -->
+<div>
+<label class="block font-code-md text-on-surface mb-xs" for="password">Senha</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">lock</span>
+</div>
+<input autocomplete="current-password" class="block w-full pl-xl pr-sm py-sm font-body-md text-on-surface bg-surface border border-outline-variant rounded focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors duration-150" id="password" name="password" placeholder="••••••••" required="" type="password">
+</div>
+</div>
+<!-- Options -->
+<div class="flex items-center justify-between pt-xs">
+<div class="flex items-center">
+<input class="h-4 w-4 text-secondary focus:ring-secondary border-outline-variant rounded cursor-pointer" id="remember-me" name="remember-me" type="checkbox">
+<label class="ml-sm block font-body-sm text-on-surface-variant cursor-pointer" for="remember-me">
+                                Manter sessão
+                            </label>
+</div>
+<div class="text-sm">
+<a class="font-body-sm text-secondary hover:text-on-secondary-container font-medium transition-colors duration-150" href="#">
+                                Esqueci minha senha
+                            </a>
+</div>
+</div>
+<!-- Submit Button -->
+<div class="pt-sm">
+<button class="w-full flex justify-center py-sm px-md border border-transparent rounded bg-primary-container text-on-primary font-code-md hover:bg-primary transition-colors duration-150 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-container active:scale-98" type="submit">
+                            Entrar
+                        </button>
+</div>
+</form>
+<!-- Footer info -->
+<div class="mt-xl pt-lg border-t border-outline-variant/50 text-center">
+<p class="font-body-sm text-outline flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined" style="font-size: 16px;">lock</span>
+                        Acesso restrito a colaboradores autorizados.
+                    </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</body></html>

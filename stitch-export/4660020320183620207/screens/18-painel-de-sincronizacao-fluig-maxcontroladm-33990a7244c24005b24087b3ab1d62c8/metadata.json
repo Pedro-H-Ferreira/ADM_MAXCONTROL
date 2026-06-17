@@ -1,0 +1,69 @@
+{
+    "screenId":  "33990a7244c24005b24087b3ab1d62c8",
+    "name":  "projects/4660020320183620207/screens/33990a7244c24005b24087b3ab1d62c8",
+    "title":  "18. Painel de Sincronização Fluig - MaxControLADM",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "33990a7244c24005b24087b3ab1d62c8",
+                          "sourceScreen":  "projects/4660020320183620207/screens/33990a7244c24005b24087b3ab1d62c8",
+                          "x":  10854,
+                          "y":  5307,
+                          "width":  1587,
+                          "height":  1003,
+                          "isResized":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-painel-de-sincronizacao-fluig-maxcontroladm-33990a7244c24005b24087b3ab1d62c8",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/a6da694611f54db3a8d3199dc08cf0dc",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NTM4NGE2ZDcxMTQ1ODU4YWY2YjJhZjEyODQ5MjYyEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-painel-de-sincronizacao-fluig-maxcontroladm-33990a7244c24005b24087b3ab1d62c8\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-painel-de-sincronizacao-fluig-maxcontroladm-33990a7244c24005b24087b3ab1d62c8\\screen.html",
+                                  "bytes":  22919,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/8a8fb10222aa43edb25b4eb42caecab6",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvTOpW-DgHkLQj2-a1WuZj3N7nlY4Pvs7DCVdmNdHCZXF6Cu7Da9cWZ-JwdcjaxB8Zp7-DjOXsB6lnJFpbcjj1BoV0J3yyY4O4Xgf1Tq3wI-uJ9NkFmyWb0-0pgNRLGkzanGfTdDyVagJauXxkDwt1R45yiuz8FfFLjNEl9iaONLYcnvtr1Ky_1VmXsJJ7Z5Fyv6VCSldoDUC5f2RZUx6k84eMZvot_eAj81rk2R7qMzF0MDRUqTFj-",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-painel-de-sincronizacao-fluig-maxcontroladm-33990a7244c24005b24087b3ab1d62c8\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-painel-de-sincronizacao-fluig-maxcontroladm-33990a7244c24005b24087b3ab1d62c8\\screenshot.png",
+                                        "bytes":  46768,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/33990a7244c24005b24087b3ab1d62c8",
+                   "title":  "18. Painel de Sincronização Fluig - MaxControLADM",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/8a8fb10222aa43edb25b4eb42caecab6",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvTOpW-DgHkLQj2-a1WuZj3N7nlY4Pvs7DCVdmNdHCZXF6Cu7Da9cWZ-JwdcjaxB8Zp7-DjOXsB6lnJFpbcjj1BoV0J3yyY4O4Xgf1Tq3wI-uJ9NkFmyWb0-0pgNRLGkzanGfTdDyVagJauXxkDwt1R45yiuz8FfFLjNEl9iaONLYcnvtr1Ky_1VmXsJJ7Z5Fyv6VCSldoDUC5f2RZUx6k84eMZvot_eAj81rk2R7qMzF0MDRUqTFj-"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/a6da694611f54db3a8d3199dc08cf0dc",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NTM4NGE2ZDcxMTQ1ODU4YWY2YjJhZjEyODQ5MjYyEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3040",
+                   "height":  "2048",
+                   "deviceType":  "DESKTOP"
+               }
+}

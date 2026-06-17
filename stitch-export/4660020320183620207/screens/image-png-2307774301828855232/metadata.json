@@ -1,0 +1,54 @@
+{
+    "screenId":  "2307774301828855232",
+    "name":  "projects/4660020320183620207/screens/2307774301828855232",
+    "title":  "image.png",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "4c24b167-41d1-4ca6-a287-bdaee005f0de",
+                          "sourceScreen":  "projects/4660020320183620207/screens/2307774301828855232",
+                          "x":  1217,
+                          "y":  3963,
+                          "width":  1131,
+                          "height":  1021,
+                          "hidden":  true,
+                          "type":  "SCREEN_INSTANCE"
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\image-png-2307774301828855232",
+    "html":  null,
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/2307774301828854785",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuUMeHHJI6Tm5Vj6wCTXhoNV5urckuqL2XtjVbtLpsAysGUYerauFYSevcO45eXSMWW3TjKwY2tUsDFRsNnIYdHjZ89rBS7njTwPUwrNlO0zlT1JeBlaq9g01WYbZtIOeR6NJcWpIoH8nZTgddSng4MoEDL6xnH5wa61rqp74UUmtndOeObl4xWg3ozxnAFWmksHjIwQDxuaMf26MNy4csVZy4DjK2HrDdBzds6wago5Zl6k3tbZbRW2jvHfKVSLp1BjfiUGgRu",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\image-png-2307774301828855232\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\image-png-2307774301828855232\\screenshot.png",
+                                        "bytes":  55482,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+                    "htmlCode"
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/2307774301828855232",
+                   "title":  "image.png",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/2307774301828854785",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuUMeHHJI6Tm5Vj6wCTXhoNV5urckuqL2XtjVbtLpsAysGUYerauFYSevcO45eXSMWW3TjKwY2tUsDFRsNnIYdHjZ89rBS7njTwPUwrNlO0zlT1JeBlaq9g01WYbZtIOeR6NJcWpIoH8nZTgddSng4MoEDL6xnH5wa61rqp74UUmtndOeObl4xWg3ozxnAFWmksHjIwQDxuaMf26MNy4csVZy4DjK2HrDdBzds6wago5Zl6k3tbZbRW2jvHfKVSLp1BjfiUGgRu"
+                                  },
+                   "htmlCode":  {
+
+                                },
+                   "width":  "684",
+                   "height":  "617"
+               }
+}

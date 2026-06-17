@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Visualizador de Diagrama (Workflow Fluig) - MaxControLADM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#2f3035",
+                        "on-secondary-fixed": "#0f1b33",
+                        "inverse-on-surface": "#f0f0f6",
+                        "surface-dim": "#dad9df",
+                        "on-secondary-fixed-variant": "#3c4660",
+                        "tertiary-fixed-dim": "#ffb877",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e2e2e7",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#754000",
+                        "on-primary-container": "#a2beff",
+                        "inverse-primary": "#afc6ff",
+                        "tertiary-fixed": "#ffdcc1",
+                        "primary-container": "#2a4b8b",
+                        "on-background": "#1a1c20",
+                        "on-tertiary-fixed": "#2e1600",
+                        "on-primary-fixed": "#001943",
+                        "secondary-fixed-dim": "#bbc6e5",
+                        "on-surface-variant": "#434650",
+                        "primary-fixed": "#d9e2ff",
+                        "on-surface": "#1a1c20",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface": "#f9f9fe",
+                        "secondary-container": "#d4dfff",
+                        "outline-variant": "#c4c6d2",
+                        "primary-fixed-dim": "#afc6ff",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#224585",
+                        "surface-variant": "#e2e2e7",
+                        "surface-bright": "#f9f9fe",
+                        "secondary": "#535e79",
+                        "surface-container-low": "#f3f3f9",
+                        "surface-container": "#eeedf3",
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#d8e2ff",
+                        "outline": "#747781",
+                        "surface-container-high": "#e8e8ed",
+                        "tertiary": "#542d00",
+                        "primary": "#0a3473",
+                        "on-secondary-container": "#57627d",
+                        "background": "#f9f9fe",
+                        "on-tertiary-fixed-variant": "#6c3a00",
+                        "on-tertiary-container": "#faae69",
+                        "surface-tint": "#3d5d9e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "topbar-height": "64px",
+                        "xl": "32px",
+                        "sidenav-width": "240px",
+                        "lg": "24px",
+                        "base": "8px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "code-md": ["Geist"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "code-sm": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .workflow-node { transition: all 0.2s ease; }
+        .workflow-node:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .workflow-node.active { border-color: #0a3473; box-shadow: 0 0 0 2px #d9e2ff; }
+        .workflow-edge { stroke: #c4c6d2; stroke-width: 2; fill: none; transition: stroke 0.2s ease; }
+        .workflow-edge.active { stroke: #0a3473; stroke-width: 3; }
+        .workflow-arrow { fill: #c4c6d2; }
+        .workflow-arrow.active { fill: #0a3473; }
+        
+        .dark .workflow-node.active { border-color: #afc6ff; box-shadow: 0 0 0 2px rgba(175, 198, 255, 0.2); }
+        .dark .workflow-edge { stroke: #434650; }
+        .dark .workflow-edge.active { stroke: #afc6ff; }
+        .dark .workflow-arrow { fill: #434650; }
+        .dark .workflow-arrow.active { fill: #afc6ff; }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+        .active-pulse::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: inherit;
+            background-color: theme('colors.primary');
+            z-index: -1;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        .dark .active-pulse::before { background-color: theme('colors.primary-fixed-dim'); }
+    </style>
+</head>
+<body class="bg-surface dark:bg-inverse-surface text-on-surface dark:text-inverse-on-surface font-body-md min-h-screen flex antialiased">
+<!-- SideNavBar Component -->
+<nav class="fixed left-0 top-0 h-full w-sidenav-width bg-inverse-surface dark:bg-surface-container-lowest flex flex-col py-md shadow-xl z-40 transition-width duration-300 ease-in-out md:flex hidden flex-shrink-0 group hover:w-sidenav-width w-[72px] overflow-hidden whitespace-nowrap">
+<div class="px-md mb-xl flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-primary-container flex-shrink-0 flex items-center justify-center text-on-primary-container overflow-hidden">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+<h2 class="font-headline-md text-headline-md text-on-primary-fixed dark:text-primary">Admin Logística</h2>
+<p class="font-body-sm text-body-sm text-surface-variant">Integração Fluig</p>
+</div>
+</div>
+<ul class="flex-1 flex flex-col gap-sm">
+<li>
+<a class="flex items-center gap-md text-surface-variant hover:text-white px-4 py-3 hover:bg-on-secondary-fixed-variant transition-all rounded-lg mx-2" href="#">
+<span class="material-symbols-outlined flex-shrink-0" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md text-surface-variant hover:text-white px-4 py-3 hover:bg-on-secondary-fixed-variant transition-all rounded-lg mx-2" href="#">
+<span class="material-symbols-outlined flex-shrink-0" data-icon="history_edu">history_edu</span>
+<span class="font-body-md text-body-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">Sincronização</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md bg-primary-container text-on-primary-container rounded-lg mx-2 px-4 py-3 hover:bg-on-secondary-fixed-variant transition-all" href="#">
+<span class="material-symbols-outlined flex-shrink-0" data-icon="account_tree">account_tree</span>
+<span class="font-body-md text-body-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">Workflows</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md text-surface-variant hover:text-white px-4 py-3 hover:bg-on-secondary-fixed-variant transition-all rounded-lg mx-2" href="#">
+<span class="material-symbols-outlined flex-shrink-0" data-icon="database">database</span>
+<span class="font-body-md text-body-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">Metadados</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md text-surface-variant hover:text-white px-4 py-3 hover:bg-on-secondary-fixed-variant transition-all rounded-lg mx-2" href="#">
+<span class="material-symbols-outlined flex-shrink-0" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">Configurações</span>
+</a>
+</li>
+</ul>
+<ul class="mt-auto border-t border-on-secondary-fixed-variant pt-md flex flex-col gap-sm">
+<li>
+<a class="flex items-center gap-md text-surface-variant hover:text-white px-4 py-3 hover:bg-on-secondary-fixed-variant transition-all rounded-lg mx-2" href="#">
+<span class="material-symbols-outlined flex-shrink-0" data-icon="help">help</span>
+<span class="font-body-md text-body-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">Suporte</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md text-surface-variant hover:text-white px-4 py-3 hover:bg-on-secondary-fixed-variant transition-all rounded-lg mx-2" href="#">
+<span class="material-symbols-outlined flex-shrink-0" data-icon="logout">logout</span>
+<span class="font-body-md text-body-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">Sair</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col md:ml-[72px] transition-all duration-300 group-hover:md:ml-sidenav-width min-w-0">
+<!-- TopNavBar Component -->
+<header class="flex justify-between items-center h-topbar-height px-md w-full bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-outline shadow-sm z-30 sticky top-0">
+<div class="flex items-center gap-md">
+<h1 class="font-headline-lg text-headline-lg font-black text-primary dark:text-primary-fixed-dim tracking-tight">MaxControLADM</h1>
+</div>
+<div class="flex-1 max-w-xl mx-lg hidden md:block">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant dark:text-outline-variant" data-icon="search">search</span>
+<input class="w-full bg-surface-container-low dark:bg-surface-container-lowest border border-outline-variant dark:border-outline rounded-full py-2 pl-10 pr-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-body-md font-body-md text-on-surface dark:text-inverse-on-surface transition-colors placeholder:text-on-surface-variant dark:placeholder:text-outline" placeholder="Buscar workflows, solicitações..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-2 text-primary dark:text-primary-fixed-dim hover:bg-surface-container-high dark:hover:bg-secondary-fixed-dim rounded-full transition-colors active:scale-95 duration-150 flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="sync">sync</span>
+</button>
+<button class="p-2 text-primary dark:text-primary-fixed-dim hover:bg-surface-container-high dark:hover:bg-secondary-fixed-dim rounded-full transition-colors active:scale-95 duration-150 flex items-center justify-center relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 text-primary dark:text-primary-fixed-dim hover:bg-surface-container-high dark:hover:bg-secondary-fixed-dim rounded-full transition-colors active:scale-95 duration-150 flex items-center justify-center md:hidden">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Page Canvas -->
+<main class="flex-1 p-md overflow-hidden flex flex-col gap-md relative bg-background dark:bg-surface-container-lowest">
+<!-- Header Section -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-md shrink-0">
+<div>
+<div class="flex items-center gap-sm mb-1">
+<a class="text-on-surface-variant dark:text-outline hover:text-primary dark:hover:text-primary-fixed-dim transition-colors font-body-sm text-body-sm flex items-center" href="#">
+                            Workflows <span class="material-symbols-outlined text-[16px] mx-1" data-icon="chevron_right">chevron_right</span>
+</a>
+<span class="text-on-surface dark:text-inverse-on-surface font-code-md text-code-md">REQ-2023-4412</span>
+</div>
+<h2 class="font-display-lg text-display-lg text-on-surface dark:text-inverse-on-surface">Visualizador de Diagrama</h2>
+<p class="font-body-md text-body-md text-on-surface-variant dark:text-outline mt-1">Aprovação de Compra de Equipamentos - Fluxo Fluig</p>
+</div>
+<div class="flex items-center gap-sm">
+<button class="px-4 py-2 border border-outline-variant dark:border-outline rounded text-on-surface dark:text-inverse-on-surface font-code-md text-code-md hover:bg-surface-container-high dark:hover:bg-surface-container-low transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="download">download</span>
+                        Exportar
+                    </button>
+<a class="px-4 py-2 bg-primary text-on-primary rounded font-code-md text-code-md hover:bg-on-primary-fixed-variant transition-colors flex items-center gap-2 shadow-sm" href="fluig://workflow/4412">
+                        Ver no Fluig Nnativo
+                        <span class="material-symbols-outlined text-[18px]" data-icon="open_in_new">open_in_new</span>
+</a>
+</div>
+</div>
+<!-- Workspace Layout -->
+<div class="flex-1 flex flex-col lg:flex-row gap-md min-h-0 relative">
+<!-- Diagram Area (Canvas) -->
+<div class="flex-1 bg-surface dark:bg-inverse-surface border border-outline-variant dark:border-outline rounded-xl shadow-sm overflow-hidden relative flex flex-col">
+<!-- Canvas Toolbar -->
+<div class="h-12 border-b border-outline-variant dark:border-outline bg-surface-container-low dark:bg-surface-container-highest flex items-center justify-between px-md shrink-0">
+<div class="flex items-center gap-2">
+<button class="p-1.5 text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-surface-variant rounded transition-colors" title="Zoom In">
+<span class="material-symbols-outlined text-[20px]" data-icon="zoom_in">zoom_in</span>
+</button>
+<button class="p-1.5 text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-surface-variant rounded transition-colors" title="Zoom Out">
+<span class="material-symbols-outlined text-[20px]" data-icon="zoom_out">zoom_out</span>
+</button>
+<div class="w-px h-4 bg-outline-variant dark:bg-outline mx-2"></div>
+<button class="p-1.5 text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-surface-variant rounded transition-colors" title="Ajustar à tela">
+<span class="material-symbols-outlined text-[20px]" data-icon="fit_screen">fit_screen</span>
+</button>
+</div>
+<div class="flex items-center gap-4 text-body-sm font-body-sm">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full border border-outline-variant bg-surface"></div>
+<span class="text-on-surface-variant dark:text-outline">Pendente</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary border border-primary"></div>
+<span class="text-on-surface-variant dark:text-outline">Concluído</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full border-2 border-primary-fixed-dim bg-surface relative active-pulse"></div>
+<span class="text-on-surface-variant dark:text-outline">Atual</span>
+</div>
+</div>
+</div>
+<!-- BPMN Canvas Area -->
+<div class="flex-1 relative bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiNjNGM2ZDIiIGZpbGwtb3BhY2l0eT0iMC41Ii8+PC9zdmc+')] dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiM3NDc3ODEiIGZpbGwtb3BhY2l0eT0iMC4zIi8+PC9zdmc+')] overflow-auto p-xl flex items-center justify-center">
+<!-- Simulated BPMN Diagram (SVG) -->
+<div class="relative w-[800px] h-[500px] shrink-0">
+<svg class="absolute inset-0 w-full h-full" style="pointer-events: none;">
+<defs>
+<marker id="arrow-default" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path class="workflow-arrow" d="M 0 0 L 10 5 L 0 10 z"></path>
+</marker>
+<marker id="arrow-active" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path class="workflow-arrow active" d="M 0 0 L 10 5 L 0 10 z"></path>
+</marker>
+</defs>
+<!-- Edges -->
+<path class="workflow-edge active" d="M 80 250 L 160 250" marker-end="url(#arrow-active)"></path>
+<path class="workflow-edge active" d="M 320 250 L 400 250" marker-end="url(#arrow-active)"></path>
+<path class="workflow-edge" d="M 440 210 L 440 120 L 520 120" marker-end="url(#arrow-default)"></path>
+<path class="workflow-edge" d="M 440 290 L 440 380 L 520 380" marker-end="url(#arrow-default)"></path>
+<path class="workflow-edge" d="M 680 120 L 740 120 L 740 230" marker-end="url(#arrow-default)"></path>
+<path class="workflow-edge" d="M 680 380 L 740 380 L 740 270" marker-end="url(#arrow-default)"></path>
+</svg>
+<!-- Nodes (HTML positioned over SVG) -->
+<!-- Start Event -->
+<div class="absolute left-[40px] top-[230px] w-10 h-10 rounded-full border-2 border-primary bg-primary flex items-center justify-center cursor-pointer workflow-node" title="Início">
+<div class="w-8 h-8 rounded-full border border-surface bg-transparent"></div>
+</div>
+<!-- Task 1: Concluído -->
+<div class="absolute left-[160px] top-[210px] w-[160px] h-[80px] bg-surface dark:bg-inverse-surface border border-primary rounded-lg flex flex-col overflow-hidden cursor-pointer workflow-node" title="Solicitar Compra">
+<div class="h-1 bg-primary w-full"></div>
+<div class="p-2 flex-1 flex flex-col justify-center relative">
+<span class="material-symbols-outlined absolute top-2 right-2 text-[16px] text-primary" data-icon="check_circle">check_circle</span>
+<span class="font-code-md text-code-md text-on-surface dark:text-inverse-on-surface text-center px-4 leading-tight">Preencher Solicitação</span>
+</div>
+</div>
+<!-- Gateway (Current) -->
+<div class="absolute left-[400px] top-[210px] w-[80px] h-[80px] transform rotate-45 border-2 border-primary bg-surface dark:bg-inverse-surface flex items-center justify-center cursor-pointer workflow-node active active-pulse z-10" title="Avaliar Valor">
+<div class="transform -rotate-45 font-code-md text-code-md text-on-surface dark:text-inverse-on-surface text-center mt-[-10px]">
+<span class="material-symbols-outlined text-[24px] text-primary dark:text-primary-fixed-dim" data-icon="account_balance_wallet">account_balance_wallet</span>
+</div>
+</div>
+<div class="absolute left-[450px] top-[180px] text-body-sm font-body-sm text-on-surface-variant dark:text-outline bg-surface/80 dark:bg-inverse-surface/80 px-1 rounded"> &gt; R$ 10k </div>
+<div class="absolute left-[450px] top-[290px] text-body-sm font-body-sm text-on-surface-variant dark:text-outline bg-surface/80 dark:bg-inverse-surface/80 px-1 rounded"> &lt;= R$ 10k </div>
+<!-- Task 2A: Pendente -->
+<div class="absolute left-[520px] top-[80px] w-[160px] h-[80px] bg-surface dark:bg-inverse-surface border border-outline-variant dark:border-outline rounded-lg flex flex-col overflow-hidden cursor-pointer workflow-node opacity-70" title="Aprovação Diretoria">
+<div class="h-1 bg-outline-variant dark:bg-outline w-full"></div>
+<div class="p-2 flex-1 flex flex-col justify-center">
+<span class="font-code-md text-code-md text-on-surface dark:text-inverse-on-surface text-center px-4 leading-tight">Aprovação Diretoria</span>
+</div>
+</div>
+<!-- Task 2B: Pendente -->
+<div class="absolute left-[520px] top-[340px] w-[160px] h-[80px] bg-surface dark:bg-inverse-surface border border-outline-variant dark:border-outline rounded-lg flex flex-col overflow-hidden cursor-pointer workflow-node opacity-70" title="Aprovação Gestor">
+<div class="h-1 bg-outline-variant dark:bg-outline w-full"></div>
+<div class="p-2 flex-1 flex flex-col justify-center">
+<span class="font-code-md text-code-md text-on-surface dark:text-inverse-on-surface text-center px-4 leading-tight">Aprovação Gestor</span>
+</div>
+</div>
+<!-- End Event -->
+<div class="absolute left-[720px] top-[230px] w-10 h-10 rounded-full border-4 border-outline-variant dark:border-outline bg-surface dark:bg-inverse-surface flex items-center justify-center cursor-pointer workflow-node opacity-70" title="Fim">
+</div>
+</div>
+</div>
+</div>
+<!-- Properties Sidebar Panel -->
+<aside class="w-full lg:w-[360px] shrink-0 bg-surface dark:bg-inverse-surface border border-outline-variant dark:border-outline rounded-xl shadow-sm flex flex-col overflow-hidden">
+<div class="p-md border-b border-outline-variant dark:border-outline bg-surface-container-low dark:bg-surface-container-highest flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-on-surface dark:text-inverse-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim" data-icon="info">info</span>
+                            Detalhes da Etapa
+                        </h3>
+</div>
+<div class="flex-1 overflow-y-auto p-md flex flex-col gap-lg">
+<!-- Header Status -->
+<div class="flex flex-col gap-sm">
+<div class="flex justify-between items-start">
+<div>
+<span class="inline-block px-2 py-1 bg-primary-container text-on-primary-container text-code-sm font-code-sm rounded mb-2">ETAPA ATUAL</span>
+<h4 class="font-headline-lg text-headline-lg text-on-surface dark:text-inverse-on-surface leading-tight">Avaliar Valor</h4>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant dark:text-outline">
+                                O sistema roteia a aprovação com base no valor total da solicitação de compra. Valores acima de R$ 10.000,00 exigem aprovação da diretoria.
+                            </p>
+</div>
+<div class="h-px bg-outline-variant dark:bg-outline w-full"></div>
+<!-- Metadata Grid -->
+<div class="grid grid-cols-1 gap-md">
+<!-- Status -->
+<div class="bg-surface-container-low dark:bg-surface-container-highest p-3 rounded-lg border border-outline-variant/50 dark:border-outline/50">
+<span class="block font-body-sm text-body-sm text-on-surface-variant dark:text-outline mb-1">Status</span>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary-container dark:bg-tertiary-fixed-dim animate-pulse"></span>
+<span class="font-code-md text-code-md text-on-surface dark:text-inverse-on-surface">Aguardando Ação Automática</span>
+</div>
+</div>
+<!-- Responsável -->
+<div class="bg-surface-container-low dark:bg-surface-container-highest p-3 rounded-lg border border-outline-variant/50 dark:border-outline/50">
+<span class="block font-body-sm text-body-sm text-on-surface-variant dark:text-outline mb-1">Responsável (Pool)</span>
+<div class="flex items-center gap-3 mt-1">
+<div class="w-8 h-8 rounded-full bg-secondary-container dark:bg-secondary-fixed flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[18px]" data-icon="group">group</span>
+</div>
+<span class="font-code-md text-code-md text-on-surface dark:text-inverse-on-surface">Mecanismo: System (Automático)</span>
+</div>
+</div>
+<!-- Prazos -->
+<div class="bg-surface-container-low dark:bg-surface-container-highest p-3 rounded-lg border border-outline-variant/50 dark:border-outline/50">
+<span class="block font-body-sm text-body-sm text-on-surface-variant dark:text-outline mb-1">SLA / Prazo Limite</span>
+<div class="flex items-center gap-2 text-error">
+<span class="material-symbols-outlined text-[18px]" data-icon="timer">timer</span>
+<span class="font-code-md text-code-md">Imediato (Gateway)</span>
+</div>
+</div>
+</div>
+<!-- Data Context -->
+<div class="mt-2">
+<h5 class="font-headline-md text-headline-md text-on-surface dark:text-inverse-on-surface mb-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]" data-icon="data_object">data_object</span>
+                                Variáveis de Contexto
+                            </h5>
+<div class="bg-surface-container-lowest dark:bg-inverse-surface border border-outline-variant dark:border-outline rounded-lg overflow-hidden">
+<table class="w-full text-left font-code-sm text-code-sm">
+<thead class="bg-surface-container-low dark:bg-surface-container-highest border-b border-outline-variant dark:border-outline">
+<tr>
+<th class="py-2 px-3 text-on-surface-variant dark:text-outline font-medium">Chave</th>
+<th class="py-2 px-3 text-on-surface-variant dark:text-outline font-medium">Valor</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant dark:divide-outline">
+<tr>
+<td class="py-2 px-3 text-secondary dark:text-secondary-fixed-dim">vl_total_compra</td>
+<td class="py-2 px-3 text-on-surface dark:text-inverse-on-surface font-semibold">12.500,00</td>
+</tr>
+<tr>
+<td class="py-2 px-3 text-secondary dark:text-secondary-fixed-dim">cd_centro_custo</td>
+<td class="py-2 px-3 text-on-surface dark:text-inverse-on-surface">TI-INFRA-01</td>
+</tr>
+<tr>
+<td class="py-2 px-3 text-secondary dark:text-secondary-fixed-dim">nm_solicitante</td>
+<td class="py-2 px-3 text-on-surface dark:text-inverse-on-surface">Ana Silva</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Action Area -->
+<div class="p-md border-t border-outline-variant dark:border-outline bg-surface-container-low dark:bg-surface-container-highest mt-auto">
+<button class="w-full py-2 bg-surface border border-outline-variant dark:border-outline text-on-surface dark:text-inverse-on-surface font-code-md text-code-md rounded hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="history">history</span>
+                            Ver Histórico de Movimentação
+                        </button>
+</div>
+</aside>
+</div>
+</main>
+</div>
+</body></html>

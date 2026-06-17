@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MaxControLADM - Detalhes do Pedido de Compra</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=Geist:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-highest": "#e2e2e7",
+                      "surface-container-high": "#e8e8ed",
+                      "primary-fixed": "#d9e2ff",
+                      "inverse-primary": "#afc6ff",
+                      "primary-fixed-dim": "#afc6ff",
+                      "on-secondary-container": "#57627d",
+                      "surface": "#f9f9fe",
+                      "on-primary": "#ffffff",
+                      "on-secondary-fixed-variant": "#3c4660",
+                      "tertiary-fixed": "#ffdcc1",
+                      "surface-variant": "#e2e2e7",
+                      "secondary-fixed": "#d8e2ff",
+                      "surface-bright": "#f9f9fe",
+                      "on-surface-variant": "#434650",
+                      "on-error": "#ffffff",
+                      "surface-container-low": "#f3f3f9",
+                      "on-secondary": "#ffffff",
+                      "surface-container": "#eeedf3",
+                      "outline": "#747781",
+                      "inverse-surface": "#2f3035",
+                      "secondary": "#535e79",
+                      "surface-tint": "#3d5d9e",
+                      "on-tertiary": "#ffffff",
+                      "surface-dim": "#dad9df",
+                      "on-secondary-fixed": "#0f1b33",
+                      "tertiary": "#542d00",
+                      "primary-container": "#2a4b8b",
+                      "on-tertiary-container": "#faae69",
+                      "secondary-container": "#d4dfff",
+                      "on-primary-container": "#a2beff",
+                      "secondary-fixed-dim": "#bbc6e5",
+                      "inverse-on-surface": "#f0f0f6",
+                      "on-tertiary-fixed-variant": "#6c3a00",
+                      "on-background": "#1a1c20",
+                      "tertiary-container": "#754000",
+                      "outline-variant": "#c4c6d2",
+                      "error": "#ba1a1a",
+                      "on-error-container": "#93000a",
+                      "on-surface": "#1a1c20",
+                      "error-container": "#ffdad6",
+                      "background": "#f9f9fe",
+                      "primary": "#0a3473",
+                      "tertiary-fixed-dim": "#ffb877",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed": "#001943",
+                      "on-primary-fixed-variant": "#224585",
+                      "on-tertiary-fixed": "#2e1600"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "xl": "32px",
+                      "topbar-height": "64px",
+                      "base": "8px",
+                      "sm": "8px",
+                      "xs": "4px",
+                      "md": "16px",
+                      "sidenav-width": "240px",
+                      "lg": "24px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "code-sm": [
+                              "Geist"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "code-md": [
+                              "Geist"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "36px",
+                              {
+                                      "lineHeight": "44px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "code-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "code-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen antialiased flex selection:bg-primary selection:text-on-primary">
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 left-0 z-30 flex items-center justify-between px-6 ml-[240px] bg-surface dark:bg-surface-dim border-b border-outline-variant h-[64px]">
+<div class="flex items-center gap-md">
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">MaxControLADM</h1>
+<nav class="hidden lg:flex items-center gap-base ml-lg">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-inverse-surface transition-all active:scale-95 px-sm py-xs rounded-DEFAULT" href="#">Dashboard</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-inverse-surface transition-all active:scale-95 px-sm py-xs rounded-DEFAULT" href="#">Relatórios</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-inverse-surface transition-all active:scale-95 px-sm py-xs rounded-DEFAULT" href="#">Log de Sincro</a>
+</nav>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative hidden md:block">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" style="font-variation-settings: 'FILL' 0;">search</span>
+<input class="pl-[36px] pr-sm py-xs bg-surface-container-low border border-outline-variant rounded-full font-body-sm text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-64 transition-shadow" placeholder="Buscar pedidos..." type="text"/>
+</div>
+<button class="font-body-sm text-body-sm font-semibold bg-primary text-on-primary px-md py-sm rounded-DEFAULT hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 shadow-sm">Sincronizar</button>
+<button class="font-body-sm text-body-sm font-semibold text-primary bg-surface border border-primary px-md py-sm rounded-DEFAULT hover:bg-surface-container-high transition-all active:scale-95">Consultar Status</button>
+<div class="flex items-center gap-sm">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="notifications" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="apps" style="font-variation-settings: 'FILL' 0;">apps</span>
+</button>
+<img alt="Avatar do Administrador" class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="Close up professional headshot of a corporate administrator, brightly lit against a neutral grey background. The image style should match a modern corporate profile avatar, sharp focus, clean lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuDpD20U4KsHhPQz3fA3S6Quy3wKf0sY_m2nUckRasGkOjGape5rdIe4GCq6eU2zVp_YQJerkwO-lCmI-ND-2dT6CrM7_MZa-_20i9N9uOolyX91KWpnrg_9XnrcxugFjTlmygHlAT0fSxHt5iWwArbPaXJRpaIuxJ5d8gmx9ulsJVJbr4PNvr15-qMe2IxZJv0SIDuBSb_Aqp21vUEitQ-VkfNfodw0XnGvRbAzHUaGuoD9L9rTu3eL2_cB50JE6QRG9icPgHWTc"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="fixed inset-y-0 left-0 z-40 flex flex-col bg-primary dark:bg-primary border-r border-outline-variant shadow-md h-full w-[240px]">
+<div class="p-lg flex flex-col items-center border-b border-on-primary-fixed-variant">
+<img alt="User profile" class="w-16 h-16 rounded-full mb-sm object-cover border-2 border-on-primary" data-alt="Professional studio portrait of an executive leader looking confident, modern lighting, dark navy background matching primary color." src="https://lh3.googleusercontent.com/aida-public/AB6AXuASJ4on2Uy67qqMmoZSWb1Ea_oO9gqXJMAxRK3gexZYvE8EVAbqdbqPCDKQvgWXhqOl83vGRNhr-MIfzMjHizBbpweS9Hf9TcMjWL3p_RzRYjmPbZmhTK_SEBZpqaw7MtXveQrkKKcOUD22dIY_IwWrWRm70PoGmFCRg9GVE_EyJIymvBcYEaFU9kE35x0Cj5B-BatbfG2bfhHBycgyB4eji9HRIwGUTeujB1OfzVR2W9z6TdFs4iAteJPIxLOQRyd-mvZjTFB7Wjk"/>
+<h2 class="font-headline-md text-headline-md font-black text-on-primary tracking-tight text-center">MaxControLADM</h2>
+<p class="font-body-sm text-body-sm text-on-primary-container text-center mt-xs">Fluig Integration Shell</p>
+<button class="mt-md w-full bg-secondary-container text-on-secondary-container font-headline-md text-headline-md font-bold py-sm rounded-lg hover:bg-primary-fixed transition-colors shadow-sm flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+                Nova Solicitação
+            </button>
+</div>
+<nav class="flex-1 overflow-y-auto py-md px-sm flex flex-col gap-xs">
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors transition-all duration-200 ease-in-out cursor-pointer font-headline-md text-headline-md" href="#">
+<span class="material-symbols-outlined" data-icon="sync_alt" style="font-variation-settings: 'FILL' 0;">sync_alt</span>
+                Painel Global
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors transition-all duration-200 ease-in-out cursor-pointer font-headline-md text-headline-md" href="#">
+<span class="material-symbols-outlined" data-icon="payments" style="font-variation-settings: 'FILL' 0;">payments</span>
+                Pagamentos
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-secondary-container bg-secondary-container font-bold transition-all duration-200 ease-in-out cursor-pointer font-headline-md text-headline-md" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_cart" style="font-variation-settings: 'FILL' 1;">shopping_cart</span>
+                Compras
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors transition-all duration-200 ease-in-out cursor-pointer font-headline-md text-headline-md" href="#">
+<span class="material-symbols-outlined" data-icon="build" style="font-variation-settings: 'FILL' 0;">build</span>
+                Manutenção
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors transition-all duration-200 ease-in-out cursor-pointer font-headline-md text-headline-md" href="#">
+<span class="material-symbols-outlined" data-icon="settings" style="font-variation-settings: 'FILL' 0;">settings</span>
+                Configurações
+            </a>
+</nav>
+<div class="p-sm border-t border-on-primary-fixed-variant flex flex-col gap-xs">
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="help" style="font-variation-settings: 'FILL' 0;">help</span>
+                Suporte
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="logout" style="font-variation-settings: 'FILL' 0;">logout</span>
+                Sair
+            </a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-[240px] mt-[64px] flex-1 p-xl overflow-x-hidden min-h-[calc(100vh-64px)] bg-surface-container-lowest">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-start justify-between gap-md mb-xl">
+<div>
+<div class="flex items-center gap-sm mb-xs">
+<span class="px-sm py-xs rounded-full bg-secondary-container text-on-secondary-container font-code-sm text-code-sm font-semibold uppercase tracking-wider">Fluig ID: #REQ-2023-8941</span>
+<span class="px-sm py-xs rounded-full bg-tertiary-container text-on-tertiary-container font-code-sm text-code-sm font-semibold flex items-center gap-xs">
+<span class="w-2 h-2 rounded-full bg-tertiary-fixed animate-pulse"></span>
+                        Em Análise Técnica
+                    </span>
+</div>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-xs">Aquisição de Servidores de Borda</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-3xl">Solicitação de compra de hardware para expansão da infraestrutura do Centro de Distribuição Sul. Necessário aprovação da diretoria de TI.</p>
+</div>
+<div class="flex gap-sm shrink-0">
+<button class="flex items-center gap-xs px-md py-sm bg-surface border border-outline rounded-DEFAULT font-headline-md text-headline-md text-primary hover:bg-surface-container transition-colors shadow-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">print</span>
+                    Imprimir
+                </button>
+<button class="flex items-center gap-xs px-md py-sm bg-primary text-on-primary rounded-DEFAULT font-headline-md text-headline-md hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sync</span>
+                    Consultar Status em Tempo Real
+                </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-md">
+<!-- Left Column (Wider) -->
+<div class="xl:col-span-8 flex flex-col gap-md">
+<!-- Items Table Card -->
+<div class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
+<div class="p-md border-b border-outline-variant bg-surface-container-lowest flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 0;">inventory_2</span>
+                            Itens Solicitados
+                        </h3>
+<span class="font-body-sm text-body-sm text-on-surface-variant">3 Itens • Valor Est.: R$ 145.000,00</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="p-sm font-code-sm text-code-sm text-on-surface-variant font-semibold uppercase">SKU / Cód</th>
+<th class="p-sm font-code-sm text-code-sm text-on-surface-variant font-semibold uppercase">Descrição</th>
+<th class="p-sm font-code-sm text-code-sm text-on-surface-variant font-semibold uppercase text-right">Qtd</th>
+<th class="p-sm font-code-sm text-code-sm text-on-surface-variant font-semibold uppercase text-right">Val. Unit Est.</th>
+<th class="p-sm font-code-sm text-code-sm text-on-surface-variant font-semibold uppercase text-right">Total Est.</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md">
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors group">
+<td class="p-sm font-code-md text-code-md text-primary">HW-SRV-001</td>
+<td class="p-sm text-on-surface font-medium">Servidor Dell Edge PowerEdge XR11</td>
+<td class="p-sm text-right text-on-surface-variant">4</td>
+<td class="p-sm text-right text-on-surface-variant">R$ 25.000,00</td>
+<td class="p-sm text-right font-semibold text-on-surface">R$ 100.000,00</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors group bg-surface-container-low">
+<td class="p-sm font-code-md text-code-md text-primary">HW-SWT-042</td>
+<td class="p-sm text-on-surface font-medium">Switch Cisco Catalyst 9300 48-port</td>
+<td class="p-sm text-right text-on-surface-variant">2</td>
+<td class="p-sm text-right text-on-surface-variant">R$ 18.000,00</td>
+<td class="p-sm text-right font-semibold text-on-surface">R$ 36.000,00</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="p-sm font-code-md text-code-md text-primary">HW-CAB-110</td>
+<td class="p-sm text-on-surface font-medium">Kit Cabeamento Óptico Multimodo OM4</td>
+<td class="p-sm text-right text-on-surface-variant">10</td>
+<td class="p-sm text-right text-on-surface-variant">R$ 900,00</td>
+<td class="p-sm text-right font-semibold text-on-surface">R$ 9.000,00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Suppliers Card -->
+<div class="bg-surface rounded-xl border border-outline-variant shadow-sm p-md flex flex-col gap-sm">
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-sm mb-xs">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 0;">local_shipping</span>
+                        Fornecedores Sugeridos (Cotação Prévia)
+                    </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-sm">
+<!-- Supplier 1 -->
+<div class="p-sm border border-outline-variant rounded-lg bg-surface-container-lowest hover:border-primary transition-colors cursor-pointer relative overflow-hidden">
+<div class="absolute top-0 right-0 bg-secondary-container text-on-secondary-container font-code-sm text-code-sm px-xs py-[2px] rounded-bl-lg border-l border-b border-outline-variant">Melhor Preço</div>
+<div class="flex items-start gap-sm">
+<div class="w-10 h-10 rounded bg-primary-container text-on-primary-container flex items-center justify-center font-headline-md shrink-0">
+<span class="material-symbols-outlined">business</span>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md text-on-surface text-sm">TechCorp Distribuidora S/A</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">CNPJ: 12.345.678/0001-90</p>
+<div class="mt-xs font-code-md text-code-md text-primary font-semibold">Cotação: R$ 142.500,00</div>
+</div>
+</div>
+</div>
+<!-- Supplier 2 -->
+<div class="p-sm border border-outline-variant rounded-lg bg-surface-container-lowest hover:border-primary transition-colors cursor-pointer">
+<div class="flex items-start gap-sm">
+<div class="w-10 h-10 rounded bg-surface-container-high text-on-surface-variant flex items-center justify-center font-headline-md shrink-0">
+<span class="material-symbols-outlined">storefront</span>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md text-on-surface text-sm">InfraSolutions Brasil</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">CNPJ: 98.765.432/0001-10</p>
+<div class="mt-xs font-code-md text-code-md text-on-surface font-semibold">Cotação: R$ 148.900,00</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (Narrower) -->
+<div class="xl:col-span-4 flex flex-col gap-md">
+<!-- Highlighted Cost Center Card -->
+<div class="bg-primary text-on-primary rounded-xl shadow-md p-md relative overflow-hidden">
+<!-- Abstract Background Pattern -->
+<div class="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
+<div class="relative z-10">
+<h3 class="font-headline-md text-headline-md mb-xs flex items-center gap-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+                            Centro de Custo
+                        </h3>
+<div class="bg-primary-container/50 border border-on-primary-fixed-variant rounded-lg p-sm mt-sm">
+<div class="font-code-lg text-lg font-bold tracking-wider">CC-4092-SUL</div>
+<div class="font-body-sm text-body-sm text-on-primary-container mt-1">Operações Logísticas - Região Sul</div>
+</div>
+<div class="mt-sm grid grid-cols-2 gap-sm">
+<div>
+<span class="block font-body-sm text-body-sm text-on-primary-container">Orçamento Disp.</span>
+<span class="font-code-md text-code-md font-semibold text-tertiary-fixed">R$ 520.000,00</span>
+</div>
+<div>
+<span class="block font-body-sm text-body-sm text-on-primary-container">Impacto %</span>
+<span class="font-code-md text-code-md font-semibold text-tertiary-fixed">27.8%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Approval Workflow Card -->
+<div class="bg-surface rounded-xl border border-outline-variant shadow-sm p-md flex flex-col">
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-sm mb-md">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 0;">rule</span>
+                        Fluxo de Aprovação (Fluig)
+                    </h3>
+<div class="relative pl-lg border-l-2 border-outline-variant ml-sm flex flex-col gap-md">
+<!-- Step 1: Done -->
+<div class="relative">
+<div class="absolute -left-[25px] top-0 w-4 h-4 rounded-full bg-primary ring-4 ring-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-on-primary font-bold">check</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-sm text-on-surface">Solicitação Criada</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">João Silva (Gestor Operações) • 14/10 09:30</p>
+</div>
+<!-- Step 2: Done -->
+<div class="relative">
+<div class="absolute -left-[25px] top-0 w-4 h-4 rounded-full bg-primary ring-4 ring-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-on-primary font-bold">check</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-sm text-on-surface">Validação Orçamentária</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Sistema ERP • 14/10 09:35</p>
+</div>
+<!-- Step 3: Current -->
+<div class="relative">
+<div class="absolute -left-[25px] top-0 w-4 h-4 rounded-full bg-tertiary-container ring-4 ring-surface flex items-center justify-center animate-pulse">
+<span class="material-symbols-outlined text-[10px] text-on-tertiary-container font-bold">hourglass_empty</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-sm text-on-surface">Aprovação Técnica (TI)</h4>
+<p class="font-body-sm text-body-sm text-on-tertiary-container bg-tertiary-fixed/30 inline-block px-xs py-[2px] rounded mt-1">Pendente - Depto. Infraestrutura</p>
+</div>
+<!-- Step 4: Future -->
+<div class="relative">
+<div class="absolute -left-[25px] top-0 w-4 h-4 rounded-full bg-surface-variant ring-4 ring-surface border border-outline"></div>
+<h4 class="font-headline-md text-headline-md text-sm text-on-surface-variant">Aprovação Diretoria</h4>
+<p class="font-body-sm text-body-sm text-outline">Aguardando etapa anterior</p>
+</div>
+</div>
+</div>
+<!-- Info Block -->
+<div class="bg-surface-container-low rounded-xl border border-outline-variant p-md flex gap-sm items-start">
+<span class="material-symbols-outlined text-primary mt-xs" style="font-variation-settings: 'FILL' 1;">info</span>
+<div>
+<h4 class="font-headline-md text-headline-md text-sm text-on-surface">Integração ERP</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">A reserva de verba no ERP foi confirmada temporariamente. Expira em 48h caso não haja aprovação técnica.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

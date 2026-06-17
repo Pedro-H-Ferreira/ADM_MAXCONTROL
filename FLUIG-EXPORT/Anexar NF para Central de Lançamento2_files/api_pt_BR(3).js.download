@@ -1,0 +1,174 @@
+function UsePolicyDATAAPI(){}
+function UsePolicyDATAAPI_UsePolicyService(){}
+UsePolicyDATAAPI_UsePolicyService.prototype.basePath = function(){
+return "/usepolicyapi/api/rest/usepolicy";}
+UsePolicyDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+UsePolicyDATAAPI_UsePolicyService.prototype.ADDNEWDOCUMENTTOUSEPOLICY__PATH = function(){
+return "/usepolicyapi/api/rest/usepolicy"+"/document";}
+UsePolicyDATAAPI_UsePolicyService.prototype.ADDNEWDOCUMENTTOUSEPOLICY = function(__callData,obj_PolicyDocument){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/document";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_PolicyDocument));
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.UPDATEDOCUMENTTOUSEPOLICY__PATH = function(){
+return "/usepolicyapi/api/rest/usepolicy"+"/document";}
+UsePolicyDATAAPI_UsePolicyService.prototype.UPDATEDOCUMENTTOUSEPOLICY = function(__callData,obj_PolicyDocument){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/document";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_PolicyDocument));
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.ISUSEPOLICYENABLED__PATH = function(){
+return "/usepolicyapi/api/rest/usepolicy"+"/is/enabled";}
+UsePolicyDATAAPI_UsePolicyService.prototype.ISUSEPOLICYENABLED = function(__callData){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/is/enabled";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.FINDCURRENTUSEPOLICY__PATH = function(){
+return "/usepolicyapi/api/rest/usepolicy"+"/find/current";}
+UsePolicyDATAAPI_UsePolicyService.prototype.FINDCURRENTUSEPOLICY = function(__callData){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/find/current";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.ACCEPTUSEPOLICY__PATH = function(){
+return "/usepolicyapi/api/rest/usepolicy"+"/accept";}
+UsePolicyDATAAPI_UsePolicyService.prototype.ACCEPTUSEPOLICY = function(__callData){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/accept";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.LISTUSERSTHATACCEPTED__PATH = function(name,limit,offset){
+return "/usepolicyapi/api/rest/usepolicy"+"/list/accepteds/"+encodeURIComponent(name)+"/"+encodeURIComponent(limit)+"/"+encodeURIComponent(offset)+"";}
+UsePolicyDATAAPI_UsePolicyService.prototype.LISTUSERSTHATACCEPTED = function(__callData,name,limit,offset){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/list/accepteds/"+encodeURIComponent(name)+"/"+encodeURIComponent(limit)+"/"+encodeURIComponent(offset)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.GETDOCUMENTURL__PATH = function(){
+return "/usepolicyapi/api/rest/usepolicy"+"/url";}
+UsePolicyDATAAPI_UsePolicyService.prototype.GETDOCUMENTURL = function(__callData){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/url";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.REMOVEADOCUMENTFROMUSEPOLICY__PATH = function(id){
+return "/usepolicyapi/api/rest/usepolicy"+"/remove/document/"+encodeURIComponent(id)+"";}
+UsePolicyDATAAPI_UsePolicyService.prototype.REMOVEADOCUMENTFROMUSEPOLICY = function(__callData,id){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/remove/document/"+encodeURIComponent(id)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("DELETE", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.HASACCEPTEDTHEUSEPOLICY__PATH = function(){
+return "/usepolicyapi/api/rest/usepolicy"+"/has/accepted";}
+UsePolicyDATAAPI_UsePolicyService.prototype.HASACCEPTEDTHEUSEPOLICY = function(__callData){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/has/accepted";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.GETUSEPOLICYDOCUMENT__PATH = function(){
+return "/usepolicyapi/api/rest/usepolicy"+"/usepolicydocument";}
+UsePolicyDATAAPI_UsePolicyService.prototype.GETUSEPOLICYDOCUMENT = function(__callData){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/usepolicydocument";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.FINDBYTENANT__PATH = function(tenantId){
+return "/usepolicyapi/api/rest/usepolicy"+"/find/by/tenant/"+encodeURIComponent(tenantId)+"";}
+UsePolicyDATAAPI_UsePolicyService.prototype.FINDBYTENANT = function(__callData,tenantId){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/find/by/tenant/"+encodeURIComponent(tenantId)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.FINDBYID__PATH = function(id){
+return "/usepolicyapi/api/rest/usepolicy"+"/find/"+encodeURIComponent(id)+"";}
+UsePolicyDATAAPI_UsePolicyService.prototype.FINDBYID = function(__callData,id){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/find/"+encodeURIComponent(id)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.GETDOCUMENTURLBYID__PATH = function(id){
+return "/usepolicyapi/api/rest/usepolicy"+"/url/"+encodeURIComponent(id)+"";}
+UsePolicyDATAAPI_UsePolicyService.prototype.GETDOCUMENTURLBYID = function(__callData,id){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/url/"+encodeURIComponent(id)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI_UsePolicyService.prototype.GETUSEPOLICYDOCUMENTID__PATH = function(id){
+return "/usepolicyapi/api/rest/usepolicy"+"/usepolicydocument/"+encodeURIComponent(id)+"";}
+UsePolicyDATAAPI_UsePolicyService.prototype.GETUSEPOLICYDOCUMENTID = function(__callData,id){
+var __cmdurl__="/usepolicyapi/api/rest/usepolicy"+"/usepolicydocument/"+encodeURIComponent(id)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=UsePolicyAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+UsePolicyDATAAPI.prototype.UsePolicyService=new UsePolicyDATAAPI_UsePolicyService;
+var UsePolicyAPI=new UsePolicyDATAAPI();

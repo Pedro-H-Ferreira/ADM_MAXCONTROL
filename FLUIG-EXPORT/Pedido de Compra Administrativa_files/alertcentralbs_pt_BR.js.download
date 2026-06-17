@@ -1,0 +1,78 @@
+var AlertCentralBS = SuperWidget.extend({
+
+	baseUrl: '/globalalertapi/api/rest/alert/',
+
+	// facilitador de uso do ajax, caso nao use os recursos do WCM/SuperWidget
+	baseAjax: function(url, options, cb) {
+		var options = options || {};
+		options.url = this.baseUrl + url;
+
+		$.ajax(options).done(function(data) {
+			cb(null, data);
+		}).fail(function(xhr, status, text) {
+			cb(xhr);
+		});
+	},
+
+	init: function() {
+	},
+
+	getNotification: function(options, cb) {
+		this.baseAjax('getAlert', {
+			contentType: 'application/json',
+			data: options
+		}, cb);
+	},
+
+	executeAction: function(options, cb) {
+		this.baseAjax('executeAction', {
+			type: 'POST',
+			contentType: 'application/json',
+			data: JSON.stringify(options)
+		}, cb);
+	},
+
+	notificationList: function(cb, limit, offset) {
+		this.baseAjax('listAlerts', {
+			data: {
+				limit: limit || 20,
+				offset: offset || 0
+			}
+		}, cb);
+	},
+
+	deleteSelectedNotifications: function(options, cb) {
+		this.baseAjax('removeAlerts', {
+			type: 'POST',
+			contentType: 'application/json',
+			data: JSON.stringify(options)
+		}, cb);
+	},
+
+	deleteAllNotifications: function(cb) {
+		this.baseAjax('removeAllAlerts', {
+			type: 'POST',
+			contentType: 'application/json'
+		}, cb);
+	},
+
+	markSelectedAsRead: function(options, cb) {
+		this.baseAjax('markAlertsAsRead', {
+			type: 'POST',
+			contentType: 'application/json',
+			data: JSON.stringify(options)
+		}, cb);
+	},
+
+	markAllAlertsAsRead: function(cb) {
+		this.baseAjax('markAllAlertsAsRead', {
+			type: 'POST',
+			contentType: 'application/json',
+		}, cb);
+	},
+
+	countUnreadAlerts: function(cb) {
+		this.baseAjax('countUnreadAlerts', {}, cb);
+	}
+
+});

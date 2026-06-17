@@ -1,0 +1,12 @@
+/* TODO: mover esse arquivo para o web -> wcm */
+
+/* Tema liquid */
+.responsive_theme div.wcm-all-content {
+  padding-top: 100px;
+}
+
+@media (max-width: 991px) {
+  .responsive_theme div.wcm-all-content {
+    padding-left: 0;
+  }
+}

@@ -1,0 +1,69 @@
+{
+    "screenId":  "c1f7f9a621344490b16d88b96b80ca48",
+    "name":  "projects/4660020320183620207/screens/c1f7f9a621344490b16d88b96b80ca48",
+    "title":  "06. Detalhes da Despesa - MaxControLADM (1920x1080) Fixed",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "c1f7f9a621344490b16d88b96b80ca48",
+                          "sourceScreen":  "projects/4660020320183620207/screens/c1f7f9a621344490b16d88b96b80ca48",
+                          "x":  6720,
+                          "y":  4169,
+                          "width":  1280,
+                          "height":  720,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\06-detalhes-da-despesa-maxcontroladm-1920x1080-fixed-c1f7f9a621344490b16d88b96b80ca48",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/52f4257ac1554760bfe65d8d1f3832ce",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2Q1YmY1ZjJmNzZlMDRlYTk4MDFjM2YwMDM4MmFhYTRlEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\06-detalhes-da-despesa-maxcontroladm-1920x1080-fixed-c1f7f9a621344490b16d88b96b80ca48\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\06-detalhes-da-despesa-maxcontroladm-1920x1080-fixed-c1f7f9a621344490b16d88b96b80ca48\\screen.html",
+                                  "bytes":  21775,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/1fc6f56a92184c53ae99d30b8d4f1f88",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLv300bGdnjyghAQ6KLU8YuIFF6stAkdzog7Eb2iGnU-7XkvH26aUS66uNOawa29QAIMZnQvk-30N8tv53KXk-0B3OZkBw2zlJ-qlvX9tswWSqB0FFZgePjVlnGoL0lTL_jBIpOxhd2awJt4FxxfpdI_g-h6a0x_ph9xu-CYLaJ5qs41V8sCc4US_l7uBC6oCXE95AtKmlyP9G-LBzQRAcns7ZNkxAMcB9ZeXcbtO1nNKD8Jf7LBv7ANs8Q",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\06-detalhes-da-despesa-maxcontroladm-1920x1080-fixed-c1f7f9a621344490b16d88b96b80ca48\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\06-detalhes-da-despesa-maxcontroladm-1920x1080-fixed-c1f7f9a621344490b16d88b96b80ca48\\screenshot.png",
+                                        "bytes":  29215,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/c1f7f9a621344490b16d88b96b80ca48",
+                   "title":  "06. Detalhes da Despesa - MaxControLADM (1920x1080) Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/1fc6f56a92184c53ae99d30b8d4f1f88",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLv300bGdnjyghAQ6KLU8YuIFF6stAkdzog7Eb2iGnU-7XkvH26aUS66uNOawa29QAIMZnQvk-30N8tv53KXk-0B3OZkBw2zlJ-qlvX9tswWSqB0FFZgePjVlnGoL0lTL_jBIpOxhd2awJt4FxxfpdI_g-h6a0x_ph9xu-CYLaJ5qs41V8sCc4US_l7uBC6oCXE95AtKmlyP9G-LBzQRAcns7ZNkxAMcB9ZeXcbtO1nNKD8Jf7LBv7ANs8Q"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/52f4257ac1554760bfe65d8d1f3832ce",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2Q1YmY1ZjJmNzZlMDRlYTk4MDFjM2YwMDM4MmFhYTRlEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

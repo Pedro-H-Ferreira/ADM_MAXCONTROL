@@ -1,0 +1,56 @@
+function setSelectedZoomItem(selectObject) {
+
+	var obj = selectObject['inputId'];
+    
+	if(obj == "matResponsavelEnvio"){
+		setaValor("matAtendeArea",selectObject["matricula"])
+	}
+    
+	
+	if(obj == "centroCusto"){
+		setaValor("codCentroCusto",selectObject["Cod CC"]);
+		setaValor("matGestorArea",selectObject["Cod Gestor"]);
+		setaValor("matPresidenteArea",selectObject["Cod Presi"]);
+		setaValor("nomePresidente",selectObject["Presidência"]);
+		setaValor("matDiretorArea",selectObject["Cod Diretor"]);
+		setaValor("pastaNF",selectObject["Cod Pasta"]);
+		setaValor("nomeGestor",selectObject["Gestor"]);
+		setaValor("nomeDiretor",selectObject["Diretor"]);
+		//setaValor("aprovReeDiretor",selectObject["Regra1"]);
+		//setaValor("aprovCLDiretor",selectObject["Regra2"]);
+		
+	}
+	
+	
+	
+	/*
+	if(obj == "fornecedor"){
+		setaValor("codCNPJ",selectObject["cgc"])
+	}
+	*/
+	
+	if(obj == "colaboradorInput"){
+		setaValor("codWinthor",selectObject["Código"])
+	}
+	
+	if(obj == "contaCentroCusto"){
+		setaValor("codContaFin",selectObject["DESCRICAO"])
+	}
+
+	if(obj == "zoomDemandaPara"){
+		setaValor("matAtendeArea",selectObject["matricula"])
+	}
+	if(obj == "zoomDemandaFinanceiro"){
+		setaValor("matAtendeAreaFin",selectObject["matricula"])
+	}
+	
+	/*
+	
+	if(obj == "unidadeFilial"){
+		setaValor("coFilial",selectObject["codigo"])
+	}
+*/
+	
+	
+
+}

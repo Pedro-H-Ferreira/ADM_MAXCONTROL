@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MaxControLADM - Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#faae69",
+                        "on-secondary-fixed": "#0f1b33",
+                        "tertiary-fixed": "#ffdcc1",
+                        "outline-variant": "#c4c6d2",
+                        "on-primary-container": "#a2beff",
+                        "tertiary-fixed-dim": "#ffb877",
+                        "tertiary": "#542d00",
+                        "secondary-container": "#d4dfff",
+                        "surface-tint": "#3d5d9e",
+                        "primary-fixed-dim": "#afc6ff",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary": "#0a3473",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#afc6ff",
+                        "surface-container-high": "#e8e8ed",
+                        "on-background": "#1a1c20",
+                        "on-tertiary-fixed-variant": "#6c3a00",
+                        "on-surface-variant": "#434650",
+                        "inverse-surface": "#2f3035",
+                        "secondary-fixed-dim": "#bbc6e5",
+                        "outline": "#747781",
+                        "surface-container-highest": "#e2e2e7",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1a1c20",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-tertiary-fixed": "#2e1600",
+                        "on-secondary-fixed-variant": "#3c4660",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#535e79",
+                        "surface-container-low": "#f3f3f9",
+                        "on-error-container": "#93000a",
+                        "surface": "#f9f9fe",
+                        "on-primary-fixed": "#001943",
+                        "tertiary-container": "#754000",
+                        "surface-bright": "#f9f9fe",
+                        "inverse-on-surface": "#f0f0f6",
+                        "background": "#f9f9fe",
+                        "surface-variant": "#e2e2e7",
+                        "surface-dim": "#dad9df",
+                        "primary-fixed": "#d9e2ff",
+                        "on-primary-fixed-variant": "#224585",
+                        "error": "#ba1a1a",
+                        "primary-container": "#2a4b8b",
+                        "surface-container": "#eeedf3",
+                        "on-secondary-container": "#57627d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "sidenav-width": "240px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "base": "8px",
+                        "xl": "32px",
+                        "topbar-height": "64px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "code-sm": ["Geist"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "code-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+                    },
+                    "animation": {
+                        "fade-in-up": "fadeInUp 0.6s ease-out forwards"
+                    },
+                    "keyframes": {
+                        "fadeInUp": {
+                            "0%": { opacity: "0", transform: "translateY(20px)" },
+                            "100%": { opacity: "1", transform: "translateY(0)" }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            height: 100%;
+        }
+        @media (min-width: 1024px) {
+            .split-layout {
+                grid-template-columns: 5fr 4fr;
+            }
+        }
+        .bg-pattern {
+            background-color: transparent;
+        }
+    </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body class="bg-background text-on-background font-body-md w-screen h-screen antialiased flex items-center justify-center overflow-hidden" style="width: 1920px; height: 1080px; margin: 0px; overflow: hidden; position: relative;">
+<div class="relative shrink-0 overflow-hidden bg-background" style="width: 1920px; height: 1080px; position: absolute; left: 0px; top: 0px; overflow: hidden; flex-shrink: 0;">
+<div class="split-layout w-full h-full">
+<!-- Left Side: Atmospheric / Brand Graphic -->
+<div class="hidden lg:flex relative flex-col justify-between p-xl overflow-hidden bg-primary-container">
+<!-- Background Image -->
+<div class="absolute inset-0 z-0">
+<img alt="Abstract logistics nodes" class="w-full h-full object-cover opacity-20 mix-blend-luminosity" data-alt="A striking digital installation art piece featuring glowing, generative geometric shapes suspended in a vast, minimalist gallery space representing a modern high-tech distribution center. The room is illuminated by high-key, soft white lighting that creates a bright, modern light-mode aesthetic. The artwork relies on a sophisticated palette of deep blacks and pristine whites, punctuated by intense accents of vibrant teal and secondary brand colors. The mood is serene yet technologically advanced, emphasizing scale and precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVSIzAzUiNYNRHOxrsAqoqvBtsCpp0xSvVK4LwMfG-tqc1BtBibaUrGQd0jl7Ljuq6TsGSRkSyPOBVcvLdNN9Q5j1Z9zvFtGAzDgokejrYB3YwDLsdjVj2pp0cxQ6YBu6Px3ZHmlhaJL24p-mUdQgQAgq0btlJhMRT83x8E30Haruq8qgHanXLpOLHee07_vVqMvYqjQI1GvJLRgj9dSgQaopfxYLX1CFoA51Lroqor4VnxB9TbVGFrxmR0rNOpzgmP6AsYFdeT8c"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary-container via-primary-container/80 to-transparent"></div>
+</div>
+<!-- Content Over Graphic -->
+<div class="relative z-10">
+<div class="flex items-center gap-sm text-on-primary font-headline-lg"><span class="material-symbols-outlined text-secondary" style='font-variation-settings: "FILL" 1; font-size: 32px;'>domain</span>MaxControLADM</div>
+</div>
+<div class="relative z-10 max-w-lg mt-auto">
+<h1 class="font-display-lg text-on-primary mb-md">Sistemas de Alta Performance para Distribuição</h1>
+<p class="font-body-lg text-on-primary-container">Gerencie milhares de SKUs e fluxos de Administrativo com precisão matemática. Plataforma administrativa construída para velocidade de cognição e densidade de dados.</p>
+</div>
+</div>
+<!-- Right Side: Login Form -->
+<div class="flex flex-col justify-center px-md py-xl sm:px-xl lg:px-24 relative z-10 shadow-[-8px_0_32px_rgba(0,0,0,0.05)] bg-pattern pl-ml-sm h-full">
+<canvas class="absolute inset-0 w-full h-full -z-10" id="shader-canvas"></canvas>
+<div class="w-full mx-auto bg-surface-container-lowest/90 backdrop-blur-sm p-lg sm:p-xl rounded-xl shadow-sm border border-outline-variant/30 max-w-lg animate-fade-in-up">
+<!-- Mobile Logo (Visible only on smaller screens) -->
+<div class="flex lg:hidden items-center gap-sm text-primary font-headline-lg mb-xl justify-center"><span class="material-symbols-outlined text-secondary" style='font-variation-settings: "FILL" 1; font-size: 32px;'>domain</span>MaxControLADM</div>
+<div class="text-center lg:text-left mb-xl">
+<h2 class="font-headline-lg text-primary mb-xs">Bem-vindo de volta</h2>
+<p class="font-body-md text-on-surface-variant">Faça login para continuar no portal administrativo.</p>
+</div>
+<form action="#" class="space-y-md" method="POST">
+<!-- Email Field -->
+<div>
+<label class="block font-code-md text-on-surface mb-xs" for="email">Email institucional</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">mail</span>
+</div>
+<input autocomplete="email" class="block w-full pl-xl pr-sm py-sm font-body-md text-on-surface bg-surface border border-outline-variant rounded focus:ring-2 focus:ring-secondary focus:border-secondary transition-all duration-300 shadow-sm focus:shadow-[0_0_0_4px_rgba(83,94,121,0.1)]" id="email" name="email" placeholder="usuario@logisticacd.com" required="" type="email"/>
+</div>
+</div>
+<!-- Password Field -->
+<div>
+<label class="block font-code-md text-on-surface mb-xs" for="password">Senha</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">lock</span>
+</div>
+<input autocomplete="current-password" class="block w-full pl-xl pr-sm py-sm font-body-md text-on-surface bg-surface border border-outline-variant rounded focus:ring-2 focus:ring-secondary focus:border-secondary transition-all duration-300 shadow-sm focus:shadow-[0_0_0_4px_rgba(83,94,121,0.1)]" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+</div>
+</div>
+<!-- Options -->
+<div class="flex items-center justify-between pt-xs">
+<div class="flex items-center">
+<input class="h-4 w-4 text-secondary focus:ring-secondary border-outline-variant rounded cursor-pointer" id="remember-me" name="remember-me" type="checkbox"/>
+<label class="ml-sm block font-body-sm text-on-surface-variant cursor-pointer" for="remember-me">
+                                Manter sessão
+                            </label>
+</div>
+<div class="text-sm">
+<a class="font-body-sm text-secondary hover:text-on-secondary-container font-medium transition-colors duration-150" href="#">
+                                Esqueci minha senha
+                            </a>
+</div>
+</div>
+<!-- Submit Button -->
+<div class="pt-sm">
+<button class="w-full flex justify-center py-sm px-md border border-transparent rounded bg-primary-container text-on-primary font-code-md hover:bg-primary transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(19,27,46,0.5)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-container active:scale-98" type="submit">
+                            Entrar
+                        </button>
+</div>
+</form>
+<!-- Footer info -->
+<div class="mt-xl pt-lg border-t border-outline-variant/50 text-center">
+<p class="font-body-sm text-outline flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined" style="font-size: 16px;">lock</span>
+                        Acesso restrito a colaboradores autorizados.
+                    </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+    const canvas = document.getElementById('shader-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+    
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const scene = new THREE.Scene();
+    
+    const geometry = new THREE.PlaneGeometry(2, 2);
+    
+    const uniforms = {
+        u_time: { value: 0.0 },
+        u_resolution: { value: new THREE.Vector2() }
+    };
+    
+    const material = new THREE.ShaderMaterial({
+        uniforms: uniforms,
+        vertexShader: `
+            varying vec2 v_texCoord;
+            void main() {
+                v_texCoord = uv;
+                gl_Position = vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            precision highp float;
+            varying vec2 v_texCoord;
+            uniform float u_time;
+            uniform vec2 u_resolution;
+
+            void main() {
+                vec2 uv = v_texCoord;
+                vec3 color1 = vec3(0.059, 0.090, 0.165); // Deep Navy (#0f172a)
+                vec3 color2 = vec3(0.078, 0.145, 0.224); // Lighter Navy
+                
+                float noise = sin(uv.x * 10.0 + u_time * 0.5) * cos(uv.y * 10.0 + u_time * 0.5) * 0.5 + 0.5;
+                vec3 finalColor = mix(color1, color2, noise * 0.3);
+                
+                // Subtle scanlines
+                float scanline = sin(uv.y * 800.0) * 0.02;
+                finalColor += scanline;
+
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `
+    });
+    
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+    
+    function resize() {
+        const parent = canvas.parentElement;
+        const width = parent.clientWidth;
+        const height = parent.clientHeight;
+        renderer.setSize(width, height);
+        uniforms.u_resolution.value.set(width, height);
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    
+    function animate(time) {
+        uniforms.u_time.value = time * 0.001;
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+    
+    requestAnimationFrame(animate);
+</script>
+</body></html>

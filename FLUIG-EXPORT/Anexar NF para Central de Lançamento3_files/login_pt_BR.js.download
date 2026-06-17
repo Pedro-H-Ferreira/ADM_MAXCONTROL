@@ -1,0 +1,513 @@
+
+/**
+ * 
+ * NOTE: Changes to this file should also be applied in the liquid theme
+ * 
+ */
+
+var SocialLogin = SuperWidget.extend({
+
+	message: null,
+	instanceId: null,
+	modal: null,
+
+	bindings: {
+		local: {
+			'login-name-wrapper': ['mouseenter_containerActionsEnter', 'mouseleave_containerActionsLeave'],
+			'login-image-wrapper': ['mouseenter_containerActionsEnter', 'mouseleave_containerActionsLeave'],
+			'login-relation-list-itens': ['click_loginRelationListItens'],
+			'login-config-list-itens': ['click_loginConfigListItens'],
+			'login': ['click_login'],
+			'logoff': ['click_logoff'],
+			'selectLanguage': ['click_selectLanguage'],
+			'choose-context': ['click_chooseIdentityContext'],
+			'choose-company': ['click_chooseIdentityCompany'],
+			'edit-image-profile': ['click_updateImageProfile']
+		},
+		global: {
+			'select-context': ['click_selectIdentityContext'],
+			'select-company': ['click_selectIdentityCompany'],
+			'confirm-logoff': ['click_confirmLogoff']
+		}
+	},
+
+	init: function () {
+		var self = this;
+		this.setEditProfilePage();
+
+		$(document).bind('click', function (e) {
+			var $clicked = $(e.target);
+			if (!$clicked.parents().hasClass("container-image-wrapper")) {
+				$('.menu-user-actions').hide();
+			}
+			if (!$clicked.parents().hasClass("container-login-wrapper")) {
+				$('.wcm-login-config').hide();
+			}
+		});
+
+		this.message = new WCMC.message();
+
+		try {
+			this.rest(WCMSpaceAPI.TOTVSUserExperienceRest.ISTOTVSUSEREXPERIENCESACTIVE, [], function (data) {
+				if (data.isUserExperiencesActive) {
+					self.setCompany(self);
+				}
+
+			});
+
+		} catch (e) {
+		}
+
+		this.limitNameSizeIfTooLarge();
+
+	},
+
+	limitNameSizeIfTooLarge: function () {
+		var userNameElement = $("#logged-user-name");
+		var userName = userNameElement.html().trim();
+		var MAX_USERNAME_LENGTH = 40;
+
+		if (userName.length > MAX_USERNAME_LENGTH) {
+			userNameElement.html(userName.substring(0, MAX_USERNAME_LENGTH) + "[...]");
+		}
+	},
+
+	setEditProfilePage: function () {
+		this.serviceIsEditableProfile(function (err, response) {
+			if (err) {
+				return false;
+			}
+			try {
+				var isEditableProfile = response && JSON.parse(response.content);
+				if (isEditableProfile) {
+					$('#linkPageEditProfile').attr('data-page-alias', 'wcmuserprofile');
+				}
+			} catch (e) {
+				return false;
+			}
+		});
+	},
+
+	serviceIsEditableProfile: function (cb) {
+		var options = {
+			url: WCMAPI.getContextPath() + '/api/rest/wcm/rest/admin/tenant/isEditableProfile',
+			contentType: 'application/json',
+			type: 'GET',
+		};
+
+		FLUIGC.ajax(options, cb);
+	},
+
+	updateImageProfile: function (el, ev) {
+		WCMBC.cropImage({}, function (err, data) {
+			if (err) {
+				FLUIGC.toast({
+					message: "Erro ao trocar imagem",
+					type: 'danger'
+				});
+				return false;
+			}
+			$(window).trigger('fluig.update.image.profile');
+		});
+	},
+
+	containerActionsEnter: function (el, ev) {
+		ev.preventDefault();
+		$(el).children('.container-box-actions').show();
+	},
+
+	containerActionsLeave: function (el, ev) {
+		ev.preventDefault();
+		$(el).children('.container-box-actions').hide();
+	},
+
+	loginRelationListItens: function (el, ev) {
+		var socialAlias = $(el).data("social-alias"), socialType = $(el).data("social-type"), types = ["following",
+			"followers", "communities"];
+
+		if (socialType === types[0]) {
+			socialGlobal.showFollowings(socialAlias);
+		}
+
+		if (socialType === types[1]) {
+			socialGlobal.showFollowers(socialAlias);
+		}
+
+		if (socialType === types[2]) {
+			socialGlobal.showParticipations(socialAlias);
+		}
+	},
+
+	loginConfigListItens: function (el, ev) {
+		var alias = $(el).data('page-alias');
+
+		switch (alias) {
+			case 'logoff':
+				this.logoff();
+				return false;
+				break;
+			case 'wcm-publish-page':
+				return aliasPublishPage();
+				return false;
+				break;
+			case 'wcm-view-history':
+				this.openPageHistory();
+				return false;
+				break;
+			case 'wcm-edit':
+				return aliasEdit();
+				break;
+			case 'language':
+				this.selectLanguage();
+				return false;
+				break;
+			case 'wcm-discard-draft':
+				this.discardDraft();
+				return false;
+				break;
+			case 'wcm-change-friendlyURL':
+				this.changeFriendlyURL();
+				return false;
+				break;
+			case 'wcm-change-layout':
+				this.openChangeLayout();
+				return false;
+				break;
+			case 'help':
+				this.openPageHelp();
+				return false;
+				break;
+			default:
+				window.location.href = WCMAPI.protectedContextPath + '/' + WCMAPI.getTenantCode() + '/' + alias;
+		}
+
+		function publishPage() {
+			var inputID = 'save-dialog-version';
+			var confirmDialog = WCMC.panel({
+				data: "<div class='form'><label>Descreva brevemente suas modificações:"
+					+ "</label><input type='text' id='" + inputID + "' name='" + inputID + "' maxlength='200'/></div>",
+				title: "Publicando uma nova versão",
+				width: 400,
+				height: 120,
+				btmaximize: false,
+				customButtons: ["Publicar página"]
+			});
+			confirmDialog.bind("panel-button-0", function () {
+				var message = $("#" + inputID).val();
+				if (message) {
+					message = message.replace(/[\\\/]/g, '|');
+					WCMSpaceAPI.PageService.PUBLISHPAGE({
+						async: false
+					}, WCMAPI.pageId, message).content;
+					window.location.href = currentUrlWithoutEdit();
+				}
+			});
+			$("#" + inputID).focus();
+		}
+
+		function aliasPublishPage() {
+			var isUnpublished = WCMSpaceAPI.PageService.ISPAGEUNPUBLISHED({
+				async: false
+			}, WCMAPI.pageId);
+			if (isUnpublished) {
+				var isLastEditUser = WCMSpaceAPI.PageService.ISLASTEDITUSEREQUALSCURRENTUSERFOREDIT({
+					async: false
+				}, WCMAPI.pageId);
+				if (isLastEditUser) {
+					if (WCMSpaceAPI.PageService.CHANGELASTEDITUSER({
+						async: false
+					}, WCMAPI.pageId)) {
+						publishPage();
+					}
+				} else {
+					WCM.editPage.concurrency();
+					WCM.editPage.concurrency.panel.bind("panel-button-0", function () {
+						if (WCMSpaceAPI.PageService.CHANGELASTEDITUSER({
+							async: false
+						}, WCMAPI.pageId)) {
+							WCM.editPage.concurrency.panel.close();
+							publishPage();
+						} else {
+							WCMC.messageError("An error occurred changing user to edit.");
+						}
+					});
+				}
+			} else {
+				alert("label.login.page.already.published");
+				window.location.href = currentUrlWithoutEdit();
+			}
+			return false;
+		}
+
+		function aliasEdit() {
+			var isLastEditUser = WCMSpaceAPI.PageService.ISLASTEDITUSEREQUALSCURRENTUSERFOREDIT({
+				async: false
+			}, WCMAPI.pageId);
+			if (isLastEditUser) {
+				WCMSpaceAPI.PageService.CREATEUNPUBLISHEDPAGE({
+					async: false
+				}, WCMAPI.pageId);
+				window.location.href = currentUrlWithEdit();
+			} else {
+				WCM.editPage.concurrency();
+				WCM.editPage.concurrency.panel.bind("panel-button-0", function () {
+					if (WCMSpaceAPI.PageService.CHANGELASTEDITUSER({
+						async: false
+					}, WCMAPI.pageId)) {
+						window.location.href = currentUrlWithEdit();
+					} else {
+						WCMC.messageError("An error occurred changing user to edit.");
+					}
+				});
+			}
+			return false;
+		}
+
+	},
+
+	login: function () {
+		try {
+			WCMAPI.login($('input[name=j_username]').val(), $('input[name=j_password]').val());
+		} catch (err) {
+			alert('Usuário desconhecido ou senha inválida');
+		}
+	},
+
+	confirmLogoff: function () {
+		WCMAPI.logoff();
+		this.modal.close()
+	},
+
+	logoff: function () {
+		if (WCMAPI.isSAMLEnabled) {
+			this.modal = FLUIGC.modal({
+				title: 'Atenção',
+				content: 'Ao efetuar o logoff, outras sessões do mesmo usuário poderão ser afetadas. Deseja continuar?',
+				id: 'modal-classic-logoff',
+				actions: [{
+					label: 'Sim',
+					bind: 'data-confirm-logoff'
+				}, {
+					label: 'Não',
+					autoClose: true
+				}]
+			});
+		} else {
+			WCMAPI.logoff();
+		}
+	},
+
+	selectLanguage: function (el, ev) {
+		FLUIGC.modal({
+			title: 'Selecione o seu idioma',
+			content: {
+				widgetCode: 'wcmlanguage',
+				ftl: 'view.ftl'
+			},
+			id: 'fluig-modal-language',
+			actions: [{
+				'label': "Cancelar",
+				'classType': 'btn-default',
+				'autoClose': true
+			}]
+		});
+
+		loadWidgets();
+	},
+
+	loadIdentityContexts: function () {
+		var data = WCMSpaceAPI.IdentityContextRest.CONTEXTS({
+			async: false
+		});
+		return data;
+	},
+
+	loadIdentityCompanies: function () {
+		var data = WCMSpaceAPI.IdentityContextRest.COMPANIES({
+			async: false
+		});
+		return data;
+	},
+
+	setCompany: function (reference) {
+		reference.rest(WCMSpaceAPI.IdentityContextRest.SETCOMPANY, [], function (data) {
+			reference.setCompanyName();
+		});
+	},
+
+	setContextName: function () {
+		var context = WCMSpaceAPI.IdentityContextRest.CONTEXT({
+			async: false
+		});
+		$('#identityUserContext').text(context.displayName);
+	},
+
+	setCompanyName: function () {
+		var company = WCMSpaceAPI.IdentityContextRest.COMPANY({
+			async: false
+		});
+		if (company) {
+			$('#identityAppCompany').text(company.displayName);
+			$('#identity-app-company').show();
+			$('#identity-clear').show();
+		}
+	},
+
+	chooseIdentityContext: function (el, ev) {
+		var dados = {
+			instanceId: this.instanceId,
+			type: 'context',
+			list: this.loadIdentityContexts()
+		};
+		var popup = Mustache.render(this.templates.tpl_select_identity_context, dados);
+		this.openPopUp(popup, 'widget-select-identity-context',
+			'Trocar contexto');
+	},
+
+	chooseIdentityCompany: function (el, ev) {
+		var dados = {
+			instanceId: this.instanceId,
+			type: 'company',
+			list: this.loadIdentityCompanies()
+		};
+		var popup = Mustache.render(this.templates.tpl_select_identity_context, dados);
+		this.openPopUp(popup, 'widget-select-identity-company',
+			'Trocar empresa');
+	},
+
+	selectIdentityContext: function (el, ev) {
+		var id = $(el).data("id");
+		var url = WCMSpaceAPI.IdentityContextRest.SWITCHCONTEXT({
+			async: false
+		}, id);
+		if (url && url.launcherUrl) {
+			this.message.showMessage('Sucesso ao trocar Contexto Identity');
+			window.open(url.launcherUrl, '_blank');
+		} else {
+			this.message.showMessage('Falha ao trocar Contexto Identity');
+		}
+	},
+
+	selectIdentityCompany: function (el, ev) {
+		var id = $(el).data("id");
+		var resp = WCMSpaceAPI.IdentityContextRest.SWITCHCOMPANY({
+			async: false
+		}, id);
+		if (resp.success) {
+			this.message.showMessage('Sucesso ao trocar Empresa Identity');
+			window.location.reload();
+		} else {
+			this.message.showMessage('Falha ao trocar Empresa Identity');
+		}
+	},
+
+	openPopUp: function (popupHtml, cssClass, title) {
+
+		if (popupHtml) {
+
+			FLUIGC.modal({
+				title: title,
+				content: popupHtml,
+			}, function() {
+				loadWidgets();
+			});
+		}
+
+	},
+
+	openPageHistory: function () {
+		FLUIGC.modal({
+			title: "Histórico de página",
+			content: {
+				widgetCode: "wcm_page_history",
+				ftl: "view.ftl",
+				callback: function (err, data) {
+					return;
+				}
+			},
+			id: 'wcm-pagehistory-container',
+			size: 'large',
+			actions: [{
+				'label': "Restaurar",
+				'bind': 'data-apply'
+			}, {
+				'label': "Descartar",
+				'bind': 'data-cancel',
+				'autoClose': true
+			}]
+		});
+	},
+
+	openChangeLayout: function () {
+		FLUIGC.modal({
+			title: "Trocar layout",
+			content: {
+				widgetCode: "wcm_page",
+				ftl: "changelayout.ftl",
+				callback: function (err, data) {
+					$("button[data-apply-change-layout]").addClass("disabled");
+				}
+			},
+			id: 'modal-change-layout',
+			size: 'large',
+			actions: [{
+				'label': "Aplicar layout",
+				'bind': 'data-apply-change-layout'
+			}, {
+				'label': "Descartar",
+				'bind': 'data-cancel-change-layout',
+				'autoClose': true
+			}]
+		});
+	},
+
+	openPageHelp: function () {
+		FLUIGC.rightbar({ appCode: 'wcmhelp', fileNameFtl: 'view.ftl' });
+	},
+
+	discardDraft: function () {
+		var confirmDiscard = WCMC.panel({
+			data: "<div>Tem certeza que deseja descartar este rascunho?</div>",
+			title: "Descartar rascunho",
+			width: 400,
+			height: 100,
+			btmaximize: false,
+			showbtclose: false,
+			showCloseIcon: false,
+			customButtons: ["Sim", "Não"]
+		});
+		confirmDiscard.bind("panel-button-0", function () {
+			if (WCMSpaceAPI.PageService.DELETEUNPUBLISHEDVERSION({
+				async: false
+			}, WCMAPI.pageId)) {
+				window.location.href = currentUrlWithoutEdit();
+			} else {
+				WCMC.messageError("Um erro ocorreu tentando descartar este rascunho. Tente novamente.");
+			}
+
+			confirmDiscard.close();
+		});
+		confirmDiscard.bind("panel-button-1", function () {
+			confirmDiscard.close();
+		});
+	},
+
+	changeFriendlyURL: function () {
+		FLUIGC.modal({
+			title: "Trocar URL personalizada para acesso",
+			content: {
+				widgetCode: "wcm_page",
+				ftl: "friendlyURL.ftl"
+			},
+			id: 'modal-change-friendlyURL',
+			actions: [{
+				'label': "Aplicar",
+				'bind': 'data-apply-change-friendlyURL'
+			}, {
+				'label': "Descartar",
+				'bind': 'data-cancel-change-friendlyURL',
+				'autoClose': true
+			}]
+		});
+	}
+});

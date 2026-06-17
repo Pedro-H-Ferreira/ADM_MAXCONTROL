@@ -1,0 +1,69 @@
+{
+    "screenId":  "385be9ecc5994dfaa399cdabe68898fa",
+    "name":  "projects/4660020320183620207/screens/385be9ecc5994dfaa399cdabe68898fa",
+    "title":  "12.1. Nova OS Animada - MaxControLADM (1920x1080) Fixed",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "385be9ecc5994dfaa399cdabe68898fa",
+                          "sourceScreen":  "projects/4660020320183620207/screens/385be9ecc5994dfaa399cdabe68898fa",
+                          "x":  26982,
+                          "y":  4289,
+                          "width":  1280,
+                          "height":  1080,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-1-nova-os-animada-maxcontroladm-1920x1080-fixed-385be9ecc5994dfaa399cdabe68898fa",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/3f3aaa5af96b43d5a210c83e9a9bfba6",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzljNGI1Yjc2ODg2NjQ5ZWNhMTRkNTA3YjBiNmI5ZTQ2EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-1-nova-os-animada-maxcontroladm-1920x1080-fixed-385be9ecc5994dfaa399cdabe68898fa\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-1-nova-os-animada-maxcontroladm-1920x1080-fixed-385be9ecc5994dfaa399cdabe68898fa\\screen.html",
+                                  "bytes":  18928,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/142f453eb8e24ce78a18a54616e5b77d",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuyWZQAYTsmyDpp4f3leCH_qoVDAg5F0-efcQgInYUVo5AwBlRDTGXJ4sAcHBPo7cKIeF0PgXeZqebgZMGF6E82HASCw9MmTmykSm_5dXYfKV7-QZ2wlaMEPEd2ZkK-joYSQ64LTVns9EGYrk-YXv3Jv2X6dhntAlE6t2k6LuodM0J3mMt5OWO9LjnhmBaUDY33F_2sti4vE2Ry09VBcMBtdewybv0F3_JMje8kPbRrSpqX3nsjUVZUnA",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-1-nova-os-animada-maxcontroladm-1920x1080-fixed-385be9ecc5994dfaa399cdabe68898fa\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-1-nova-os-animada-maxcontroladm-1920x1080-fixed-385be9ecc5994dfaa399cdabe68898fa\\screenshot.png",
+                                        "bytes":  18182,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/385be9ecc5994dfaa399cdabe68898fa",
+                   "title":  "12.1. Nova OS Animada - MaxControLADM (1920x1080) Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/142f453eb8e24ce78a18a54616e5b77d",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuyWZQAYTsmyDpp4f3leCH_qoVDAg5F0-efcQgInYUVo5AwBlRDTGXJ4sAcHBPo7cKIeF0PgXeZqebgZMGF6E82HASCw9MmTmykSm_5dXYfKV7-QZ2wlaMEPEd2ZkK-joYSQ64LTVns9EGYrk-YXv3Jv2X6dhntAlE6t2k6LuodM0J3mMt5OWO9LjnhmBaUDY33F_2sti4vE2Ry09VBcMBtdewybv0F3_JMje8kPbRrSpqX3nsjUVZUnA"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/3f3aaa5af96b43d5a210c83e9a9bfba6",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzljNGI1Yjc2ODg2NjQ5ZWNhMTRkNTA3YjBiNmI5ZTQ2EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

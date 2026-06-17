@@ -1,0 +1,68 @@
+{
+    "screenId":  "05b760e9057c46e09c80a7f8294d1055",
+    "name":  "projects/4660020320183620207/screens/05b760e9057c46e09c80a7f8294d1055",
+    "title":  "06. Detalhes da Despesa - Portal Administrativo CD (1920x1080) Final Fixed",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "05b760e9057c46e09c80a7f8294d1055",
+                          "sourceScreen":  "projects/4660020320183620207/screens/05b760e9057c46e09c80a7f8294d1055",
+                          "x":  9472,
+                          "width":  1280,
+                          "height":  1024,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\06-detalhes-da-despesa-portal-administrativo-cd-1920x1080-final-fixed-05b760e9057c46e09c80a7f8294d1055",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/8955783419460791398",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY4MDJkZTYxZTgwN2M0ZDU0MzJjMzIwNzQ5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\06-detalhes-da-despesa-portal-administrativo-cd-1920x1080-final-fixed-05b760e9057c46e09c80a7f8294d1055\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\06-detalhes-da-despesa-portal-administrativo-cd-1920x1080-final-fixed-05b760e9057c46e09c80a7f8294d1055\\screen.html",
+                                  "bytes":  22006,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/13627909732831428323",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLunTIQejHN9__GDdKcIK4f2GLc47lUjqCrmlj0Z2t8EYYODnfJjhefW8meKlcAUKcJsrOuhkyD9U3c0j5l8rCMcwZ8cFhA_trnFKx8YbplCR56RwmqGDqcCmpBf74GVcVDqm-dkDNVU9NPDFeZIX2r9M808XqFgkNLX3t5Gs9wVQRuMCqmGOrlUegPaQo4_9VJkqYrl6vEg0oQ8S1E4UecZ3nh-ttwLfbZq6CX0GAPJ24K1vlUlOJWklao",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\06-detalhes-da-despesa-portal-administrativo-cd-1920x1080-final-fixed-05b760e9057c46e09c80a7f8294d1055\\screenshot.jpg",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\06-detalhes-da-despesa-portal-administrativo-cd-1920x1080-final-fixed-05b760e9057c46e09c80a7f8294d1055\\screenshot.jpg",
+                                        "bytes":  5986,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/jpeg",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/05b760e9057c46e09c80a7f8294d1055",
+                   "title":  "06. Detalhes da Despesa - Portal Administrativo CD (1920x1080) Final Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/13627909732831428323",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLunTIQejHN9__GDdKcIK4f2GLc47lUjqCrmlj0Z2t8EYYODnfJjhefW8meKlcAUKcJsrOuhkyD9U3c0j5l8rCMcwZ8cFhA_trnFKx8YbplCR56RwmqGDqcCmpBf74GVcVDqm-dkDNVU9NPDFeZIX2r9M808XqFgkNLX3t5Gs9wVQRuMCqmGOrlUegPaQo4_9VJkqYrl6vEg0oQ8S1E4UecZ3nh-ttwLfbZq6CX0GAPJ24K1vlUlOJWklao"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/8955783419460791398",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY4MDJkZTYxZTgwN2M0ZDU0MzJjMzIwNzQ5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "2560",
+                   "height":  "2048",
+                   "deviceType":  "DESKTOP"
+               }
+}

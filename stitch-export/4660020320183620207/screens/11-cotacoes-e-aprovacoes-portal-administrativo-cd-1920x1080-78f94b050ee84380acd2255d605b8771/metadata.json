@@ -1,0 +1,69 @@
+{
+    "screenId":  "78f94b050ee84380acd2255d605b8771",
+    "name":  "projects/4660020320183620207/screens/78f94b050ee84380acd2255d605b8771",
+    "title":  "11. Cotações e Aprovações - Portal Administrativo CD (1920x1080)",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "78f94b050ee84380acd2255d605b8771",
+                          "sourceScreen":  "projects/4660020320183620207/screens/78f94b050ee84380acd2255d605b8771",
+                          "x":  71587,
+                          "y":  2627,
+                          "width":  1210,
+                          "height":  1080,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\11-cotacoes-e-aprovacoes-portal-administrativo-cd-1920x1080-78f94b050ee84380acd2255d605b8771",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/443411134421821023",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjE4NmU0MTcwMjJkNDBhN2NhMGU5OTFiEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\11-cotacoes-e-aprovacoes-portal-administrativo-cd-1920x1080-78f94b050ee84380acd2255d605b8771\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\11-cotacoes-e-aprovacoes-portal-administrativo-cd-1920x1080-78f94b050ee84380acd2255d605b8771\\screen.html",
+                                  "bytes":  28192,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/fd33aa2335ed4064b5be324811c5f7b8",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLstz6EvBOWyZ9xsAGit6_s5REc9wZZ1QuSx7WyiK-cnMkHSREv3doNCYvwZOFQaPmrpGbgLvqQoQhgBJVBSaf9oRZiowkYuGPkT8ngSbbC5Za2I4MNPYplegyfKmDZ7RC_wOmpJ-tCaR1N4jR5F5_p76sB1BQLL2-h-PRXDH7V10qDVyddvaMcV2flY5CJxz9TvOXaKQ0YNBRitzlNOYG9tMXBrfmaaWy_su4XaYaCcpYjvSFIkUiREqOg",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\11-cotacoes-e-aprovacoes-portal-administrativo-cd-1920x1080-78f94b050ee84380acd2255d605b8771\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\11-cotacoes-e-aprovacoes-portal-administrativo-cd-1920x1080-78f94b050ee84380acd2255d605b8771\\screenshot.png",
+                                        "bytes":  49428,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/78f94b050ee84380acd2255d605b8771",
+                   "title":  "11. Cotações e Aprovações - Portal Administrativo CD (1920x1080)",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/fd33aa2335ed4064b5be324811c5f7b8",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLstz6EvBOWyZ9xsAGit6_s5REc9wZZ1QuSx7WyiK-cnMkHSREv3doNCYvwZOFQaPmrpGbgLvqQoQhgBJVBSaf9oRZiowkYuGPkT8ngSbbC5Za2I4MNPYplegyfKmDZ7RC_wOmpJ-tCaR1N4jR5F5_p76sB1BQLL2-h-PRXDH7V10qDVyddvaMcV2flY5CJxz9TvOXaKQ0YNBRitzlNOYG9tMXBrfmaaWy_su4XaYaCcpYjvSFIkUiREqOg"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/443411134421821023",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjE4NmU0MTcwMjJkNDBhN2NhMGU5OTFiEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "2560",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

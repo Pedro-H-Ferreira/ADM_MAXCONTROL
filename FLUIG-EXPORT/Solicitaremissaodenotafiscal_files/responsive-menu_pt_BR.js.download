@@ -1,0 +1,331 @@
+var ResponsiveMenu = SuperWidget.extend({
+
+  instanceId: null,
+  menuMain: null,
+  pageCode: null,
+  currentMenuData: {},
+  currentPage: {},
+  CPANELADMIN: 'cpaneladmin',
+  DELAY_MENU: 350,
+  timerToggleMenu: null,
+  sidebarVersionTemplate: null,
+  versionIconStatusTemplate: null,
+
+  bindings: {
+    local: {
+      'menu-children': ['click_clickOpenSubPages'],
+      'menu-back': ['click_clickToBackMenu'],
+      'main-menu': ['mouseenter_delayToggleMenu', 'mouseleave_delayToggleMenu'],
+      'version-icon-status': ['mouseover_iconStatusVersion', 'mouseout_iconStatusVersion'],
+    },
+    global: {}
+  },
+
+  init() {
+
+    if (!WCMAPI.userIsLogged) {
+      
+      this.changeLayout();
+      return false;
+    }
+
+    this.initMenu();
+    this.initVersionTemplate();
+
+    this.serviceGetPageInfo(this.pageCode)
+      .then((page) => {
+        this.currentPage = page;
+        if (this.hasContent(page) && page.children && page.children.length > 0 && !this.isCpanelAdmin(page.code)) {
+          this.addPageToCurrentMenu(page.code);
+        } else if (page.parent) {
+          this.addPageToCurrentMenu(page.parent);
+        } else {
+          this.getMenuData(this.pageCode, false, this.renderMenu, null, this);
+        }
+      });
+
+    $(window).on('resize', () => {
+      this.createCustomScrollBar();
+    });
+  },
+
+  changeLayout() {
+
+    // Remove totalmente a widget de menu caso
+    // o usuário não esteja logado
+    this.DOM.remove();
+
+    // Remove o espaçamento da widget de menu
+    $('.wcm-all-content').css('padding-left', '25px');
+  },
+
+  initVersionTemplate() {
+    const html = Mustache.render(
+      this.templates['responsive-version-template'], {
+        version: WCMAPI.fluigVersion,
+        versionName: WCMAPI.fluigInstanceVersionName,
+        versionBuild: WCMAPI.fluigVersionBuild
+      },
+    );
+    $('#responsiveSidebar-' + this.instanceId).html(html);
+
+    this.sidebarVersionTemplate = $(this.DOM).find('[data-sidebar-version]');
+    
+    this.initIconVersionStatusTemplate();
+  },
+
+  initIconVersionStatusTemplate() {
+    const html = Mustache.render(
+      this.templates['version-icon-template-status'], {
+        statusDesc: function() {
+          switch (WCMAPI.fluigVersionStatus) {
+            case '1':
+              return 'Erro ao verificar disponibilidade de atualizações.';
+            case '2':
+              return 'O ambiente expira em {0} dias. Informe seu administrador ou responsável.';
+            case '3':
+              return 'A versão do Fluig está desatualizada. Informe seu administrador ou responsável.';
+          }
+        },
+        versionDeprecated: function() {
+          return WCMAPI.fluigVersionStatus === '3';
+        }
+      }
+    );
+
+    if (WCMAPI.fluigVersionStatus !== '0') {
+      $('#versionIconStatus-' + this.instanceId).html(html);
+    }
+
+    this.versionIconStatusTemplate = $(this.DOM).find('[data-version-icon-status]');
+  },
+
+  iconStatusVersion(el, ev) {
+    const evType = ev.type === 'mouseover' ? 'showWcmAlertPopup' : 'hideWcmAlertPopup';
+    this[evType]();
+  },
+  
+  // TODO: Rever component "wcm_alert_popup" //
+  showWcmAlertPopup() {
+    $('.wcm_alert_popup', this.DOM).show();
+  },
+
+  hideWcmAlertPopup() {
+    $('.wcm_alert_popup', this.DOM).hide();
+  },
+
+  delayToggleMenu(el, ev) {
+    const evType = ev.type === 'mouseenter' ? 'showMenu' : 'hideMenu';
+
+    clearTimeout(this.timerToggleMenu);
+
+    this.timerToggleMenu = setTimeout(() => {
+
+      this[evType]();
+    }, this.DELAY_MENU);
+  },
+
+  createCustomScrollBar() {
+    const outerHeight = $('.sidebar', this.DOM).outerHeight() + 'px';
+
+    $('.menu-responsive', this.DOM).slimScroll({
+      height: outerHeight,
+      width: '100%',
+      size: '5px',
+      alwaysVisible: false,
+      railVisible: true,
+    });
+  },
+
+  showMenu() {
+    this.sidebarVersionTemplate.removeClass('hidden-version');
+    this.versionIconStatusTemplate.removeClass('hidden-version');
+    this.mainMenu.removeClass('menu-responsive-hidded');
+    this.mainMenu.addClass('menu-responsive-expanded');
+    this.mainMenu.removeClass('menu-responsive-hidded-animation');
+    this.mainMenu.addClass('menu-responsive-expanded-animation');
+    this.mainMenu.find('.img-menu-profile-slim').removeClass('img-menu-profile-slim-animation');
+    this.mainMenu.find('.menu-toggle-action').data('is-expanded', true);
+    this.createCustomScrollBar();
+  },
+
+  hideMenu() {
+    this.sidebarVersionTemplate.addClass('hidden-version');
+    this.versionIconStatusTemplate.addClass('hidden-version');
+    this.mainMenu.addClass('menu-responsive-hidded');
+    this.mainMenu.removeClass('menu-responsive-expanded');
+    this.mainMenu.addClass('menu-responsive-hidded-animation');
+    this.mainMenu.removeClass('menu-responsive-expanded-animation');
+    this.mainMenu.find('.img-menu-profile-slim').addClass('img-menu-profile-slim-animation');
+    this.mainMenu.find('.menu-toggle-action').data('is-expanded', false);
+    this.createCustomScrollBar();
+  },
+
+  initMenu() {
+    WCMAPI.addListener(this, 'toggle-main-menu', this.toggleMainMenu);
+    this.mainMenu = $(this.DOM).find('[data-main-menu]');
+  },
+
+  toggleMainMenu() {
+    const isHidden = !!$('.menu-responsive-hidded', this.DOM).length;
+
+    if (isHidden) {
+      this.delayToggleMenu(null, {
+        type: 'mouseenter'
+      });
+    } else {
+      this.delayToggleMenu(null, {});
+    }
+  },
+
+  hasContent(page) {
+    return !page.menuGroup;
+  },
+
+  isCpanelAdmin(pageCode) {
+    return pageCode === this.CPANELADMIN;
+  },
+
+  addPageToCurrentMenu(pageCode) {
+    this.getMenuData(pageCode, false, (data) => {
+      const menuPage = this.findPage(data, pageCode);
+      if (menuPage && this.hasContent(menuPage)) {
+        menuPage.hasChildren = false;
+        menuPage.parent = menuPage.code;
+        this.getMenuData(menuPage.code, true, this.renderMenu, [menuPage], this);
+      } else {
+        this.getMenuData(this.pageCode, false, this.renderMenu, null, this);
+      }
+    });
+  },
+
+  findPage(pages, code) {
+    return pages.filter((page) => {
+      return page.code === code;
+    }).shift();
+  },
+
+  getMenuData(code, openChildren, callback, items, context) {
+    const mode = openChildren ? 'PARENT' : 'PAGE';
+
+    this.serviceGetMenuData(code, mode)
+      .then((data) => {
+        if (data.items) {
+          if (items) {
+            data.items = data.items.concat(items);
+          }
+
+          callback(data.items, context);
+        }
+      }, () => {
+        FLUIGC.toast({
+          message: 'Não Foi possível carregar o menu',
+          type: 'danger'
+        });
+      });
+  },
+
+  renderMenu: function (data, context) {
+    const that = context;
+
+    if (data.length === 0) {
+      that.renderParentMenu(that);
+      return;
+    }
+
+    const menu = $(that.DOM).find('[data-menu]');
+    const MATERIAL_ICON_PREFIX = 'fluigicon';
+
+    data.forEach(function (item) {
+      if (that.isCpanelAdmin(item.code)) {
+        item.hasChildren = false;
+      }
+
+      item.isMaterialIcon = item.iconFont && item.iconFont.indexOf(MATERIAL_ICON_PREFIX) === 0;
+    });
+
+    const menuItemRender = Mustache.render(
+      that.templates['responsive-menu-item-template'],
+      data,
+    );
+
+    that.currentMenuData = data;
+
+    menu.html(menuItemRender);
+
+    let currentPageCode = that.currentPage.code;
+
+    if (that.isCpanelAdmin(that.currentPage.parent)) {
+      currentPageCode = that.CPANELADMIN;
+    }
+
+    const selectMenu = $(that.DOM).find('[data-menu-item="' + currentPageCode + '"]');
+
+    selectMenu.addClass('active-menu');
+
+    if (data[0] && data[0].parent !== null && data[0].parent !== undefined) {
+      const menu = $(that.DOM).find('[data-menu]');
+      const parentMenu = { "parent": data[0].parent };
+      const menuBackRender = Mustache.render(
+        that.templates['responsive-menu-back-template'],
+        parentMenu,
+      );
+      menu.prepend(menuBackRender);
+    }
+  },
+
+  renderParentMenu(context) {
+    const that = context;
+
+    if (this.currentPage.parent) {
+      this.serviceGetPageInfo(this.currentPage.parent)
+        .then((page) => {
+          this.currentPage = page;
+          this.getMenuData(this.currentPage.parent, false, this.renderMenu, null, that);
+        });
+    }
+  },
+
+  clickOpenSubPages(el) {
+    const code = $(el).data("menu-item");
+    const items = [];
+    const currentItem = this.findPage(this.currentMenuData, code);
+    if (currentItem && this.hasContent(currentItem)) {
+      currentItem.hasChildren = false;
+      currentItem.parent = currentItem.code;
+      items.push(currentItem);
+    }
+    this.getMenuData(code, true, this.renderMenu, items, this);
+  },
+
+  clickToBackMenu(el) {
+    const code = $(el).data('menu-back');
+    this.getMenuData(code, false, this.renderMenu, null, this);
+  },
+
+  serviceGetMenuData(code, mode) {
+    const url = '/wcm/api/v1/menus';
+    const options = {
+      data: {
+        code,
+        mode,
+      },
+      url,
+    };
+    return this.basePromiseAjax(options);
+  },
+
+  serviceGetPageInfo(pageCode) {
+    const url = '/wcm/api/v1/pages/' + pageCode + '?expand=children';
+    const options = { url };
+    return this.basePromiseAjax(options);
+  },
+
+  basePromiseAjax(options) {
+    if (!options.loading) options.loading = false;
+    return new Promise((resolve, reject) => {
+      FLUIGC.ajax(options, (err, data) => err ? reject(err) : resolve(data));
+    });
+  },
+
+});

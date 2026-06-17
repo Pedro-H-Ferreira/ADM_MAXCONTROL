@@ -1,0 +1,1 @@
+(function(document,$){function selectMenu(pointer){var h=$(this).position().top+5;pointer.stop();pointer.animate({height:h},500,function(){$(this).show()})}$.fn.slideArrow=function(selectedSelector,pointer){$(selectedSelector,this).click(function(){selectMenu.call(this,pointer)})}})(document,jQuery);

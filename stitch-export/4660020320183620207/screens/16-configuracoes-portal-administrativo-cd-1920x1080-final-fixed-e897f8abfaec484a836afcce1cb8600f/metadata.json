@@ -1,0 +1,68 @@
+{
+    "screenId":  "e897f8abfaec484a836afcce1cb8600f",
+    "name":  "projects/4660020320183620207/screens/e897f8abfaec484a836afcce1cb8600f",
+    "title":  "16. Configurações - Portal Administrativo CD (1920x1080) Final Fixed",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "e897f8abfaec484a836afcce1cb8600f",
+                          "sourceScreen":  "projects/4660020320183620207/screens/e897f8abfaec484a836afcce1cb8600f",
+                          "x":  24256,
+                          "width":  1280,
+                          "height":  1024,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\16-configuracoes-portal-administrativo-cd-1920x1080-final-fixed-e897f8abfaec484a836afcce1cb8600f",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/4210879211151467735",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY4MDQzMTMzZWUwMzc0YTVmYmZhMzg4Zjc3EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\16-configuracoes-portal-administrativo-cd-1920x1080-final-fixed-e897f8abfaec484a836afcce1cb8600f\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\16-configuracoes-portal-administrativo-cd-1920x1080-final-fixed-e897f8abfaec484a836afcce1cb8600f\\screen.html",
+                                  "bytes":  26068,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/8081369534010320317",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtGokVoEZNQQFWtgKff9GK8oheLVQg9iX1-s_iZINmm-pWMD7_Jxm8MENvadZ3wr2niTduNCzAbhMIMPJs1n2e6jhUEvMGhWPQYLjPmliX6P5Pz43Jdd8-tq_RcZnGOR055HAzT-QFDS0y_FY400QP9vj1bjJyrJk_BWBGqlzIRlYnApSUIGCGOueb2kOk0Xnu-7yFzCbZbeuZRvXb9hBlDnJE1ZkJQCSI5qYleCxKKyucQ3uT9BmfJgQ",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\16-configuracoes-portal-administrativo-cd-1920x1080-final-fixed-e897f8abfaec484a836afcce1cb8600f\\screenshot.jpg",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\16-configuracoes-portal-administrativo-cd-1920x1080-final-fixed-e897f8abfaec484a836afcce1cb8600f\\screenshot.jpg",
+                                        "bytes":  10125,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/jpeg",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/e897f8abfaec484a836afcce1cb8600f",
+                   "title":  "16. Configurações - Portal Administrativo CD (1920x1080) Final Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/8081369534010320317",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtGokVoEZNQQFWtgKff9GK8oheLVQg9iX1-s_iZINmm-pWMD7_Jxm8MENvadZ3wr2niTduNCzAbhMIMPJs1n2e6jhUEvMGhWPQYLjPmliX6P5Pz43Jdd8-tq_RcZnGOR055HAzT-QFDS0y_FY400QP9vj1bjJyrJk_BWBGqlzIRlYnApSUIGCGOueb2kOk0Xnu-7yFzCbZbeuZRvXb9hBlDnJE1ZkJQCSI5qYleCxKKyucQ3uT9BmfJgQ"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/4210879211151467735",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY4MDQzMTMzZWUwMzc0YTVmYmZhMzg4Zjc3EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "2560",
+                   "height":  "2048",
+                   "deviceType":  "DESKTOP"
+               }
+}

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Detalhes de Manutenção - Central de Lançamento</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#e2e2e7",
+                        "surface-container-high": "#e8e8ed",
+                        "primary-fixed": "#d9e2ff",
+                        "inverse-primary": "#afc6ff",
+                        "primary-fixed-dim": "#afc6ff",
+                        "on-secondary-container": "#57627d",
+                        "surface": "#f9f9fe",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#3c4660",
+                        "tertiary-fixed": "#ffdcc1",
+                        "surface-variant": "#e2e2e7",
+                        "secondary-fixed": "#d8e2ff",
+                        "surface-bright": "#f9f9fe",
+                        "on-surface-variant": "#434650",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#f3f3f9",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#eeedf3",
+                        "outline": "#747781",
+                        "inverse-surface": "#2f3035",
+                        "secondary": "#535e79",
+                        "surface-tint": "#3d5d9e",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#dad9df",
+                        "on-secondary-fixed": "#0f1b33",
+                        "tertiary": "#542d00",
+                        "primary-container": "#2a4b8b",
+                        "on-tertiary-container": "#faae69",
+                        "secondary-container": "#d4dfff",
+                        "on-primary-container": "#a2beff",
+                        "secondary-fixed-dim": "#bbc6e5",
+                        "inverse-on-surface": "#f0f0f6",
+                        "on-tertiary-fixed-variant": "#6c3a00",
+                        "on-background": "#1a1c20",
+                        "tertiary-container": "#754000",
+                        "outline-variant": "#c4c6d2",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "on-surface": "#1a1c20",
+                        "error-container": "#ffdad6",
+                        "background": "#f9f9fe",
+                        "primary": "#0a3473",
+                        "tertiary-fixed-dim": "#ffb877",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#001943",
+                        "on-primary-fixed-variant": "#224585",
+                        "on-tertiary-fixed": "#2e1600"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "topbar-height": "64px",
+                        "base": "8px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "md": "16px",
+                        "sidenav-width": "240px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "code-sm": ["Geist"],
+                        "body-lg": ["Inter"],
+                        "code-md": ["Geist"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex selection:bg-primary-container selection:text-on-primary-container">
+<!-- Sidenav (Shared Component) -->
+<nav class="fixed inset-y-0 left-0 z-40 flex flex-col w-[240px] bg-primary border-r border-outline-variant shadow-md">
+<!-- Brand Header -->
+<div class="h-[64px] flex items-center px-4 mb-4 border-b border-primary-container">
+<div class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center mr-3 shadow-sm">
+<span class="material-symbols-outlined text-primary text-xl">admin_panel_settings</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-black text-on-primary tracking-tight" style="font-size: 16px; line-height: 20px;">MaxControLADM</h1>
+<p class="font-body-sm text-body-sm text-on-primary-container opacity-80" style="font-size: 10px;">Fluig Integration Shell</p>
+</div>
+</div>
+<!-- Primary CTA -->
+<div class="px-4 mb-6">
+<button class="w-full bg-primary-fixed text-on-primary-fixed font-headline-md text-body-md py-2 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-inverse-primary transition-all duration-200 ease-in-out cursor-pointer shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                Nova Solicitação
+            </button>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 px-3 space-y-1 overflow-y-auto">
+<!-- Inactive -->
+<a class="flex items-center px-3 py-2.5 text-on-primary-container hover:bg-on-primary-fixed-variant hover:text-on-primary-container transition-all duration-200 ease-in-out cursor-pointer rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] opacity-70 group-hover:opacity-100">sync_alt</span>
+<span class="font-body-md text-body-md">Painel Global</span>
+</a>
+<a class="flex items-center px-3 py-2.5 text-on-primary-container hover:bg-on-primary-fixed-variant hover:text-on-primary-container transition-all duration-200 ease-in-out cursor-pointer rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] opacity-70 group-hover:opacity-100">payments</span>
+<span class="font-body-md text-body-md">Pagamentos</span>
+</a>
+<a class="flex items-center px-3 py-2.5 text-on-primary-container hover:bg-on-primary-fixed-variant hover:text-on-primary-container transition-all duration-200 ease-in-out cursor-pointer rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] opacity-70 group-hover:opacity-100">shopping_cart</span>
+<span class="font-body-md text-body-md">Compras</span>
+</a>
+<!-- Active State Logic Applied Here (Index 3: Manutenção) -->
+<a class="flex items-center px-3 py-2.5 text-on-secondary-container bg-secondary-container rounded-lg font-bold transition-all duration-200 ease-in-out cursor-pointer shadow-sm" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] text-primary" style="font-variation-settings: 'FILL' 1;">build</span>
+<span class="font-body-md text-body-md">Manutenção</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center px-3 py-2.5 text-on-primary-container hover:bg-on-primary-fixed-variant hover:text-on-primary-container transition-all duration-200 ease-in-out cursor-pointer rounded-lg group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] opacity-70 group-hover:opacity-100">settings</span>
+<span class="font-body-md text-body-md">Configurações</span>
+</a>
+</div>
+<!-- Footer Links -->
+<div class="p-3 border-t border-primary-container mt-auto">
+<a class="flex items-center px-3 py-2 text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors rounded-lg group text-sm" href="#">
+<span class="material-symbols-outlined mr-3 text-[18px] opacity-70">help</span>
+                Suporte
+            </a>
+<a class="flex items-center px-3 py-2 text-on-primary-container hover:bg-on-primary-fixed-variant transition-colors rounded-lg group text-sm" href="#">
+<span class="material-symbols-outlined mr-3 text-[18px] opacity-70">logout</span>
+                Sair
+            </a>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col ml-[240px] min-h-screen w-full bg-surface">
+<!-- TopNavBar (Shared Component) -->
+<header class="fixed top-0 right-0 left-0 z-30 flex items-center justify-between px-6 ml-[240px] h-[64px] bg-surface border-b border-outline-variant flat no shadows">
+<!-- Left: Search/Links -->
+<div class="flex items-center gap-6">
+<!-- Search on Left -->
+<div class="relative w-64 group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+<input class="w-full pl-10 pr-4 py-1.5 bg-surface-container-low border border-outline-variant rounded-full font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="Buscar ID Fluig ou NF..." type="text"/>
+</div>
+<nav class="hidden lg:flex gap-1">
+<a class="px-3 py-1.5 font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all rounded-lg" href="#">Dashboard</a>
+<a class="px-3 py-1.5 font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all rounded-lg" href="#">Relatórios</a>
+<a class="px-3 py-1.5 font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all rounded-lg" href="#">Log de Sincro</a>
+</nav>
+</div>
+<!-- Right: Actions & Profile -->
+<div class="flex items-center gap-4">
+<button class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
+                    Consultar Status
+                </button>
+<button class="font-body-sm text-body-sm bg-primary text-on-primary px-4 py-1.5 rounded-full hover:bg-primary-container hover:text-on-primary-container transition-all active:scale-95 transition-transform flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">sync</span>
+                    Sincronizar
+                </button>
+<div class="h-6 w-px bg-outline-variant mx-1"></div>
+<button class="text-on-surface-variant hover:text-primary hover:bg-surface-container-high p-1.5 rounded-full transition-all">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary hover:bg-surface-container-high p-1.5 rounded-full transition-all">
+<span class="material-symbols-outlined text-[20px]">apps</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-secondary-container border border-outline-variant overflow-hidden ml-2" data-alt="A professional headshot of a corporate administrator in a modern office setting. The lighting is soft and natural, emphasizing a clean, modern aesthetic. The individual wears formal business attire. The background is slightly blurred, showing a high-tech logistics control room in subtle slate blues and cool grays.">
+<!-- Placeholder for Avatar -->
+<div class="w-full h-full flex items-center justify-center text-primary font-headline-md text-xs">AD</div>
+</div>
+</div>
+</header>
+<!-- Canvas (Content Area) -->
+<main class="flex-1 mt-[64px] p-8 overflow-y-auto bg-surface-container-lowest">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+<div>
+<div class="flex items-center gap-3 mb-2">
+<span class="px-2.5 py-1 bg-surface-container-highest text-on-surface-variant font-code-sm text-code-sm rounded-md border border-outline-variant">FLUIG-88421</span>
+<span class="px-2.5 py-1 bg-tertiary-fixed text-on-tertiary-fixed font-code-sm text-code-sm rounded-md border border-tertiary-fixed-dim flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                            Aguardando Lançamento
+                        </span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Manutenção Preventiva - Esteira Transportadora A3</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Fornecedor: Industrial Motors LTDA | Solicitante: Carlos Mendes (Engenharia)</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-surface text-error border border-error hover:bg-error-container hover:border-error-container transition-colors rounded-lg font-headline-md text-body-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">cancel</span>
+                        Rejeitar
+                    </button>
+<button class="px-5 py-2 bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors rounded-lg font-headline-md text-body-md shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                        Avançar Workflow
+                    </button>
+</div>
+</div>
+<!-- Fluig Workflow Stepper -->
+<div class="mb-8 p-6 bg-surface border border-outline-variant rounded-xl shadow-sm">
+<div class="flex items-center justify-between relative">
+<!-- Progress Line Background -->
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-surface-variant z-0 rounded-full"></div>
+<!-- Progress Line Active -->
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 h-1 bg-primary z-0 rounded-full transition-all duration-500"></div>
+<!-- Step 1: Done -->
+<div class="relative z-10 flex flex-col items-center gap-2 bg-surface px-2">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant font-medium">Abertura</span>
+</div>
+<!-- Step 2: Done -->
+<div class="relative z-10 flex flex-col items-center gap-2 bg-surface px-2">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant font-medium">Aprovação Técnica</span>
+</div>
+<!-- Step 3: Active -->
+<div class="relative z-10 flex flex-col items-center gap-2 bg-surface px-2">
+<div class="w-10 h-10 rounded-full bg-primary-fixed border-4 border-surface text-primary flex items-center justify-center shadow-md ring-2 ring-primary">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">edit_document</span>
+</div>
+<span class="font-body-md text-body-md text-primary font-semibold">Central de Lançamento</span>
+</div>
+<!-- Step 4: Pending -->
+<div class="relative z-10 flex flex-col items-center gap-2 bg-surface px-2 opacity-50">
+<div class="w-8 h-8 rounded-full bg-surface-container-high border-2 border-outline-variant text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">gavel</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Aprovação Fin.</span>
+</div>
+<!-- Step 5: Pending -->
+<div class="relative z-10 flex flex-col items-center gap-2 bg-surface px-2 opacity-50">
+<div class="w-8 h-8 rounded-full bg-surface-container-high border-2 border-outline-variant text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">account_balance</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Pagamento ERP</span>
+</div>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Left Column: Form & Accounting Data (Col span 7) -->
+<div class="col-span-12 lg:col-span-7 flex flex-col gap-6">
+<!-- Lançamento Contábil Card -->
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+<div class="bg-surface-container-low px-6 py-4 border-b border-outline-variant flex items-center justify-between">
+<h3 class="font-headline-md text-body-lg text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">account_tree</span>
+                                Dados de Integração Contábil (ERP)
+                            </h3>
+<span class="px-2 py-1 bg-surface-variant text-on-surface-variant font-code-sm text-[10px] rounded uppercase tracking-wider">Obrigatório</span>
+</div>
+<div class="p-6 grid grid-cols-2 gap-x-6 gap-y-5">
+<!-- Select: Empresa/Filial -->
+<div class="col-span-2 sm:col-span-1">
+<label class="block font-body-sm text-body-sm text-on-surface-variant mb-1.5">Empresa / Filial</label>
+<select class="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-on-surface font-body-md focus:border-primary focus:ring-1 focus:ring-primary transition-shadow appearance-none">
+<option>01 - Matriz São Paulo (CD1)</option>
+<option>02 - Filial Campinas (CD2)</option>
+</select>
+</div>
+<!-- Select: Centro de Custo -->
+<div class="col-span-2 sm:col-span-1">
+<label class="block font-body-sm text-body-sm text-on-surface-variant mb-1.5">Centro de Custo</label>
+<select class="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-on-surface font-body-md focus:border-primary focus:ring-1 focus:ring-primary transition-shadow appearance-none">
+<option>405.11 - Manutenção Industrial</option>
+<option>405.12 - Engenharia Clínica</option>
+</select>
+</div>
+<!-- Select: Conta Contábil -->
+<div class="col-span-2">
+<label class="block font-body-sm text-body-sm text-on-surface-variant mb-1.5">Conta Contábil de Despesa</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant rounded-lg text-on-surface font-body-md focus:border-primary focus:ring-1 focus:ring-primary transition-shadow" type="text" value="3.1.2.04.0005 - Despesas com Manutenção de Máquinas e Equip."/>
+</div>
+</div>
+<!-- Input: Valor -->
+<div class="col-span-2 sm:col-span-1">
+<label class="block font-body-sm text-body-sm text-on-surface-variant mb-1.5">Valor da Nota (R$)</label>
+<input class="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-on-surface font-code-md text-right focus:border-primary focus:ring-1 focus:ring-primary transition-shadow" placeholder="0,00" type="text" value="12.450,00"/>
+</div>
+<!-- Input: Data Vencimento -->
+<div class="col-span-2 sm:col-span-1">
+<label class="block font-body-sm text-body-sm text-on-surface-variant mb-1.5">Data de Vencimento</label>
+<input class="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-on-surface font-body-md focus:border-primary focus:ring-1 focus:ring-primary transition-shadow text-on-surface-variant" type="date"/>
+</div>
+<!-- Textarea: Histórico -->
+<div class="col-span-2">
+<label class="block font-body-sm text-body-sm text-on-surface-variant mb-1.5">Histórico Padrão (Sincronizado com ERP)</label>
+<textarea class="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-on-surface font-body-md focus:border-primary focus:ring-1 focus:ring-primary transition-shadow resize-none" rows="2">Ref. Manutenção preventiva esteira A3 conf. OS 99281. Troca de correias e lubrificação geral.</textarea>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Attachment & Info (Col span 5) -->
+<div class="col-span-12 lg:col-span-5 flex flex-col gap-6">
+<!-- Anexo NF Card -->
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm h-full flex flex-col">
+<div class="bg-surface-container-low px-6 py-4 border-b border-outline-variant flex items-center justify-between">
+<h3 class="font-headline-md text-body-lg text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">receipt_long</span>
+                                Nota Fiscal (XML/PDF)
+                            </h3>
+</div>
+<div class="p-6 flex-1 flex flex-col">
+<!-- Drag & Drop Zone -->
+<div class="border-2 border-dashed border-outline-variant rounded-xl p-8 flex flex-col items-center justify-center bg-surface-container-lowest hover:bg-surface-container-high transition-colors cursor-pointer group mb-6 relative overflow-hidden">
+<div class="absolute inset-0 bg-primary opacity-0 group-hover:opacity-[0.02] transition-opacity"></div>
+<span class="material-symbols-outlined text-[40px] text-outline group-hover:text-primary transition-colors mb-3">cloud_upload</span>
+<p class="font-headline-md text-body-md text-on-surface text-center mb-1">Arraste a NF-e aqui</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-center max-w-[200px]">Formatos suportados: XML, PDF. Tamanho máx: 10MB.</p>
+<button class="mt-4 px-4 py-1.5 bg-surface-variant text-on-surface-variant font-body-sm text-body-sm rounded-lg border border-outline-variant hover:bg-outline hover:text-on-primary transition-colors">Procurar Arquivo</button>
+</div>
+<!-- File List -->
+<h4 class="font-body-sm text-body-sm text-on-surface-variant font-semibold mb-3 uppercase tracking-wider">Arquivos Anexados</h4>
+<div class="space-y-3">
+<!-- File Item -->
+<div class="flex items-center justify-between p-3 rounded-lg border border-outline-variant bg-surface-container-low hover:border-primary transition-colors">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-10 h-10 rounded bg-error-container text-on-error-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+</div>
+<div class="truncate">
+<p class="font-body-md text-body-md text-on-surface truncate">NFe_99281_IndustrialMotors.pdf</p>
+<p class="font-body-sm text-[11px] text-on-surface-variant">Adicionado por Carlos M. • Há 2 horas</p>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-error p-1.5 rounded-md transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<!-- File Item XML -->
+<div class="flex items-center justify-between p-3 rounded-lg border border-outline-variant bg-surface-container-low hover:border-primary transition-colors">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-10 h-10 rounded bg-primary-fixed text-on-primary-fixed-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">code</span>
+</div>
+<div class="truncate">
+<p class="font-body-md text-body-md text-on-surface truncate">3523101234567800019955001000099281.xml</p>
+<p class="font-body-sm text-[11px] text-secondary font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">verified</span> XML Validado SEFAZ
+                                            </p>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-error p-1.5 rounded-md transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Full Width: Request Summary (Col span 12) -->
+<div class="col-span-12">
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+<div class="bg-surface-container-low px-6 py-4 border-b border-outline-variant flex items-center justify-between cursor-pointer group">
+<h3 class="font-headline-md text-body-lg text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-outline">list_alt</span>
+                                Resumo da Solicitação Original (Itens)
+                            </h3>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">expand_more</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-highest border-b border-outline-variant">
+<th class="py-3 px-6 font-body-sm text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold">Cód. Item</th>
+<th class="py-3 px-6 font-body-sm text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold">Descrição do Serviço / Peça</th>
+<th class="py-3 px-6 font-body-sm text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold text-center">Qtd.</th>
+<th class="py-3 px-6 font-body-sm text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold text-right">Vlr. Unitário</th>
+<th class="py-3 px-6 font-body-sm text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold text-right">Vlr. Total</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface">
+<tr class="border-b border-outline-variant hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-6 font-code-sm">SV-9021</td>
+<td class="py-3 px-6">Mão de obra especializada - Manutenção Mecânica (H/h)</td>
+<td class="py-3 px-6 text-center">12</td>
+<td class="py-3 px-6 text-right font-code-md">R$ 150,00</td>
+<td class="py-3 px-6 text-right font-code-md">R$ 1.800,00</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-low transition-colors bg-surface-container-lowest">
+<td class="py-3 px-6 font-code-sm">PC-4412</td>
+<td class="py-3 px-6">Correia Transportadora Lona Lisa 800mm</td>
+<td class="py-3 px-6 text-center">2</td>
+<td class="py-3 px-6 text-right font-code-md">R$ 4.500,00</td>
+<td class="py-3 px-6 text-right font-code-md">R$ 9.000,00</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-6 font-code-sm">PC-1099</td>
+<td class="py-3 px-6">Rolamento de Carga SKF 6205</td>
+<td class="py-3 px-6 text-center">30</td>
+<td class="py-3 px-6 text-right font-code-md">R$ 55,00</td>
+<td class="py-3 px-6 text-right font-code-md">R$ 1.650,00</td>
+</tr>
+</tbody>
+<tfoot>
+<tr class="bg-surface-container-low font-headline-md text-body-md">
+<td class="py-4 px-6 text-right text-on-surface-variant" colspan="4">Total da Solicitação:</td>
+<td class="py-4 px-6 text-right text-primary font-code-lg">R$ 12.450,00</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

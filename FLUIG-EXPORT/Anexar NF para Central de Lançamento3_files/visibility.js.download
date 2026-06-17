@@ -1,0 +1,1824 @@
+// Variáveis para código das atividade
+var inicio = 0;
+var inicio1 = 4;
+var analisePagamento = 262;
+var realizarAjusteGestor = 93;
+var AprovGestor = 60;
+var AprovDiretor = 107;
+var AprovGerenteRegional = 212;
+var AprovPresidente = 196;
+var realizarAjusteGerenteRegional = 225;
+var realizarAjustePresidente = 206;
+var realizarAjusteDiretor = 111;
+var realizarAjusteControladoria = 181;
+var realizarAnalisePagamento = 268;
+var analisarLancarNF = 64;
+var solicitarAjusteNF = 87;
+var corrigirProblemaPublicacao = 102;
+var extraOrcamentario = 142;
+var extraOrcamentarioCentral = 150;
+var providenciarAjustes = 5;
+var providenciarAjustesAtraso = 18;
+var cobrarAtendimentoDemanda = 20;
+var verificarAjustesEncerrarChamado = 7;
+var financeiro = 124;
+var canhotofinanceiro = 170;
+var realizarAjusteFinanceiro = 174;
+var realizarAjusteContabil = 240;
+var analiseContabil = 248;
+var fim = 11;
+var fim2 = 68;
+
+
+// Função principal
+$(document).ready(function (obj) {
+	
+
+    initAtv();
+    view();
+
+    if(mobaiu == 'S'){
+        viewMobile();
+    }
+    
+
+    //Atualiza numero da solicitação
+    if(AprovGestor == numProcess){
+        setaValor("numeroSolicitacao",WKNumProces)
+    }
+    
+    
+    // Regra do campo "Incluir Rateio NF?"
+    $("#idradiorateioNF").click(function(){
+        console.log("Bloqueio do painel de Rateio");
+        showCamposRateio();
+    });
+    
+    //Regra do campo valor Adiantamento
+    $("#idradioAntecipacao").click(function(){
+        console.log("Boqueio do campo valor da Antecipação");
+        showCamposAntecipacao();
+    });
+    
+    //Regra para o XML
+    $("#idradioParcelasNF").click(function(){
+        console.log("Boqueio do painel do XML");
+        showCamposParcelas();
+    });    
+    //Regra para o XML upload
+    $("#idFileUpload").click(function(){
+        console.log("Boqueio do painel os campos Filial e Fornecedor");
+        showCamposBloqueadosXML();
+    }); 
+    //Verificar o preenchimento de funcionario ou fornecedor  
+    $("#idDefinirNF").click(function(){
+        console.log("Boqueio do painel de Funcionario e Fornecedor");
+        showCamposDefinir();
+    });     
+    
+    $("#idRadioLancaInputNF").click(function(){
+        console.log("Boqueio do painel de Solicitação de Ajuste");
+        showCamposCentral();
+    });
+    
+    $("#idRadioPagamentoRealizado").click(function(){
+        console.log("Liberar o campo demanda para finaceiro");
+        showDemandaFinanceiro();
+    });
+    
+    $("#idDescricaoDemandaEnvio").click(function(){
+        console.log("Liberar o campo Carregamento");
+        showCamposCarregamento();
+    });
+    
+    $("#idNF").click(function(){
+        console.log("Liberar o campo Carregamento");
+        showCamposCarregamento();
+    });
+  
+    $("#topBtn").click(function(){
+        console.log("Liberar o campo Carregamento");
+        showCamposCarregamento();
+    });
+    
+    
+    
+    //Função de visualizar a data
+    var numProcess = WKNumProces;
+    if(numProcess == inicio){
+	$.each($("[data-date]"), function(i, o) {
+        var id = $(o).attr("id");
+		FLUIGC.calendar("#" + id);
+	});
+
+    } 
+
+    
+});
+
+//Realiza ações funcionais
+function initAtv() {
+
+    var atividade = WKNumState;
+    
+    if ( atividade == inicio || atividade == inicio1 ) {
+        initCargo();
+        initFluigCalendar();
+    }    
+    
+    
+    
+}
+
+//Mostra, oculta, bloqueia e libera campos
+function view() {
+    var atividade = WKNumState;
+
+    
+    
+    //Protege o campo sobre análise de pagamento em outras atividades
+    if (atividade != analisePagamento){
+    	protege("#accordionChecagens")
+    	$("#obsAnalisePgto").attr('readonly', true);
+    	
+    	
+
+    	
+    }
+    
+    // Regra para atividade Análise de pagamento
+    if (atividade == analisePagamento){
+    	
+    	// Permissão de alteração (Não permite)
+    	$("#formaPagamento").prop('disabled', true); // Não está funcionando 
+    	$("#obsAreaContabil").attr('readonly',true); // Corrigido
+    	
+    	// Permissão de alteração (Permite)
+        $("[id^=centroCustoRateio___]").attr('readonly', false); // Funciona
+        $("#fornecedorC").attr('readonly', false); // Funciona 
+        $("#codigonaturezaC").attr('readonly', false); // Funciona
+        $("[id^=valorRateio___]").attr('readonly', false);
+        
+        
+        // Visualização (Mostra)
+        $("#collapseCabecalhoEnvio").show(); // Funciona
+        $("#accordionListaNFEnvio").show(); // Funciona
+        $("#accordionRateioNF").show();//painel de Rateio
+        $("#obsAreaContabil").show(); // Mostra observação de análise Contábil
+        
+        // Visualização (Esconde)
+        $("#accordionAreaGestor").hide(); // Esconde Aprovação Gestor
+        $("#accordionAreaGerRegional").hide(); // Esconde Aprovação Regional
+        $("#accordionAreaDiretoria").hide(); // Esconde Aprovação Diretoria
+        $("#accordionAreaPresidente").hide(); // Esconde aprovação Presidente
+        $("#accordionAreaControladoria").hide(); // Esconde Ajuste Controladoria
+        $("#accordionLancaInputNF").hide(); // Esconde Lançamento 
+        $("#accordionCabecalho").hide(); // Esconde cabeçalho
+        $("#accordionAtendimento").hide(); // Esconde aba de atendimento
+        $("#accordionLancaWinthor").hide(); // Esconde aba de lançamento 
+        $("#accordionFinanceiroDD").hide(); // Esconde aba do Financeiro
+        $("#buttonRateio").hide(); // Esconde botão de adicionar rateio
+      
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        ajustarDataCentral();
+        
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+     
+		//filtroConta('liberado');
+		filtroFuncionario("liberado");
+	
+		filtroFornecedor("liberado");
+		salvaNatureza();
+		
+
+    }
+    
+    //bloqueios
+ // VERSÃO CORRIGIDA E MAIS ROBUSTA
+    if(atividade != inicio && atividade != inicio1 &&  atividade != realizarAjusteGestor && atividade != corrigirProblemaPublicacao && atividade != providenciarAjustes && atividade != providenciarAjustesAtraso && atividade !=  realizarAjusteFinanceiro && atividade !=  realizarAjusteControladoria && atividade !=  realizarAjusteGerenteRegional && atividade !=  realizarAjustePresidente && atividade !=  realizarAjusteDiretor && atividade != realizarAjusteContabil && atividade != analisePagamento && atividade != analiseContabil && atividade != realizarAnalisePagamento){
+    	$("#formaPagamento").prop('disabled', true);
+    	
+    	
+    	protege("#accordionCabecalhoEnvio")
+        protege("#accordionListaNFEnvio")
+        protege("#accordionNotasLancadas")
+        protege("#accordionRateioNF")
+        protege("#accordionAtivosNF")
+        
+    }
+    
+    if(atividade != AprovGestor && atividade != cobrarAtendimentoDemanda){
+        protege("#accordionAreaGestor")
+    }
+    
+    if(atividade != AprovGerenteRegional){
+        protege("#accordionAreaGerRegional")
+    }
+    
+    if(atividade != AprovPresidente){
+        protege("#accordionAreaPresidente")
+    }
+    
+    if(atividade != AprovDiretor){
+        protege("#accordionAreaDiretoria")
+    }
+    
+    
+    if(atividade != analisarLancarNF && atividade != verificarAjustesEncerrarChamado){
+        protege("#accordionLancaInputNF");
+        protege("#accordionLancaWinthor");
+        protege("#accordionCabecalho")
+    }
+
+    if(atividade != extraOrcamentario && atividade != extraOrcamentarioCentral){
+        protege("#accordionAreaControladoria")
+    }
+       
+    
+    if(atividade != providenciarAjustes && atividade != providenciarAjustesAtraso){
+        protege("#accordionAtendimento")
+    }
+
+    if(atividade != financeiro && atividade != canhotofinanceiro){
+        protege("#accordionFinanceiroDD")
+
+    }
+   
+    
+
+    
+    //liberações
+    if(atividade == inicio || atividade == inicio1){
+    	$("#accordionChecagens").hide();
+        $("#collapseCabecalhoEnvio").show();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAreaDiretoria").hide();
+        $("#accordionAreaGestor").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        //$("#accordionGestor").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaGerRegional").hide();
+        $("#obsAreaContabil").hide();
+        
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        showCamposDefinir();
+        showCamposCarregamento();
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+        
+		//filtroConta('liberado');
+		filtroFuncionario("liberado");
+		filtroFornecedor("liberado");
+		salvaNatureza();
+	
+
+
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+        //Diretor
+        if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        
+        
+
+    }
+    
+    
+    if(atividade == analiseContabil){
+  
+        $("#formaPagamento").prop('disabled', true); 
+        $("[id^=centroCustoRateio___]").attr('readonly', false);
+        $("#fornecedorC").attr('readonly', false);
+        $("#obsAreaContabil").attr('readonly',false);
+        $("#codigonaturezaC").attr('readonly', false);	
+        $("#collapseCabecalhoEnvio").show();
+        $("#accordionListaNFEnvio").show();
+        $("#accordionRateioNF").show();//painel de Rateio
+        $("#accordionAreaGestor").hide();
+        $("#accordionAreaGerRegional").hide();
+        $("#accordionAreaDiretoria").hide();
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionFinanceiroDD").hide();
+        
+        
+        $("#obsAreaContabil").show();
+        
+        $("#buttonRateio").hide();
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        ajustarDataCentral();
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+        filtroFornecedor("liberado");
+		salvaNatureza();
+       
+    }
+    
+   if(atividade == realizarAjusteContabil){
+    	
+
+    	
+        //$("#radioAreaGestorNao").val('nao');
+        //$("#obsAreaGestor").val('Ajustar conforme informação na aba complemento');
+        $("#collapseCabecalhoEnvio").show(); 
+        $("#accordionNotasLancadas").show();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionAreaControladoria").hide();
+      
+        $("#accordionAreaDiretoria").hide();
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaGerRegional").hide();
+        $("#obsAreaContabil").show();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        showCamposDefinir();
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+ 	
+        
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+
+ 
+    }
+ 
+    
+  
+    if(atividade == AprovGestor){
+    	
+        $("#collapseCabecalhoEnvio").show();
+        $("#accordionListaNFEnvio").show();
+        $("#accordionRateioNF").show();//painel de Rateio
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaGerRegional").hide();
+        $("#accordionAreaDiretoria").hide();
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionFinanceiroDD").hide();
+        //$("#accordionAreaContabil").hide();
+        
+        $("#buttonRateio").hide();
+        
+        $("#respAreaContabil").attr('readonly', true);
+        
+        
+  
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        ajustarDataCentral();
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+      
+        
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+       
+    }
+    
+   if(atividade == realizarAjusteGestor){
+    	
+
+    	
+        $("#radioAreaGestorNao").val('nao');
+        $("#obsAreaGestor").val('Ajustar conforme informação na aba complemento');
+        $("#collapseCabecalhoEnvio").show(); 
+        $("#accordionNotasLancadas").show();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionAreaControladoria").hide();
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaDiretoria").hide();
+        $("#accordionAreaPresidente").hide();
+        $("#accordionAreaGerRegional").hide();
+        //$("#accordionAreaContabil").hide();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        showCamposDefinir();
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+
+ 
+    }
+   
+   if(atividade == AprovDiretor){
+   	
+   	//intDiretor();
+   	
+       //$("#radioAreaDiretoria").val('sim');
+       //$("#obsAreaGestor").val('Aprovado');
+       //$("#obsAreaDiretoria").val('Aprovado');
+       $("#radioAreaDiretoria").hide();
+       $("#collapseCabecalhoEnvio").show(); 
+       $("#accordionNotasLancadas").show();
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaDiretoria").show();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionInput").hide();
+       //$("#accordionGestor").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionFinanceiroDD").hide();
+       $("#accordionAreaControladoria").hide();
+       $("#buttonRateio").hide();
+       $("#accordionAreaPresidente").hide();
+       $("#accordionAreaGerRegional").show();
+       //$("#accordionAreaContabil").hide();
+       
+       $("[id^=centroCustoRateio___]").attr('readonly', true);
+       $("[id^=valorRateio___]").attr('readonly', true);
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposAntecipacao();
+       showCamposCentral();
+       //Adicionar a função de Ativos em todas as tarefas
+       showCamposAtivos();
+  
+       //Contabil
+       if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+           $("#obsAreaContabil").show();
+       }else{
+       	$("#obsAreaContabil").hide();
+       }
+       
+      
+   }
+    
+    
+   if(atividade == realizarAjusteDiretor){
+   	
+
+   	
+       $("#radioAreaDiretoriaNao").val('nao');
+       $("#obsAreaDiretoria").val('Ajustar conforme informação na aba complemento');
+       $("#collapseCabecalhoEnvio").show(); 
+       $("#accordionNotasLancadas").show();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionInput").hide();
+       $("#accordionFinanceiroDD").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionAreaControladoria").hide();
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaDiretoria").show();
+       $("#accordionAreaPresidente").hide();
+       $("#accordionAreaGerRegional").show();
+       //$("#accordionAreaContabil").hide();
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposAntecipacao();
+       showCamposCentral();
+       showCamposDefinir();
+	   filtroFuncionario('liberado');
+       //Adicionar a função de Ativos em todas as tarefas
+       showCamposAtivos();
+       //Contabil
+       if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+           $("#obsAreaContabil").show();
+       }else{
+       	$("#obsAreaContabil").hide();
+       }
+
+
+   }
+   
+   if(atividade == AprovGerenteRegional){
+	   
+
+       $("#radioAreaGestor").hide();
+       $("#collapseCabecalhoEnvio").show();
+       $("#accordionNotasLancadas").show();
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaDiretoria").hide();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionInput").hide();
+       $("#accordionFinanceiroDD").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionAreaControladoria").hide();
+       $("#buttonRateio").hide();
+       $("#accordionAreaPresidente").hide();
+       $("#accordionAreaGerRegional").show();
+       $("[id^=centroCustoRateio___]").attr('readonly', true);
+       $("[id^=valorRateio___]").attr('readonly', true);
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposAntecipacao();
+       showCamposCentral();
+       showCamposAtivos();
+       //Contabil
+       if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+           $("#obsAreaContabil").show();
+       }else{
+       	$("#obsAreaContabil").hide();
+       }
+      
+   }
+   
+   
+   if(atividade == realizarAjusteGerenteRegional){
+   	
+
+   	
+       $("#radioAreaGerRegionalNao").val('nao');
+       $("#obsAreaGerRegional").val('Ajustar conforme informação na aba complemento'); 
+       $("#collapseCabecalhoEnvio").show(); 
+       $("#accordionNotasLancadas").show();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionInput").hide();
+       $("#accordionFinanceiroDD").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionAreaControladoria").hide();
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaDiretoria").hide();
+       $("#accordionAreaPresidente").hide();
+       $("#accordionAreaGerRegional").show();
+       
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposAntecipacao();
+       showCamposCentral();
+       showCamposDefinir();
+	   filtroFuncionario("liberado");
+	   
+       showCamposAtivos();
+       //Contabil
+       if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+           $("#obsAreaContabil").show();
+       }else{
+       	$("#obsAreaContabil").hide();
+       }
+
+
+   }
+   
+   
+   if(atividade == AprovPresidente){
+   	
+       $("#radioAreaGestor").hide();
+       $("#collapseCabecalhoEnvio").show();
+       $("#accordionNotasLancadas").show();
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaDiretoria").hide();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionInput").hide();
+  
+       $("#accordionFinanceiroDD").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionAreaControladoria").hide();
+       $("#buttonRateio").hide();
+       $("#accordionAreaPresidente").show();
+       $("#accordionAreaGerRegional").show();
+    
+       
+       
+       $("[id^=centroCustoRateio___]").attr('readonly', true);
+       $("[id^=valorRateio___]").attr('readonly', true);
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposAntecipacao();
+       showCamposCentral();
+  
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+      
+   }
+   
+   if(atividade == realizarAjustePresidente){
+   	
+
+   	
+       $("#radioAreaPresidenteNao").val('nao');
+       $("#obsAreaPresidente").val('Ajustar conforme informação na aba complemento'); 
+       $("#collapseCabecalhoEnvio").show(); 
+       $("#accordionNotasLancadas").show();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionInput").hide();
+       $("#accordionFinanceiroDD").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionAreaControladoria").hide();
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaDiretoria").show();
+       $("#accordionAreaPresidente").show();
+       $("#accordionAreaGerRegional").show();
+       //$("#accordionAreaContabil").hide();
+       showCamposParcelas(); 
+       showCamposRateio();
+       showCamposAntecipacao();
+       showCamposCentral();
+       showCamposDefinir();
+	   filtroFuncionario("liberado");
+       //Adicionar a função de Ativos em todas as tarefas
+       showCamposAtivos();
+       //Contabil
+       if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+           $("#obsAreaContabil").show();
+       }else{
+       	$("#obsAreaContabil").hide();
+       }
+
+
+
+   }
+   
+   if(atividade == extraOrcamentario){
+   	
+   	   intNome();
+   	
+       //$("#radioAreaDiretoria").val('sim');
+       $("#obsAreaGestor").val('Aprovado');
+       $("#obsAreaDiretoria").val('Aprovado');
+       $("#obsAreaGerRegional").val('Aprovado');
+       $("#obsAreaPresidente").val('Aprovado');
+       $("#radioAreaDiretoria").hide();
+       $("#collapseCabecalhoEnvio").show(); 
+       $("#accordionNotasLancadas").show();
+       $("#accordionAreaGestor").show();
+       $("#accordionAreaDiretoria").show();
+       $("#accordionLancaInputNF").hide();
+       $("#accordionCabecalho").hide();
+       $("#accordionAtendimento").hide();
+       $("#accordionInput").hide();
+       //$("#accordionGestor").hide();
+       $("#accordionLancaWinthor").hide();
+       $("#accordionFinanceiroDD").hide();
+       $("#accordionAreaPresidente").show();
+       $("#accordionAreaGerRegional").show();
+       //$("#accordionAreaContabil").hide();
+       
+       $("#buttonRateio").hide();
+       
+       $("[id^=centroCustoRateio___]").attr('readonly', true);
+       $("[id^=valorRateio___]").attr('readonly', true);
+       showCamposParcelas();
+       showCamposRateio();
+       showCamposAntecipacao();
+       showCamposCentral();
+     
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+       
+      
+   }
+    
+    if(atividade == realizarAjusteControladoria){
+    	
+        
+        $("#radioAreaDiretoria").hide();
+        $("#collapseCabecalhoEnvio").show(); 
+        $("#accordionNotasLancadas").show();
+        $("#accordionLancaInputNF").hide();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionLancaWinthor").hide();
+        $("#accordionFinanceiroDD").hide();
+        $("#accordionAreaControladoria").show();
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaPresidente").show();
+        $("#accordionAreaGerRegional").show();
+        $("#accordionAreaDiretoria").show();
+        //$("#accordionAreaContabil").hide();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        showCamposDefinir();
+		filtroFuncionario("liberado");
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+
+
+        //Gestor/Gerente
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        
+        
+        //Diretor
+        if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        //Controladoria
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+        
+    }
+    
+   
+    if (atividade == realizarAnalisePagamento){
+    	
+    	//Permissões de visualização 
+    	
+    	// Permissão de alteração (Não permite)
+    	$("#formaPagamento").prop('disabled', true); // Não está funcionando 
+    	$("#obsAreaContabil").attr('readonly',true); // Corrigido
+    	
+    	// Permissão de alteração (Permite)
+        $("[id^=centroCustoRateio___]").attr('readonly', false); // Funciona
+        $("#fornecedorC").attr('readonly', false); // Funciona 
+        $("#codigonaturezaC").attr('readonly', false); // Funciona
+        $("[id^=valorRateio___]").attr('readonly', false);
+        
+        
+    	 //Mostra
+         $("#collapseCabecalhoEnvio").show(); 
+         $("#accordionNotasLancadas").show();
+         $("#accordionChecagens").show();
+         $("#accordionListaNFEnvio").show(); // Funciona
+         $("#accordionRateioNF").show();//painel de Rateio
+         $("#obsAreaContabil").show(); // Mostra observação de análise Contábil
+         
+         //Esconde
+         $("#accordionLancaInputNF").hide();
+         $("#accordionCabecalho").hide();
+         $("#accordionAtendimento").hide();
+         $("#accordionInput").hide();
+         $("#accordionLancaWinthor").hide();
+         $("#accordionFinanceiroDD").hide();
+         $("#radioAreaDiretoria").hide();
+         $("#accordionAreaGestor").hide();
+         $("#accordionAreaPresidente").hide();
+         $("#accordionAreaGerRegional").hide();
+         $("#accordionAreaDiretoria").hide();
+        
+     
+         showCamposParcelas();
+         showCamposRateio();
+         showCamposAntecipacao();
+         showCamposCentral();
+         showCamposDefinir();
+         
+ 		 filtroFuncionario("liberado");
+ 		 filtroFornecedor("liberado");
+         
+ 		 //Adicionar a função de Ativos em todas as tarefas
+         showCamposAtivos();
+
+
+         //Gestor/Gerente
+         if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+             $("#accordionAreaGestor").show();
+         }else{
+         	$("#accordionAreaGestor").hide();
+         }
+         
+         //Gerente Regional
+         if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+             $("#accordionAreaGerRegional").show();
+         }else{
+         	$("#accordionAreaGerRegional").hide();
+         }
+         
+         
+         //Diretor
+         if($("#obsGestorAreaDiretoria").val() != "" && $("#obsGestorAreaDiretoria").val() != null){
+             $("#accordionAreaDiretoria").show();
+         }else{
+         	$("#accordionAreaDiretoria").hide();
+         }
+         
+         //Presidente
+         if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+             $("#accordionAreaPresidente").show();
+         }else{
+         	$("#accordionAreaPresidente").hide();
+         }
+         //Controladoria
+         if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+         	$("#accordionAreaControladoria").show();
+         }else{
+         	$("#accordionAreaControladoria").hide();
+         }
+         //Contabil
+         if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+             $("#obsAreaContabil").show();
+         }else{
+         	$("#obsAreaContabil").hide();
+         }
+         
+    	
+    	
+    }
+    
+ 
+    
+    if(atividade == extraOrcamentarioCentral){
+    	
+    	intNome();
+    	
+        //$("#radioAreaDiretoria").val('sim');
+        //$("#obsAreaGestor").val('Aprovado');
+        //$("#obsAreaDiretoria").val('Aprovado');
+        //$("#radioAreaDiretoria").hide();
+        //$("#collapseCabecalhoEnvio").show(); 
+        //$("#accordionNotasLancadas").show();
+        //$("#accordionAreaGestor").show();
+        //$("#accordionAreaDiretoria").show();
+        //$("#accordionLancaInputNF").hide();
+        //$("#accordionCabecalho").hide();
+        //$("#accordionAtendimento").hide();
+        //$("#accordionInput").hide();
+        //$("#accordionGestor").hide();
+        //$("#accordionLancaWinthor").hide();
+       //$("#accordionFinanceiroDD").hide();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+      
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+        
+        
+        
+        //regras da tela da controladoria
+    	$("#accordionCabecalho").show();
+        $("#accordionAreaGestor").show();
+        //$("#accordionAtendimento").show();
+        //$("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        //$("#accordionLancaWinthor").show();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show()
+        }else{
+        	$("#accordionAreaGestor").hide()
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+
+        if($("#obsAtendimento").val() != "" && $("#obsAtendimento").val() != null){
+            $("#accordionAtendimento").show()
+        }else{
+        	$("#accordionAtendimento").hide()
+        }
+        /*
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        */
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+             
+       
+    }    
+    
+    
+    
+    if(atividade == analisarLancarNF){
+
+        $("#obsAreaGestor").val('Aprovado');
+        $("#obsAreaDiretoria").val('Aprovado');
+        $("#obsAreaGerRegional").val('Aprovado');
+        $("#obsAreaDiretoria").val('Aprovado');
+        $("#collapseCabecalhoEnvio").show(); 
+        $("#accordionLancaInputNF").show();
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaDiretoria").show();
+        //$("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        $("#accordionLancaWinthor").show();
+        $("#accordionAreaPresidente").show();
+        $("#accordionAreaGerRegional").show();
+        //$("#accordionAreaContabil").hide();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+      
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+        
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+        
+       
+    }
+    
+    if(atividade == fim2){
+
+        $("#collapseCabecalhoEnvio").show(); 
+        $("#accordionLancaInputNF").show();
+        $("#accordionCabecalho").hide();
+        //$("#accordionAtendimento").hide();
+        $("#accordionAtendimento").show();
+        $("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        //$("#accordionAreaContabil").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        showCamposDefinir();
+        showDemandaFinanceiro();
+        showCamposCarregamento();
+	
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+		
+
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        /*
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        */
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        if($("#NumLancW").val() != "" && $("#NumLancW").val() != null){
+            $("#accordionLancaWinthor").show();
+        }else{
+            $("#accordionLancaWinthor").hide();
+        }
+        
+        if($("#obsInput").val() != "" && $("#obsInput").val() != null){
+        	$("#accordionInput").show();
+        }else{
+        	$("#accordionInput").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+        
+       
+    }
+    
+   
+    
+    
+    
+    if(atividade == providenciarAjustes || atividade == providenciarAjustesAtraso){
+
+    	setaValor("respAtendimento",nomeUsuario);
+    	//$("#accordionCabecalho").show();
+    	$("#accordionAtendimento").show();
+        //$("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        $("#obsAreaContabil").hide();
+        //$("#accordionLancaWinthor").hide();
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        showCamposDefinir();
+        showDemandaFinanceiro();
+        showCamposCarregamento();
+		filtroFuncionario("liberado");
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+        
+  
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show()
+        }else{
+        	$("#accordionAreaGestor").hide()
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        if($("#obsInput").val() != "" && $("#obsInput").val() != null){
+            $("#accordionInput").show()
+        }else{
+        	$("#accordionInput").hide()
+        }
+        
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+        
+    }
+   
+    
+    
+    if(atividade == verificarAjustesEncerrarChamado){
+    	
+    	//$("#accordionCabecalho").show();
+        $("#accordionAreaGestor").show();
+        //$("#accordionAtendimento").show();
+        //$("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        $("#obsAreaContabil").hide();
+        //$("#accordionLancaWinthor").show();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        showCamposDefinir();
+        showDemandaFinanceiro();
+        showCamposCarregamento();
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show()
+        }else{
+        	$("#accordionAreaGestor").hide()
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+
+        if($("#obsAtendimento").val() != "" && $("#obsAtendimento").val() != null){
+            $("#accordionAtendimento").show()
+        }else{
+        	$("#accordionAtendimento").hide()
+        }
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+        
+        
+         
+
+    }
+    if(atividade == financeiro || atividade == canhotofinanceiro){
+
+        $("#obsAreaGestor").val('Aprovado');
+        $("#obsAreaDiretoria").val('Aprovado');
+        $("#collapseCabecalhoEnvio").show(); 
+        $("#accordionLancaInputNF").show();
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaDiretoria").show();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        $("#accordionLancaWinthor").show();
+        $("#accordionAreaPresidente").show();
+        $("#accordionAreaGerRegional").show();
+        //$("#accordionAreaContabil").hide();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        showCamposDefinir();
+        showDemandaFinanceiro();
+        showCamposCarregamento();
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        if($("#obsInput").val() != "" && $("#obsInput").val() != null){
+        	$("#accordionInput").show();
+        }else{
+        	$("#accordionInput").hide();
+        }
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("$obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+        
+        
+       
+    }
+    
+    
+    if(atividade == realizarAjusteFinanceiro){
+
+        $("#obsAreaGestor").val('Aprovado');
+        $("#obsAreaDiretoria").val('Aprovado');
+        $("#collapseCabecalhoEnvio").show(); 
+        $("#accordionLancaInputNF").show();
+        $("#accordionAreaGestor").show();
+        $("#accordionAreaDiretoria").show();
+        $("#accordionCabecalho").hide();
+        $("#accordionAtendimento").hide();
+        $("#accordionInput").hide();
+        $("#accordionGestor").hide();
+        $("#accordionLancaWinthor").show();
+        $("#accordionAreaPresidente").show();
+        $("#accordionAreaGerRegional").show();
+        //$("#accordionAreaContabil").hide();
+        
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+        showCamposParcelas();
+        showCamposRateio();
+        showCamposAntecipacao();
+        showCamposCentral();
+        showCamposDefinir();
+        showDemandaFinanceiro();
+        showCamposCarregamento();
+		filtroFuncionario("liberado");
+        //Adicionar a função de Ativos em todas as tarefas
+        showCamposAtivos();
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show();
+        }else{
+        	$("#accordionAreaGestor").hide();
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        if($("#obsInput").val() != "" && $("#obsInput").val() != null){
+        	$("#accordionInput").show();
+        }else{
+        	$("#accordionInput").hide();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+        	$("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+        
+        
+       
+    }
+    
+    
+    
+    
+    
+    if(atividade == fim){
+        if($("#obsInput").val() != "" && $("#obsInput").val() != null){
+            $("#accordionInput").show()
+        }
+        
+        $("#accordionAtendimento").show();
+        
+        $("#buttonRateio").hide();
+        
+        $("[id^=centroCustoRateio___]").attr('readonly', true);
+        $("[id^=valorRateio___]").attr('readonly', true);
+
+        
+        
+        if($("#obsGestor").val() != "" && $("#obsGestor").val() != null){
+            $("#accordionGestor").show();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        
+        if($("#NumLancW").val() != "" && $("#NumLancW").val() != null){
+            $("#accordionLancaWinthor").show();
+        }else{
+            $("#accordionLancaWinthor").hide();
+        }
+        
+        if($("#obsAreaGestor").val() != "" && $("#obsAreaGestor").val() != null){
+            $("#accordionAreaGestor").show()
+        }else{
+        	$("#accordionAreaGestor").hide()
+        }
+        
+        if($("#obsAreaDiretoria").val() != "" && $("#obsAreaDiretoria").val() != null){
+            $("#accordionAreaDiretoria").show();
+        }else{
+        	$("#accordionAreaDiretoria").hide();
+        }
+        if($("#obsAreaControladoria").val() != "" && $("#obsAreaControladoria").val() != null){
+        	$("#accordionAreaControladoria").show();
+        }else{
+        	$("#accordionAreaControladoria").hide();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+            $("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        if($("#obsAtendimentoFin").val() != "" && $("#obsAtendimentoFin").val() != null){
+        	$("#accordionFinanceiroDD").show();
+        }else{
+        	$("#accordionFinanceiroDD").hide();
+        }
+        
+        //Presidente
+        if($("#obsAreaPresidente").val() != "" && $("#obsAreaPresidente").val() != null){
+            $("#accordionAreaPresidente").show();
+        }else{
+        	$("#accordionAreaPresidente").hide();
+        }
+        
+        //Gerente Regional
+        if($("#obsAreaGerRegional").val() != "" && $("#obsAreaGerRegional").val() != null){
+            $("#accordionAreaGerRegional").show();
+        }else{
+        	$("#accordionAreaGerRegional").hide();
+        }
+        //Contabil
+        if($("#obsAreaContabil").val() != "" && $("#obsAreaContabil").val() != null){
+            $("#obsAreaContabil").show();
+        }else{
+        	$("#obsAreaContabil").hide();
+        }
+
+        
+    }
+
+}
+
+function protege(div){
+    $(div).find("input[type='text'],textarea").attr("readonly",true)
+    $(div).find("input[type='radio']").attr("onclick",'return false')
+    $(div).find("input[type='checkbox']").attr("onclick",'return false')
+
+    setTimeout(function(){ 
+        $(div).find("select[type='zoom']").each(function(){
+            window[$(this).attr("id")].disable(true)
+        })
+     }, 1000);
+    
+
+
+     $(div).find("button").attr("disabled",true)
+}
+
+function viewMobile(){
+   // $("#checkPagForaPrazo").closest("div").parent().removeClass("fs-float-right").attr("style","")
+    $("#btnAnexar").hide()
+}
+
+
+/*
+//Função de bloqueio da tela Dados de Lançamento do Número de Transação
+function showPainelDadosTransacao() {
+    // Se tiver marcado que a o lançamento foi realizado, esconder os campos do painel
+    var radioTipoSolic = $('input[name=radioLancaInputNF]:checked').val();
+    if ( radioTipoSolic == "sim" ) {
+        $("#painelLancaWinthor").show();
+        $("#painelLancaWinthor").attr("style", "display: block");
+
+        
+    } else {
+        $("#painelLancaWinthor").hide();
+        $("#painelLancaWinthor").attr("style", "display: none");
+       
+    }
+ 
+}
+
+//Função de bloqueio da tela Dados de Lançamento do Número de Transação
+function showPainelDadosTransacao2() {
+    // Se tiver marcado que a o lançamento foi realizado, esconder os campos do painel
+    var radioTipoSolic = $('input[name=radioInputResolvida]:checked').val();
+    if ( radioTipoSolic == "sim" ) {
+        $("#painelLancaWinthor").show();
+        $("#painelLancaWinthor").attr("style", "display: block");
+
+        
+    } else {
+        $("#painelLancaWinthor").hide();
+        $("#painelLancaWinthor").attr("style", "display: none");
+       
+    }
+ 
+}
+
+*/
+
+/*
+//Função de bloqueio da tela Dados Bancários
+function showPainelDadosBancarios() {
+    // Se tiver marcado que a o lançamento foi realizado, esconder os campos do painel
+    var radioConta = $('input[name=radioDoc02]:checked').val();
+    if ( radioConta == "sim" ) {
+        $("#painelContaInputNF").show();
+        $("#painelContaInputNF").attr("style", "display: block");
+
+        
+    } else {
+        $("#painelContaInputNF").hide();
+        $("#painelContaInputNF").attr("style", "display: none");
+       
+    }
+ 
+}
+*/
+
+//Mostrar campos de Rateio
+function showCamposRateio(){
+    // Verificando o seleção do rateio
+    var rateioNF = $('input[name=radiorateioNF]:checked').val();
+    if ( rateioNF == "sim" ) {
+        $("#painelRateioNF").show();
+        $("#valorNFRateioR").show();
+        
+    } else {
+        $("#painelRateioNF").hide();
+        $("#valorNFRateioR").hide();
+    }
+
+}
+//Função para mostrar campos relacionados a antecipação
+function showCamposAntecipacao(){
+    // Verificando o seleção da antecipação
+    var selecaoAntecipacao = $('input[name=radioAntecipacao]:checked').val();
+    if ( selecaoAntecipacao == "sim" ) {
+        $("#idvalorAntecipacao").show();
+        $("#idfluigAntecipacao").show();
+        
+    } else {
+        $("#idvalorAntecipacao").hide();
+        $("#idfluigAntecipacao").hide();
+    }
+
+}
+
+//Função para mostrar opções de parcelas
+function showCamposParcelas(){
+    // Verificando o seleção do rateio
+    var parcelasNF = $('input[name=radioParcelasNF]:checked').val();
+    if ( parcelasNF == "sim" ) {
+        $("#idpainelParcelasNF").show();
+        
+    } else {
+        $("#idpainelParcelasNF").hide();
+
+    }
+
+}
+
+//Função para mostrar 
+function showCamposBloqueadosXML(){
+    $("#unidadeFilial").attr('readonly', true);
+    $("#fornecedorC").attr('readonly', true);
+    $("#obsAreaContabil").attr('readonly',true);
+    $("#funcionarioC").attr('readonly', true);
+    $("#nNotaFiscal").attr('readonly', true);
+    $("#dataEmissaoNF").attr('readonly', true);
+    $("#valorNF").attr('readonly', true);
+    $("#codigonaturezaC").attr('readonly', true);
+    //$("#valorNF").attr('mask',false);
+}
+
+
+
+function showCamposDefinir(){
+    // Verificando o seleção do rateio
+    var definirCF = $('input[name=definirNF]:checked').val();
+    if ( definirCF == "fornecedor" ) {
+        $("#idfornecedorC").show();
+        $("#idfuncionarioC").hide();
+       
+        
+    } else {
+        $("#idfornecedorC").hide();
+        $("#idfuncionarioC").show(); 
+    }
+
+}
+
+// Função para Mostrar campos relacionados a central
+function showCamposCentral(){
+    // Verificando o seleção do rateio
+    var camposCentral = $('input[name=radioLancaInputNF]:checked').val();
+    if ( camposCentral == "nao" ) {
+        $("#painelCabecalho").show();
+        $("#painelLancaWinthor").hide();
+        
+    } else {
+        $("#painelCabecalho").hide();
+        $("#painelLancaWinthor").show();
+    }
+
+}
+
+function showDemandaFinanceiro(){
+    // Verificando o seleção do Demanda para financeiro
+    var campoDemanda = $('input[name=radioPagamentoRealizado]:checked').val();
+    if ( campoDemanda == "nao" ) {
+        $("#idZoomDemandaFinanceiro").show();
+        
+        
+    } else {
+        $("#idZoomDemandaFinanceiro").hide();
+        
+    }
+
+}
+//regra de interface do campo carregamento
+function showCamposCarregamento(){
+    // Verificando o seleção do Contrato
+    var camposCarregamento = $("#contaCentroCusto").val();
+    if ( camposCarregamento == "712009" ) {
+        $("#idNumeroCarregamento").show();
+
+        
+    } else {
+        $("#idNumeroCarregamento").hide();
+
+    }
+
+}
+
+//regra de interface do painel de Ativos
+function showCamposAtivos(){
+    // Verificando o seleção do Contrato
+    var camposAtivos = $("#contaCentroCusto").val();
+    if ( camposAtivos == "716008" ||camposAtivos == "703008" || camposAtivos == "716035" ) {
+        $("#accordionAtivosNF").show();
+
+        
+    } else {
+        $("#accordionAtivosNF").hide();
+
+    }
+
+}
+
+

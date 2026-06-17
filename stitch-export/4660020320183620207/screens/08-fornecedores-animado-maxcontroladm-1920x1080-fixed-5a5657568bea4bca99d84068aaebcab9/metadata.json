@@ -1,0 +1,69 @@
+{
+    "screenId":  "5a5657568bea4bca99d84068aaebcab9",
+    "name":  "projects/4660020320183620207/screens/5a5657568bea4bca99d84068aaebcab9",
+    "title":  "08. Fornecedores Animado - MaxControLADM (1920x1080) Fixed",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "5a5657568bea4bca99d84068aaebcab9",
+                          "sourceScreen":  "projects/4660020320183620207/screens/5a5657568bea4bca99d84068aaebcab9",
+                          "x":  5478,
+                          "y":  4289,
+                          "width":  1280,
+                          "height":  1080,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\08-fornecedores-animado-maxcontroladm-1920x1080-fixed-5a5657568bea4bca99d84068aaebcab9",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/96d68856981642fdb52507da2b7a7a12",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2UyYWRmOTNlMGIwYjQ5Mzc4MDAzMWIwY2UwYTg4OTU5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\08-fornecedores-animado-maxcontroladm-1920x1080-fixed-5a5657568bea4bca99d84068aaebcab9\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\08-fornecedores-animado-maxcontroladm-1920x1080-fixed-5a5657568bea4bca99d84068aaebcab9\\screen.html",
+                                  "bytes":  28204,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/b391917bd45240da89973111e712758f",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuftsTSwX0dEdYBxCTZLswS16bsDys7-283qVcmVZ-BlNbzPC4o6R2l2wM10G_j_sJV5HU4uRcgxRTAiSjAXfWe3EKJlajOizMk0y1ramC_nen4h7ZgrIO-RE_wg8wT22qkvMJCXh62p-SwmsUw_eH9lxyef3vRpYrfwK-H_VKHEPTMJi7jqUddzAhJOH09pgDCvHFt_mR1tXdwiXKUcycnTu2Bzog9u_GPRygG5F1jIIiQ7kTTX9-6pWo",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\08-fornecedores-animado-maxcontroladm-1920x1080-fixed-5a5657568bea4bca99d84068aaebcab9\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\08-fornecedores-animado-maxcontroladm-1920x1080-fixed-5a5657568bea4bca99d84068aaebcab9\\screenshot.png",
+                                        "bytes":  23404,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/5a5657568bea4bca99d84068aaebcab9",
+                   "title":  "08. Fornecedores Animado - MaxControLADM (1920x1080) Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/b391917bd45240da89973111e712758f",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuftsTSwX0dEdYBxCTZLswS16bsDys7-283qVcmVZ-BlNbzPC4o6R2l2wM10G_j_sJV5HU4uRcgxRTAiSjAXfWe3EKJlajOizMk0y1ramC_nen4h7ZgrIO-RE_wg8wT22qkvMJCXh62p-SwmsUw_eH9lxyef3vRpYrfwK-H_VKHEPTMJi7jqUddzAhJOH09pgDCvHFt_mR1tXdwiXKUcycnTu2Bzog9u_GPRygG5F1jIIiQ7kTTX9-6pWo"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/96d68856981642fdb52507da2b7a7a12",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2UyYWRmOTNlMGIwYjQ5Mzc4MDAzMWIwY2UwYTg4OTU5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

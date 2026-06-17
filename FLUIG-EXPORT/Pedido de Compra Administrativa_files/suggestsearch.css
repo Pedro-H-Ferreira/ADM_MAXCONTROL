@@ -1,0 +1,103 @@
+.suggest-search {
+	position: relative;
+}
+
+/*
+ *
+ * Search Header
+ *
+ */
+
+.suggest-search .suggest-search-tool {
+	background: #ebebeb;
+	border: 1px solid #7B7B7B;
+	width: 355px;
+	position: relative;
+}
+
+.suggest-search .suggest-search-tool:after {
+	background: #999999;
+	position: absolute;
+	content: "";
+	width: 1px;
+	height: 24px;
+	right: 32px;
+	top: 3px;
+}
+
+.suggest-search .search-input-text {
+	padding: 6px 38px 6px 6px;
+	width: 100%;
+	border: none;
+	background: none;
+	font-size: 14px;
+	line-height: 18px;
+	margin: 0;
+}
+
+.suggest-search .search-input-text:focus {
+	outline: none;
+}
+
+.suggest-search .search-input-button {
+	background: url('../img/icon-search.png') no-repeat 6px 6px;
+	border: none;
+	margin: 0;
+	height: 30px;
+	width: 32px;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+/*
+ *
+ * Formatando a lista de resultados da busca.
+ * Obs. Foi usado a propriedade "!important" para "matar" a formatação padrão do jQuery UI.
+ *
+ */
+
+.list-of-search-results {
+	border-color: #b2b2b2 !important;
+	border-radius: 0 0 4px 4px !important;
+	overflow: hidden !important;
+	padding: 0 !important;
+	font-size: 1em !important;
+	font-family: inherit !important;
+	position: fixed  !important;
+}
+
+.list-of-search-results .ui-menu-item {
+	border-color: #ccc !important;
+	border-style: solid !important;
+	border-width: 1px 0 0 !important;
+	padding: 12px;
+}
+
+.list-of-search-results .ui-menu-item:hover,
+.list-of-search-results .ui-menu-item.ui-state-hover,
+.list-of-search-results .ui-menu-item.ui-state-active,
+.list-of-search-results .ui-menu-item.ui-state-focus {
+	margin: 0 !important;
+	background-color: #e7e7e7 !important;
+}
+
+.list-of-search-results .see-all-results {
+	background-color: #efefef;
+	border-top: 1px solid #b2b2b2;
+	clear: left;
+	float: left;
+	padding: 8px 10px;
+	text-align: center;
+	width: 100%;
+}
+
+.list-of-search-results .see-all-results:hover {
+	background-color: #e7e7e7;
+}
+
+.list-of-search-results .see-all-results a,
+.list-of-search-results .see-all-results a:hover {
+	color: #656565;
+	text-decoration: none;
+}

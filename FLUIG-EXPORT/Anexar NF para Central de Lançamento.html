@@ -1,0 +1,2763 @@
+<!DOCTYPE html>
+<!-- saved from url=(0142)https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=11">
+			<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        
+        <meta name="description" content="Fluig - Movimentar Solicitação">
+        <meta name="keywords" content="Portal, ECM, Social, TOTVS, WCM, WEB, Management">
+        <meta name="author" content="VP Fluig">
+        <title>TOTVS Fluig Plataforma - Movimentar Solicitação</title>
+        <link id="favicon" rel="shortcut icon" type="image/x-icon" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/api/servlet/image/1/custom/favicon_image.ico">
+<!-- Variáveis utilizadas pelas widgets do no-code -->
+<script type="text/javascript" async="" src="./Anexar NF para Central de Lançamento_files/ga.js.download"></script><script type="text/javascript" style="color: rgb(0, 0, 0);">
+	(function(global) {
+
+		var staticUrl = 'https://static.dev.totvs.io';
+		var environmentType = 'QA';
+		var identityUrl = 'https://app.fluigidentity.net';
+		var apiUrl = 'https://api-fluig-nocode.qa.fluig.io';
+		var realtimeUrl = 'https://realtime-fluig-nocode.qa.fluig.io';
+
+		try {
+							var isSAMLEnabled = true;
+				var idpHomePageURL = "https://grupobw.fluigidentity.com/cloudpass";
+
+			if (idpHomePageURL && idpHomePageURL.indexOf('.fluigidentity.net') !== -1) {
+				environmentType = 'QA';
+				staticUrl = 'https://static.dev.totvs.io';
+				identityUrl = 'https://app.fluigidentity.net';
+				apiUrl = 'https://api-fluig-nocode.qa.fluig.io';
+				realtimeUrl = 'https://realtime-fluig-nocode.qa.fluig.io';
+			}
+
+			if (idpHomePageURL && idpHomePageURL.indexOf('.customerfi.com') !== -1) {
+				environmentType = 'HOMOLOG';
+				staticUrl = 'https://static.staging.totvs.app';
+				identityUrl = 'https://app.customerfi.com';
+				apiUrl = 'https://api-fluig-nocode.homolog.fluig.io';
+				realtimeUrl = 'https://realtime-fluig-nocode.homolog.fluig.io';
+			}
+
+			if (idpHomePageURL && idpHomePageURL.indexOf('.fluigidentity.com') !== -1) {
+				environmentType = 'PROD';
+				staticUrl = 'https://static.totvs.app';
+				identityUrl = 'https://app.fluigidentity.com';
+				apiUrl = 'https://api-fluig-nocode.fluig.app';
+				realtimeUrl = 'https://realtime-fluig-nocode.fluig.app';
+			}
+		} catch(error) {
+			console.error('Não foi possível obter as informações corretamente do SAML.', error);
+		}
+
+		global.environmentType = environmentType;
+		global.envConfig = {
+			BASE_STATIC_URL: staticUrl,
+			ACCESS_TOKEN_URL: '/authentication/api/v1/nocode/exchange',
+			REFRESH_TOKEN_URL: '/authentication/api/v1/nocode/refresh',
+			ACCESS_TOKEN_KEY: 'nocode.jwt.token',
+			REFRESH_TOKEN_KEY: 'nocode.jwt.refresh.token',
+			CLIENT_ID_KEY: 'nocode.client.id',
+			ENVIRONMENT_TYPE: environmentType,
+			BASE_API_URL: apiUrl,
+			BASE_API_SUBDOMAIN: '',
+			BASE_REALTIME_URL: realtimeUrl,
+			BASE_REALTIME_SUBDOMAIN: '',
+			IDENTITY_URL: identityUrl,
+		};
+	})(this);
+</script><!-- Variável utilizada pelas APIS do portal carregadas antes da configuração do WCMAPI -->
+<script type="text/javascript">
+	window.wcmlocation = "pt_BR";
+</script>
+<style>.file-input-wrapper { overflow: hidden; position: relative; cursor: pointer; z-index: 1; }.file-input-wrapper input[type=file], .file-input-wrapper input[type=file]:focus, .file-input-wrapper input[type=file]:hover { position: absolute; top: 0; left: 0; cursor: pointer; opacity: 0; filter: alpha(opacity=0); z-index: 99; outline: 0; }.file-input-name { margin-left: 8px; }</style><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/wcm_global.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/responsive_theme.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/wcm_style.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/datatable.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/tabview.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/message.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/alertpopover.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/responsive-layout.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/responsive-header.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/responsive-search.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/responsive-notify.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/datatable(1).css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/suggestsearch.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/message(1).css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/menu.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/responsive-menu.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/socialsearch.css"><link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/usepolicy.css">
+<!-- Plugin blueimp-load-image utilizado para fazer a analise da imagem e verificar se ela foi rotacionada ou não -->
+<script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/load-image.all.min.js.download"></script>
+<script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/jquery-3.6.0.min.js.download"></script>
+		<script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/jquery-migrate-3.3.2.js.download"></script>
+<script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/jquery-ready-revert.js.download"></script>
+<script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/jquery-ui.min.js.download"></script>
+<script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/api_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/wcm_global_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/fluig-style-guide.min.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/upload.bundle.js.download" charset="utf-8"></script><style>.fluig-style-guide .upload .container .information-container, .fluig-style-guide .upload .container.drop-zone.theme-small {
+  flex-direction: row;
+}
+
+.fluig-style-guide .upload {
+  --color-neutral-ultra-light: #E8E9EB;
+  --color-neutral-white: #FFF;
+  --color-neutral-light: #D2D3D6;
+  --color-neutral-medium: #AFB0B3;
+}
+.fluig-style-guide .upload .container.drop-zone {
+  flex-direction: column;
+  padding: 3.125rem;
+}
+.fluig-style-guide .upload .container.drop-zone.theme-small, .fluig-style-guide .upload .container.drop-zone {
+  display: flex;
+  border: 1px dashed var(--color-neutral-light);
+  background-color: var(--color-neutral-white);
+  border-radius: 4px;
+  justify-content: center;
+  align-items: center;
+}
+.fluig-style-guide .upload .container.drop-zone.theme-small .title, .fluig-style-guide .upload .container.drop-zone .title {
+  line-height: 1.5rem;
+}
+.fluig-style-guide .upload .container.drop-zone.theme-small .message, .fluig-style-guide .upload .container.drop-zone .message {
+  line-height: 1.125rem;
+}
+.fluig-style-guide .upload .container.drop-zone.theme-small img.icon-loading, .fluig-style-guide .upload .container.drop-zone img.icon-loading {
+  height: 24px;
+  width: 24px;
+  content: url(https://nossaempresa.fluig.cloudtotvs.com.br/style-guide/elements/ca37009332e61b523d84.svg);
+}
+.fluig-style-guide .upload .container.drop-zone.theme-small {
+  padding: 1.5rem;
+  margin: 0;
+  margin-bottom: 0.313rem;
+}
+.fluig-style-guide .upload .container.drop-zone.theme-small .description {
+  margin: auto;
+}
+.fluig-style-guide .upload .container.drop-zone.drop-hover {
+  background-color: var(--color-neutral-ultra-light);
+  border-color: var(--color-neutral-medium);
+}
+.fluig-style-guide .upload .container .information-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}</style><style>.fluig-style-guide .componente-progress-bar {
+  --color-neutral-ultra-light: #E8E9EB;
+  --color-neutral-white: #FFF;
+  --color-neutral-light: #D2D3D6;
+  --color-neutral-medium: #AFB0B3;
+}
+.fluig-style-guide .componente-progress-bar.media {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  padding: 1rem;
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-ultra-light);
+  border-radius: 4px;
+}
+.fluig-style-guide .componente-progress-bar.media .thumb {
+  height: 40px;
+  width: 40px;
+  margin: auto;
+}
+.fluig-style-guide .componente-progress-bar.media .media-body .container-progress-bar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.fluig-style-guide .componente-progress-bar.media .media-body .container-progress-bar .progress {
+  align-self: center;
+}
+.fluig-style-guide .componente-progress-bar.media .media-body .container-progress-bar .progress, .fluig-style-guide .componente-progress-bar.media .media-body {
+  flex-grow: 1;
+}
+.fluig-style-guide .componente-progress-bar.media .media-actions {
+  margin: auto;
+}
+.fluig-style-guide .componente-progress-bar.media .media-actions button {
+  margin-left: 0.5rem;
+  padding: 0;
+  border: none;
+}</style><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/emojis.bundle.js.download" charset="utf-8"></script><style>.emojis {
+  --emojis-border-color: #e8e9eb;
+  --emojis-box-shadow: 0 3px 5px rgb(0 0 0 / 8%), 0 1px 3px rgb(0 0 0 / 6%);
+  --emojis-title-color: #afb0b3;
+  --emojis-hover-color: #e8e9eb;
+  --emojis-category-selected-color: #58595b;
+  background-color: #fff;
+  border: 1px solid var(--emojis-border-color);
+  box-shadow: var(--emojis-box-shadow);
+  padding: 16px 16px 8px;
+  width: 100%;
+  z-index: 1;
+}
+.emojis .emojis-search {
+  margin: 0;
+}
+.emojis .emojis-list {
+  height: 200px;
+  overflow-y: scroll;
+  font-size: 16px;
+}
+.emojis .emojis-list .emojis-recently-used,
+.emojis .emojis-list .emojis-category-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.emojis .emojis-list .emojis-recently-used > h5,
+.emojis .emojis-list .emojis-category-list > h5 {
+  font-size: 12px;
+  font-weight: normal;
+  color: var(--emojis-title-color);
+  width: 100%;
+}
+.emojis .emojis-list .emojis-recently-used > span,
+.emojis .emojis-list .emojis-category-list > span {
+  padding: 4px 0;
+  width: 6.25%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+.emojis .emojis-list .emojis-recently-used > span:hover,
+.emojis .emojis-list .emojis-category-list > span:hover {
+  background-color: var(--emojis-hover-color);
+}
+.emojis .emojis-list .emojis-recently-used > h5 {
+  margin-top: 0;
+}
+.emojis .emojis-actions {
+  display: flex;
+  padding-top: 8px;
+}
+.emojis .emojis-actions button {
+  flex: 1;
+  position: relative;
+  padding-top: 7px;
+  text-decoration: none !important;
+}
+.emojis .emojis-actions button.selected::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--emojis-category-selected-color);
+}
+.emojis .emojis-actions button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+}</style><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/jquery.jqGrid.min.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/datatable_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/tabview_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/message_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/datepicker_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/fluig-style-guide-richeditor.min.js.download" charset="utf-8"></script><style>.cke{visibility:hidden;}</style><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/alertcentralbs_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/socialformanswer_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/alertpopover_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/cropimage_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/responsive-header_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/responsive-search_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/responsive-page-editor_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/responsive-notify_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/responsive-profile_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/jquery.jqGrid.min(1).js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/datatable_pt_BR(1).js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/suggestsearch_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/api_pt_BR(1).js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/socialglobal_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/ecm-plugins_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/api_pt_BR(2).js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/login_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/message_pt_BR(1).js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/jquery.slidearrow_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/menu_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/responsive-menu_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/jquery-slimscroll-138-min_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/rocketchatnotify_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/socialsearch_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/usepolicy_pt_BR.js.download" charset="utf-8"></script><script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/api_pt_BR(3).js.download" charset="utf-8"></script>
+<script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/editpage.js.download"></script>
+<script type="text/javascript">
+var postLoading = {
+	fns: [],
+	add: function(newFn) {
+		this.fns.push(newFn);
+
+		//se postLoading ja rodou, executa a funcao agora mesmo
+		if(this.alreadyRan) {
+			newFn();
+		}
+	}
+};
+</script><style>
+    :root {
+        --themeResponsiveBgColor: #cfcfcf;
+        --themeResponsiveBgContrastColor: #58595b;
+        --themeResponsiveMenuBgColor: #2c4c9c;
+        --themeResponsiveMenuBgHoverColor: #27448c;
+        --themeResponsiveMenuActiveColor: #e41c22;
+        --themeResponsiveMenuActionColor: #ffffff;
+        --themeResponsiveHeaderBgColor: #ffffff;
+        --themeResponsiveHeaderActionColor: #58595b;
+        --themeResponsiveBrandColor: #2b4f9c;
+        --themeResponsiveBgImage: url(/portal/resources/images/bg_image.png);
+        --themeResponsiveHeaderBgImage: url(/portal/resources/images/header_bg_image.png);
+
+            --themeResponsiveBgImageRepeat: no-repeat;
+
+            --themeResponsiveBgImageCover: cover;
+
+            --themeResponsiveHeaderBgImageRepeat: no-repeat;
+
+            --themeResponsiveHeaderBgImageCover: cover;
+    }
+
+    body,
+    .wcm-all-content {
+        background-image: var(--themeResponsiveBgImage);
+        background-color: var(--themeResponsiveBgColor);
+        background-repeat: var(--themeResponsiveBgImageRepeat);
+        background-size: var(--themeResponsiveBgImageCover);
+    }
+
+    .wcm-wrapper-content .wcm-all-content > #wcm-content {
+        background-color: transparent !important;
+    }
+
+    .responsive-header-widget nav.responsive-header-navbar {
+        background-image: var(--themeResponsiveHeaderBgImage);
+        background-color: var(--themeResponsiveHeaderBgColor) !important;
+        background-repeat: var(--themeResponsiveHeaderBgImageRepeat);
+        background-size: var(--themeResponsiveHeaderBgImageCover);
+    }
+
+    .responsive-header-widget nav.responsive-header-navbar .btn-notification,
+    .responsive-header-widget nav.responsive-header-navbar .btn-toggle-menu,
+    .responsive-header-widget nav.responsive-header-navbar .btn-search,
+    .responsive-header-widget nav.responsive-header-navbar .btn-back-search,
+    .responsive-header-widget nav.responsive-header-navbar .btn-back-notification,
+    .responsive-header-widget nav.responsive-header-navbar .btn-dropdown-notification-actions,
+    .responsive-header-widget nav.responsive-header-navbar .mobile-notification-title {
+        color: var(--themeResponsiveHeaderActionColor);
+    }
+
+    .responsive-menu-widget .menu-main,
+    .responsive-menu-widget .menu-main .menu-item.back,
+    .responsive-menu-widget .menu-main .footer-sidebar  {
+        background-color: var(--themeResponsiveMenuBgColor) !important;
+    }
+
+    .responsive-menu-widget .menu-main .menu-item:hover  {
+        background-color: var(--themeResponsiveMenuBgHoverColor);
+    }
+
+    .responsive-menu-widget .menu-main .menu-link,
+    .responsive-menu-widget .menu-main .footer-sidebar > p {
+        color: var(--themeResponsiveMenuActionColor);
+    }
+
+    .responsive-menu-widget .menu-main .menu-link.active-menu,
+    .responsive-menu-widget .menu-main .menu-item.back .menu-link {
+        color: var(--themeResponsiveMenuActiveColor) !important;
+    }
+
+    .responsive-bg-contrast-color {
+        color: var(--themeResponsiveBgContrastColor) !important;
+    }
+
+        .fluig-brand-color {
+            /* color: #e8255c !important; */
+        }
+
+        .fluig-brand-bg-color {
+            /* background-color: #e8255c !important; */
+        }
+
+        .fluig-brand-border-color {
+            /* border-color: #e8255c !important; */
+        }
+
+        .profile-pencil,
+        a.text-notify-header.action-notify,
+        .panel-footer a.text-notify-header,
+        a.active-menu,
+        .responsive-header-widget nav.responsive-header-navbar .text-notify-header.action-notify {
+            color: var(--themeResponsiveBrandColor) !important;
+        }
+
+        .global-notifications-badge,
+        .icon-list-item:hover,
+        .icon-list-item.checked,
+        .icon-list-item.checked::before,
+        .fl-button-adjust,
+        .fl-header .fl-li-button a:hover {
+            background-color: var(--themeResponsiveBrandColor) !important;
+        }
+</style>
+
+
+        <link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/socialGlobal.css">
+
+			<link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/fluig-style-guide-flat.min.css">
+
+        <link type="text/css" rel="stylesheet" href="./Anexar NF para Central de Lançamento_files/custom-theme.css">
+        
+    <link rel="stylesheet" type="text/css" href="./Anexar NF para Central de Lançamento_files/mistAttach.css"><link rel="stylesheet" type="text/css" href="./Anexar NF para Central de Lançamento_files/filemonitor.css"><link rel="stylesheet" type="text/css" href="./Anexar NF para Central de Lançamento_files/mistObservation.css"><link rel="stylesheet" type="text/css" href="./Anexar NF para Central de Lançamento_files/mistHistory.css"></head>
+
+    <body class="responsive_theme chrome" style="overflow: hidden !important;">
+		<input type="hidden" id="wcm-edit-mode" value="false">
+
+		
+
+<div class="wcm-wrapper-content">
+        
+
+<div id="_instance_5707_" appcode="responsive_header">
+    <div id="wcm_widget_5707" class="wcm_widget">
+        <div class="wcm_corpo_widget_single">
+
+<div id="responsiveHeader_5707" class="responsive-header-widget super-widget fluig-style-guide" data-params="ResponsiveHeader.instance({&#39;openNewTab&#39;: &#39;false&#39;})">
+
+
+  <nav class="responsive-header-navbar fs-bg-white" role="navigation">
+    <div class="container-fluid">
+
+      <div class="inner-header-navbar fs-display-flex fs-align-items-center fs-justify-content-center">
+        <div class="inner-col fs-display-flex fs-align-items-center">
+            <button class="btn btn-link btn-lg btn-toggle-menu fs-sm-margin-right hidden-md hidden-lg" type="button" data-toggle-main-menu="">
+              <i class="flaticon flaticon-menu icon-md" aria-hidden="true">
+              </i>
+            </button>
+          <a class="responsive-header-brand" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/home">
+            <img id="header-logo-5707" class="responsive-header-brand-logo" src="./Anexar NF para Central de Lançamento_files/responsive_logo_image.png">
+          </a>
+        </div>
+
+          <div class="inner-col fs-full-width">
+              <form data-submit-search="" class="form-group has-feedback fs-no-margin hidden-xs" autocomplete="off" action="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#">
+                <input name="searchInputText" id="searchInputText-5707" type="text" class="form-control input-lg ui-autocomplete-input" placeholder="Digite o que deseja buscar?" data-validate-search-xss="" autocomplete="off">
+                <i class="flaticon flaticon-search icon-sm form-control-feedback" aria-hidden="true"></i>
+              </form>
+          </div>
+
+          <div class="inner-col fs-display-flex fs-align-items-center" style="height: 40px;">
+            <!-- Small Search -->
+            <button class="btn btn-link btn-lg btn-search visible-xs-block item-header-action" type="button" data-toggle-small-search="">
+              <i class="flaticon flaticon-search icon-md" aria-hidden="true">
+              </i>
+            </button>
+            <!-- Rocket Chat -->
+            <div class="item-header-action hide" data-rocket-chat-container="">
+              <a class="btn btn-link btn-lg btn-rocket-chat" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#" target="_blank">
+                <img src="./Anexar NF para Central de Lançamento_files/rocket-chat.svg" alt="Rocket Chat Logo" width="22px" height="22px">
+              </a>
+            </div>
+            <div class="item-header-action">
+              <button data-popover-notifications="" data-toggle-small-notification="" class="btn btn-link btn-lg btn-notification fs-position-relative" type="button">
+                <div class="global-notifications-badge" data-global-notifications-badge=""></div>
+                <i class="flaticon flaticon-bell icon-md" aria-hidden="true">
+                </i>
+              </button>
+            </div>
+              <div class="item-header-action fs-position-relative container-popover-menu-profile">
+                <div class="fs-cursor-pointer" data-open-menu-profile="">
+                  <img class="media-object img-circle" src="./Anexar NF para Central de Lançamento_files/thumb_small.png" alt="Administrativo  CD" title="Administrativo  CD" data-update-image-profile="administrativo.dvaatacados.com.br.1" data-image-size="SMALL_PICTURE" width="40px" height="40px">
+                </div>
+              </div>
+          </div>
+      </div>
+
+        <!-- Mobile Search Container -->
+        <div class="inner-header-navbar inner-header-search-navbar fs-display-flex fs-align-items-center fs-justify-content-center hide">
+          <div class="inner-col fs-display-flex fs-align-items-center">
+              <button class="btn btn-link btn-lg btn-back-search" type="button" data-toggle-small-search="">
+                  <i class="flaticon flaticon-arrow-left icon-md" aria-hidden="true"></i>
+              </button>
+          </div>
+          <div class="inner-col fs-full-width">
+              <form data-submit-search="" class="form-group fs-no-margin" autocomplete="off" action="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#">
+                  <input name="smallSearchInputText" id="smallSearchInputText-5707" type="text" class="form-control input-lg fs-no-border fs-no-shadow fs-no-padding-left ui-autocomplete-input" placeholder="Digite o que deseja buscar?" autocomplete="off">
+              </form>
+          </div>
+        </div>
+
+        <!-- Mobile Notification Container -->
+        <div class="inner-header-navbar inner-header-notification-navbar fs-display-flex fs-align-items-center fs-justify-content-center hide">
+          <div class="inner-col fs-display-flex fs-align-items-center">
+              <button class="btn btn-link btn-lg btn-back-notification" type="button" data-toggle-small-notification="">
+                  <i class="flaticon flaticon-arrow-left icon-md" aria-hidden="true"></i>
+              </button>
+          </div>
+          <div class="inner-col fs-full-width">
+              <div class="fs-display-flex fs-align-items-center">
+                <h4 class="fs-full-width mobile-notification-title">Notificações</h4>
+                <div class="btn-group">
+                  <button type="button" class="btn btn-link btn-sm dropdown-toggle btn-dropdown-notification-actions" data-toggle="dropdown">
+                    <i class="flaticon flaticon-more-vert icon-md" aria-hidden="true"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-right" role="menu" style="z-index: 1081;">
+                    <li><a href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#" data-mark-all-read="">Marcar todas como lidas</a></li>
+                    <li><a href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/globalalertconfig">Configurações</a></li>
+                  </ul>
+              </div>
+              </div>
+          </div>
+        </div>
+    </div>
+  </nav>
+
+  <nav class="responsive-header-popover-container"></nav>
+
+  <script type="text/template" class="suggest-search-see-all-template">
+    <li class="see-all-results">
+      <a
+        href="#"
+        data-see-all-results
+      >Ver todos os resultados</a>
+    </li>
+  </script>
+
+  <script type="text/template" class="publish-page-modal-template">
+    <div class="form-group">
+      <label for="publish-page-message">Descreva brevemente suas modificações</label>
+      <textarea
+        class="form-control fs-no-resize"
+        rows="3"
+        maxlength="200"
+        id="publish-page-message"
+      ></textarea>
+    </div>
+  </script>
+
+  <script type="text/template" class="popover-menu-profile-template">
+    <div>
+        <div class="media fs-md-padding">
+          <div class="pull-left">
+            <img
+              class="media-object img-circle"
+              src="/collaboration/api/v3/users/administrativo.dvaatacados.com.br.1/picture?type=SMALL_PICTURE"
+              alt="Administrativo  CD"
+              title="Administrativo  CD"
+              data-update-image-profile="administrativo.dvaatacados.com.br.1"
+              data-image-size="SMALL_PICTURE"
+              width="46px"
+              height="46px"
+            >
+          </div>
+          <div class="media-body">
+            <h4 class="media-heading fs-ellipsis" title="Administrativo  CD">
+              Administrativo  CD
+            </h4>
+            <a
+              {{ #isEditableProfile }}
+                href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/wcmuserprofile"
+              {{ /isEditableProfile }}
+              {{ ^isEditableProfile }}
+                href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/wcmuserpreferences"
+              {{ /isEditableProfile }}
+              class="fs-text-sm"
+            >
+              Editar perfil
+            </a>
+          </div>
+        </div>
+      <hr class="fs-no-margin">
+      <ul class="list-unstyled fs-sm-margin-vertical">
+        <li>
+          <a
+            href="#"
+            class="fs-md-padding-horizontal fs-sm-padding-vertical fs-display-block fs-no-text-underline"
+            data-profile-menu-action="edit-image"
+          >
+            Editar imagem
+          </a>
+        </li>
+        <li>
+          <a
+            href="#"
+            class="fs-md-padding-horizontal fs-sm-padding-vertical fs-display-block fs-no-text-underline"
+            data-profile-menu-action="news-fluig"
+          >
+            Novidades
+          </a>
+        </li>
+        <li>
+          <a
+            href="#"
+            class="fs-md-padding-horizontal fs-sm-padding-vertical fs-display-block fs-no-text-underline"
+            data-profile-menu-action="select-language"
+          >
+            Idioma
+          </a>
+        </li>
+
+        {{{ usePolicyTemplate }}}
+
+        <li>
+          <a
+            href="#"
+            class="fs-md-padding-horizontal fs-sm-padding-vertical fs-display-block fs-no-text-underline"
+            data-profile-menu-action="help"
+          >
+            Ajuda
+          </a>
+        </li>
+      </ul>
+      <hr class="fs-no-margin">
+      <ul class="list-unstyled fs-sm-margin-vertical">
+        <li>
+          <a
+            href="#"
+            class="fs-md-padding-horizontal fs-sm-padding-vertical fs-display-block fs-no-text-underline"
+            data-profile-menu-action="logoff"
+          >
+            Sair
+          </a>
+        </li>
+      </ul>
+    </div>
+  </script>
+
+  <script type="text/template" class="popover-notifications-template">
+    <div class="responsive-header-notification-popover">
+      <div class="responsive-header-wrapper-popover responsive-header-fade-in-down">
+        {{ >notificationHTML }}
+      </div>
+    </div>
+  </script>
+
+  <script type="text/template" class="popover-notifications-master-template">
+    <div class="fluig-style-guide popover popover-notify" role="tooltip">
+      <div class="arrow"></div>
+      <h3 class="popover-title"></h3>
+      <div class="popover-content"></div>
+    </div>
+  </script>
+
+  <script type="text/template" class="notification-list-popover-template">
+		{{^hasNotifications}}
+		<li class="list-group-item">
+      <div class="alert alert-info fs-no-margin-bottom" role="alert">
+        Sem notificações.
+      </div>
+    </li>
+		{{/hasNotifications}}
+
+		{{#notifications}}
+		<li class="list-group-item {{^read}}notification-unread{{/read}} clearfix" {{^read}}data-mark-read{{/read}} data-alert-id="{{id}}" data-is-note-visible={{isNoteVisible}}>
+
+			{{^read}}
+				<a
+          href="#"
+          class="responsive-header-mark-read fs-no-text-underline"
+          data-mark-read
+          title="Marcar notificação como lida"
+        >
+					<i class="flaticon flaticon-view icon-sm"></i>
+				</a>
+			{{/read}}
+
+			<div class="media clearfix fs-no-margin-top responsive-header-media-alert-container">
+				{{#hasSenders}}
+					<a class="pull-left" href="#">
+						<img
+              class="fluig-style-guide thumb-profile thumb-profile-xs media-object img-rounded" src="/collaboration/api/v3/users/{{getLastSenderLogin}}/picture?type=X_SMALL_PICTURE"
+            >
+					</a>
+				{{/hasSenders}}
+				{{^hasSenders}}
+					{{#hasEventIcon}}
+						<span class="pull-left">
+							<img class="fluig-style-guide thumb-profile thumb-profile-xs media-object img-rounded" src="{{getEventIcon}}" />
+						</span>
+					{{/hasEventIcon}}
+					{{^hasEventIcon}}
+						<span class="pull-left">
+							<img class="fluig-style-guide thumb-profile thumb-profile-xs media-object img-rounded" src="{{getComunityIcon}}">
+						</span>
+					{{/hasEventIcon}}
+				{{/hasSenders}}
+				<div class="media-body">
+					<small>
+						{{#getSenders}}
+						<a href="{{getSenderLink}}">{{user.fullName}}</a>
+						{{/getSenders}}
+						{{#hasMorePeople}}
+							e mais <a href="#"
+							data-object-id="{{object.objectId}}" data-timeline-link-supported
+							data-alert-id="{{id}}"
+							data-dialog-title="Lista de usuários"
+							data-users="{{#getAdditionalPeople}}{{user.login}},{{/getAdditionalPeople}}">{{getNumAdditionalPeople}}
+							pessoas</a>&nbsp;
+						{{/hasMorePeople}}
+
+						<span>
+							{{getEvent}}
+              
+                {{^isFolderDownload}}
+                  {{#object}}
+                    {{ >genericTemplate }}
+                  {{/object}}
+                {{/isFolderDownload}}
+
+                {{#isFolderDownload}}
+                  {{#object}}
+                    {{ >folderTemplate }}
+                  {{/object}}
+                {{/isFolderDownload}}
+
+							{{#isEventKeyWatch}}, que você está acompanhando{{/isEventKeyWatch}}
+						</span>
+
+						{{#place}}
+							em
+							{{#descriptionNotEmpty}}
+								{{#hasLink}}
+									{{#hasExternalLink}}
+										<a href="{{link}}">{{description}}.</a>
+									{{/hasExternalLink}}
+									{{^hasExternalLink}}
+										<a href="{{defaultURL}}{{link}}">{{description}}.</a>
+									{{/hasExternalLink}}
+								{{/hasLink}}
+								{{^hasLink}}
+									{{description}}.
+								{{/hasLink}}
+							{{/descriptionNotEmpty}}
+							{{objectDetail}}
+						{{/place}}
+						{{#hasNote}}
+							<a href="#" class="fluigicon fluigicon-notes fs-no-text-underline" title=Ver nota
+							data-note="{{object.note}}" data-show-note data-note-html ></a>
+						{{/hasNote}}
+
+						<p class="text-muted"><small data-creation-date="{{creationDate}}"></small></p>
+					</small>
+				</div>
+			</div>
+
+			{{#hasActionsNotification}}
+
+					{{#hasNotificationsSingleActions}}
+					<p class="pull-right">
+						{{#getActionsNotification}}
+						<button type="button" class="btn {{getClassButtonType}} btn-sm" data-actions-notification="{{id}}" data-notification-action-type="{{type}}" data-notification-action-url="{{url}}">{{description}}</button>
+						{{/getActionsNotification}}
+					</p>
+					{{/hasNotificationsSingleActions}}
+
+					{{#hasNotificationsGroupActions}}
+						<div class="btn-group pull-right">
+							<button type="button" class="btn {{getClassButtonType}} btn-sm dropdown-toggle" data-toggle="dropdown">
+								Ações <span class="caret"></span>
+							</button>
+							<ul class="dropdown-menu" role="menu">
+								{{#getActionsNotification}}
+									<li><a href="#" data-actions-notification="{{id}}" data-notification-action-type="{{type}}" data-notification-action-url="{{url}}">{{description}}</a></li>
+								{{/getActionsNotification}}
+							</ul>
+						</div>
+					{{/hasNotificationsGroupActions}}
+
+					{{#getExecutedActionsNotification}}
+						<p class="text-info pull-right"><small>{{descriptionAfterExec}}</small></p>
+					{{/getExecutedActionsNotification}}
+
+			{{/hasActionsNotification}}
+
+			{{{noteValue}}}
+
+		</li>
+		{{/notifications}}
+	</script>
+
+  <script type="text/template" class="notification-object-generic-template">
+    {{typeDescription}}
+    {{#descriptionNotEmpty}}
+      {{#hasLink}}
+        {{#isForm}}
+          <a href="{{defaultURL}}{{link}}" data-open-answer-form={{formId}}>"{{description}}"{{^place}}.{{/place}}</a>
+        {{/isForm}}
+        {{^isForm}}
+          <a href="{{defaultURL}}{{link}}">"{{description}}"{{^place}}.{{/place}}</a>
+        {{/isForm}}
+      {{/hasLink}}
+      {{^hasLink}}
+        {{#description}}
+          "{{description}}"{{^place}}.{{/place}}
+        {{/description}}
+      {{/hasLink}}
+    {{/descriptionNotEmpty}}
+    {{objectDetail}}
+  </script>
+
+  <script type="text/template" class="notification-object-folder-template">
+      {{typeDescription}}
+      {{#descriptionNotEmpty}}
+        {{#hasLink}}
+          <a href="{{link}}">"{{description}}"{{^place}}.{{/place}}</a>
+        {{/hasLink}}
+        {{^hasLink}}
+          {{#description}}
+            "{{description}}"{{^place}}.{{/place}}
+          {{/description}}
+        {{/hasLink}}
+      {{/descriptionNotEmpty}}
+      {{objectDetail}}
+  </script>
+</div>
+        
+        </div>
+    </div>
+</div>
+
+
+        
+
+<div id="_instance_5706_" appcode="responsive_menu">
+    <div id="wcm_widget_5706" class="wcm_widget">
+        <div class="wcm_corpo_widget_single">
+
+<div id="responsiveMenu_5706" class="responsive-menu-widget super-widget fluig-style-guide" data-params="ResponsiveMenu.instance({pageCode: &quot;pageworkflowview&quot;})">
+
+  <div class="menu-main menu-responsive-hidded" data-main-menu="">
+    <aside class="sidebar" data-menu-sidebar="">
+      <div class="slimScrollDiv" style="position: relative; overflow: hidden; width: 100%; height: 831px;"><nav class="menu-responsive" style="overflow: hidden; width: 100%; height: 831px;">
+        <ul data-menu="" class="menu-level">    <li class="menu-item ">
+      <a class="menu-link" data-menu-item="home" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/home">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-home" title="Home"></i>
+        <span class="menu-item-title" title="Home">Home</span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="principalfavorites" data-menu-children="">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-star" title="Favoritos"></i>
+        <span class="menu-item-title" title="Favoritos">Favoritos</span>
+          <span class="menu-item-more">
+            <i class="flaticon flaticon-chevron-right"></i>
+          </span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="mysolutions" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/mysolutions">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-rocket" title="Soluções"></i>
+        <span class="menu-item-title" title="Soluções">Soluções</span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="ecmnavigation" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/ecmnavigation">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-documents" title="Documentos"></i>
+        <span class="menu-item-title" title="Documentos">Documentos</span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="principalprocess" data-menu-children="">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-process" title="Processos"></i>
+        <span class="menu-item-title" title="Processos">Processos</span>
+          <span class="menu-item-more">
+            <i class="flaticon flaticon-chevron-right"></i>
+          </span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="pagecentraltask" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pagecentraltask">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-desktop-list" title="Central de Tarefas"></i>
+        <span class="menu-item-title" title="Central de Tarefas">Central de Tarefas</span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="pagerecyclebin" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pagerecyclebin">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-trash" title="Lixeira"></i>
+        <span class="menu-item-title" title="Lixeira">Lixeira</span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="social" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/social">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-message" title="Social"></i>
+        <span class="menu-item-title" title="Social">Social</span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="communities" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/communities">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-group-person" title="Comunidades"></i>
+        <span class="menu-item-title" title="Comunidades">Comunidades</span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="pagelearning" data-menu-children="">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-mortarboard" title="Aprendizado"></i>
+        <span class="menu-item-title" title="Aprendizado">Aprendizado</span>
+          <span class="menu-item-more">
+            <i class="flaticon flaticon-chevron-right"></i>
+          </span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="pageassessment" data-menu-children="">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-document-check" title="Avaliações"></i>
+        <span class="menu-item-title" title="Avaliações">Avaliações</span>
+          <span class="menu-item-more">
+            <i class="flaticon flaticon-chevron-right"></i>
+          </span>
+      </a>
+    </li>
+        <li class="menu-item materialicons">
+      <a class="menu-link" data-menu-item="fluigpage" data-menu-children="">
+        <i class="menu-font-icon
+                  fluigicon
+                  fluigicon-brand" title="Fluig"></i>
+        <span class="menu-item-title" title="Fluig">Fluig</span>
+          <span class="menu-item-more">
+            <i class="flaticon flaticon-chevron-right"></i>
+          </span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="agrupadorCedoc" data-menu-children="">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-documents" title="CEDOC"></i>
+        <span class="menu-item-title" title="CEDOC">CEDOC</span>
+          <span class="menu-item-more">
+            <i class="flaticon flaticon-chevron-right"></i>
+          </span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="AnalyticFluig" data-menu-children="">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-poll" title="Analytic Fluig"></i>
+        <span class="menu-item-title" title="Analytic Fluig">Analytic Fluig</span>
+          <span class="menu-item-more">
+            <i class="flaticon flaticon-chevron-right"></i>
+          </span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="Vertsign" data-menu-children="">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-send" title="Vertsign"></i>
+        <span class="menu-item-title" title="Vertsign">Vertsign</span>
+          <span class="menu-item-more">
+            <i class="flaticon flaticon-chevron-right"></i>
+          </span>
+      </a>
+    </li>
+        <li class="menu-item ">
+      <a class="menu-link" data-menu-item="painel-notas" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/painel-notas">
+        <i class="menu-font-icon
+                  
+                    flaticon
+                  flaticon-search" title="Painel de Lançamentos Aprovados"></i>
+        <span class="menu-item-title" title="Painel de Lançamentos Aprovados">Painel de Lançamentos Aprovados</span>
+      </a>
+    </li>
+    </ul>
+        <div id="responsiveSidebar-5706" class="fs-position-absolute fs-width-inherit fs-position-bottom-left version-template"><div id="versionIconStatus-5706"><div class="wcm_alert_img hidden-version" data-version-icon-status="">
+      <i id="iconStatus" class="flaticon flaticon-important icon-md
+         
+          text-danger"></i>
+
+      <div class="wcm_alert_popup system-float-box bottom-left fs-position-fixed fs-no-white-space fs-width-auto fs-sm-margin-right" style="display:none">
+        <div class="wcm_alert_popup_title fs-ellipsis" title="Expiração do Fluig.">
+          Expiração do Fluig.
+        </div>
+        <div class="wcm_alert_popup_line"></div>
+       <div class="wcm_alert_popup_msg" title="A versão do Fluig está desatualizada. Informe seu administrador ou responsável.">A versão do Fluig está desatualizada. Informe seu administrador ou responsável.</div>
+      </div>
+    </div></div>
+    <div class="footer-sidebar fs-text-center fs-text-sm hidden-version fs-bg-white fs-md-padding" data-sidebar-version="">
+      <p class="fs-no-margin fs-ellipsis" title="TOTVS Fluig Plataforma">
+        TOTVS Fluig Plataforma
+      </p>
+      <p class="fs-no-margin fs-ellipsis" title="Mist - 1.8.0-221222 353">
+        Mist - 1.8.0-221222 353
+      </p>
+    </div></div>
+      </nav><div class="slimScrollBarY" style="background: rgb(0, 0, 0); width: 5px; position: absolute; top: 0px; opacity: 0.4; display: none; border-radius: 7px; z-index: 99; right: 1px; height: 831px;"></div><div class="slimScrollRailY" style="width: 5px; height: 100%; position: absolute; top: 0px; display: none; border-radius: 7px; background: rgb(51, 51, 51); opacity: 0.2; z-index: 90; right: 1px;"></div></div>
+    </aside>
+  </div>
+
+  <script type="text/template" class="responsive-version-template">
+    <div id="versionIconStatus-5706"></div>
+    <div class="footer-sidebar fs-text-center fs-text-sm hidden-version fs-bg-white fs-md-padding" data-sidebar-version>
+      <p class="fs-no-margin fs-ellipsis" title="TOTVS Fluig Plataforma">
+        TOTVS Fluig Plataforma
+      </p>
+      <p class="fs-no-margin fs-ellipsis" title="{{ versionName }} - {{ version }} {{ versionBuild }}">
+        {{ versionName }} - {{ version }} {{ versionBuild }}
+      </p>
+    </div>
+  </script>
+
+  <script type="text/template" class="version-icon-template-status">
+    <div class="wcm_alert_img hidden-version" data-version-icon-status>
+      <i
+        id="iconStatus" 
+        class="flaticon flaticon-important icon-md
+         {{^versionDeprecated}}text-warning{{/versionDeprecated}}
+          {{#versionDeprecated}}text-danger{{/versionDeprecated}}"
+      ></i>
+
+      <div class="wcm_alert_popup system-float-box bottom-left fs-position-fixed fs-no-white-space fs-width-auto fs-sm-margin-right" style="display:none">
+        <div class="wcm_alert_popup_title fs-ellipsis" title="Expiração do Fluig.">
+          Expiração do Fluig.
+        </div>
+        <div class="wcm_alert_popup_line"></div>
+       <div class="wcm_alert_popup_msg" title="{{ statusDesc }}">{{ statusDesc }}</div>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/template" class="responsive-menu-item-template">
+    {{#.}}
+    <li class="menu-item {{#isMaterialIcon}}materialicons{{/isMaterialIcon}}">
+      <a class="menu-link" data-menu-item="{{code}}"
+        {{#hasChildren}}
+          data-menu-children
+        {{/hasChildren}}
+        {{^hasChildren}}
+          href="{{uri}}"
+        {{/hasChildren}}>
+        <i class="menu-font-icon
+                  {{#isMaterialIcon}}fluigicon{{/isMaterialIcon}}
+                  {{^isMaterialIcon}}
+                    {{#iconFont}}
+                    flaticon
+                    {{/iconFont}}
+                  {{/isMaterialIcon}}
+                  {{iconFont}}{{^iconFont}}flaticon flaticon-page-default{{/iconFont}}" title="{{title}}"></i>
+        <span class="menu-item-title" title="{{title}}">{{title}}</span>
+        {{#hasChildren}}
+          <span class="menu-item-more">
+            <i class="flaticon flaticon-chevron-right"></i>
+          </span>
+        {{/hasChildren}}
+      </a>
+    </li>
+    {{/.}}
+  </script>
+
+  <script type="text/template" class="responsive-menu-back-template">
+    <li class="menu-item back" data-menu-back="{{parent}}">
+      <a class="menu-link">
+        <i class="flaticon menu-icon-back icon-large flaticon-arrow-left"></i>
+        <span class="menu-item-title">Voltar</span>
+      </a>
+    </li>
+  </script>
+  
+  <script type="text/template" class="select-identity-context-template">
+    <div id="identityCompany_{{instanceId}}"
+      class="wcm-widget-class widget-select-identity widget-select-identity-{{type}} super-widget">
+      <div class="fluig-style-guide">
+        <ul>
+          {{#list}}
+            <li class="dialog-select-identity {{#selected}}bg-info{{/selected}} " data-id="{{id}}" data-select-{{type}} >{{displayName}}</li>
+          {{/list}}
+        </ul>
+      </div>
+    </div>
+  </script>
+</div>
+        
+        </div>
+    </div>
+</div>
+
+
+
+	<div class="wcm-all-content" style="visibility: visible;">
+		<div id="wcm-content" class="clearfix wcm-background">
+			<div id="wcm_widget" class="wcm_widget_full clearfix">
+        <div class="fluig-style-guide">
+            <span class="iconHelp fs-float-right fs-cursor-pointer fluigicon fluigicon-question-sign fluigicon-sm help-button-toggle" data-toggle="tooltip" data-placement="left" title="Ajuda"></span>
+        </div>
+        <script>
+            $(function(){
+                $('span.iconHelp').on('click', function(){
+                    FLUIGC.rightbar({appCode: 'wcmhelp', fileNameFtl: 'view.ftl', fixed: true});
+                })
+            });
+        </script>
+    <div id="SlotA" slot="true" decorator="true" editableslot="true" class="  slotint sortable">
+            
+
+<div id="_instance_234_" appcode="ecm_workflowview">
+    <div id="wcm_widget_234" class="wcm_widget">
+        <div class="wcm_corpo_widget_single">
+<link rel="stylesheet" type="text/css" href="./Anexar NF para Central de Lançamento_files/mistWorkflowView.css">
+
+<script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/ecm-webdav_pt_BR.js.download"></script>
+<script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/socialglobal_pt_BR.js.download"></script>
+<script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/mistWorkflowViewWidget_pt_BR.js.download"></script>
+<script type="text/javascript" src="./Anexar NF para Central de Lançamento_files/fileDownload_pt_BR.js.download"></script>
+
+<script type="text/javascript">
+	function escapeScriptFromText(textToEscape) {
+        if (!textToEscape) {
+            return textToEscape;
+        }
+
+        try {
+            if (JSON.parse(textToEscape) + '' == textToEscape) {
+                return JSON.parse(textToEscape);
+            } else {
+                var textToEscapeJson = '{"text":"' + textToEscape + '"}';
+                var parsedJson = JSON.parse(textToEscapeJson);
+                return parsedJson.text;
+            }
+        } catch(err) { }
+
+        if (typeof textToEscape === 'string') {
+			return textToEscape.replace(/>/gi, '&gt;').replace(/</gi, '&lt;');
+		}
+
+        return textToEscape;
+	}
+
+    var search = location.search.substring(1);
+    var params = {};
+
+    // if exclusivo para abrir o FLUIGADHOC
+    if (location.pathname.indexOf('pagelisttasks') !== -1) {
+        params.processID = 'FLUIGADHOC';
+    } else if (decodeURI(search)) {
+        params = JSON.parse('{"' + decodeURI(search).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g,'":"').replace(/app_ecm_workflowview_/g, '') + '"}');
+    }
+
+    var processId = escapeScriptFromText(params.processID);
+    var taskUserId = escapeScriptFromText(params.taskUserId);
+    var afterRedirectMessage = escapeScriptFromText(params.afterRedirectMessage);
+
+    ECM_WKFView.processId = processId ? String(processId) : '';
+    ECM_WKFView.processInstanceId = escapeScriptFromText(params.processInstanceId) || 0;
+    ECM_WKFView.taskUserId = taskUserId ? String(taskUserId) : '00130';
+    ECM_WKFView.currentMovto = escapeScriptFromText(params.currentMovto) || 0;
+    ECM_WKFView.managerMode = escapeScriptFromText(params.managerMode) || false;
+    ECM_WKFView.detailsProcessInstanceID = escapeScriptFromText(params.detailsProcessInstanceID) || 0;
+    ECM_WKFView.afterRedirectMessage = afterRedirectMessage ? String(afterRedirectMessage) : '';
+
+    ECM_WKFView.instance();
+</script>
+
+<div id="certisignercorp-enabled" class="certisigner-extended"></div>
+<div id="certisigner-enabled" class="certisigner-extended"></div>
+<div id="ecm_wkfview" class="super-widget widget-workflowview fluig-style-guide" data-instance-id="234">
+	<div id="message-page"></div>
+    <div class="workflowview-new">
+        <div class="fs-no-margin fs-no-padding">
+            <div class="workflowview-new-header fs-xs-padding-top fs-lg-padding-left">
+                <small>
+                    <ol id="breadcrumb" class="breadcrumb fs-no-bg fs-no-margin">
+    <li><a href="https://nossaempresa.fluig.cloudtotvs.com.br/">Início</a></li>
+    <li><a href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageprocessstart">Processos</a></li>
+    <li><a href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageprocessstart">Iniciar Solicitações</a></li>
+    <li class="active" id="textProcess">Atendimento Central de Lançamento - CONSINCO</li>
+</ol>
+                </small>
+
+                <div class="fs-display-flex fs-align-items-center fs-flex-wrap-wrap">
+                    <h2 class="title-process-name fs-no-margin fs-xxl-padding-right" id="textActivity" title="Anexar NF para Central de Lançamento">Anexar NF para Central de Lançamento</h2>
+                    <ul class="nav nav-tabs fs-display-flex fs-flex-wrap-wrap">
+                        <li id="formTab" class="active">
+                            <a href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#form-tab" data-toggle="tab" class="tab-option">
+                                <i class="flaticon flaticon-form-list icon-md"></i>
+                                <span class="navTab-label-title">Formulário</span>
+                            </a>
+                        </li>
+                        <li id="informationsTab">
+                            <a href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#informations-tab" data-toggle="tab" class="tab-option">
+                                <i class="flaticon flaticon-info icon-md"></i>
+                                <span class="navTab-label-title">Informações</span>
+                            </a>
+                        </li>
+                        <li id="historicTab">
+                            <a href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#historic-tab" data-toggle="tab" class="tab-option haveCounter">
+                                <div class="counter-group">
+                                    <i class="flaticon flaticon-clock icon-md"></i>
+                                    <span id="counterHistoricTab" class="counter counter-warning pos-right-bottom">0</span>
+                                </div>
+                                <span class="fs-v-align-top navTab-label-title">Histórico</span>
+                            </a>
+                        </li>
+                        <li id="attachmentsTab">
+                            <a href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#attachments-tab" data-toggle="tab" class="tab-option haveCounter">
+                                <div class="counter-group">
+                                    <i class="flaticon flaticon-paperclip icon-md"></i>
+                                    <span id="counterAttachmentsTab" class="counter counter-warning pos-right-bottom">0</span>
+                                </div>
+                                <span class="fs-v-align-top navTab-label-title">Anexos</span>
+                            </a>
+                        </li>
+                        <li id="adhocTab" class="fs-display-none">
+                            <a href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#adhoc-tab" data-toggle="tab" class="tab-option haveCounter">
+                                <div class="counter-group">
+                                    <i class="flaticon flaticon-list icon-md"></i>
+                                    <span id="counterActivityTab" class="counter counter-warning pos-right-bottom">0</span>
+                                </div>
+                                <span class="fs-v-align-top navTab-label-title">AdHoc</span>
+                            </a>
+                        </li>
+                        <li id="appointmentsTab" class="fs-display-none">
+                            <a href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#appointments-tab" data-toggle="tab" class="tab-option haveCounter">
+                                <div class="counter-group">
+                                    <i class="flaticon flaticon-file-clock icon-md"></i>
+                                    <span id="counterProcessTab" class="counter counter-warning pos-right-bottom">0</span>
+                                </div>
+                                <span class="fs-v-align-top navTab-label-title">Apontamentos</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="fs-no-padding fs-full-height">
+                <div id="tabContent" class="tab-content">
+                    <div class="tab-pane fade active in" id="form-tab">
+                        <div class="central" id="container" style="position: static; zoom: 1;"><div id="workflow-detail-card">
+    <iframe id="workflowView-cardViewer" class="workflow-card-view-frame fs-overflow-auto" src="./Anexar NF para Central de Lançamento_files/saved_resource.html" style="--calcHeightIframe: 675.515625px; height: 675.516px;"></iframe>
+    <iframe id="workflowView-cardViewer-modeView" width="100%" height="97%" class="workflow-card-view-frame" src="./Anexar NF para Central de Lançamento_files/saved_resource(1).html"></iframe>
+</div><script type="text/mustache" id="form-alert-info">
+    <small id="formAlertInfo">
+        <p class="text-muted">Esse formulário utiliza componentes ou bibliotecas não recomendadas e pode prejudicar o desempenho do seu processo.</p>
+    </small>
+</script></div>
+                        <div id="centerContainer"></div>
+                    </div>
+                    <div class="tab-pane fade" id="informations-tab">
+                        <div class="panel-group fs-overflow-auto control-tab-content" id="workflowInformations" style="height: 675.516px;">
+                            <div class="panel panel-default">
+                                <div class="panel-heading fs-lg-padding">
+                                    <div class="panel-title fs-position-relative fs-text-md">
+                                        <a class="collapse-icon data-collapse collapsed" data-toggle="collapse" data-parent="#workflowInformations" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#collapseOne">
+                                            <i class="fluigicon fluigicon-arrow-go-to-down icon-sm" aria-hidden="true"></i>
+                                        </a>
+                                        <h3 class="panel-name fs-no-margin-top fs-lg-margin-bottom">Dados</h3>
+                                        <div id="activityInfo">
+        <div class="item-panel fs-display-flex fs-no-border">
+        <div class="info-item fs-display-flex fs-align-items-center">
+            <strong class="info-title">Atividade atual</strong>
+            <div class="fs-display-flex fs-flex-wrap-wrap fs-align-items-center">
+                <span class="fs-lg-margin-right">Anexar NF para Central de Lançamento</span>
+                <span class="view-diagram-info fs-xl-padding-right">
+                    <i class="fs-xs-top flaticon flaticon-diagram icon-md fs-xs-margin-right" aria-hidden="true"></i>
+                    <span class="fs-no-bold fs-text-underline fs-cursor-pointer" data-workflow-view-diagram="">Visualizar diagrama</span>
+                </span>
+            </div>
+        </div>
+        <div class="info-item fs-display-flex fs-flex-wrap-wrap fs-align-items-center">
+            <strong class="info-title">Responsável</strong>
+            <div>
+                    <span>Atividade inicial</span>
+            </div>
+        </div>
+    </div>
+</div>
+                                    </div>
+                                </div>
+                                <div id="collapseOne" class="panel-collapse collapse">
+                                    <div class="panel-body fs-no-padding-top fs-no-border-top fs-no-padding-bottom">
+                                        <div id="processInfo">
+    <div class="item-panel fs-lg-padding-vertical fs-display-flex">
+        <div class="info-item fs-display-flex fs-align-items-center">
+            <strong class="info-title">Título do processo</strong>
+            <div>
+                Atendimento Central de Lançamento - CONSINCO
+            </div>
+        </div>
+        <div class="info-item fs-display-flex fs-align-items-center">
+            <strong class="info-title">Título do formulário</strong>
+            <div>
+                    20250320 - Atendimento Central de Lançamento CONSINCO
+            </div>
+        </div>
+    </div>
+    <div class="item-panel fs-lg-padding-vertical fs-display-flex">
+        <div class="info-item fs-display-flex fs-align-items-center">
+            <strong class="info-title">Versão do processo</strong>
+            <div>
+                173
+            </div>
+        </div>
+        <div class="info-item fs-display-flex fs-align-items-center">
+            <strong class="info-title">Versão do formulário</strong>
+            <div>
+                    681.000
+            </div>
+        </div>
+    </div>
+</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="instructionsInfo">
+    <div class="panel panel-default fs-md-margin-top">
+        <div class="panel-body fs-lg-padding">
+            <h3 class="fs-no-margin-top">Instruções para a atividade</h3>
+                <span>Anexar as NF para a aprovação do Gestor</span>
+        </div>
+    </div>
+
+    <div class="panel panel-default fs-md-margin-top fs-xx-huge-margin-bottom">
+        <div class="panel-body fs-lg-padding">
+            <h3 class="fs-no-margin-top">Instruções para o processo</h3>
+                <span>Processo para envio de notas fiscais para lançamento.</span>
+        </div>
+    </div>
+</div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="historic-tab">
+                        <div class="fs-overflow-auto control-tab-content" id="complements" style="height: 675.516px;">
+                        <div id="wkfViewObservation" class="super-widget widget-observation fluig-style-guide">
+	<div id="observationContainer" class="fs-display-flex table-bordered fs-md-padding">
+	<div class="fs-no-padding-left">
+		<img class="media-object img-circle" src="./Anexar NF para Central de Lançamento_files/thumb_small.png" alt="administrativo.dvaatacados.com.br.1" title="Administrativo CD" data-image-size="SMALL_PICTURE" width="40px" height="40px">
+	</div>
+	<div id="observationArea" class="fs-no-border fs-no-padding fs-lg-margin-left fs-lg-margin-right">
+	<input type="text" class="form-control fs-no-border fs-bg-white" name="inputObservationText" id="inputObservationText" placeholder="Digite um comentário nesta solicitação...">
+</div>
+	<div class="fs-no-padding-right fs-no-margin-right pull-right">
+		<input type="submit" id="sendObservation" class="btn btn-default fs-float-right fs-width-100" value="Comentar">
+	</div>
+</div>
+	<div id="history">
+	</div>
+</div><script type="text/template" class="tpl-observation">
+	<div class="fs-no-padding-left">
+		<img class="media-object img-circle" src="/collaboration/api/v3/users/{{user}}/picture?type=SMALL_PICTURE" alt="{{user}}" title="{{userName}}" data-image-size="SMALL_PICTURE" width="40px" height="40px">
+	</div>
+	<div id="observationArea" class="fs-no-border fs-no-padding fs-lg-margin-left fs-lg-margin-right">
+	</div>
+	<div class="fs-no-padding-right fs-no-margin-right pull-right">
+		<input type="submit" id="sendObservation" class="btn btn-default fs-float-right fs-width-100" value="Comentar" />
+	</div>
+</script><script type="text/template" class="one-line-observation-tpl">
+	<input type="text" class="form-control fs-no-border fs-bg-white" name="inputObservationText" id="inputObservationText" placeholder="Digite um comentário nesta solicitação..." />
+</script><script type="text/template" class="textarea-observation-tpl">
+	<textarea id="textareaObservation" name="textareaObservation" class="form-control" rows="2" placeholder="Digite um comentário nesta solicitação..."></textarea>
+</script><div id="wkfViewHistory" class="super-widget history-block fs-md-padding-top fs-md-padding-left fs-xx-huge-margin-bottom"></div><script type="text/mustache" id="observationTpl">
+
+	<div class="row  observationItem fs-no-margin-bottom fs-no-margin-right">
+		<hr class="fs-transparent-50 fs-no-padding fs-md-margin-vertical">
+		<div class="col-md-1 fs-txt-left complement-img">
+			{{#hasIcon}}
+				<span class="flaticon icon-md fs-color-white fs-sm-padding-top fs-sm-padding-left {{icon}} complement-lg-icon"></span>
+			{{/hasIcon}}
+			{{^hasIcon}}
+				<img src="/social/api/rest/social/image/profile/{{login}}/X_SMALL_PICTURE" data-user-popover="{{login}}" class="img-circle" width="40px" height="40px"/>
+			{{/hasIcon}}
+			<br>
+			{{#arrow}}
+				<span class="flaticon {{arrow}} icon-xs arrowSpace complement-icon fs-color-white"></span>
+			{{/arrow}}
+		</div>
+		{{#needAlign}}
+			<div class="col-md-11 fs-sm-margin-top fs-xs-padding-top">
+		{{/needAlign}}
+		{{^needAlign}}
+			<div class="col-md-11">
+		{{/needAlign}}
+			<div class="row">
+				{{#workflowDetail}}
+					{{#isCurrentMovto}}
+						<strong>
+							Atividade atual:
+						</strong>
+					{{/isCurrentMovto}}
+					<strong>
+						{{choosedColleagueName}}
+					</strong>
+					{{stateDescription}}
+					{{^isCurrentMovto}}
+						{{processInstanceId}}
+					{{/isCurrentMovto}}
+					{{#joint}}
+						<small>
+							esta atividade requer um consenso de: <span class="consensus-value consensus-required"> {{agreementPercentage}}%</span></br>
+							{{#validPercentage}}
+								no momento está em: <span class="consensus-value {{reachedStyle}}">{{reachedPercentage}}%</span></br>
+							{{/validPercentage}}
+							{{^validPercentage}}
+								Número de aprovações insuficiente para gerar percentual de consenso</br>
+							{{/validPercentage}}
+							<button type="button" class="btn btn-primary btn-xs" data-consensus-detail data-threadSequence="{{threadSequence}}" data-movementSequence="{{movementSequence}}">Ver detalhes</button>
+						</small>
+					{{/joint}}
+					{{#defaultActivity}}
+						<br>
+						<small>
+							<strong> Responsável: </strong>
+							{{#responsibleIsPool}}
+								 {{responsible}} -
+								<a href="#" class="fs-text-underline" data-open-zoom-pool data-sequence="{{sequence}}" data-pool="{{colleagueId}}">Ver Usuários</a> |
+							{{/responsibleIsPool}}
+							{{^responsibleIsPool}}
+								<span {{#responsibleIsUser}} data-user-popover="{{login}}"{{/responsibleIsUser}}> {{responsible}}</span> |
+							{{/responsibleIsPool}}
+
+							<strong> Prazo: </strong> {{deadline}}
+						</small>
+						{{#buttonTakeTask}}
+							<button type="button" class="btn btn-default fs-float-right fs-md-margin-top-negative" data-take-task data-threadSequence="{{threadSequence}}" data-movementSequence="{{movementSequence}}" data-colleagueId="{{colleagueId}}">Assumir tarefa</button>
+						{{/buttonTakeTask}}
+						{{^buttonTakeTask}}
+							{{#isOwner}}
+								<button type="button" class="btn btn-default fs-float-right fs-md-margin-top-negative" data-take-decision  data-movementSequence="{{movementSequence}}" >Movimentar</button>
+							{{/isOwner}}
+						{{/buttonTakeTask}}
+					{{/defaultActivity}}
+					{{#subProcess}}
+						<small>
+							em andamento:
+							&nbsp;Solicitação
+							<strong class='fs-cursor-pointer' data-open-detail>
+								{{subProcessId}}
+							</strong>
+							&nbsp;-&nbsp;{{subProcessDesc}}
+						</small>
+					{{/subProcess}}
+					{{^isActive}}
+						<small>
+						<strong>
+							A solicitação
+							&nbsp;{{processInstanceId}}&nbsp;
+							foi finalizada.
+						<strong>
+						</small>
+					{{/isActive}}
+				{{/workflowDetail}}
+				{{^workflowDetail}}
+					<strong {{#isUser}} class="namePopover" data-user-popover="{{login}}" {{/isUser}}>
+						{{#replacement}}
+							{{replacement}}
+						{{/replacement}}
+						{{^replacement}}
+							{{title}}
+						{{/replacement}}
+					</strong>
+					{{#hasPassword}}
+						<small>(senha confirmada)</small>
+					{{/hasPassword}}
+					{{#isPool}}
+						assumiu a tarefa&nbsp;<strong>{{activity}}</strong>
+						{{#replacementMsg}}
+							{{replacementMsg}}
+						{{/replacementMsg}}
+					{{/isPool}}
+					{{#isDoc}}
+						{{#isDocAdd}}
+							Anexou um documento na atividade&nbsp;<strong>{{activity}}</strong><br>
+							<span class="fs-cursor-pointer" data-open-attachment data-document-id="{{documentId}}" data-document-version="{{version}}">
+								<span class="flaticon flaticon-paperclip icon-sm"></span>
+								{{{docDescription}}}
+								{{#replacement}}
+									por ser substituto o usuário&nbsp;<strong>{{title}}</strong>
+								{{/replacement}}
+							</span>
+						{{/isDocAdd}}
+						{{#isDocUpdate}}
+							Atualizou um documento na atividade&nbsp;<strong>{{activity}}</strong><br>
+							<span class="fs-cursor-pointer" data-open-attachment data-document-id="{{documentId}}" data-document-version="{{version}}">
+								<span class="flaticon flaticon-paperclip icon-sm"></span>
+								{{{docDescription}}}
+								{{#replacement}}
+									por ser substituto o usuário&nbsp;<strong>{{title}}</strong>
+								{{/replacement}}
+							</span>
+						{{/isDocUpdate}}
+						{{#isDocDelete}}
+							Excluiu um documento na atividade&nbsp;<strong>{{activity}}</strong><br>
+							<span>
+								{{{docDescription}}}
+								{{#replacement}}
+									por ser substituto o usuário&nbsp;<strong>{{title}}</strong>
+								{{/replacement}}
+							</span>
+						{{/isDocDelete}}
+					{{/isDoc}}
+					{{#conversion}}
+						<strong>{{history}}</strong>
+						<div>{{{conversionObservation}}}</div>
+					{{/conversion}}
+					{{#defaultActivity}}
+						{{#isTransference}}
+							transferiu a atividade&nbsp;<strong>{{activity}}</strong>&nbsp;
+							{{#isTransferenceGroup}}
+								para o grupo&nbsp;<strong>{{choosedColleagueName}}</strong>
+							{{/isTransferenceGroup}}
+							{{^isTransferenceGroup}}
+								{{#isTransferenceRole}}
+									para o papel&nbsp;<strong>{{choosedColleagueName}}</strong>
+								{{/isTransferenceRole}}
+								{{^isTransferenceRole}}
+									para o usuário&nbsp;<strong  data-user-popover='{{choosedLogin}}'>{{choosedColleagueName}}</strong>
+								{{/isTransferenceRole}}
+							{{/isTransferenceGroup}}
+						{{/isTransference}}
+						{{^isTransference}}
+							movimentou a atividade&nbsp;<strong>{{activity}}</strong>
+							{{#hasChoosedActivity}}
+								&nbsp;para a atividade&nbsp;<strong>{{choosedActivity}}</strong>
+							{{/hasChoosedActivity}}
+						{{/isTransference}}
+					{{/defaultActivity}}
+					{{^defaultActivity}}
+						{{#defaultLink}}
+							{{{activityDetail}}}&nbsp;-&nbsp;<strong>mistWorkflowView.defaultLink</strong>
+						{{/defaultLink}}
+						{{^defaultLink}}
+							{{{activityDetail}}}
+						{{/defaultLink}}
+					{{/defaultActivity}}
+					{{#hasHistory}}
+						{{^conversion}}
+							<small class="historyTxt">
+								{{history}}
+							</small>
+						{{/conversion}}
+					{{/hasHistory}}
+					{{#isParent}}
+						<small>
+							Solicitação iniciada como Subprocesso:
+							&nbsp;Solicitação
+							<strong class='fs-cursor-pointer' data-open-detail>
+								{{parentProcessId}}
+							</strong>
+							&nbsp;-&nbsp;{{parentProcessDescription}}
+						</small>
+					{{/isParent}}
+					{{#subProcess}}
+						<small>
+							{{#isProgress}}
+								Subprocesso em andamento:
+							{{/isProgress}}
+							{{#isInactive}}
+								Subprocesso finalizado:
+							{{/isInactive}}
+							{{#isCanceled}}
+								Subprocesso cancelado:
+							{{/isCanceled}}
+							&nbsp;Solicitação
+							<strong class='fs-cursor-pointer' data-open-detail>
+								{{subProcessId}}
+							</strong>
+							&nbsp;-&nbsp;{{subProcessDesc}}
+						</small>
+					{{/subProcess}}
+				{{/workflowDetail}}
+			</div>
+			<div class="row">
+				{{#workflowDetail}}
+					{{#isStart}}
+						{{^inProgress}}
+							{{#isValidTime}}
+								<small>{{movementDate}} - </small><small data-creation-date="{{movementTime}}"></small>
+							{{/isValidTime}}
+						{{/inProgress}}
+						{{#inProgress}}
+							<small>&nbsp;(Em progresso)</small>
+						{{/inProgress}}
+					{{/isStart}}
+				{{/workflowDetail}}
+				{{^workflowDetail}}
+
+					{{#isValidTime}}
+						<small>{{movementDate}} - </small><small data-creation-date="{{movementTime}}"></small>
+					{{/isValidTime}}
+				{{/workflowDetail}}
+			</div>
+			<div class="row fs-no-margin-bottom fs-no-margin-top">
+				{{#hasObservation}}
+					<div class="observationText fs-no-bold fs-word-break">{{{observation}}}</div>
+				{{/hasObservation}}
+				{{#signed}}
+				<div class="digitalSection">
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<a href="#" data-open-digitalinfo class="panel-title">Ver detalhes da assinatura digital</a>
+						</div>
+						<div class="panel-body digitalSignature" data-userid='{{userId}}' data-movementsequence='{{movementSequence}}' data-transferredsequence='{{transferredSequence}}'>
+						</div>
+					</div>
+				</div>
+				{{/signed}}
+			</div>
+		</div>
+	</div>
+</script><script type="text/mustache" id="systemTpl">
+	<div class="row">
+		<hr class="fs-transparent-50 fs-no-padding fs-md-margin-bottom">
+		<div class="col-md-1 fs-txt-left complement-img">
+			<span class="flaticon icon-md fs-color-white fs-sm-padding-top fs-sm-padding-left flaticon-process complement-lg-icon"></span>
+			<br />
+			<span class="flaticon flaticon-arrow-right icon-xs arrowSpace complement-icon fs-color-white"></span>
+		</div>
+		<div class="col-md-11">
+			{{#hasChoosedActivity}}
+				<div class="row">
+					<strong>{{activity}}</strong>
+					movimentou a atividade&nbsp;<strong>{{activity}}</strong>
+					{{#hasChoosedActivity}}
+						&nbsp;para a atividade&nbsp;<strong>{{activityLabel}}</strong>
+					{{/hasChoosedActivity}}
+				</div>
+				<div class="row">
+					<small>{{movementDate}} - </small><small data-creation-date="{{movementTime}}"></small>
+				</div>
+			{{/hasChoosedActivity}}
+			{{^hasChoosedActivity}}
+				<div class="row">
+					<strong>{{activityLabel}}</strong>
+					Executando atividade de serviço do sistema
+				</div>
+				<div class="row">
+					<small>{{movementDate}} - </small><small data-creation-date="{{movementTime}}"></small>
+				</div>
+			{{/hasChoosedActivity}}
+			<div class="row fs-sm-margin-bottom">
+				<div class="observationText fs-no-bold fs-word-break">{{{observation}}}</div>
+			</div>
+		</div>
+		<hr class="fs-transparent-50 fs-no-padding fs-md-margin-vertical">
+	</div>
+</script><script type="text/template" class="digitalInfoTpl">
+	<div class="row">
+		<div class="col-md-4">
+			<h2>Detalhes</h2>
+
+			<p>
+				<span class="digitalBlock">Assinado por</span>
+				<span class="flaticon flaticon-user icon-xs"></span>
+				{{subjectCommonName}}
+			</p>
+
+			<p>
+				<span class="digitalBlock">Status</span>
+				{{#valid}}<span class="flaticon flaticon-verified icon-xs"></span> orkflowView.ok{{/valid}}
+				{{^valid}}<span class="flaticon flaticon-remove icon-xs"></span> Erro {{/valid}}
+			</p>
+
+		</div>
+		<div class="col-md-4">
+			<h2>Verificação do certificado</h2>
+
+			<p>
+				<span class="digitalBlock">Número de certificados na cadeia:</span>
+				{{certificateInformation.chainCount}}
+			</p>
+
+			<p>
+				<span class="digitalBlock">Nome:</span>
+				{{certificateInformation.subjectCommonName}}
+			</p>
+
+			<p>
+				<span class="digitalBlock">Certificado Raiz:</span>
+				{{#certificateInformation.root}} Sim {{/certificateInformation.root}}
+				{{^certificateInformation.root}} Não {{/certificateInformation.root}}
+			</p>
+			<p>
+				<span class="digitalBlock">Cadeia Ok?</span>
+				{{#certificateInformation.chainOfTrustOk}} Sim {{/certificateInformation.chainOfTrustOk}}
+				{{^certificateInformation.chainOfTrustOk}} Não {{/certificateInformation.chainOfTrustOk}}
+			</p>
+		</div>
+		<div class="col-md-4">
+			<h2>&nbsp;</h2>
+			<p>
+				<span class="digitalBlock">Status:</span>
+
+				{{#certificateInformation.valid}}<span class="flaticon flaticon-verified icon-xs"></span> orkflowView.ok{{/certificateInformation.valid}}
+				{{^certificateInformation.valid}}<span class="flaticon flaticon-remove icon-xs"></span> Erro {{/certificateInformation.valid}}
+			</p>
+
+			<p>
+				<span class="digitalBlock">Certificado expirado?</span>
+				{{#certificateInformation.expired}} Sim {{/certificateInformation.expired}}
+				{{^certificateInformation.expired}} Não {{/certificateInformation.expired}}
+			</p>
+			<p>
+				<span class="digitalBlock">Certificado Revogado?</span>
+				{{#certificateInformation.revoked}} Sim {{/certificateInformation.revoked}}
+				{{^certificateInformation.revoked}} Não {{/certificateInformation.revoked}}
+			</p>
+
+			{{#certificateInformation.revoked}}
+				<p>
+					<span class="digitalBlock">Data de Revogação:</span>
+					{{certificateInformation.revocationDate}}
+				</p>
+				<p>
+					<span class="digitalBlock">Tipo de validação de revogação:</span>
+					{{certificateInformation.validationType}}
+				</p>
+			{{/certificateInformation.revoked}}
+		</div>
+	</div>
+	<p class="text-center"><img src="/digital_signature/resources/images/certisign-small.png" /></p>
+</script><script type="text/mustache" id="openConsensusDetailTpl">
+	<div id='workflow-detail-consensus'>
+		<div id='workflow-detail-consensus-values' class="row text-center well">
+			<div id='workflow-detail-consensus-agreement-value' class="col-md-6">
+				<strong class='{{reachedStyle}} fs-display-block'>
+					{{reachedPercentage}}%
+				</strong>
+				<span>
+					Obtido
+				</<span>
+			</div>
+			<div id='workflow-detail-consensus-reached-value' class="col-md-6">
+				<strong class='text-success fs-display-block'>
+					{{agreementPercentage}}%
+				</strong>
+				<span>
+					Requerido
+				</<span>
+			</div>
+		</div>
+		<div id='workflow-detail-consensus-colleagues' class="row">
+			{{#hasColleaguesNotCompletedTask}}
+				<div id='workflow-detail-consensus-colleagues-not-completed' class="col-md-6">
+					<h3 class="text-danger">
+						Não completou a tarefa
+					</h3>
+					<ul>
+						{{#colleaguesNotCompletedTask}}
+							<li>
+								<span data-user-popover="{{colleagueLogin}}">
+									{{colleagueName}}
+								</span>
+								{{#isCurrentUser}}
+									(Você)&nbsp;
+									{{#canChangeDecision}}
+										<button type="button" class="btn btn-default" data-take-decision data-movementSequence="{{movementSequence}}">
+											Tomar decisão
+										</button>
+									{{/canChangeDecision}}
+								{{/isCurrentUser}}
+		            		</li>
+	            		{{/colleaguesNotCompletedTask}}
+					</ul>
+				</div>
+            {{/hasColleaguesNotCompletedTask}}
+            {{#hasColleaguesCompletedTask}}
+            	<div id='workflow-detail-consensus-colleagues-completed' class="col-md-6">
+					<h3 class="text-success">
+						Completou a tarefa
+					</h3>
+					<ul>
+						{{#colleaguesCompletedTask}}
+							<li>
+								<span data-user-popover="{{colleagueLogin}}">
+									{{colleagueName}}
+								</span>
+								{{#isCurrentUser}}
+									(Você)&nbsp;
+									{{#canChangeDecision}}
+										<button type="button" class="btn btn-default fs-float-right fs-md-margin-top-negative" data-take-decision data-movementSequence="{{movementSequence}}">
+											mistWorkflowView.change.decision
+										</button>
+									{{/canChangeDecision}}
+								{{/isCurrentUser}}
+								<span class='workflow-detail-consensus-colleagues-completed-resume'>
+									mistWorkflowView.chose&nbsp;
+									{{taskDest}}&nbsp;
+									{{#colleagueNameDest}}
+										mistWorkflowView.send.to&nbsp;{{colleagueNameDest}}
+									{{/colleagueNameDest}}
+	     		 				</span>
+		            		</li>
+						{{/colleaguesCompletedTask}}
+					</ul>
+				</div>
+            {{/hasColleaguesCompletedTask}}
+        </div>
+	</div>
+</script></div>
+                    </div>
+                    <div class="tab-pane fade" id="attachments-tab">
+                        <div id="attachments" class="col-xs-12 fs-overflow-auto control-tab-content" style="height: 675.516px;"><div id="ecm-workflowView-attachment" class="fluig-style-guide">
+	<div class="row" id="div-row-new-attachments">
+		<div class="col-md-5">
+			<div class="input-group">
+				<input type="text" id="attachmentSearchField" class="form-control fs-no-border-right" placeholder="Digite o título do anexo que deseja buscar" data-search-table-attachments="">
+				<div class="input-group-addon fs-no-border-left fs-bg-white" id="btnSearch">
+					<span class="fluigicon fluigicon-search"></span>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-md-5 fs-display-flex">
+
+			<div id="div-btn-attachment" class="box-multiple-attach-select fs-display-none fs-xs-margin-top fs-md-padding-left fs-md-padding-right">
+				<i class="flaticon flaticon-download icon-md fs-cursor-pointer fs-md-margin-right" title="Download" data-attachments-download-attach=""></i>
+				<i class="flaticon flaticon-trash icon-md fs-cursor-pointer" title="Excluir" data-attachments-remove-attach=""></i>
+			</div>
+		</div>
+		<div class="col-md-2">
+			<div id="div-buttons-attachment">
+				<button type="button" class="btn btn-primary dropdown-toggle fs-float-right fs-xs-padding-vertical fs-display-flex fs-align-items-center fs-md-margin-right" data-toggle="dropdown">
+					Adicionar
+					<i class="flaticon flaticon-chevron-down icon-sm fs-sm-margin-left"></i>
+				</button>
+				<ul class="dropdown-menu dropdown-menu-right fs-xl-margin-right" role="menu">
+					<li>
+						<label id="lb-file-upload" for="ecm-navigation-inputFile-clone" class="label-attach fs-no-margin-bottom fs-cursor-pointer">Upload de arquivo</label>
+					</li>
+
+					<li data-attachments-load-ged=""><a href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#">Documentos do ECM</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+
+	<div class="row fs-huge-margin-top fs-xs-margin-horizontal text-center fs-huge-padding fs-xxl-margin-bottom" id="attachmentsUploadEmptyTable">
+		<i class="flaticon flaticon-upload icon-md" aria-hidden="true"></i>
+		<h4>Arraste e solte o arquivo aqui</h4>
+		<label class="h6-size fs-no-bold">ou clique no botão abaixo</label>
+		<div class="row fs-sm-margin-top">
+			<label id="lb-input-upload" for="ecm-navigation-inputFile-clone" class="btn btn-primary fs-no-margin-bottom fs-cursor-pointer">Selecionar arquivo</label>
+			<form class="fs-display-none" id="ecm_navigation_fileupload" action="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/upload" method="POST" enctype="multipart/form-data" accept-charset="UTF-8">
+				<input type="hidden" id="ecm-navigation-uploadformUserId" name="userId" value="00130">
+				<input type="file" name="files[]" multiple="" id="ecm-navigation-inputFile-clone">
+			</form>
+		</div>
+	</div>
+
+	<div id="attachmentsTable" class="fs-display-none fs-xl-margin-top fs-xxl-margin-bottom" style="position: relative; zoom: 1;">
+    <table id="fluig-table-1781703428122" class="table table-datatable ">
+        <thead>
+            <tr>
+
+
+                        <th><input type="checkbox" id="attachmentCheck-all" data-checkall-attachments=""></th>
+
+
+
+                        <th>Título</th>
+
+
+
+                        <th>Código</th>
+
+
+
+                        <th>Versão</th>
+
+
+
+                        <th>Usuário que anexou</th>
+
+
+
+                        <th>Data de inclusão</th>
+
+
+
+                        <th>Incluído em atividade</th>
+
+            </tr>
+        </thead>
+        <tbody data-tbody-fluig="">
+            <tr data-empty-message=""><td class="text-center" colspan="7"><h4>Não há dados para serem exibidos.</h4></td></tr>
+        </tbody>
+        <tfoot>
+        </tfoot>
+    </table>
+
+        <div id="area-nav-button" class="text-right fs-md-margin-bottom" style="display: none;">
+            <button class="btn btn-default" data-nav-prev=""> &lt;&lt; </button>
+            <button class="btn btn-default" data-nav-next=""> &gt;&gt; </button>
+        </div>
+</div>
+
+	<script type="text/mustache" class="no-attachments-allowed">
+		<div class="alert alert-info" role="alert">
+			Este processo não aceita complementos em solicitações.
+		</div>
+	</script>
+
+	<script type="text/mustache" class="no-attachments-permission">
+		<div class="alert alert-info" role="alert">
+			Você não possui permissão para adicionar complementos nessa solicitação.
+		</div>
+	</script>
+
+
+	<script type="text/template" class="attachmentsTpl">
+		<tr>
+			<td>
+				<input type="checkbox" id="attachmentCheck-{{documentId}}" data-check-attachment>
+			</td>
+			<td>
+				{{#iconUrl}}
+					<img src="/webdesk/{{iconPath}}" class="iconAttachDoc" />
+				{{/iconUrl}}
+				{{^iconUrl}}
+					<i class="fluigicon fluigicon-md {{iconClass}}"></i>
+				{{/iconUrl}}
+				<a href="#" data-attachment-open class="fs-sm-margin-left">{{description}}</a>
+			</td>
+			<td>
+				{{documentId}}
+			</td>
+			<td>
+				<span>
+					{{#version}}
+						{{version}}
+					{{/version}}
+					{{^version}}
+						1000
+					{{/version}}
+				</span>
+			</td>
+			<td>
+				{{attachedUser}}
+			</td>
+			<td>
+				<span>
+					{{#attachedDate}}
+						{{attachedDate}}
+					{{/attachedDate}}
+					{{^attachedDate}}
+						Ainda não publicado
+					{{/attachedDate}}
+				</span>
+			</td>
+			<td>
+				{{attachedActivity}}
+			</td>
+			{{#hasOwnSubMenu}}
+				<td class="{{classSubMenu}}">
+					{{#enableDownload}}
+						<i class="flaticon flaticon-download icon-md fs-md-margin-right" title="Download" data-attachment-download></i>
+					{{/enableDownload}}
+					<i class="flaticon flaticon-trash icon-md fs-md-margin-right" title="Excluir" data-attachment-remove></i>
+					{{#hasMoreOptions}}
+						<div class="dropdown">
+							<a data-toggle="dropdown" id="dLabel" href="#"><i class="flaticon flaticon-more-vert icon-md" title="Mais ações"></i></a>
+							<ul class="dropdown-menu tableDropdown" role="menu" aria-labelledby="dLabel">
+								{{#enablePublish}}
+									<li>
+										<a href="#" data-attachment-publish><i class="fluigicon fluigicon-sm fluigicon-file-upload"></i> Publicar</a>
+									</li>
+								{{/enablePublish}}
+								{{#enableEdit}}
+									<li>
+										<a href="#" data-attachment-edit><i class="fluigicon fluigicon-sm fluigicon-fileconfig"></i> Propriedades</a>
+									</li>
+								{{/enableEdit}}
+
+									{{#enableEditContent}}
+										<li>
+											<a href="#" data-attachment-editcontent><i class="fluigicon fluigicon-sm fluigicon-fileedit"></i> Editar conteúdo</a>
+										</li>
+									{{/enableEditContent}}
+							</ul>
+						</div>
+					{{/hasMoreOptions}}
+				</td>
+			{{/hasOwnSubMenu}}
+		</tr>
+	</script>
+
+	<div id="ecm-workflowView-containerApplet"></div>
+
+	<div class="ecm-workflowView-main" id="ecm-workflowView-main">
+	    <div id="workflowView-fileupload-progressDiv" class="workflowView-fileupload-progressDiv">
+			<div id="workflowView-fileupload-progress" class="workflowView-fileupload-progress">
+			    <label id="workflowView-fileupload-label" class="workflowView-fileupload-label"></label>
+			</div>
+	    </div>
+
+	    <div id="ecm-workflowView-droppableContainer">
+			<ul id="ecm-workflowView-attachContainer" class="column">
+			</ul>
+	    </div>
+	</div>
+
+	<div id="drop_zone_attachments_show" ondragleave="clearDropZoneAttachments(this, this, true)">
+		<div class="row file-zone-row">
+			<div id="drop_zone_attachments" class="drop-zone file-zone col-md-12">
+				<span class="fluigicon fluigicon-files fluigicon-xl"></span>
+				<span class="drop-file-zone-info">Solte os seus arquivos aqui</span>
+			</div>
+		</div>
+	</div>
+
+	<script type="text/template" class="attachments-empty">
+		<div class="fs-x-huge-padding-top fs-x-huge-padding-bottom fs-margin-auto fs-text-center restrict-access-container">
+			<img src="/style-guide/images/illustrations/empty.svg">
+			<h2>Não há anexos nesta solicitação</h2>
+			<p>Não é possivel adicionar novos anexos, pois a solicitação já foi finalizada ou você não possui permissões para tal</p>
+		</div>
+	</script>
+</div></div>
+                    </div>
+                    <div class="tab-pane fade" id="adhoc-tab">
+                        <div id="adhocContent" class="col-xs-12 fs-overflow-auto control-tab-content"></div>
+                    </div>
+                    <div class="tab-pane fade" id="appointments-tab">
+                        <div id="appointmentsContent" class="col-xs-12 fs-overflow-auto control-tab-content" style="height: 675.516px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="workflow-actions fs-lg-margin">
+                <div class="text-right">
+                    <div class="btn-group fs-md-margin-right" id="workflowActions">
+        <button type="button" class="btn btn-primary" data-send="">Enviar</button>
+        <button id="dd-options" type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+            <span class="flaticon flaticon-chevron-down icon-sm"></span>
+        </button>
+        <ul class="dropdown-menu js-option-list-drop btn-action-dropdown" role="menu" id="optionList">
+            <li class="fs-md-padding mouse-hover fs-cursor-pointer" data-send="">
+                <label class="fs-cursor-pointer">Enviar</label>
+                <label class="fs-no-bold fs-text-sm fs-cursor-pointer">Salva e movimenta a atividade</label>
+            </li>
+            <hr class="fs-transparent-50 fs-no-margin-top fs-sm-margin-bottom">
+            <li class="fs-md-padding-horizontal fs-sm-padding-vertical mouse-hover fs-cursor-pointer" data-save="">
+                <label class="fs-cursor-pointer">Somente salvar</label>
+                <label class="fs-no-bold fs-text-sm fs-cursor-pointer">Salva as alterações, sem movimentar a atividade</label>
+            </li>
+                <li class="fs-md-padding-horizontal fs-sm-padding-vertical mouse-hover fs-cursor-pointer" data-back="">
+                    <label class="fs-cursor-pointer">Descartar alterações</label>
+                    <label class="fs-no-bold fs-text-sm fs-cursor-pointer">Descarta as modificações e retorna para a Central de tarefas</label>
+                </li>
+        </ul>
+</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- view templates -->
+<script type="text/mustache" id="breadcrumb-new">
+    <li><a href="/">Início</a></li>
+    <li><a href="/portal/p/1/pageprocessstart">Processos</a></li>
+    <li><a href="/portal/p/1/pageprocessstart">Iniciar Solicitações</a></li>
+    <li class="active" id="textProcess">{{process}}</li>
+</script>
+
+<script type="text/mustache" id="breadcrumb-moviment">
+    <li><a href="/">Início</a></li>
+    <li><a href="/portal/p/1/pagecentraltask">Central de Tarefas</a></li>
+    <li class="active" id="textProcess">{{process}}</li>
+</script>
+
+<script type="text/mustache" id="activityInfo-template">
+    {{^deadLineText}}
+        <div class="item-panel fs-display-flex fs-no-border">
+    {{/deadLineText}}
+    {{#deadLineText}}
+        <div class="item-panel fs-display-flex fs-no-border fs-lg-margin-bottom">
+    {{/deadLineText}}
+        <div class="info-item fs-display-flex fs-align-items-center">
+            <strong class="info-title">Atividade atual</strong>
+            <div class="fs-display-flex fs-flex-wrap-wrap fs-align-items-center">
+                <span class="fs-lg-margin-right">{{ stateDescription }}</span>
+                <span class="view-diagram-info fs-xl-padding-right">
+                    <i class="fs-xs-top flaticon flaticon-diagram icon-md fs-xs-margin-right" aria-hidden="true"></i>
+                    <span class="fs-no-bold fs-text-underline fs-cursor-pointer" data-workflow-view-diagram>Visualizar diagrama</span>
+                </span>
+            </div>
+        </div>
+        <div class="info-item fs-display-flex fs-flex-wrap-wrap fs-align-items-center">
+            <strong class="info-title">Responsável</strong>
+            <div>
+                {{#isNewRequest}}
+                    <span>Atividade inicial</span>
+                {{/isNewRequest}}
+                {{^isNewRequest}}
+                    {{#hasParallel}}
+                        <span>Atividade paralela</span>
+                    {{/hasParallel}}
+                    {{^hasParallel}}
+                        {{#colleagueLogin}}
+                            <img data-update-image-profile="code" data-image-size="X_SMALL_PICTURE"
+                                class="fluig-style-guide thumb-profile thumb-profile-sm thumb-profile-sm-legacy rounded-border responsible-img fs-md-margin-right"
+                                src="/collaboration/api/v3/users/{{ colleagueLogin }}/picture?type=SMALL_PICTURE"
+                                alt="{{colleagueName}}"
+                            />
+                        {{/colleagueLogin}}
+                        <span>{{ colleagueName }}</span>
+                    {{/hasParallel}}
+                {{/isNewRequest}}
+            </div>
+        </div>
+    </div>
+    {{#deadLineText}}
+        <div class="item-panel fs-lg-padding-top fs-display-flex">
+            <div class="info-item fs-display-flex fs-align-items-center">
+                <strong class="info-title">Prazo</strong>
+                {{#expired}}
+                    <div class="text-danger">
+                {{/expired}}
+                {{^expired}}
+                    <div>
+                {{/expired}}
+                <div>
+                    {{deadLineText}}
+                </div>
+            </div>
+        </div>
+    {{/deadLineText}}
+</script>
+
+<script type="text/mustache" id="processInfo-template">
+    <div class="item-panel fs-lg-padding-vertical fs-display-flex">
+        <div class="info-item fs-display-flex fs-align-items-center">
+            <strong class="info-title">Título do processo</strong>
+            <div>
+                {{ processDescription }}
+            </div>
+        </div>
+        <div class="info-item fs-display-flex fs-align-items-center">
+            <strong class="info-title">Título do formulário</strong>
+            <div>
+                {{#formDescription}}
+                    {{ formDescription}}
+                {{/formDescription}}
+                {{^formDescription}}
+                    Não existe formulário vinculado a este processo
+                {{/formDescription}}
+            </div>
+        </div>
+    </div>
+    <div class="item-panel fs-lg-padding-vertical fs-display-flex">
+        <div class="info-item fs-display-flex fs-align-items-center">
+            <strong class="info-title">Versão do processo</strong>
+            <div>
+                {{ version }}
+            </div>
+        </div>
+        <div class="info-item fs-display-flex fs-align-items-center">
+            <strong class="info-title">Versão do formulário</strong>
+            <div>
+                {{#isContainFormVersion}}
+                    {{ formVersion }}
+                {{/isContainFormVersion}}
+                {{^isContainFormVersion}}
+                    Não existe formulário vinculado a este processo
+                {{/isContainFormVersion}}
+            </div>
+        </div>
+    </div>
+</script>
+
+<script type="text/mustache" id="instructions-template">
+    <div class="panel panel-default fs-md-margin-top">
+        <div class="panel-body fs-lg-padding">
+            <h3 class="fs-no-margin-top">Instruções para a atividade</h3>
+            {{#taskInstruction}}
+                <span>{{ taskInstruction }}</span>
+            {{/taskInstruction}}
+            {{^taskInstruction}}
+                Nenhuma instrução para a atividade
+            {{/taskInstruction}}
+        </div>
+    </div>
+
+    <div class="panel panel-default fs-md-margin-top fs-xx-huge-margin-bottom">
+        <div class="panel-body fs-lg-padding">
+            <h3 class="fs-no-margin-top">Instruções para o processo</h3>
+            {{#processInstruction}}
+                <span>{{ processInstruction }}</span>
+            {{/processInstruction}}
+            {{^processInstruction}}
+                Nenhuma instrução para o processo
+            {{/processInstruction}}
+        </div>
+    </div>
+</script>
+
+<script type="text/mustache" id="appointments-tab">
+    <li class="collapse-tab">
+        <a href="#appointments" role="tab" data-toggle="tab" data-select-tabs>
+            <div class="row">
+                <div class="col-xs-2"><span class="fluigicon fluigicon-time fluigicon-lg"></span></div>
+                <div class="col-xs-8"><b>Apontamentos</b><br><span class="appointmentsQttStatus">0</span> registros</div>
+                <div class="col-xs-1"><span class="caret"></span></div>
+            </div>
+        </a>
+    </li>
+</script>
+
+<script type="text/mustache" id="noForm">
+    <div class="alert alert-info" role="alert">
+       <p><strong>Formulário inexistente!</strong> Não existe formulário vinculado a este processo.</p>
+    </div>
+</script>
+
+<script type="text/mustache" id="nextActivity-return-selected-template">
+    <option subProcessSequence='{{subProcessSequence}}' processId='{{processId}}' data-return='true' value='{{sequence}}' selected>{{description}} - Retorno</option>
+</script>
+
+<script type="text/mustache" id="nextActivity-return-template">
+    <option subProcessSequence='{{subProcessSequence}}' processId='{{processId}}' data-return='true' value='{{sequence}}'>{{description}} - Retorno</option>
+</script>
+
+<script type="text/mustache" id="nextActivity-selected-template">
+    <option subProcessSequence='{{subProcessSequence}}' processId='{{processId}}' data-return='false' value='{{sequence}}' selected>{{description}}</option>
+</script>
+
+<script type="text/mustache" id="nextActivity-template">
+    <option subProcessSequence='{{subProcessSequence}}' processId='{{processId}}' data-return='false' value='{{sequence}}'>{{description}}</option>
+</script>
+
+<script type="text/mustache" id="adhocActivity-template">
+    <option data-return='false' value='0' selected> workflowView.adhocTask </option>
+</script>
+
+<script type="text/mustache" id="instructions-link">
+    <a href="#" class="instructionsLink" data-open-instructions>
+        <span class="fluigicon fluigicon-info-sign fluigicon-xs"></span>
+        Instruções
+    </a>
+</script>
+
+<script type="text/mustache" class="digitalsignature-template">
+    <div class="separator"></div>
+
+    <div class="alert alert-info" role="alert">
+        <p class="text-center">Para envia-la para a próxima etapa, é necessário assina-la digitalmente.</p>
+    </div>
+
+    <div class="form-group">
+        <div id="digital-signature-module"></div>
+    </div>
+
+    <div id="certisign-logo" class="form-group text-center">
+        <img src="/digital_signature/resources/images/certisign-small.png"/>
+        <h6>Certsing Certificadora Digital S.A. - Todos os direitos reservados</h6>
+    </div>
+</script>
+
+<script type="text/mustache" class="addons-template">
+    <div class="separator"></div>
+
+    <div id="adds-container"></div>
+</script>
+
+<script type="text/mustache" class="appointaments-template">
+    <div id="appointaments-countainer" class="col-md-6">
+        <div class="form-group has-error">
+            <label for="userAppointament">Apontamentos *</label>
+            <div class="input-group date" id="userAppointamentHolder">
+                <input type="text" id="userAppointament" class="form-control" placeholder="Horas trabalhadas">
+                <span class="input-group-addon">
+                    <span class="fluigicon fluigicon-time"></span>
+                </span>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script type="text/mustache" class="countersign-template">
+    <div id="counter-sign-container" class="col-md-6">
+        <div class="form-group has-error">
+            <label for="user-password">Senha *</label>
+            <input type="password" id="user-password" name="user-password" class="form-control">
+        </div>
+    </div>
+</script>
+
+<script type="text/template" class="template-tag-users-suggestion">
+    <div class="media user-autocomplete" data-cloud-suggestion="{{colleagueId}}">
+    	{{#login}}
+	    	<div class="pull-left autoCompleteUser">
+	           	<img src="/social/api/rest/social/image/profile/{{login}}/X_SMALL_PICTURE" alt="{{colleagueName}}">
+	        </div>
+        {{/login}}
+        {{^login}}
+    		<span class="pull-left fluigicon fluigicon-group fluigicon-lg"></span>
+    	{{/login}}
+        <div class="media-body user-autocomplete-body fs-md-margin-left">
+            <h5 class="media-heading">{{colleagueName}}</h5>
+            <p class="text-muted ellipsis" fl-email>{{email}}</p>
+        </div>
+    </div>
+</script>
+
+<script type="text/template" class="template-tag-users">
+	{{#login}}<img width="30" height="30" src="/social/api/rest/social/image/profile/{{login}}/X_SMALL_PICTURE">{{/login}} {{colleagueName}}
+</script>
+
+<script type="text/template" class="template-tag-pool-suggestion">
+    <div class="media" data-cloud-suggestion="{{colleagueId}}">
+        <span class="pull-left fluigicon fluigicon-group fluigicon-lg"></span>
+        <div class="media-body">
+            <h5 class="media-heading">{{colleagueName}}</h5>
+        </div>
+    </div>
+</script>
+
+<script type="text/template" class="template-tag-pool">
+    <div class="media autoCompleteUser" data-cloud-suggestion="{{colleagueId}}">
+        <span class="pull-left fluigicon fluigicon-groupfluigicon-lg"></span>
+        <div class="media-body">
+            <h5 class="media-heading">{{colleagueName}}</h5>
+        </div>
+    </div>
+</script>
+
+<script type="text/template" id="template-cancel">
+    <div class="col-md-12 fs-no-padding">
+        <label for="nextActivity">
+            Próxima atividade
+        </label>
+        <textarea name="txtCancelamento" id="workflowview-detail-cancelText" class="form-control fs-no-resize fs-xs-margin-bottom" rows="5" data-cancel-text>Motivo do cancelamento</textarea>
+        <small >Digite o motivo do cancelamento da solicitação.</small>
+    </div>
+</script>
+
+<script type="text/template" id="template-assume">
+    <div id="assumeTasksTable"></div>
+</script>
+
+<script type="text/template" class="assumeTasksTpl">
+    <tr>
+        <td>{{stateDescription}}</td>
+    </tr>
+</script>
+
+<script type="text/mustache" id="automaticTaskMessage">
+    <div class="alert alert-info" role="alert">
+        {{message}}
+    </div>
+</script>
+
+<script type="text/mustache" id="workflow-actions">
+    {{#workflowDetail}}
+        {{#buttonTakeTask}}
+            {{#showCancel}}
+                <button type="button" class="btn btn-primary" data-take-task>Assumir tarefa</button>
+                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                    <span class="flaticon flaticon-chevron-down icon-sm"></span>
+                </button>
+                <ul class="dropdown-menu js-option-list-drop btn-action-dropdown" role="menu" id="optionList">
+                    <li class="fs-md-padding mouse-hover fs-cursor-pointer" data-cancel-workflow-request>
+                        <label class="fs-cursor-pointer">Cancelar Solicitação</label>
+                        <br>
+                        <label class="fs-no-bold fs-text-sm fs-cursor-pointer">Cancela a solicitação e remove da Central de tarefas</label>
+                    </li>
+                </ul>
+            {{/showCancel}}
+            {{^showCancel}}
+                <button type="button" class="btn btn-primary" data-take-task>Assumir tarefa</button>
+            {{/showCancel}}
+        {{/buttonTakeTask}}
+        {{^buttonTakeTask}}
+            {{#showCancel}}
+                <button type="button" class="btn btn-primary" data-cancel-workflow-request>Cancelar Solicitação</button>
+            {{/showCancel}}
+        {{/buttonTakeTask}}
+    {{/workflowDetail}}
+    {{^workflowDetail}}
+        <button type="button" class="btn btn-primary" data-send>Enviar</button>
+        <button id="dd-options" type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+            <span class="flaticon flaticon-chevron-down icon-sm"></span>
+        </button>
+        <ul class="dropdown-menu js-option-list-drop btn-action-dropdown" role="menu" id="optionList">
+            <li class="fs-md-padding mouse-hover fs-cursor-pointer" data-send>
+                <label class="fs-cursor-pointer">Enviar</label>
+                <label class="fs-no-bold fs-text-sm fs-cursor-pointer">Salva e movimenta a atividade</label>
+            </li>
+            <hr class="fs-transparent-50 fs-no-margin-top fs-sm-margin-bottom">
+            <li  class="fs-md-padding-horizontal fs-sm-padding-vertical mouse-hover fs-cursor-pointer" data-save>
+                <label class="fs-cursor-pointer">Somente salvar</label>
+                <label class="fs-no-bold fs-text-sm fs-cursor-pointer">Salva as alterações, sem movimentar a atividade</label>
+            </li>
+            {{^showCancel}}
+                <li  class="fs-md-padding-horizontal fs-sm-padding-vertical mouse-hover fs-cursor-pointer" data-back>
+                    <label class="fs-cursor-pointer">Descartar alterações</label>
+                    <label class="fs-no-bold fs-text-sm fs-cursor-pointer">Descarta as modificações e retorna para a Central de tarefas</label>
+                </li>
+            {{/showCancel}}
+        </ul>
+    {{/workflowDetail}}
+</script>
+
+<script type="text/mustache" id="workflow-actions-transfer">
+    <li class="fs-md-padding-horizontal fs-sm-padding-vertical mouse-hover fs-cursor-pointer" data-transfer>
+        <label class='fs-cursor-pointer'>Transferir</label>
+        <label class='fs-no-bold fs-text-sm fs-cursor-pointer'>Selecione um usuário para transferir a tarefa</label>
+    </li>
+</script>
+
+<script type="text/mustache" id="workflow-actions-cancel">
+    <li class="fs-md-padding-horizontal fs-sm-padding-vertical mouse-hover fs-cursor-pointer" data-cancel-workflow-request>
+	    <label class='fs-cursor-pointer'>Cancelar Solicitação</label>
+		<label class='fs-no-bold fs-text-sm fs-cursor-pointer'>Cancela a solicitação e remove da Central de tarefas</label>
+    </li>
+</script>
+
+<script type="text/mustache" id="userTpl">
+    <div id="detail-task-responsible" class="fs-display-inline-block fs-full-width">
+        <h4 class="col-md-3 fs-no-padding text-right">Responsável</h3>
+        {{#isUser}}
+
+            <p id="task-responsible-text" {{#login}} class="namePopover" data-user-popover="{{login}}" {{/login}} class="col-md-9 fs-ellipsis fs-sm-margin-top" >
+                {{#login}}
+                    <img data-update-image-profile="code" data-image-size="X_SMALL_PICTURE"
+                        class="fluig-style-guide thumb-profile thumb-profile-sm thumb-profile-sm-legacy rounded-border fs-md-margin-left"
+                        src="/collaboration/api/v3/users/{{login}}/picture?type=SMALL_PICTURE"
+                        alt="{{fullName}}"
+                    />
+                {{/login}}
+                {{title}}
+            </p>
+        {{/isUser}}
+        {{^isUser}}
+            <p id="task-responsible-text" class="col-md-9 fs-ellipsis fs-sm-margin-top">
+                {{title}}
+                <a href="#" data-open-zoom data-sequence="{{sequence}}">
+                    <span class="fluigicon fluigicon-search fluigicon-sm"></span>
+                </a>
+            </p>
+        {{/isUser}}
+    </div>
+</script>
+
+<script type="text/mustache" class="no-complements-allowed">
+    <div class="alert alert-info" role="alert">
+        Este processo não aceita complementos em solicitações.
+    </div>
+</script>
+
+<script type="text/mustache" class="no-complements-permission">
+    <div class="alert alert-info" role="alert">
+        Você não possui permissão para adicionar complementos nessa solicitação.
+    </div>
+</script>
+
+<script type="text/mustache" class="rightbar-components">
+    <div class="fs-no-padding">
+        <div class="col-md-12 col-xs-12 fs-no-padding table-bordered fs-no-border-left">
+            <div class="col-sm-2 col-xs-2 fs-lg-padding-vertical fs-sm-padding-horizontal table-bordered fs-no-border-top fs-no-border-bottom fs-no-border-left action-close-rightbar text-center">
+                <i id="rb-close-btn" class="fs-no-margin flaticon flaticon-close icon-md fs-cursor-pointer fs-xxs-margin-top" data-call-hide-modals></i>
+            </div>
+            <div class="col-sm-10 col-xs-10 fs-lg-padding-vertical fs-sm-padding-horizontal fs-xs-margin-top fs-no-border-bottom fs-no-border-left">
+                <h3 class="fs-no-margin fs-no-padding"> {{title}} </h3>
+            </div>
+        </div>
+
+        <div class="col-md-12 col-xs-12 fs-full-height">
+            <div class="col-md-12 fs-sm-padding fs-xl-padding-top">
+                {{{rightbarContent}}}
+            </div>
+        </div>
+        <div class="fs-display-flex fs-full-width fs-lg-padding-horizontal fs-lg-padding-vertical fs-justify-content-space-between fs-align-items-center fs-position-bottom-right fs-position-absolute table-bordered fs-no-border-left">
+            <div>
+                <i class="fs-xs-top flaticon flaticon-diagram icon-md" aria-hidden="true"></i>
+                <label class="fs-no-bold fs-xs-margin-left fs-text-underline fs-cursor-pointer" data-workflow-view-diagram>Visualizar diagrama</label>
+            </div>
+            {{#send}}
+                <div>
+                    <button id="moviment-button" type="button" class="btn btn-primary pull-right" {{sendButton}}>Enviar</button>
+                    <button id="cancel-button" type="button" class="btn btn-default fs-sm-margin-right pull-right" {{cancelButton}} data-call-hide-modals>Voltar</button>
+                </div>
+            {{/send}}
+            {{#transfer}}
+                <div>
+                    <button id="moviment-button" type="button" class="btn btn-primary pull-right" data-send-transfer-request>Transferir</button>
+                    <button id="cancel-button" type="button" class="btn btn-default fs-sm-margin-right pull-right" data-cancel-transfer-request>Voltar</button>
+                </div>
+            {{/transfer}}
+            {{#cancel}}
+                <div>
+                    <button id="moviment-button" type="button" class="btn btn-primary pull-right" {{cancelButton}}>Cancelar Solicitação</button>
+                    <button id="cancel-button" type="button" class="btn btn-default fs-sm-margin-right pull-right" data-call-hide-modals>Voltar</button>
+                </div>
+            {{/cancel}}
+        </div>
+    </div>
+</script>
+        
+        </div>
+    </div>
+</div>
+
+
+    </div>
+
+			</div>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+	        WCMAPI.nocodeActive = false;
+WCMAPI.version = "1.8.0-221222";WCMAPI.serverURL = "https://nossaempresa.fluig.cloudtotvs.com.br";WCMAPI.uploadURL = "https://nossaempresa.fluig.cloudtotvs.com.br/ecm/upload";WCMAPI.contextPath = "/portal";WCMAPI.tenantURI = "/portal/p/1";WCMAPI.tenantPATH = "1";WCMAPI.tenantURL = "https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1";WCMAPI.protectedContextPath = "/portal/p";WCMAPI.serverContextURL = "/portal";WCMAPI.replicationServerEnabled = false;WCMAPI.replicationServerCentralized = false;WCMAPI.colorMenu = "";WCMAPI.colorBackground = "";WCMAPI.imageBackground = "false";WCMAPI.imageLogo = "true";WCMAPI.spaceId = "0";WCMAPI.themeId = "0";WCMAPI.pageId = "32";WCMAPI.pageCode = "pageworkflowview";WCMAPI.pageTitle = "Movimentar Solicitação";WCMAPI.pageType = "0";WCMAPI.pageLayout = "0";WCMAPI.parentPageCode = "";WCMAPI.homePageCode = "home";WCMAPI.applicationCode = "fluig";WCMAPI.friendlyURL = "";WCMAPI.locale = "pt_BR";WCMAPI.localeDisplayName = "português (Brasil)";WCMAPI.isEditMode = "false";
+WCMAPI.fluigVersion = "1.8.0-221222";WCMAPI.fluigInstanceVersionName = "Mist";WCMAPI.fluigVersionBuild = "353";WCMAPI.fluigVersionStatus = "3";
+        WCMAPI.isLegacyLMSEnabled = true;
+        WCMAPI.isLegacyAppsEnabled = true;
+        WCMAPI.noCode = false;
+
+WCMAPI.timezone = "America/Sao_Paulo";        WCMAPI.fluigPaas = false;
+		WCMAPI.isSAMLEnabled = true;
+		WCMAPI.idpHomePageURL = "https://grupobw.fluigidentity.com/cloudpass";
+WCMAPI.tenantCode = "1";WCMAPI.organizationId = "1";WCMAPI.userId = "132";WCMAPI.userCode = "00130";		if (WCMAPI.userCode == '') {
+WCMAPI.userCode = "administrativo.dvaatacados.com.br.1";		}
+
+WCMAPI.user = "Administrativo CD";
+WCMAPI.userLogin = "administrativo.dvaatacados.com.br.1";WCMAPI.userEmail = "administrativo@dvaatacados.com.br";WCMAPI.userType = "0";WCMAPI.userLocationId = "1";WCMAPI.userLocationCode = "";WCMAPI.userLocationUrl = "";WCMAPI.userIsLogged = true;
+    WCMAPI.isFeatureServerEnabled = false;
+	WCMAPI.enabledFeatures = [];
+
+WCMAPI.isMobileAppMode = function() {return false;};
+	if (postLoading.fns.length) {
+		for (var i=0; i < postLoading.fns.length; i++) {
+			postLoading.fns[i]();
+		}
+	}
+
+	postLoading.alreadyRan = true;
+
+	// Essa função realiza a instância de uma Super Widget.
+	function loadWidgets() {
+		WCMAPI.loadWidgets();
+	}
+
+	loadWidgets();
+
+	// TODO: Avaliar a possibilidade de movimentar esse
+	// ajaxSetup para o wcmapi.
+	$.ajaxSetup({
+		complete: function() {
+			if ($('.wcm-widget-class').length) {
+				loadWidgets();
+			}
+		}
+	});
+</script>
+<!-- Garante que todos os elementos da página foram renderizados -->
+<script type="text/javascript">
+
+    $(document).ready(function() {
+                    $("wcm-edit-warning-wrapper").remove();
+        
+        $('.wcm-all-content').css('visibility','visible');
+        
+        initTheme();
+        addFavicon();
+        WCMAPI.identifyBrowser();
+    });
+
+    function initTheme() {
+        refreshMoreMenu($('.wcm-menu-background').css('background-color'));
+        refreshLuminosityMenu(false, 'wcm-menu-background');
+        refreshHeaderLuminosityTags(false);
+
+        $('#wcm_breadcrumbs li a').each(function() {
+            $(this).attr('href','#');
+        });
+
+        // Adicionando evento do resize para jqgrid
+        $(window).off('resize', resizeAllGrids);
+        $(window).on('resize', resizeAllGrids).trigger('resize');
+    };
+
+    function refreshHeaderLuminosityTags(showAnimate){
+        var rgbLight = 'rgb(255,255,255)';
+        var rgbDark = 'rgb(0,0,0)';
+        var rgbaLight = 'rgba(255,255,255,.4)';
+        var rgbaDark = 'rgba(0,0,0,.4)';
+        var headerLuminosity = new TAGColour('wcm-header-background').getLuminosity();
+        if(!headerLuminosity){
+            return;
+        }
+        var tagsLuminosityBorder = $('.wcm-luminosity-border');
+        var tagsLuminosityBorderRight = $('.wcm-luminosity-border-right');
+        var tagsLuminosityHeaderColor = $('.wcm-luminosity-header-color');
+        var tagsLuminosityHeaderBackgroundImage = $('.wcm-luminosity-header-background-image');
+
+        if(headerLuminosity == 'dark'){
+            tagsLuminosityBorder.css('border-color', rgbaLight);
+            tagsLuminosityBorderRight.css('border-right-color', rgbaLight);
+            tagsLuminosityHeaderColor.css('color', rgbLight);
+            refreshLuminosityImages(tagsLuminosityHeaderBackgroundImage, 'light', 'dark');
+        }else{
+            tagsLuminosityBorder.css('border-color', rgbaDark);
+            tagsLuminosityBorderRight.css('border-right-color', rgbaDark);
+            tagsLuminosityHeaderColor.css('color', rgbDark);
+            refreshLuminosityImages(tagsLuminosityHeaderBackgroundImage, 'dark', 'light');
+        }
+    }
+
+    function refreshLuminosityImages(jTag, newLuminosity, oldLuminosity){
+        if(jTag){
+            for(var i = 0; i < jTag.length; i++){
+                var jTagImage = $(jTag[i]);
+                var newUrlImage = jTagImage.css('background-image').replace(oldLuminosity, newLuminosity);
+                jTagImage.css('opacity',0).css('background-image', newUrlImage).css('opacity',1);
+            }
+        }
+    }
+
+    function resizeAllGrids(){
+        if (grid = $('.ui-jqgrid-btable:visible')) {
+            grid.each(function(index) {
+                gridId = $(this).attr('id');
+                gridParentWidth = $('#gbox_' + gridId).parent().width()-2;
+                $('#' + gridId).setGridWidth(gridParentWidth);
+            });
+
+            $('.ui-jqgrid-pager-clone').each(function(){
+                var idClone = $(this).attr('id');
+                var idOriginal = idClone.substring(0, idClone.length - 6);
+                $(this).width($('#'+idOriginal).width());
+            });
+        }
+    };
+
+    function refreshLuminosityMenu(showAnimate, tag){
+        showAnimate = showAnimate || false;
+        tag = tag || 'wcm-menu-background';
+
+        var rgbLight = 'rgb(215,215,215)';
+        var rgbDark = 'rgb(0,0,0)';
+        var menuLuminosity = new TAGColour(tag).getLuminosity();
+        if(!menuLuminosity){
+            return;
+        }
+        var tagsLuminosityMenuColor = $('.wcm-luminosity-menu-color');
+        var tagsLuminosityHeaderBackgroundImage = $('.wcm-luminosity-menu-background-image');
+
+        if(menuLuminosity == 'dark'){
+            tagsLuminosityMenuColor.css('color', rgbLight);
+            refreshLuminosityImages(tagsLuminosityHeaderBackgroundImage, 'light', 'dark');
+        }else{
+            tagsLuminosityMenuColor.css('color', rgbDark);
+            refreshLuminosityImages(tagsLuminosityHeaderBackgroundImage, 'dark', 'light');
+        }
+    }
+
+    function refreshMoreMenu(colorMenu) {
+        colorMenu = colorMenu || $('.wcm-menu-background').css('background-color');
+        var arrayRbg = extractRGBColor(colorMenu);
+        if(!arrayRbg){
+            return;
+        }
+        var rgbColor = new RGBColour(arrayRbg[0],arrayRbg[1],arrayRbg[2]);
+        var hslColor = rgbColor.getHSL();
+        var endColor = new HSLColour(hslColor.h,hslColor.s,hslColor.l);
+        var startColor = new HSLColour(hslColor.h,hslColor.s,hslColor.l + 4);
+        var shadowColor = new HSLColour(hslColor.h,hslColor.s,hslColor.l - 8);
+
+        if(hslColor.l > 95){
+            shadowColor = new HSLColour(hslColor.h,hslColor.s,hslColor.l - 25);
+        }else if(hslColor.l > 90){
+            shadowColor = new HSLColour(hslColor.h,hslColor.s,hslColor.l - 20);
+        }else if(hslColor.l > 85){
+            shadowColor = new HSLColour(hslColor.h,hslColor.s,hslColor.l - 15);
+        }else if(hslColor.l < 1){
+            startColor = new HSLColour(hslColor.h,hslColor.s,hslColor.l + 9);
+            shadowColor = new HSLColour(hslColor.h,hslColor.s,hslColor.l + 46);
+        }else if(hslColor.l < 5){
+            startColor = new HSLColour(hslColor.h,hslColor.s,hslColor.l + 7);
+            shadowColor = new HSLColour(hslColor.h,hslColor.s,hslColor.l + 20);
+        }
+
+        var jWcmMenuMoreBackground = $('.wcm-menu-more-background');
+
+        jWcmMenuMoreBackground.css('background' , 'linear-gradient(to right,'+ startColor.getCSSHexadecimalRGB() +' 0%,'+ startColor.getCSSHexadecimalRGB() +' 30%,'+ endColor.getCSSHexadecimalRGB() +' 70%,'+ endColor.getCSSHexadecimalRGB() +' 100%)');
+        $('.wcm-menu-more-indicator-background-top').css('border-right-color' , startColor.getCSSHexadecimalRGB());
+        $('.wcm-menu-more-indicator-background-bottom').css('border-top-color' , startColor.getCSSHexadecimalRGB());
+
+        jWcmMenuMoreBackground.css('box-shadow' , '1px 1px 7px 0px ' + shadowColor.getCSSHexadecimalRGB());
+        $('.wcm-menu-more-indicator-top-line').css('box-shadow' , '-1px 0px 4px 0px ' + shadowColor.getCSSHexadecimalRGB());
+        $('.wcm-menu-more-indicator-bottom-line').css('box-shadow' , '2px -2px 4px 0px ' + shadowColor.getCSSHexadecimalRGB());
+
+        var jWcmSubmenuBackground = $('.submenu');
+        jWcmSubmenuBackground.css('background' , 'linear-gradient(to right,'+ startColor.getCSSHexadecimalRGB() +' 0%,'+ startColor.getCSSHexadecimalRGB() +' 30%,'+ endColor.getCSSHexadecimalRGB() +' 70%,'+ endColor.getCSSHexadecimalRGB() +' 100%)');
+        jWcmSubmenuBackground.css('box-shadow' , '1px 1px 7px 0px ' + shadowColor.getCSSHexadecimalRGB());
+    };
+
+    function extractRGBColor(color){
+        if(color){
+            return color.substring(color.indexOf('(') + 1, color.indexOf(')')).split(',');
+        }
+        return null;
+    };
+
+    function addFavicon() {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.getElementById("favicon").href = '/portal/api/servlet/image/1/custom/favicon_image.ico';
+        }else{					
+            document.getElementById("favicon").href = '/portal/api/servlet/image/1/custom/favicon_image.ico';
+        }
+    }
+</script>
+
+
+
+
+    <script type="text/javascript">
+        var accountGoogle = "UA-141219630-1";
+        var accountGoogleFluig = "UA-48421702-1";
+        var domain = 'byyou.com';
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', accountGoogleFluig]);
+        _gaq.push(['_trackPageview']);
+        _gaq.push(['_setDomainName', domain]);
+
+        if (accountGoogle != '' && accountGoogle != accountGoogleFluig) {
+            _gaq.push(['b._setAccount', accountGoogle]);
+            _gaq.push(['b._trackPageview']);
+        }
+        (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www')
+                    + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+        })();
+    </script>
+
+        
+	
+
+<script src="./Anexar NF para Central de Lançamento_files/socket.io.js.download" type="text/javascript" async="" defer=""></script><ul id="ui-id-1" tabindex="0" class="ui-menu ui-widget ui-widget-content ui-autocomplete ui-front" style="display: none;"></ul><div role="status" aria-live="assertive" aria-relevant="additions" class="ui-helper-hidden-accessible"></div><ul id="ui-id-2" tabindex="0" class="ui-menu ui-widget ui-widget-content ui-autocomplete ui-front" style="display: none;"></ul><div role="status" aria-live="assertive" aria-relevant="additions" class="ui-helper-hidden-accessible"></div><div id="filemonitor" class="fluig-style-guide filemonitor super-widget" style="width: 1807px;">
+	<div class="filemonitor-progress-top row">
+		<div class="col-md-11">
+   			<span class="filemonitor-upload-text text-uppercase">Upload de arquivos</span>
+		</div>
+		<div class="col-md-1 text-center">
+			<a data-collapse="" class="expand" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#" title="Expandir" alt="Expandir">
+	   			<span class="fluigicon fluigicon-pointer-up fluigicon-sm"></span>
+			</a>
+		</div>
+	</div>
+	<div class="filemonitor-progress-all row">
+		<div class="col-md-3">
+   			<span class="fluigicon fluigicon-upload fluigicon-sm"></span>
+   			<span class="filemonitor-uploading-files">Carregando arquivos...</span>
+		</div>
+		<div class="col-md-3 text-right info-progress-files">
+			<span class="uploaded-files">0</span>
+			<span>de</span>
+			<span class="total-files">0</span>
+			<span>concluídos</span>
+			<span class="progress-all-value">(0%)</span>
+		</div>
+		<div class="col-md-4">
+   			<div class="progress">
+			    <div class="progress-bar progress-bar-success" role="progressbar" aria-valuemin="0" aria-valuemax="100"></div>
+			</div>
+		</div>
+		<div class="col-md-2">
+			<a data-cancel-all="" href="https://nossaempresa.fluig.cloudtotvs.com.br/portal/p/1/pageworkflowview?processID=Atendimento%20Central%20de%20Lan%C3%A7amento%20-%20CONSINCO#">Cancelar todos</a>
+		</div>
+	</div>
+	<div class="table-responsive">
+	    <table class="table table-striped filemonitor-files">
+	    	<thead></thead>
+	    	<tbody></tbody>
+	    </table>
+	</div>
+</div></body></html>

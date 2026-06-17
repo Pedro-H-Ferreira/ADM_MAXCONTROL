@@ -1,0 +1,367 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Detalhes da Despesa - LogisticsPortal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#565e74",
+                        "tertiary-fixed-dim": "#dec29a",
+                        "on-surface-variant": "#45464d",
+                        "on-primary-container": "#7c839b",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#dcd9db",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#c6c6cd",
+                        "inverse-primary": "#bec6e0",
+                        "on-tertiary-fixed-variant": "#574425",
+                        "surface-variant": "#e4e2e4",
+                        "surface-container-highest": "#e4e2e4",
+                        "on-primary-fixed": "#131b2e",
+                        "on-tertiary-fixed": "#271901",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "primary-fixed-dim": "#bec6e0",
+                        "surface-container-low": "#f6f3f5",
+                        "error": "#ba1a1a",
+                        "primary": "#000000",
+                        "on-secondary-fixed-variant": "#005049",
+                        "on-surface": "#1b1b1d",
+                        "on-background": "#1b1b1d",
+                        "secondary-fixed": "#89f5e7",
+                        "surface-container": "#f0edef",
+                        "primary-container": "#131b2e",
+                        "surface-container-high": "#eae7e9",
+                        "primary-fixed": "#dae2fd",
+                        "background": "#fcf8fa",
+                        "tertiary": "#000000",
+                        "on-secondary-fixed": "#00201d",
+                        "surface-bright": "#fcf8fa",
+                        "on-secondary-container": "#006f66",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#fcdeb5",
+                        "secondary-container": "#86f2e4",
+                        "tertiary-container": "#271901",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#fcf8fa",
+                        "on-tertiary-container": "#98805d",
+                        "error-container": "#ffdad6",
+                        "outline": "#76777d",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#f3f0f2",
+                        "secondary": "#006a61",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "on-secondary": "#ffffff",
+                        "inverse-surface": "#303032"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "sidenav-width": "240px",
+                        "base": "8px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "topbar-height": "64px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "code-sm": ["Geist"],
+                        "code-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex">
+<!-- Content Canvas - Suppressed Navigation Shells due to Task-Focused Intent -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden">
+<!-- Contextual Header for Task-Focused View -->
+<header class="h-topbar-height shrink-0 flex items-center justify-between px-lg border-b border-outline-variant bg-surface-container-lowest">
+<div class="flex items-center gap-md">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant" onclick="history.back()">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div>
+<div class="flex items-center gap-sm">
+<span class="font-code-md text-code-md text-on-surface-variant">DESP-2023-8492</span>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-body-sm text-body-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="error" style="font-variation-settings: 'FILL' 1;">error</span>
+                            Atrasado
+                        </span>
+</div>
+<h1 class="font-headline-md text-headline-md text-on-surface">Manutenção Preventiva - Frota Pesada</h1>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="px-md py-sm rounded-lg border border-outline text-on-surface hover:bg-surface-container-high transition-colors font-body-md font-medium">
+<span class="material-symbols-outlined align-middle mr-1 text-[18px]" data-icon="edit">edit</span>
+                    Editar
+                </button>
+<button class="px-md py-sm rounded-lg bg-primary text-on-primary hover:bg-on-surface-variant transition-colors font-body-md font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="payment">payment</span>
+                    Registrar Pagamento
+                </button>
+</div>
+</header>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto p-lg bg-surface-container-lowest">
+<div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-lg">
+<!-- Main Info Column -->
+<div class="lg:col-span-2 space-y-lg">
+<!-- Resumo Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<h2 class="font-headline-md text-headline-md mb-md border-b border-outline-variant pb-sm">Resumo da Despesa</h2>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-lg">
+<div>
+<p class="text-on-surface-variant font-body-sm text-body-sm mb-xs">Valor Total</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">R$ 14.500,00</p>
+</div>
+<div>
+<p class="text-on-surface-variant font-body-sm text-body-sm mb-xs">Data de Vencimento</p>
+<p class="font-body-lg text-body-lg text-error font-medium">15/10/2023</p>
+<p class="font-body-sm text-body-sm text-error">5 dias de atraso</p>
+</div>
+<div>
+<p class="text-on-surface-variant font-body-sm text-body-sm mb-xs">Categoria</p>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]" data-icon="build">build</span>
+<span class="font-body-md text-body-md">Manutenção</span>
+</div>
+</div>
+<div>
+<p class="text-on-surface-variant font-body-sm text-body-sm mb-xs">Centro de Custo</p>
+<p class="font-body-md text-body-md">CC-402 (Logística Sudeste)</p>
+</div>
+</div>
+</div>
+<!-- Fornecedor Details -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<h2 class="font-headline-md text-headline-md mb-md border-b border-outline-variant pb-sm">Dados do Fornecedor</h2>
+<div class="flex items-start gap-md">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant text-[28px]" data-icon="local_shipping">local_shipping</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-lg gap-y-md w-full">
+<div>
+<p class="text-on-surface-variant font-body-sm text-body-sm">Razão Social</p>
+<p class="font-body-md text-body-md font-medium">AutoMecânica Diesel S/A</p>
+</div>
+<div>
+<p class="text-on-surface-variant font-body-sm text-body-sm">CNPJ</p>
+<p class="font-code-md text-code-md">12.345.678/0001-90</p>
+</div>
+<div>
+<p class="text-on-surface-variant font-body-sm text-body-sm">Contato</p>
+<p class="font-body-md text-body-md">Roberto Alves - (11) 98765-4321</p>
+</div>
+<div>
+<p class="text-on-surface-variant font-body-sm text-body-sm">Dados Bancários</p>
+<p class="font-body-md text-body-md">Banco Itaú (341) - Ag: 1234, CC: 56789-0</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Itens da Despesa Table -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+<div class="p-lg border-b border-outline-variant flex justify-between items-center">
+<h2 class="font-headline-md text-headline-md">Itens da Despesa</h2>
+<span class="px-2 py-1 bg-surface-container-high rounded text-on-surface-variant font-body-sm text-body-sm">3 itens</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant text-on-surface-variant font-body-sm text-body-sm">
+<tr>
+<th class="py-md px-md font-medium">Descrição</th>
+<th class="py-md px-md font-medium text-right">Qtd</th>
+<th class="py-md px-md font-medium text-right">Valor Unit.</th>
+<th class="py-md px-md font-medium text-right">Subtotal</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface">
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors">
+<td class="py-md px-md">Troca de Óleo - Caminhões Bi-trem</td>
+<td class="py-md px-md text-right">5</td>
+<td class="py-md px-md text-right">R$ 1.200,00</td>
+<td class="py-md px-md text-right font-medium">R$ 6.000,00</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors">
+<td class="py-md px-md">Revisão de Freios</td>
+<td class="py-md px-md text-right">5</td>
+<td class="py-md px-md text-right">R$ 1.500,00</td>
+<td class="py-md px-md text-right font-medium">R$ 7.500,00</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="py-md px-md">Filtros de Ar</td>
+<td class="py-md px-md text-right">10</td>
+<td class="py-md px-md text-right">R$ 100,00</td>
+<td class="py-md px-md text-right font-medium">R$ 1.000,00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Registrar Pagamento Area -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<h2 class="font-headline-md text-headline-md mb-md border-b border-outline-variant pb-sm">Registrar Pagamento</h2>
+<form class="space-y-md">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div>
+<label class="block text-on-surface-variant font-body-sm text-body-sm mb-xs">Data do Pagamento</label>
+<input class="w-full rounded-lg border-outline-variant bg-surface-container-lowest text-on-surface font-body-md px-sm py-2 focus:ring-secondary focus:border-secondary" type="date">
+</div>
+<div>
+<label class="block text-on-surface-variant font-body-sm text-body-sm mb-xs">Valor Pago</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-sm flex items-center text-on-surface-variant">R$</span>
+<input class="w-full pl-8 rounded-lg border-outline-variant bg-surface-container-lowest text-on-surface font-body-md px-sm py-2 focus:ring-secondary focus:border-secondary" type="text" value="14.500,00">
+</div>
+</div>
+</div>
+<div>
+<label class="block text-on-surface-variant font-body-sm text-body-sm mb-xs">Comprovante (Link URL)</label>
+<div class="flex gap-sm">
+<input class="flex-1 rounded-lg border-outline-variant bg-surface-container-lowest text-on-surface font-body-md px-sm py-2 focus:ring-secondary focus:border-secondary" placeholder="https://drive.google.com/file/d/..." type="url">
+<button class="px-md py-2 rounded-lg border border-outline text-on-surface hover:bg-surface-container-high transition-colors flex items-center gap-2" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="link">link</span>
+                                        Anexar
+                                    </button>
+</div>
+<p class="text-on-surface-variant font-body-sm text-body-sm mt-xs">Insira o link para o comprovante de transferência ou boleto pago.</p>
+</div>
+<div class="flex justify-end gap-sm pt-md border-t border-outline-variant">
+<button class="px-md py-sm rounded-lg text-on-surface hover:bg-surface-container-high font-body-md font-medium transition-colors" type="button">Cancelar</button>
+<button class="px-md py-sm rounded-lg bg-primary text-on-primary hover:bg-on-surface-variant font-body-md font-medium transition-colors" type="submit">Confirmar Pagamento</button>
+</div>
+</form>
+</div>
+</div>
+<!-- Sidebar Column (Timeline & Docs) -->
+<div class="space-y-lg">
+<!-- Timeline Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<h3 class="font-headline-md text-headline-md mb-md">Histórico</h3>
+<div class="relative border-l-2 border-outline-variant ml-3 space-y-lg">
+<!-- Timeline Item: Created -->
+<div class="relative pl-md">
+<div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-surface-container-lowest border-2 border-outline-variant flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-xs">10/10/2023 - 09:15</p>
+<p class="font-body-md text-body-md text-on-surface font-medium">Despesa Registrada</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Por João Silva (Logística)</p>
+</div>
+<!-- Timeline Item: Approved -->
+<div class="relative pl-md">
+<div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-surface-container-lowest border-2 border-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-[12px]" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-xs">11/10/2023 - 14:30</p>
+<p class="font-body-md text-body-md text-on-surface font-medium">Aprovado pelo Diretor</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Por Maria Fernandes (Diretoria)</p>
+</div>
+<!-- Timeline Item: Overdue -->
+<div class="relative pl-md">
+<div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-surface-container-lowest border-2 border-error flex items-center justify-center">
+<span class="material-symbols-outlined text-error text-[12px]" data-icon="warning" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-xs">16/10/2023 - 00:01</p>
+<p class="font-body-md text-body-md text-error font-medium">Vencimento Expirado</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Sistema automático</p>
+</div>
+<!-- Timeline Item: Pending Payment -->
+<div class="relative pl-md">
+<div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-surface-container-lowest border-2 border-outline-variant flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-transparent animate-pulse"></div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-xs">Atual</p>
+<p class="font-body-md text-body-md text-on-surface font-medium">Aguardando Pagamento</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Departamento Financeiro</p>
+</div>
+</div>
+</div>
+<!-- Documentos Anexos -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-headline-md text-headline-md">Documentos</h3>
+<button class="w-8 h-8 rounded hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+</button>
+</div>
+<ul class="space-y-sm">
+<li class="flex items-center justify-between p-sm border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-error text-[24px]" data-icon="picture_as_pdf">picture_as_pdf</span>
+<div>
+<p class="font-body-md text-body-md text-on-surface truncate w-32">NF-12345.pdf</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">1.2 MB</p>
+</div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-on-surface transition-opacity">
+<span class="material-symbols-outlined text-[20px]" data-icon="download">download</span>
+</button>
+</li>
+<li class="flex items-center justify-between p-sm border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary text-[24px]" data-icon="description">description</span>
+<div>
+<p class="font-body-md text-body-md text-on-surface truncate w-32">Ordem_Servico_OS99.docx</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">450 KB</p>
+</div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-on-surface transition-opacity">
+<span class="material-symbols-outlined text-[20px]" data-icon="download">download</span>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

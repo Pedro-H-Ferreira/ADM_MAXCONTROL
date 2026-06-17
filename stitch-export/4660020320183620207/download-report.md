@@ -1,0 +1,226 @@
+# Stitch export report
+
+- Project: Nexus CD: Portal Administrativo Operacional
+- Project ID: 4660020320183620207
+- Export path: D:\PROJETOS\ADM_MAXCONTROL\stitch-export\4660020320183620207
+- Export time UTC: 2026-06-17T14:30:58.1811596Z
+
+## Summary
+
+- Discovered screens: 173
+- Screens from list_screens: 40
+- Project screen instances: 174
+- Non-screen instances: 1
+- Fetched screen metadata: 173
+- Failed metadata fetches: 0
+- Downloaded HTML/Markdown files: 165
+- Screens without HTML/Markdown: 8
+- Downloaded screenshots: 163
+- Screens without screenshots: 10
+- Failed downloads: 0
+- Validation warnings: 0
+
+## Files
+
+- Manifest: manifest.json
+- Design system: design-system.md
+- Raw project data: raw/project.json
+- Raw listed screens: raw/list-screens.json
+- Screen assets: screens/<slug>-<screenId>/
+
+## Missing or failed
+
+- 0623329591a74560a0591ee741ec44f9 - Especificação Técnica do Produto - missing screenshot
+- 10595040637977999288 - Recursos da web.md - missing screenshot
+- 14206815492961151845 - image.png - missing htmlCode
+- 2307774301828855232 - image.png - missing htmlCode
+- 3473501005033040302 - Solicitaremissaodenotafiscal.html - missing screenshot
+- 3473501005033040416 - Anexar NF para Central de Lançamento.html - missing screenshot
+- 3473501005033040530 - Anexar NF para Central de Lançamento2.html - missing screenshot
+- 3473501005033040644 - Anexar NF para Central de Lançamento3.html - missing screenshot
+- 3473501005033040758 - Pedido de Compra Administrativa.html - missing screenshot
+- 59038a9303c3442880dfd305b1424938 - Minimalist app icon for a corporate administrative system called MaxControLADM. The icon should feature a stylized, modern geometric 'M' symbol or a professional 'X' motif representing control and logistics. Use a deep navy blue and teal color palette from the dashboard reference. The background must be a full-bleed, professional dark gradient filling the entire square edge-to-edge with no margins or rounded containers. High-quality, clean, flat design. - missing htmlCode
+- 5c42a893dd1844e3b3884c65d91ce45a - Apple touch icon for MaxControLADM administrative portal. A professional, high-fidelity version of the app symbol (minimalist geometric 'M' or 'X') on a solid, full-bleed teal and navy gradient background. The symbol should have a subtle drop shadow for depth. No rounded corners or framing shapes in the image itself. Clean, modern, and enterprise-grade aesthetic. - missing htmlCode
+- 7193568163321427354 - image.png - missing htmlCode
+- 7193568163321427552 - image.png - missing htmlCode
+- 7193568163321427750 - image.png - missing htmlCode
+- 7193568163321427948 - image.png - missing htmlCode
+- 7a9156ca17574bd385bdf2f6080dbd52 - manifest.json - missing screenshot
+- e077d14daf874fecaea9f01a5858a241 - Documentação de Design e Handoff - missing screenshot
+- e4063e0af3ae4050a6bcda4a940869ce - Shader - missing screenshot
+
+## Screens
+
+- 82b9672298934c849819389911c94ba9 - 01. Login - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\01-login-maxcontroladm-1920x1080-fixed-82b9672298934c849819389911c94ba9
+- dffc4ab04d6c4990bdd085204955a8e5 - 01. Login - Portal Administrativo CD - code, screenshot - screens\01-login-portal-administrativo-cd-dffc4ab04d6c4990bdd085204955a8e5
+- 3f5e834e8d8746adb4c665809844236c - 01. Login - Portal Administrativo CD (1920x1080) - code, screenshot - screens\01-login-portal-administrativo-cd-1920x1080-3f5e834e8d8746adb4c665809844236c
+- 0cdf29c3fcfe41bca9aac6e2d4aac287 - 01. Login - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\01-login-portal-administrativo-cd-1920x1080-final-0cdf29c3fcfe41bca9aac6e2d4aac287
+- b114fa3072724f4ca70fba21c73a4dcb - 01. Login - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\01-login-portal-administrativo-cd-1920x1080-final-fixed-b114fa3072724f4ca70fba21c73a4dcb
+- 02157897515e4090ba091ec20abac27f - 01. Login Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\01-login-animado-maxcontroladm-1920x1080-fixed-02157897515e4090ba091ec20abac27f
+- 8c7a54b894994afe961bcdc001190b31 - 01. Login Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\01-login-animado-maxcontroladm-1920x1080-fixed-8c7a54b894994afe961bcdc001190b31
+- 566c49277e904a9c80696064b9e828f2 - 02. Recuperação de Senha - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\02-recuperacao-de-senha-maxcontroladm-1920x1080-fixed-566c49277e904a9c80696064b9e828f2
+- 381dbea6559a4dacb7ad356c3bbc4d67 - 02. Recuperação de Senha - Portal Administrativo CD - code, screenshot - screens\02-recuperacao-de-senha-portal-administrativo-cd-381dbea6559a4dacb7ad356c3bbc4d67
+- 64bbe7f646874053b3fc34ffb80d6517 - 02. Recuperação de Senha - Portal Administrativo CD (1920x1080) - code, screenshot - screens\02-recuperacao-de-senha-portal-administrativo-cd-1920x1080-64bbe7f646874053b3fc34ffb80d6517
+- e4f0a16519f54d06b506ff79367a577a - 02. Recuperação de Senha - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\02-recuperacao-de-senha-portal-administrativo-cd-1920x1080-final-e4f0a16519f54d06b506ff79367a577a
+- 1db311b72f714cb79d7826bb19a42831 - 02. Recuperação de Senha - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\02-recuperacao-de-senha-portal-administrativo-cd-1920x1080-final-fixed-1db311b72f714cb79d7826bb19a42831
+- 1e8b23bf2f71420299183c2c65763cf9 - 02. Recuperação de Senha Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\02-recuperacao-de-senha-animada-maxcontroladm-1920x1080-fixed-1e8b23bf2f71420299183c2c65763cf9
+- 5ce8446db86e41cfa6832d5aeb2c8bdd - 02. Recuperação de Senha Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\02-recuperacao-de-senha-animada-maxcontroladm-1920x1080-fixed-5ce8446db86e41cfa6832d5aeb2c8bdd
+- 76a5aff4129247a7a51a601ae7d8b828 - 03. Dashboard - Portal Administrativo CD - code, screenshot - screens\03-dashboard-portal-administrativo-cd-76a5aff4129247a7a51a601ae7d8b828
+- 5edf1422049c4b7e9cc9dac44b348855 - 03. Dashboard - Portal Administrativo CD (1920x1080) - code, screenshot - screens\03-dashboard-portal-administrativo-cd-1920x1080-5edf1422049c4b7e9cc9dac44b348855
+- 71e0bbbec13e4886b651bc47689f099e - 03. Dashboard - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\03-dashboard-portal-administrativo-cd-1920x1080-final-71e0bbbec13e4886b651bc47689f099e
+- 85c97310b3434518bc445617d8ab2bc3 - 03. Dashboard - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\03-dashboard-portal-administrativo-cd-1920x1080-final-fixed-85c97310b3434518bc445617d8ab2bc3
+- d5a43314f083486daa85687c0faeb18c - 03. Dashboard Animado - MaxControLADM (1920x1080) Final Fixed - code, screenshot - screens\03-dashboard-animado-maxcontroladm-1920x1080-final-fixed-d5a43314f083486daa85687c0faeb18c
+- 7e9865a300e546ccab08306c529951df - 03. Dashboard Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\03-dashboard-animado-maxcontroladm-1920x1080-fixed-7e9865a300e546ccab08306c529951df
+- 88669af7775f4aac83f915fba955d233 - 03. Dashboard Animado V2 - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\03-dashboard-animado-v2-maxcontroladm-1920x1080-fixed-88669af7775f4aac83f915fba955d233
+- b622b84d9231414f9f029968b457f635 - 03. Dashboard Animado V2 - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\03-dashboard-animado-v2-maxcontroladm-1920x1080-fixed-b622b84d9231414f9f029968b457f635
+- f917a714e2384655a7b41a19cb83c898 - 04. Despesas - Listagem - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\04-despesas-listagem-maxcontroladm-1920x1080-fixed-f917a714e2384655a7b41a19cb83c898
+- ddc9b49bee1343b992b9bed9f32d4630 - 04. Despesas - Listagem - Portal Administrativo CD - code, screenshot - screens\04-despesas-listagem-portal-administrativo-cd-ddc9b49bee1343b992b9bed9f32d4630
+- 83a52e782cb948eabe5b5ee35bbcf32a - 04. Despesas - Listagem - Portal Administrativo CD (1920x1080) - code, screenshot - screens\04-despesas-listagem-portal-administrativo-cd-1920x1080-83a52e782cb948eabe5b5ee35bbcf32a
+- fe7575accd0d4ad79c10177cdb32b453 - 04. Despesas - Listagem - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\04-despesas-listagem-portal-administrativo-cd-1920x1080-final-fe7575accd0d4ad79c10177cdb32b453
+- 748233f061ee474c8ae90fb12f9aaae6 - 04. Despesas - Listagem - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\04-despesas-listagem-portal-administrativo-cd-1920x1080-final-fixed-748233f061ee474c8ae90fb12f9aaae6
+- 99e295c81c3c438ba0c3b2fecabc3cd3 - 04. Despesas Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\04-despesas-animada-maxcontroladm-1920x1080-fixed-99e295c81c3c438ba0c3b2fecabc3cd3
+- 9fabc5d1cec04dffbd7e1fb501ff8743 - 04. Despesas Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\04-despesas-animada-maxcontroladm-1920x1080-fixed-9fabc5d1cec04dffbd7e1fb501ff8743
+- 876209581eb6475fa86873512f8ca7a9 - 05. Nova Despesa - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\05-nova-despesa-maxcontroladm-1920x1080-fixed-876209581eb6475fa86873512f8ca7a9
+- 3c5c9ed1cb434b43962752e5239a8ae3 - 05. Nova Despesa - Portal Administrativo CD - code, screenshot - screens\05-nova-despesa-portal-administrativo-cd-3c5c9ed1cb434b43962752e5239a8ae3
+- 9ac6679439644f3c9fb4f8e210974c9d - 05. Nova Despesa - Portal Administrativo CD (1920x1080) - code, screenshot - screens\05-nova-despesa-portal-administrativo-cd-1920x1080-9ac6679439644f3c9fb4f8e210974c9d
+- 6217e8d7f86841ba9163f158befbdb20 - 05. Nova Despesa - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\05-nova-despesa-portal-administrativo-cd-1920x1080-final-6217e8d7f86841ba9163f158befbdb20
+- 1c2492569f1b4d56ab43a02f5a016537 - 05. Nova Despesa - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\05-nova-despesa-portal-administrativo-cd-1920x1080-final-fixed-1c2492569f1b4d56ab43a02f5a016537
+- 83a8dda1b13040f0958078f1e4065fb8 - 05. Nova Despesa Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\05-nova-despesa-animada-maxcontroladm-1920x1080-fixed-83a8dda1b13040f0958078f1e4065fb8
+- aa386a9bb00f443381f15fbe1b87fcbc - 05. Nova Despesa Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\05-nova-despesa-animada-maxcontroladm-1920x1080-fixed-aa386a9bb00f443381f15fbe1b87fcbc
+- c1f7f9a621344490b16d88b96b80ca48 - 06. Detalhes da Despesa - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\06-detalhes-da-despesa-maxcontroladm-1920x1080-fixed-c1f7f9a621344490b16d88b96b80ca48
+- a5b8508a1e6b4437ba4dacc318c32a13 - 06. Detalhes da Despesa - Portal Administrativo CD - code, screenshot - screens\06-detalhes-da-despesa-portal-administrativo-cd-a5b8508a1e6b4437ba4dacc318c32a13
+- 1f9e4942f896480f8b1a638a9cd75fdd - 06. Detalhes da Despesa - Portal Administrativo CD (1920x1080) - code, screenshot - screens\06-detalhes-da-despesa-portal-administrativo-cd-1920x1080-1f9e4942f896480f8b1a638a9cd75fdd
+- 1b36bb8318604da18240cdcdc9c7c9d1 - 06. Detalhes da Despesa - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\06-detalhes-da-despesa-portal-administrativo-cd-1920x1080-final-1b36bb8318604da18240cdcdc9c7c9d1
+- 05b760e9057c46e09c80a7f8294d1055 - 06. Detalhes da Despesa - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\06-detalhes-da-despesa-portal-administrativo-cd-1920x1080-final-fixed-05b760e9057c46e09c80a7f8294d1055
+- ee660d9d5a1e497b9337ba045cc664df - 06. Detalhes da Despesa Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\06-detalhes-da-despesa-animada-maxcontroladm-1920x1080-fixed-ee660d9d5a1e497b9337ba045cc664df
+- f636681641ab4980895d8eb3dc25d653 - 06. Detalhes da Despesa Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\06-detalhes-da-despesa-animada-maxcontroladm-1920x1080-fixed-f636681641ab4980895d8eb3dc25d653
+- 1932f9ac2f544ccf875870f4c8076bad - 07. Contratos - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\07-contratos-maxcontroladm-1920x1080-fixed-1932f9ac2f544ccf875870f4c8076bad
+- 3746d5c1984b455191054fa55ea75be3 - 07. Contratos - Portal Administrativo CD - code, screenshot - screens\07-contratos-portal-administrativo-cd-3746d5c1984b455191054fa55ea75be3
+- ac69ee3342124980b727deff5af95faf - 07. Contratos - Portal Administrativo CD (1920x1080) - code, screenshot - screens\07-contratos-portal-administrativo-cd-1920x1080-ac69ee3342124980b727deff5af95faf
+- 71b7bae46dfb45e48624a2a9a488dbff - 07. Contratos - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\07-contratos-portal-administrativo-cd-1920x1080-final-71b7bae46dfb45e48624a2a9a488dbff
+- 7535db74ed1e4ad6b9fdcc40d97ba105 - 07. Contratos - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\07-contratos-portal-administrativo-cd-1920x1080-final-fixed-7535db74ed1e4ad6b9fdcc40d97ba105
+- 2975e8ebdba5463f9c2e2a719389c36f - 07. Contratos Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\07-contratos-animado-maxcontroladm-1920x1080-fixed-2975e8ebdba5463f9c2e2a719389c36f
+- eafa7591863647579dd0c4413b429012 - 07. Contratos Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\07-contratos-animado-maxcontroladm-1920x1080-fixed-eafa7591863647579dd0c4413b429012
+- fef76a36d8a243729155de78676fe6fc - 08. Fornecedores - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\08-fornecedores-maxcontroladm-1920x1080-fixed-fef76a36d8a243729155de78676fe6fc
+- 91f01dea4e264bacb5a388478993337e - 08. Fornecedores - Portal Administrativo CD - code, screenshot - screens\08-fornecedores-portal-administrativo-cd-91f01dea4e264bacb5a388478993337e
+- 5401578d577d44149f164109d3a407f4 - 08. Fornecedores - Portal Administrativo CD (1920x1080) - code, screenshot - screens\08-fornecedores-portal-administrativo-cd-1920x1080-5401578d577d44149f164109d3a407f4
+- c27a5a1b5e204706b121e48f4ac6ee57 - 08. Fornecedores - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\08-fornecedores-portal-administrativo-cd-1920x1080-final-c27a5a1b5e204706b121e48f4ac6ee57
+- 91c8bba8894a46a49f3f45cab7ead9f8 - 08. Fornecedores - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\08-fornecedores-portal-administrativo-cd-1920x1080-final-fixed-91c8bba8894a46a49f3f45cab7ead9f8
+- 5a5657568bea4bca99d84068aaebcab9 - 08. Fornecedores Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\08-fornecedores-animado-maxcontroladm-1920x1080-fixed-5a5657568bea4bca99d84068aaebcab9
+- c55e58434bfc4aadafedd1880c714039 - 08. Fornecedores Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\08-fornecedores-animado-maxcontroladm-1920x1080-fixed-c55e58434bfc4aadafedd1880c714039
+- 6e1b6b900d554cd8a06b1ecd2abd0555 - 09. Perfil do Fornecedor - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\09-perfil-do-fornecedor-maxcontroladm-1920x1080-fixed-6e1b6b900d554cd8a06b1ecd2abd0555
+- 6dfb4a3b305245b5919bd7ee71e873ea - 09. Perfil do Fornecedor - Portal Administrativo CD - code, screenshot - screens\09-perfil-do-fornecedor-portal-administrativo-cd-6dfb4a3b305245b5919bd7ee71e873ea
+- f20725f5d6b4423f92139ebb825c96ff - 09. Perfil do Fornecedor - Portal Administrativo CD (1920x1080) - code, screenshot - screens\09-perfil-do-fornecedor-portal-administrativo-cd-1920x1080-f20725f5d6b4423f92139ebb825c96ff
+- e045208db9aa45469d2b206f768f4d10 - 09. Perfil do Fornecedor - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\09-perfil-do-fornecedor-portal-administrativo-cd-1920x1080-final-e045208db9aa45469d2b206f768f4d10
+- b8d8cdb951bd48b4947d96be9a953eef - 09. Perfil do Fornecedor - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\09-perfil-do-fornecedor-portal-administrativo-cd-1920x1080-final-fixed-b8d8cdb951bd48b4947d96be9a953eef
+- 7c2d9e90f9dc41a7b842cdc0ae4d1b5f - 09. Perfil do Fornecedor Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\09-perfil-do-fornecedor-animado-maxcontroladm-1920x1080-fixed-7c2d9e90f9dc41a7b842cdc0ae4d1b5f
+- d25b91a621804fa88d585e552cc40ee8 - 09. Perfil do Fornecedor Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\09-perfil-do-fornecedor-animado-maxcontroladm-1920x1080-fixed-d25b91a621804fa88d585e552cc40ee8
+- 937b96e5113645efbe7e75f1a8724757 - 10. Requisições de Compra - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\10-requisicoes-de-compra-maxcontroladm-1920x1080-fixed-937b96e5113645efbe7e75f1a8724757
+- c1c894df57dd4b9dbc848a9eaab94a76 - 10. Requisições de Compra - Portal Administrativo CD - code, screenshot - screens\10-requisicoes-de-compra-portal-administrativo-cd-c1c894df57dd4b9dbc848a9eaab94a76
+- 1e5b5a335c9d49b4b4559c1e41aebbee - 10. Requisições de Compra - Portal Administrativo CD (1920x1080) - code, screenshot - screens\10-requisicoes-de-compra-portal-administrativo-cd-1920x1080-1e5b5a335c9d49b4b4559c1e41aebbee
+- 83e2eb507f7749eeb55c4f73e6deef69 - 10. Requisições de Compra - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\10-requisicoes-de-compra-portal-administrativo-cd-1920x1080-final-83e2eb507f7749eeb55c4f73e6deef69
+- 60d96a8f7d8e47509d71a97f86693f16 - 10. Requisições de Compra - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\10-requisicoes-de-compra-portal-administrativo-cd-1920x1080-final-fixed-60d96a8f7d8e47509d71a97f86693f16
+- 2066fe73b94444aba1ed3ab8f59c2fc5 - 10. Requisições de Compra Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\10-requisicoes-de-compra-animada-maxcontroladm-1920x1080-fixed-2066fe73b94444aba1ed3ab8f59c2fc5
+- e791d75bcacd44a4b76a8bf83fe6024d - 10. Requisições de Compra Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\10-requisicoes-de-compra-animada-maxcontroladm-1920x1080-fixed-e791d75bcacd44a4b76a8bf83fe6024d
+- 2b0ed46559694516913b890630511666 - 11. Cotações e Aprovações - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\11-cotacoes-e-aprovacoes-maxcontroladm-1920x1080-fixed-2b0ed46559694516913b890630511666
+- 7c7997c415b14ce68bd1a83e39b40487 - 11. Cotações e Aprovações - Portal Administrativo CD - code, screenshot - screens\11-cotacoes-e-aprovacoes-portal-administrativo-cd-7c7997c415b14ce68bd1a83e39b40487
+- 78f94b050ee84380acd2255d605b8771 - 11. Cotações e Aprovações - Portal Administrativo CD (1920x1080) - code, screenshot - screens\11-cotacoes-e-aprovacoes-portal-administrativo-cd-1920x1080-78f94b050ee84380acd2255d605b8771
+- 12e8866a141346819486e15cff82e3e9 - 11. Cotações e Aprovações - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\11-cotacoes-e-aprovacoes-portal-administrativo-cd-1920x1080-final-12e8866a141346819486e15cff82e3e9
+- 2c1d7f42c443484d957db21db5216058 - 11. Cotações e Aprovações - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\11-cotacoes-e-aprovacoes-portal-administrativo-cd-1920x1080-final-fixed-2c1d7f42c443484d957db21db5216058
+- 9491cf6fdc75479b85c4b89d8d7e407c - 11. Cotações e Aprovações Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\11-cotacoes-e-aprovacoes-animada-maxcontroladm-1920x1080-fixed-9491cf6fdc75479b85c4b89d8d7e407c
+- c2125336df56408e8e4f9f1889caf2c7 - 11. Cotações e Aprovações Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\11-cotacoes-e-aprovacoes-animada-maxcontroladm-1920x1080-fixed-c2125336df56408e8e4f9f1889caf2c7
+- 4ae17bdfaee44a47ab683704ae3d63df - 12. Manutenção - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\12-manutencao-maxcontroladm-1920x1080-fixed-4ae17bdfaee44a47ab683704ae3d63df
+- 47343885d5e04cc09eb52b140e996ce8 - 12. Manutenção - Portal Administrativo CD - code, screenshot - screens\12-manutencao-portal-administrativo-cd-47343885d5e04cc09eb52b140e996ce8
+- cccf1633370840e8853c148c0b795ff7 - 12. Manutenção - Portal Administrativo CD (1920x1080) - code, screenshot - screens\12-manutencao-portal-administrativo-cd-1920x1080-cccf1633370840e8853c148c0b795ff7
+- e5654231d0ef401db2143285d02d88f5 - 12. Manutenção - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\12-manutencao-portal-administrativo-cd-1920x1080-final-e5654231d0ef401db2143285d02d88f5
+- 62f4cabc4ea04bcf91beb180e6bfe830 - 12. Manutenção - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\12-manutencao-portal-administrativo-cd-1920x1080-final-fixed-62f4cabc4ea04bcf91beb180e6bfe830
+- 4c39961d7e014d09a1507e6a0d12c369 - 12. Manutenção Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\12-manutencao-animada-maxcontroladm-1920x1080-fixed-4c39961d7e014d09a1507e6a0d12c369
+- 7b29508780be4155ab355b5716ba2ebf - 12. Manutenção Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\12-manutencao-animada-maxcontroladm-1920x1080-fixed-7b29508780be4155ab355b5716ba2ebf
+- 52ec2f89052c4b18b240d8114cb52597 - 12.1. Nova Ordem de Serviço - MaxControLADM (1920x1080) - code, screenshot - screens\12-1-nova-ordem-de-servico-maxcontroladm-1920x1080-52ec2f89052c4b18b240d8114cb52597
+- 03fee3023ff94c1487bd6998b6cac438 - 12.1. Nova Ordem de Serviço - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\12-1-nova-ordem-de-servico-maxcontroladm-1920x1080-fixed-03fee3023ff94c1487bd6998b6cac438
+- 385be9ecc5994dfaa399cdabe68898fa - 12.1. Nova OS Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\12-1-nova-os-animada-maxcontroladm-1920x1080-fixed-385be9ecc5994dfaa399cdabe68898fa
+- ef282d35f09c480484cb6f21e89eebed - 12.1. Nova OS Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\12-1-nova-os-animada-maxcontroladm-1920x1080-fixed-ef282d35f09c480484cb6f21e89eebed
+- bf18844134db4509b97546516e7c1592 - 12.2. Detalhes da OS Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\12-2-detalhes-da-os-animada-maxcontroladm-1920x1080-fixed-bf18844134db4509b97546516e7c1592
+- d0e5a3de4eb74a3699e06a00834b28ac - 12.2. Detalhes da OS Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\12-2-detalhes-da-os-animada-maxcontroladm-1920x1080-fixed-d0e5a3de4eb74a3699e06a00834b28ac
+- 5dbe14ef46d348abb79aa348973d7887 - 12.2. Detalhes e Execução da OS - MaxControLADM (1920x1080) - code, screenshot - screens\12-2-detalhes-e-execucao-da-os-maxcontroladm-1920x1080-5dbe14ef46d348abb79aa348973d7887
+- 2267c6ccf65e4c109714ca8fd3067169 - 12.2. Detalhes e Execução da OS - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\12-2-detalhes-e-execucao-da-os-maxcontroladm-1920x1080-fixed-2267c6ccf65e4c109714ca8fd3067169
+- 6ff63c464ac94571ba44ce8b573606af - 13. Tarefas e Checklists - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\13-tarefas-e-checklists-maxcontroladm-1920x1080-fixed-6ff63c464ac94571ba44ce8b573606af
+- 1d4878b50c8f4e60879625c8596283f2 - 13. Tarefas e Checklists - Portal Administrativo CD - code, screenshot - screens\13-tarefas-e-checklists-portal-administrativo-cd-1d4878b50c8f4e60879625c8596283f2
+- f9b476d0616640289ff98f186cad11f5 - 13. Tarefas e Checklists - Portal Administrativo CD (1920x1080) - code, screenshot - screens\13-tarefas-e-checklists-portal-administrativo-cd-1920x1080-f9b476d0616640289ff98f186cad11f5
+- e8bbe553101d4c088dd110c01f118358 - 13. Tarefas e Checklists - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\13-tarefas-e-checklists-portal-administrativo-cd-1920x1080-final-e8bbe553101d4c088dd110c01f118358
+- deb1aee7a79b4e72bfdf803066c57b87 - 13. Tarefas e Checklists - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\13-tarefas-e-checklists-portal-administrativo-cd-1920x1080-final-fixed-deb1aee7a79b4e72bfdf803066c57b87
+- 7323d388214d47009aa76b774a568cc4 - 13. Tarefas e Checklists Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\13-tarefas-e-checklists-animada-maxcontroladm-1920x1080-fixed-7323d388214d47009aa76b774a568cc4
+- 8de5ae43260b491daf61fb62a31d92a0 - 13. Tarefas e Checklists Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\13-tarefas-e-checklists-animada-maxcontroladm-1920x1080-fixed-8de5ae43260b491daf61fb62a31d92a0
+- 8995651db71c4fdaaf58fe8d5139feb4 - 14. Usuários e Perfis - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\14-usuarios-e-perfis-maxcontroladm-1920x1080-fixed-8995651db71c4fdaaf58fe8d5139feb4
+- abc7909716ad4c26a2582be76aa66666 - 14. Usuários e Perfis - Portal Administrativo CD - code, screenshot - screens\14-usuarios-e-perfis-portal-administrativo-cd-abc7909716ad4c26a2582be76aa66666
+- 788bc6fde8c14a38ab947d1dd2971d7f - 14. Usuários e Perfis - Portal Administrativo CD (1920x1080) - code, screenshot - screens\14-usuarios-e-perfis-portal-administrativo-cd-1920x1080-788bc6fde8c14a38ab947d1dd2971d7f
+- 76153cdc27e84de0bdd28860f1123a3f - 14. Usuários e Perfis - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\14-usuarios-e-perfis-portal-administrativo-cd-1920x1080-final-76153cdc27e84de0bdd28860f1123a3f
+- 7e1ab8a62c8f4b6aacff4a6c93482e35 - 14. Usuários e Perfis - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\14-usuarios-e-perfis-portal-administrativo-cd-1920x1080-final-fixed-7e1ab8a62c8f4b6aacff4a6c93482e35
+- cf910d7d04f943648920c2e963e46a96 - 14. Usuários e Perfis Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\14-usuarios-e-perfis-animado-maxcontroladm-1920x1080-fixed-cf910d7d04f943648920c2e963e46a96
+- d3a7fdd9b84e4803a72e062148b0b0c3 - 14. Usuários e Perfis Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\14-usuarios-e-perfis-animado-maxcontroladm-1920x1080-fixed-d3a7fdd9b84e4803a72e062148b0b0c3
+- cc68130a248b48699e877aec6cd0eb21 - 15. Relatórios Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\15-relatorios-animado-maxcontroladm-1920x1080-fixed-cc68130a248b48699e877aec6cd0eb21
+- ee155980af86418783024f7abfb4e577 - 15. Relatórios Animado - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\15-relatorios-animado-maxcontroladm-1920x1080-fixed-ee155980af86418783024f7abfb4e577
+- 2bb60bceb1ef40b8a7722a552163af3f - 15. Relatórios e Exportações - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\15-relatorios-e-exportacoes-maxcontroladm-1920x1080-fixed-2bb60bceb1ef40b8a7722a552163af3f
+- 76b2d1976cbb42d2b155ef12739b15ef - 15. Relatórios e Exportações - Portal Administrativo CD - code, screenshot - screens\15-relatorios-e-exportacoes-portal-administrativo-cd-76b2d1976cbb42d2b155ef12739b15ef
+- 90fe5e29f0e144bab49ae5e16f202473 - 15. Relatórios e Exportações - Portal Administrativo CD (1920x1080) - code, screenshot - screens\15-relatorios-e-exportacoes-portal-administrativo-cd-1920x1080-90fe5e29f0e144bab49ae5e16f202473
+- fb957e24500b4751b67bf462947c7b95 - 15. Relatórios e Exportações - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\15-relatorios-e-exportacoes-portal-administrativo-cd-1920x1080-final-fb957e24500b4751b67bf462947c7b95
+- aa0ef6c5e5984bde8cb90dbd7556d872 - 15. Relatórios e Exportações - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\15-relatorios-e-exportacoes-portal-administrativo-cd-1920x1080-final-fixed-aa0ef6c5e5984bde8cb90dbd7556d872
+- fa6b9863678b4e58abc08ace395d6fa1 - 16. Configurações - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\16-configuracoes-maxcontroladm-1920x1080-fixed-fa6b9863678b4e58abc08ace395d6fa1
+- 0213440a13424e15b3956e190ebc8076 - 16. Configurações - Portal Administrativo CD - code, screenshot - screens\16-configuracoes-portal-administrativo-cd-0213440a13424e15b3956e190ebc8076
+- c0690d5a549e4f34a7cacc24cb707b4e - 16. Configurações - Portal Administrativo CD (1920x1080) - code, screenshot - screens\16-configuracoes-portal-administrativo-cd-1920x1080-c0690d5a549e4f34a7cacc24cb707b4e
+- 467ed84a77424a7dac0eb497ce0ee998 - 16. Configurações - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\16-configuracoes-portal-administrativo-cd-1920x1080-final-467ed84a77424a7dac0eb497ce0ee998
+- e897f8abfaec484a836afcce1cb8600f - 16. Configurações - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\16-configuracoes-portal-administrativo-cd-1920x1080-final-fixed-e897f8abfaec484a836afcce1cb8600f
+- 40d0bf6ca48241908fdda28777582c59 - 16. Configurações Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\16-configuracoes-animada-maxcontroladm-1920x1080-fixed-40d0bf6ca48241908fdda28777582c59
+- 7d4b1a17a489432f9a51265a095034fd - 16. Configurações Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\16-configuracoes-animada-maxcontroladm-1920x1080-fixed-7d4b1a17a489432f9a51265a095034fd
+- 37fc5af422fb4dfa940454c4b76a5a97 - 17. Ajuda e Suporte - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\17-ajuda-e-suporte-maxcontroladm-1920x1080-fixed-37fc5af422fb4dfa940454c4b76a5a97
+- 1cf26b66c9304a77b96a6cc8bc0db97c - 17. Ajuda e Suporte - Portal Administrativo CD - code, screenshot - screens\17-ajuda-e-suporte-portal-administrativo-cd-1cf26b66c9304a77b96a6cc8bc0db97c
+- c4efd693a65643cc97c76b5f3042a28a - 17. Ajuda e Suporte - Portal Administrativo CD (1920x1080) - code, screenshot - screens\17-ajuda-e-suporte-portal-administrativo-cd-1920x1080-c4efd693a65643cc97c76b5f3042a28a
+- c2cb6266c5704269b20cde586f237c30 - 17. Ajuda e Suporte - Portal Administrativo CD (1920x1080) Final - code, screenshot - screens\17-ajuda-e-suporte-portal-administrativo-cd-1920x1080-final-c2cb6266c5704269b20cde586f237c30
+- b363e602a3954ffd95b320445d91268d - 17. Ajuda e Suporte - Portal Administrativo CD (1920x1080) Final Fixed - code, screenshot - screens\17-ajuda-e-suporte-portal-administrativo-cd-1920x1080-final-fixed-b363e602a3954ffd95b320445d91268d
+- a4a38f851ba24bdfa1c86db58ec9d6c6 - 17. Ajuda e Suporte Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\17-ajuda-e-suporte-animada-maxcontroladm-1920x1080-fixed-a4a38f851ba24bdfa1c86db58ec9d6c6
+- b87abcc25a6c4715a9b55aeb1f58a1c5 - 17. Ajuda e Suporte Animada - MaxControLADM (1920x1080) Fixed - code, screenshot - screens\17-ajuda-e-suporte-animada-maxcontroladm-1920x1080-fixed-b87abcc25a6c4715a9b55aeb1f58a1c5
+- 33990a7244c24005b24087b3ab1d62c8 - 18. Painel de Sincronização Fluig - MaxControLADM - code, screenshot - screens\18-painel-de-sincronizacao-fluig-maxcontroladm-33990a7244c24005b24087b3ab1d62c8
+- 45cf17c924ea4dc18c4ae793c3f0d01d - 18.1. Detalhes de Pagamento (Fluig) - MaxControLADM - code, screenshot - screens\18-1-detalhes-de-pagamento-fluig-maxcontroladm-45cf17c924ea4dc18c4ae793c3f0d01d
+- 0865e9e688254986aebd9550904ad653 - 18.2. Pedido de Compra (Fluig) - MaxControLADM - code, screenshot - screens\18-2-pedido-de-compra-fluig-maxcontroladm-0865e9e688254986aebd9550904ad653
+- 2aa2358a06ce4737bad53125f96530da - 18.3. Manutenção e Lançamentos (Fluig) - MaxControLADM - code, screenshot - screens\18-3-manutencao-e-lancamentos-fluig-maxcontroladm-2aa2358a06ce4737bad53125f96530da
+- 4cf8185e7da2464f9b79a5cd6b18c0e6 - 18.4. Log de Sincronização Animado - MaxControLADM - code, screenshot - screens\18-4-log-de-sincronizacao-animado-maxcontroladm-4cf8185e7da2464f9b79a5cd6b18c0e6
+- b251f0f62c4f4a05a91baaa461255911 - 18.4. Log de Sincronização e Auditoria - MaxControLADM - code, screenshot - screens\18-4-log-de-sincronizacao-e-auditoria-maxcontroladm-b251f0f62c4f4a05a91baaa461255911
+- b61a6e9f6f9f450d862a4afd2d51e5f7 - 18.5. Visualizador de Diagrama (Workflow Fluig) - MaxControLADM - code, screenshot - screens\18-5-visualizador-de-diagrama-workflow-fluig-maxcontroladm-b61a6e9f6f9f450d862a4afd2d51e5f7
+- f4c1cc65d08a4523943ed1c2a9c40eaa - 18.5. Visualizador de Diagrama Animado - MaxControLADM - code, screenshot - screens\18-5-visualizador-de-diagrama-animado-maxcontroladm-f4c1cc65d08a4523943ed1c2a9c40eaa
+- 3d3b676a415d46cba27b56226b48a04d - 18.6. Espelhamento de Dados Animado - MaxControLADM - code, screenshot - screens\18-6-espelhamento-de-dados-animado-maxcontroladm-3d3b676a415d46cba27b56226b48a04d
+- 43693dbd1a474d899804d2f6e725634c - 18.6. Espelhamento de Dados Fluig - MaxControLADM - code, screenshot - screens\18-6-espelhamento-de-dados-fluig-maxcontroladm-43693dbd1a474d899804d2f6e725634c
+- b0eeed724913491994de3bdd586362df - Ajuda e Suporte - Portal Administrativo CD - code, screenshot - screens\ajuda-e-suporte-portal-administrativo-cd-b0eeed724913491994de3bdd586362df
+- 3473501005033040416 - Anexar NF para Central de Lançamento.html - code - screens\anexar-nf-para-central-de-lancamento-html-3473501005033040416
+- 3473501005033040530 - Anexar NF para Central de Lançamento2.html - code - screens\anexar-nf-para-central-de-lancamento2-html-3473501005033040530
+- 3473501005033040644 - Anexar NF para Central de Lançamento3.html - code - screens\anexar-nf-para-central-de-lancamento3-html-3473501005033040644
+- 5c42a893dd1844e3b3884c65d91ce45a - Apple touch icon for MaxControLADM administrative portal. A professional, high-fidelity version of the app symbol (minimalist geometric 'M' or 'X') on a solid, full-bleed teal and navy gradient background. The symbol should have a subtle drop shadow for depth. No rounded corners or framing shapes in the image itself. Clean, modern, and enterprise-grade aesthetic. - screenshot - screens\apple-touch-icon-for-maxcontroladm-administrative-portal-a-professional-high-fid-5c42a893dd1844e3b3884c65d91ce45a
+- 100ba8c4f3c948d8831f857919cf2f7c - Configurações - Portal Administrativo CD - code, screenshot - screens\configuracoes-portal-administrativo-cd-100ba8c4f3c948d8831f857919cf2f7c
+- d9ce3db070894b17a6e62b63c73a14e2 - Contratos - Portal Administrativo CD - code, screenshot - screens\contratos-portal-administrativo-cd-d9ce3db070894b17a6e62b63c73a14e2
+- 3b8444880df147ce9f8af2aa49de249a - Cotações e Aprovações - Portal Administrativo CD - code, screenshot - screens\cotacoes-e-aprovacoes-portal-administrativo-cd-3b8444880df147ce9f8af2aa49de249a
+- 4ce0cab79efe4ce8b6b1a2a816d8d6f7 - Dashboard - Portal Administrativo CD - code, screenshot - screens\dashboard-portal-administrativo-cd-4ce0cab79efe4ce8b6b1a2a816d8d6f7
+- 01a2b51489ef4d26a940c8538cecef96 - Despesas - Portal Administrativo CD - code, screenshot - screens\despesas-portal-administrativo-cd-01a2b51489ef4d26a940c8538cecef96
+- c579aeb9e5a7461da0da202fd39bd35c - Detalhes da Despesa - Portal Administrativo CD - code, screenshot - screens\detalhes-da-despesa-portal-administrativo-cd-c579aeb9e5a7461da0da202fd39bd35c
+- e077d14daf874fecaea9f01a5858a241 - Documentação de Design e Handoff - code - screens\documentacao-de-design-e-handoff-e077d14daf874fecaea9f01a5858a241
+- 0623329591a74560a0591ee741ec44f9 - Especificação Técnica do Produto - code - screens\especificacao-tecnica-do-produto-0623329591a74560a0591ee741ec44f9
+- a87fc85893544ac6a9179347064e3615 - Fornecedores - Portal Administrativo CD - code, screenshot - screens\fornecedores-portal-administrativo-cd-a87fc85893544ac6a9179347064e3615
+- 14206815492961151845 - image.png - screenshot - screens\image-png-14206815492961151845
+- 2307774301828855232 - image.png - screenshot - screens\image-png-2307774301828855232
+- 7193568163321427354 - image.png - screenshot - screens\image-png-7193568163321427354
+- 7193568163321427552 - image.png - screenshot - screens\image-png-7193568163321427552
+- 7193568163321427750 - image.png - screenshot - screens\image-png-7193568163321427750
+- 7193568163321427948 - image.png - screenshot - screens\image-png-7193568163321427948
+- 18f3084594014c79b95a22cd54ab3380 - Login - Portal Administrativo CD - code, screenshot - screens\login-portal-administrativo-cd-18f3084594014c79b95a22cd54ab3380
+- 7a9156ca17574bd385bdf2f6080dbd52 - manifest.json - code - screens\manifest-json-7a9156ca17574bd385bdf2f6080dbd52
+- e50283032f1a4c9885a0d4a1700a12ea - Manutenção - Portal Administrativo CD - code, screenshot - screens\manutencao-portal-administrativo-cd-e50283032f1a4c9885a0d4a1700a12ea
+- 59038a9303c3442880dfd305b1424938 - Minimalist app icon for a corporate administrative system called MaxControLADM. The icon should feature a stylized, modern geometric 'M' symbol or a professional 'X' motif representing control and logistics. Use a deep navy blue and teal color palette from the dashboard reference. The background must be a full-bleed, professional dark gradient filling the entire square edge-to-edge with no margins or rounded containers. High-quality, clean, flat design. - screenshot - screens\minimalist-app-icon-for-a-corporate-administrative-system-called-maxcontroladm-t-59038a9303c3442880dfd305b1424938
+- eb55a145ae3c4de5b9f54ba6effdb3cf - Nova Despesa - Portal Administrativo CD - code, screenshot - screens\nova-despesa-portal-administrativo-cd-eb55a145ae3c4de5b9f54ba6effdb3cf
+- 3473501005033040758 - Pedido de Compra Administrativa.html - code - screens\pedido-de-compra-administrativa-html-3473501005033040758
+- c3b28259e0214370ae7c317217431aee - Perfil do Fornecedor - Portal Administrativo CD - code, screenshot - screens\perfil-do-fornecedor-portal-administrativo-cd-c3b28259e0214370ae7c317217431aee
+- 16efe7e19456484b930d4257486900de - Recuperação de Senha - Portal Administrativo CD - code, screenshot - screens\recuperacao-de-senha-portal-administrativo-cd-16efe7e19456484b930d4257486900de
+- 10595040637977999288 - Recursos da web.md - code - screens\recursos-da-web-md-10595040637977999288
+- f2bb876d7c8949818ded085ac10daec3 - Relatórios e Exportações - Portal Administrativo CD - code, screenshot - screens\relatorios-e-exportacoes-portal-administrativo-cd-f2bb876d7c8949818ded085ac10daec3
+- d8f51631c60947c1a852c052ce898a79 - Requisições de Compra - Portal Administrativo CD - code, screenshot - screens\requisicoes-de-compra-portal-administrativo-cd-d8f51631c60947c1a852c052ce898a79
+- e4063e0af3ae4050a6bcda4a940869ce - Shader - code - screens\shader-e4063e0af3ae4050a6bcda4a940869ce
+- 3473501005033040302 - Solicitaremissaodenotafiscal.html - code - screens\solicitaremissaodenotafiscal-html-3473501005033040302
+- d64e87abd10441e2ae6954adc3e80292 - Tarefas e Checklists - Portal Administrativo CD - code, screenshot - screens\tarefas-e-checklists-portal-administrativo-cd-d64e87abd10441e2ae6954adc3e80292
+- b47128b91ee34a4384d0a106b2202828 - Usuários e Perfis - Portal Administrativo CD - code, screenshot - screens\usuarios-e-perfis-portal-administrativo-cd-b47128b91ee34a4384d0a106b2202828

@@ -1,0 +1,20 @@
+function setSelectedZoomItem(selectObject) {
+
+	var obj = selectObject['inputId'];
+   
+	
+	if(obj == "filial"){
+		setaValor("respAdministrativo",selectObject["RespAdmin"])
+	}
+	
+	if(obj == "filialDestino"){
+		setaValor("respAdministrativoDest",selectObject["RespAdmin"])
+	}
+	if(obj == "zoomDemandaPara"){
+		setaValor("matAtendeArea",selectObject["matricula"])
+		setaValor("nomeColaboradorAtendimento",selectObject["nome"])
+	}
+	
+	
+
+}

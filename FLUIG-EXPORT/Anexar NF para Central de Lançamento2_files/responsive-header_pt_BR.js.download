@@ -1,0 +1,125 @@
+var ResponsiveHeader = SuperWidget.extend({
+
+  instanceId: null,
+  openNewTab: false,
+  responsiveSearch: null,
+  responsivePageEditor: null,
+  responsiveNotify: null,
+  responsiveProfile: null,
+
+  bindings: {
+    local: {
+      'toggle-main-menu': ['click_toggleMainMenu'],
+    },
+    global: {},
+  },
+
+  async init() {
+
+    this.checkLogoImage();
+
+    this.checkResponsiveToggleMenu();
+
+    try {
+      const result = await this.serviceRocketChatUrl();
+
+      if (result.content && result.content.rocketChatUrl) {
+        this.showRocketChatTemplate(
+          result.content.rocketChatUrl
+        );
+      } else {
+        this.showRocketChatTemplate(null);
+      }
+
+      this.responsiveSearch = ResponsiveSearch.instance(
+        this.instanceId,
+        this.DOM[0].id,
+        { openNewTab: this.openNewTab }
+      );
+
+      this.responsivePageEditor = ResponsivePageEditor.instance(
+        this.instanceId,
+        this.DOM[0].id,
+        null,
+      );
+
+      this.responsiveNotify = ResponsiveNotify.instance(
+        this.instanceId,
+        this.DOM[0].id,
+        null,
+      );
+
+      this.responsiveProfile = ResponsiveProfile.instance(
+        this.instanceId,
+        this.DOM[0].id,
+        null,
+      );
+    } catch (err) {
+      this.showRocketChatTemplate(null);
+    }
+  },
+
+  // Verifica se existe a widget de menu para exibir
+  // ou não o botão de hamburguer que faz o toggle dele.
+  checkResponsiveToggleMenu() {
+
+    const $responsiveMenu = $('.responsive-menu-widget');
+
+    if (!$responsiveMenu.length) {
+      $('.btn-toggle-menu', this.DOM).addClass('hide');
+    }
+  },
+
+  async checkLogoImage() {
+
+    const image = $('#header-logo-' + this.instanceId, this.DOM)[0];
+    const src = image.src;
+
+    try {
+
+      const response = await fetch(src);
+      
+      if (!response.ok) {
+        throw(response.statusText || 'Error');
+      }
+    } catch (error) {
+
+      this.showDefaultLogoImage(image);
+    }
+  },
+
+  showDefaultLogoImage(image) {
+
+    // Adiciona a image default de logo caso dê algum
+    // erro na imagem customizada
+    image.src = '/resources/images/logo.png';
+  },
+
+  toggleMainMenu() {
+    WCMAPI.fireEvent('toggle-main-menu');
+  },
+
+  showRocketChatTemplate(rocketChatUrl) {
+    if (rocketChatUrl) {
+      $('[data-rocket-chat-container]', this.DOM)
+        .removeClass('hide')
+        .find('.btn-rocket-chat')
+        .attr('href', rocketChatUrl);
+    }
+  },
+
+  serviceRocketChatUrl() {
+    const options = {
+      url: '/api/public/2.0/tenants/getTenantData/rocketChatUrl',
+    };
+    return this.basePromiseAjax(options);
+  },
+
+  basePromiseAjax(options) {
+    if (!options.loading) options.loading = false;
+    return new Promise((resolve, reject) => {
+      FLUIGC.ajax(options, (err, data) => err ? reject(err) : resolve(data));
+    });
+  },
+
+});

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MaxControLADM - Detalhes da OS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-primary": "#bec6e0",
+                      "surface-variant": "#e4e2e4",
+                      "tertiary-fixed-dim": "#dec29a",
+                      "inverse-surface": "#303032",
+                      "surface-bright": "#fcf8fa",
+                      "on-tertiary": "#ffffff",
+                      "on-background": "#1b1b1d",
+                      "inverse-on-surface": "#f3f0f2",
+                      "secondary-fixed-dim": "#6bd8cb",
+                      "on-secondary-fixed": "#00201d",
+                      "outline": "#76777d",
+                      "on-surface": "#1b1b1d",
+                      "primary": "#000000",
+                      "on-tertiary-container": "#98805d",
+                      "surface-container-highest": "#e4e2e4",
+                      "on-tertiary-fixed": "#271901",
+                      "tertiary": "#000000",
+                      "surface-container-low": "#f6f3f5",
+                      "on-secondary-fixed-variant": "#005049",
+                      "on-secondary": "#ffffff",
+                      "secondary": "#006a61",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "on-primary-container": "#7c839b",
+                      "background": "#fcf8fa",
+                      "primary-fixed": "#dae2fd",
+                      "on-surface-variant": "#45464d",
+                      "error": "#ba1a1a",
+                      "on-error": "#ffffff",
+                      "on-secondary-container": "#006f66",
+                      "surface-dim": "#dcd9db",
+                      "surface-container": "#f0edef",
+                      "primary-fixed-dim": "#bec6e0",
+                      "surface": "#fcf8fa",
+                      "secondary-fixed": "#89f5e7",
+                      "on-primary": "#ffffff",
+                      "tertiary-container": "#271901",
+                      "primary-container": "#131b2e",
+                      "on-tertiary-fixed-variant": "#574425",
+                      "error-container": "#ffdad6",
+                      "surface-container-high": "#eae7e9",
+                      "secondary-container": "#86f2e4",
+                      "outline-variant": "#c6c6cd",
+                      "on-error-container": "#93000a",
+                      "tertiary-fixed": "#fcdeb5",
+                      "surface-tint": "#565e74",
+                      "on-primary-fixed": "#131b2e"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "md": "16px",
+                      "xs": "4px",
+                      "sidenav-width": "240px",
+                      "xl": "32px",
+                      "topbar-height": "64px",
+                      "base": "8px",
+                      "sm": "8px",
+                      "lg": "24px"
+              },
+              "fontFamily": {
+                      "headline-lg": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "code-md": ["Geist"],
+                      "body-lg": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "body-md": ["Inter"],
+                      "code-sm": ["Geist"],
+                      "headline-md": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-lg": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                      "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "code-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); color: theme('colors.on-background'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: theme('colors.surface-container-low'); }
+        ::-webkit-scrollbar-thumb { background: theme('colors.outline-variant'); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: theme('colors.outline'); }
+        
+        @keyframes fillProgress {
+            from { width: 0%; }
+            to { width: 65%; }
+        }
+        .animate-progress {
+            animation: fillProgress 1.5s ease-out forwards;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            opacity: 0;
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+    </style>
+</head>
+<body class="font-body-md text-body-md flex h-screen overflow-hidden antialiased" style="width: 1920px; height: 1080px; min-width: 1920px; min-height: 1080px; max-width: 1920px; max-height: 1080px; overflow: hidden; position: relative;">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-full w-20 hover:w-sidenav-width transition-all duration-300 border-r border-outline-variant shadow-sm bg-primary dark:bg-primary-container z-50 flex flex-col py-lg group overflow-hidden">
+<div class="px-md mb-xl flex items-center gap-sm shrink-0">
+<div class="w-8 h-8 rounded bg-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-secondary text-[20px]">admin_panel_settings</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">
+<h1 class="font-headline-md text-headline-md font-bold text-on-primary leading-tight">MaxControLADM</h1>
+<p class="font-body-sm text-body-sm text-on-primary opacity-70">Painel Administrativo</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto px-sm flex flex-col gap-xs">
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary opacity-70 hover:opacity-100 hover:bg-primary-container transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined shrink-0">dashboard</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT border-l-4 border-secondary text-secondary-fixed-dim font-bold bg-primary-container/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined shrink-0">account_tree</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Operações</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary opacity-70 hover:opacity-100 hover:bg-primary-container transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined shrink-0">analytics</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Relatórios</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary opacity-70 hover:opacity-100 hover:bg-primary-container transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined shrink-0">group</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Equipe</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary opacity-70 hover:opacity-100 hover:bg-primary-container transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined shrink-0">description</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Documentos</span>
+</a>
+</div>
+<div class="px-sm mt-auto border-t border-outline-variant/30 pt-md">
+<a class="flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-primary opacity-70 hover:opacity-100 hover:bg-primary-container transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined shrink-0">settings</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Configurações</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col h-full bg-surface-container-low ml-20 w-[calc(100%-80px)]">
+<!-- TopNavBar -->
+<header class="docked top-0 h-topbar-height border-b border-outline-variant fixed right-0 z-40 flex justify-between items-center px-lg bg-surface/95 backdrop-blur-sm left-20 w-[calc(100%-80px)]">
+<div class="flex items-center w-full max-w-md bg-surface-container-highest rounded-DEFAULT px-md py-xs border border-outline-variant/50 focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant mr-sm text-[20px]">search</span>
+<input class="w-full bg-transparent border-none focus:ring-0 text-body-md text-on-surface placeholder:text-on-surface-variant outline-none" placeholder="Buscar por ID, Cliente..." type="text"/>
+<span class="font-code-sm text-code-sm text-on-surface-variant bg-surface-variant px-xs rounded ml-sm">⌘K</span>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-xs text-on-surface-variant hover:text-primary dark:hover:text-secondary-fixed-dim cursor-pointer transition-opacity relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-xs text-on-surface-variant hover:text-primary dark:hover:text-secondary-fixed-dim cursor-pointer transition-opacity">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary-container overflow-hidden ml-sm cursor-pointer border border-outline-variant">
+<img alt="Avatar do Usuário" class="w-full h-full object-cover" data-alt="A professional headshot of a male administrative worker in a modern logistics control room. He is wearing a crisp collared shirt and has a neutral, focused expression. The lighting is bright and evenly distributed, consistent with a modern light-mode corporate dashboard environment. The background is a slightly blurred office setting with subtle hints of data screens." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAv5UxKImIHeMRsVJN7fofJN7DSe_0Oel1ifAK_OLuV6dS2HPYhgAH7T_iMQsSc1VuztvJ39Wbu0LtXU1Tc-MRT58vQy3mh8u1N0DEhektH4K53zF-qfcTLJX3DJkrR5NYTSQopo0a2mhyGMcOhXbgHihN6LNvOVa_Wx_zQF2butIb6vowbRhy7H-6hPW26LQjxnbntnDkHQVOcSrAzGAlrqPHmJHfichY9-QbC3W2-4nFsyMVnMbRuYE-4oWyIu1FOCHkdIPpe2d0"/>
+</div>
+</div>
+</header>
+<!-- Main Scrollable Area -->
+<main class="flex-1 mt-topbar-height overflow-y-auto p-md md:p-lg flex flex-col lg:flex-row gap-lg max-w-[1840px]">
+<!-- Center Canvas: Details & Execution -->
+<div class="flex-1 flex flex-col gap-md">
+<!-- Header Card -->
+<div class="bg-surface rounded-lg border border-outline-variant p-lg shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md mb-md">
+<div>
+<div class="flex items-center gap-sm mb-xs">
+<h2 class="font-headline-lg text-headline-lg text-primary m-0">OS-2023-0891</h2>
+<span class="bg-primary-container text-on-primary-container font-code-sm text-code-sm px-2 py-0.5 rounded-sm border border-outline-variant/30 uppercase tracking-wide">Alta Prioridade</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant m-0">Manutenção Preventiva - Esteira A4</p>
+</div>
+<div class="flex items-center gap-sm">
+<div class="flex items-center gap-xs px-sm py-xs rounded-DEFAULT bg-secondary-container/20 text-secondary border border-secondary/30">
+<span class="material-symbols-outlined text-[16px]">pending_actions</span>
+<span class="font-body-sm text-body-sm font-semibold">Em Execução</span>
+</div>
+<button class="bg-primary text-on-primary font-code-md text-code-md px-md py-sm rounded-DEFAULT hover:bg-primary/90 hover:animate-bounce transition-colors flex items-center gap-xs shadow-sm">
+<span class="material-symbols-outlined text-[18px]">sync_alt</span>
+                                Alterar Status
+                            </button>
+</div>
+</div>
+</div>
+<!-- Bento Grid for Execution details -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-md">
+<!-- Resumo da Abertura (2 cols span) -->
+<div class="xl:col-span-2 bg-surface rounded-lg border border-outline-variant p-md flex flex-col">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md flex items-center gap-sm border-b border-outline-variant pb-sm">
+<span class="material-symbols-outlined text-on-surface-variant">info</span>
+                            Detalhes da Solicitação
+                        </h3>
+<div class="flex flex-col md:flex-row gap-md">
+<div class="flex-1">
+<p class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider mb-xs">Descrição Reportada</p>
+<p class="font-body-md text-body-md text-on-surface bg-surface-container-low p-sm rounded-DEFAULT border border-outline-variant/50 leading-relaxed">
+                                    Ruído anormal no motor de tração da esteira A4 setor sul. O sensor de temperatura indica aquecimento acima de 65°C em carga máxima. Necessário inspecionar rolamentos e lubrificação.
+                                </p>
+<div class="grid grid-cols-2 gap-sm mt-md">
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-xs">Solicitante</p>
+<p class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">person</span>
+                                            João Almeida (Supervisão)
+                                        </p>
+</div>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-xs">Data de Abertura</p>
+<p class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">calendar_today</span>
+                                            12/10/2023 - 08:45
+                                        </p>
+</div>
+</div>
+</div>
+<!-- Fotos originais -->
+<div class="w-full md:w-48 shrink-0 flex flex-col gap-xs">
+<p class="font-body-sm text-body-sm text-on-surface-variant uppercase tracking-wider">Evidências Iniciais</p>
+<div class="h-24 bg-surface-container rounded-DEFAULT border border-outline-variant overflow-hidden relative group cursor-pointer">
+<img alt="Motor industrial" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ease-in-out" data-alt="A close-up shot of a large, complex industrial motor and conveyor belt system in a modern manufacturing facility. The machinery is painted in metallic grays and dull blues, showing signs of heavy use but well-maintained. The lighting is harsh overhead fluorescent, casting sharp shadows and highlighting the metallic textures. The overall aesthetic is industrial, functional, and highly detailed, fitting a corporate logistics dashboard context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDH2_MDfLIPnHDoGzllUX312udx_igPWa_3XZHs2Xzyl0GnLRff7KIn8SekckoZLqBdFZKJbKD65JahCcIZEkVmO23dHbjW6mxWFaKJTP8dMQKJOeYMhznmd28D3qRqygSBAFSzWzppat5sV0B6JqRXOGBFnb_geLvkfmdmL1Ach2SKjOiy06dOtU_hXJVA6GDCs8wTkNz-4Ehp-bKK2Pnj_aRoQAUeWhAoE1FsPB-zyS4bbBOafraV5F02UrA1D6NjztfjjsKhr2k"/>
+<div class="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-on-primary opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">zoom_in</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Progresso (1 col span) -->
+<div class="bg-surface rounded-lg border border-outline-variant p-md flex flex-col">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md flex items-center gap-sm border-b border-outline-variant pb-sm">
+<span class="material-symbols-outlined text-on-surface-variant">trending_up</span>
+                            Progresso
+                        </h3>
+<div class="flex-1 flex flex-col justify-center">
+<div class="flex justify-between items-end mb-sm">
+<span class="font-headline-lg text-headline-lg text-primary font-bold">65%</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Concluído</span>
+</div>
+<div class="h-4 bg-surface-container-highest rounded-full overflow-hidden border border-outline-variant/30">
+<div class="h-full bg-secondary rounded-full relative animate-progress" style="width: 65%;">
+<div class="absolute inset-0 bg-white/20 w-full" style="background-image: linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent); background-size: 1rem 1rem;"></div>
+</div>
+</div>
+<div class="mt-md flex justify-between text-body-sm font-code-sm text-on-surface-variant">
+<span class="">0%</span>
+<span class="">100%</span>
+</div>
+<button class="mt-auto w-full border border-outline text-on-surface font-code-md py-sm rounded-DEFAULT hover:bg-surface-variant transition-colors mt-md">
+                                Atualizar Progresso
+                            </button>
+</div>
+</div>
+</div>
+<!-- Execução e Evidências -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-md flex-1">
+<!-- Registro Técnico -->
+<div class="bg-surface rounded-lg border border-outline-variant p-md flex flex-col">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md flex items-center gap-sm border-b border-outline-variant pb-sm">
+<span class="material-symbols-outlined text-on-surface-variant">engineering</span>
+                            Registro de Execução
+                        </h3>
+<div class="flex-1 flex flex-col">
+<label class="font-body-sm text-body-sm text-on-surface-variant mb-xs">Apontamento Técnico</label>
+<textarea class="w-full flex-1 min-h-[120px] bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-sm text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none mb-md" placeholder="Descreva as ações tomadas, peças substituídas..."></textarea>
+<div class="flex justify-end gap-sm mt-auto">
+<button class="px-md py-sm border border-outline text-on-surface rounded-DEFAULT hover:bg-surface-variant transition-colors font-code-md">Salvar Rascunho</button>
+<button class="px-md py-sm bg-primary text-on-primary rounded-DEFAULT hover:bg-primary/90 transition-colors font-code-md">Registrar</button>
+</div>
+</div>
+</div>
+<!-- Upload Evidências -->
+<div class="bg-surface rounded-lg border border-outline-variant p-md flex flex-col">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md flex items-center gap-sm border-b border-outline-variant pb-sm">
+<span class="material-symbols-outlined text-on-surface-variant">photo_camera</span>
+                            Evidências de Conclusão
+                        </h3>
+<div class="flex-1 border-2 border-dashed border-outline-variant rounded-DEFAULT bg-surface-container-low flex flex-col items-center justify-center p-lg text-center hover:bg-surface-container transition-colors cursor-pointer group">
+<div class="w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center mb-sm group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">cloud_upload</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium mb-xs">Arraste fotos ou clique para enviar</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">JPG, PNG até 10MB</p>
+</div>
+<div class="mt-sm flex gap-sm overflow-x-auto pb-xs">
+<div class="w-16 h-16 shrink-0 bg-surface-container rounded-DEFAULT border border-outline-variant overflow-hidden relative">
+<img alt="Peça reparada" class="w-full h-full object-cover" data-alt="A macro shot of a freshly lubricated industrial bearing resting on a clean, grey metallic workbench. The metallic surfaces gleam cleanly under bright, sterile white LED lighting, indicating a successful maintenance procedure. The aesthetic is clean, precise, and highly detailed, perfectly matching a professional engineering context in a light-mode dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLh0MKq7Thz1W-x96PutIy8G_3yzo2EL_D7jli-cxMAgaXqrKJOcLeVEYr9CUC8oxV-ac6a93oFv-3q6lCe54c9Lw6lilXMSsScInDceF8NrtLfSOtrcHcl5yC44rGs8-S6v2GxFQUjvhYVX0XIVUsaKH1juFu6dhRwUXOqAx3CFioXVmhZyRoLoMl0vyKHVNwKZLAaz4M0nTn7ysw2OrQpgbQOo1qEtklE9n8Zt9WqGAjAucBtg4CptkS52AH-U2jBIiKOkAaOX8"/>
+<button class="absolute top-0 right-0 bg-error text-on-error w-4 h-4 flex items-center justify-center rounded-bl-sm"><span class="material-symbols-outlined text-[12px]">close</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Sidebar: Timeline & Actions -->
+<div class="w-[380px] shrink-0 flex flex-col gap-md">
+<!-- Quick Actions -->
+<div class="bg-surface rounded-lg border border-outline-variant p-md">
+<h3 class="font-body-sm text-body-sm uppercase tracking-wider text-on-surface-variant mb-sm">Ações Rápidas</h3>
+<div class="flex flex-col gap-sm">
+<button class="w-full flex items-center justify-between p-sm border border-outline-variant rounded-DEFAULT hover:bg-surface-container-low transition-colors text-left group">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px]">schedule</span>
+<span class="font-body-md text-body-md text-on-surface font-medium">Alterar Prazo</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">14/10</span>
+</button>
+<button class="w-full flex items-center justify-between p-sm border border-outline-variant rounded-DEFAULT hover:bg-surface-container-low transition-colors text-left group">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px]">assignment_ind</span>
+<span class="font-body-md text-body-md text-on-surface font-medium">Responsável</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Téc. Silva</span>
+</button>
+</div>
+</div>
+<!-- Timeline -->
+<div class="bg-surface rounded-lg border border-outline-variant p-md flex-1 overflow-hidden flex flex-col">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md flex items-center gap-sm border-b border-outline-variant pb-sm shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant">history</span>
+                        Histórico
+                    </h3>
+<div class="flex-1 overflow-y-auto pr-sm relative before:absolute before:inset-0 before:ml-[15px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-outline-variant/30">
+<div class="relative flex items-start gap-md mb-md animate-fade-in-up delay-100">
+<div class="absolute left-0 w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center border-2 border-surface z-10 shrink-0">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+</div>
+<div class="ml-10 bg-surface-container-low border border-outline-variant p-sm rounded-DEFAULT w-full">
+<div class="flex justify-between items-start mb-xs">
+<span class="font-body-sm font-medium text-on-surface">Início da Execução</span>
+<span class="font-code-sm text-on-surface-variant text-[10px]">Hoje, 09:15</span>
+</div>
+<p class="font-body-sm text-on-surface-variant m-0">Status alterado para 'Em Execução' por Téc. Silva.</p>
+</div>
+</div>
+<div class="relative flex items-start gap-md mb-md animate-fade-in-up delay-200">
+<div class="absolute left-0 w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center border-2 border-surface z-10 shrink-0">
+<span class="material-symbols-outlined text-[16px]">person_add</span>
+</div>
+<div class="ml-10 w-full">
+<div class="flex justify-between items-start">
+<span class="font-body-sm font-medium text-on-surface">Atribuição</span>
+<span class="font-code-sm text-on-surface-variant text-[10px]">Ontem, 16:30</span>
+</div>
+<p class="font-body-sm text-on-surface-variant m-0">Atribuído a Téc. Silva.</p>
+</div>
+</div>
+<div class="relative flex items-start gap-md mb-md animate-fade-in-up delay-300">
+<div class="absolute left-0 w-8 h-8 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center border-2 border-surface z-10 shrink-0">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</div>
+<div class="ml-10 w-full">
+<div class="flex justify-between items-start">
+<span class="font-body-sm font-medium text-on-surface">OS Aberta</span>
+<span class="font-code-sm text-on-surface-variant text-[10px]">12/10, 08:45</span>
+</div>
+<p class="font-body-sm text-on-surface-variant m-0">Abertura via sistema web.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

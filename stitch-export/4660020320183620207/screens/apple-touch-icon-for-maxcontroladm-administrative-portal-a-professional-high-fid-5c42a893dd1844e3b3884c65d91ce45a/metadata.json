@@ -1,0 +1,52 @@
+{
+    "screenId":  "5c42a893dd1844e3b3884c65d91ce45a",
+    "name":  "projects/4660020320183620207/screens/5c42a893dd1844e3b3884c65d91ce45a",
+    "title":  "Apple touch icon for MaxControLADM administrative portal. A professional, high-fidelity version of the app symbol (minimalist geometric \u0027M\u0027 or \u0027X\u0027) on a solid, full-bleed teal and navy gradient background. The symbol should have a subtle drop shadow for depth. No rounded corners or framing shapes in the image itself. Clean, modern, and enterprise-grade aesthetic.",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "5c42a893dd1844e3b3884c65d91ce45a",
+                          "sourceScreen":  "projects/4660020320183620207/screens/5c42a893dd1844e3b3884c65d91ce45a",
+                          "x":  79,
+                          "y":  2918,
+                          "width":  512,
+                          "height":  512
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\apple-touch-icon-for-maxcontroladm-administrative-portal-a-professional-high-fid-5c42a893dd1844e3b3884c65d91ce45a",
+    "html":  null,
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/074d0407082f46e4b09cb6c7e5579e55",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtjZL5b_xFMT0sgzzTEkBLJXtBHwz2zVzvzU_xfO8AW9CbrnUQvbLVt0GSFZiHswdB_CX-yhNggMNhoxzXVQaDnf22D5A6mwOifSZVuGiQb_SmokSuA9S7UYnD6bY1NER01sHlgIYH11lecqZfhyJ9hY9RrE2wR0KX-HTDubisI_XMDUrLjXU39wHz2OcyfDGPFf4kvtQpDM1Zmm4HGq-ob411y6flsKsvzPtS-DgfNP968kfJFGyZPrcU",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\apple-touch-icon-for-maxcontroladm-administrative-portal-a-professional-high-fid-5c42a893dd1844e3b3884c65d91ce45a\\screenshot.jpg",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\apple-touch-icon-for-maxcontroladm-administrative-portal-a-professional-high-fid-5c42a893dd1844e3b3884c65d91ce45a\\screenshot.jpg",
+                                        "bytes":  15866,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/jpeg",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+                    "htmlCode"
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/5c42a893dd1844e3b3884c65d91ce45a",
+                   "title":  "Apple touch icon for MaxControLADM administrative portal. A professional, high-fidelity version of the app symbol (minimalist geometric \u0027M\u0027 or \u0027X\u0027) on a solid, full-bleed teal and navy gradient background. The symbol should have a subtle drop shadow for depth. No rounded corners or framing shapes in the image itself. Clean, modern, and enterprise-grade aesthetic.",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/074d0407082f46e4b09cb6c7e5579e55",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtjZL5b_xFMT0sgzzTEkBLJXtBHwz2zVzvzU_xfO8AW9CbrnUQvbLVt0GSFZiHswdB_CX-yhNggMNhoxzXVQaDnf22D5A6mwOifSZVuGiQb_SmokSuA9S7UYnD6bY1NER01sHlgIYH11lecqZfhyJ9hY9RrE2wR0KX-HTDubisI_XMDUrLjXU39wHz2OcyfDGPFf4kvtQpDM1Zmm4HGq-ob411y6flsKsvzPtS-DgfNP968kfJFGyZPrcU"
+                                  },
+                   "htmlCode":  {
+
+                                },
+                   "width":  "1024",
+                   "height":  "1024"
+               }
+}

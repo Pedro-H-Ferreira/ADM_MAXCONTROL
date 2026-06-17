@@ -1,0 +1,24 @@
+.widget-use-policy.widget-use-policy-view {
+	float: left;
+	padding: 0;
+	border: none;
+	font-size: 11px;
+	margin: 13px 13px 13px 0;
+	clear: inherit;
+}
+
+.widget-use-policy .link-use-policy {
+	color: #58595b;
+	text-decoration: none;
+}
+
+.widget-use-policy .link-use-policy:hover,
+.widget-use-policy .link-use-policy:focus {
+	color: #323334;
+    text-decoration: underline;
+}
+
+.add-new-doc-modal,
+.view-document-modal {
+	display: none;
+}

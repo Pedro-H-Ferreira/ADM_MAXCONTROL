@@ -1,0 +1,20 @@
+var SOCIALBC = (function(SocialFormAnswer, $) {
+
+	//TODO method Name
+	SocialFormAnswer.openAnswerForm = function(formId, cb) {
+
+		function initComponent() {
+			WCMAPI.convertFtlAsync('socialFormAnswer', 'view.ftl', {
+				"formId": formId
+			}, function(html) {
+				$('body').append(html);
+
+			});
+		}
+
+		initComponent();
+	};
+
+	return SocialFormAnswer;
+
+})(window.SOCIALBC || {}, jQuery);

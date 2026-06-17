@@ -1,0 +1,1664 @@
+{
+    "name":  "projects/4660020320183620207",
+    "title":  "Nexus CD: Portal Administrativo Operacional",
+    "visibility":  "PUBLIC",
+    "createTime":  "2026-06-16T15:24:30.819894Z",
+    "updateTime":  "2026-06-17T14:13:26.642165Z",
+    "projectType":  "TEXT_TO_UI_PRO",
+    "thumbnailScreenshot":  {
+                                "name":  "projects/4660020320183620207/files/99e44c7a58ce44199b54dca252065a20",
+                                "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLskRY4NoBH3RgtYpuSzz3AB4GWbvP_9d-jxzjGK5JJ-i7WlKHxJ6bxKq3qCg-mAwT-gyfdV3K6w9OJp9etRia4yNi66ZWRk3gI2XYxDovMW1lLiPs2YfQL0qSCmGDiBU1TRCrmMNTqsAL-VRl_Mjs7iCLVq_GLHNinvOfbXBrGb3GzGXjWYWFL8MTpiXC7WUmFZTTmliC-FuHLb_Xd2mWETUozTIeMkWDxLh3P1sn9gfasUS9bgmVub8Q"
+                            },
+    "origin":  "STITCH",
+    "deviceType":  "DESKTOP",
+    "designTheme":  {
+                        "colorMode":  "LIGHT",
+                        "font":  "INTER",
+                        "roundness":  "ROUND_FOUR",
+                        "customColor":  "#0f172a",
+                        "headlineFont":  "INTER",
+                        "bodyFont":  "INTER",
+                        "labelFont":  "GEIST",
+                        "namedColors":  {
+                                            "background":  "#fcf8fa",
+                                            "error":  "#ba1a1a",
+                                            "error_container":  "#ffdad6",
+                                            "inverse_on_surface":  "#f3f0f2",
+                                            "inverse_primary":  "#bec6e0",
+                                            "inverse_surface":  "#303032",
+                                            "on_background":  "#1b1b1d",
+                                            "on_error":  "#ffffff",
+                                            "on_error_container":  "#93000a",
+                                            "on_primary":  "#ffffff",
+                                            "on_primary_container":  "#7c839b",
+                                            "on_primary_fixed":  "#131b2e",
+                                            "on_primary_fixed_variant":  "#3f465c",
+                                            "on_secondary":  "#ffffff",
+                                            "on_secondary_container":  "#006f66",
+                                            "on_secondary_fixed":  "#00201d",
+                                            "on_secondary_fixed_variant":  "#005049",
+                                            "on_surface":  "#1b1b1d",
+                                            "on_surface_variant":  "#45464d",
+                                            "on_tertiary":  "#ffffff",
+                                            "on_tertiary_container":  "#98805d",
+                                            "on_tertiary_fixed":  "#271901",
+                                            "on_tertiary_fixed_variant":  "#574425",
+                                            "outline":  "#76777d",
+                                            "outline_variant":  "#c6c6cd",
+                                            "primary":  "#000000",
+                                            "primary_container":  "#131b2e",
+                                            "primary_fixed":  "#dae2fd",
+                                            "primary_fixed_dim":  "#bec6e0",
+                                            "secondary":  "#006a61",
+                                            "secondary_container":  "#86f2e4",
+                                            "secondary_fixed":  "#89f5e7",
+                                            "secondary_fixed_dim":  "#6bd8cb",
+                                            "surface":  "#fcf8fa",
+                                            "surface_bright":  "#fcf8fa",
+                                            "surface_container":  "#f0edef",
+                                            "surface_container_high":  "#eae7e9",
+                                            "surface_container_highest":  "#e4e2e4",
+                                            "surface_container_low":  "#f6f3f5",
+                                            "surface_container_lowest":  "#ffffff",
+                                            "surface_dim":  "#dcd9db",
+                                            "surface_tint":  "#565e74",
+                                            "surface_variant":  "#e4e2e4",
+                                            "tertiary":  "#000000",
+                                            "tertiary_container":  "#271901",
+                                            "tertiary_fixed":  "#fcdeb5",
+                                            "tertiary_fixed_dim":  "#dec29a"
+                                        },
+                        "designMd":  "---\nname: Enterprise Logistics System\ncolors:\n  surface: \u0027#fcf8fa\u0027\n  surface-dim: \u0027#dcd9db\u0027\n  surface-bright: \u0027#fcf8fa\u0027\n  surface-container-lowest: \u0027#ffffff\u0027\n  surface-container-low: \u0027#f6f3f5\u0027\n  surface-container: \u0027#f0edef\u0027\n  surface-container-high: \u0027#eae7e9\u0027\n  surface-container-highest: \u0027#e4e2e4\u0027\n  on-surface: \u0027#1b1b1d\u0027\n  on-surface-variant: \u0027#45464d\u0027\n  inverse-surface: \u0027#303032\u0027\n  inverse-on-surface: \u0027#f3f0f2\u0027\n  outline: \u0027#76777d\u0027\n  outline-variant: \u0027#c6c6cd\u0027\n  surface-tint: \u0027#565e74\u0027\n  primary: \u0027#000000\u0027\n  on-primary: \u0027#ffffff\u0027\n  primary-container: \u0027#131b2e\u0027\n  on-primary-container: \u0027#7c839b\u0027\n  inverse-primary: \u0027#bec6e0\u0027\n  secondary: \u0027#006a61\u0027\n  on-secondary: \u0027#ffffff\u0027\n  secondary-container: \u0027#86f2e4\u0027\n  on-secondary-container: \u0027#006f66\u0027\n  tertiary: \u0027#000000\u0027\n  on-tertiary: \u0027#ffffff\u0027\n  tertiary-container: \u0027#271901\u0027\n  on-tertiary-container: \u0027#98805d\u0027\n  error: \u0027#ba1a1a\u0027\n  on-error: \u0027#ffffff\u0027\n  error-container: \u0027#ffdad6\u0027\n  on-error-container: \u0027#93000a\u0027\n  primary-fixed: \u0027#dae2fd\u0027\n  primary-fixed-dim: \u0027#bec6e0\u0027\n  on-primary-fixed: \u0027#131b2e\u0027\n  on-primary-fixed-variant: \u0027#3f465c\u0027\n  secondary-fixed: \u0027#89f5e7\u0027\n  secondary-fixed-dim: \u0027#6bd8cb\u0027\n  on-secondary-fixed: \u0027#00201d\u0027\n  on-secondary-fixed-variant: \u0027#005049\u0027\n  tertiary-fixed: \u0027#fcdeb5\u0027\n  tertiary-fixed-dim: \u0027#dec29a\u0027\n  on-tertiary-fixed: \u0027#271901\u0027\n  on-tertiary-fixed-variant: \u0027#574425\u0027\n  background: \u0027#fcf8fa\u0027\n  on-background: \u0027#1b1b1d\u0027\n  surface-variant: \u0027#e4e2e4\u0027\ntypography:\n  display-lg:\n    fontFamily: Inter\n    fontSize: 36px\n    fontWeight: \u0027700\u0027\n    lineHeight: 44px\n    letterSpacing: -0.02em\n  headline-lg:\n    fontFamily: Inter\n    fontSize: 28px\n    fontWeight: \u0027600\u0027\n    lineHeight: 36px\n  headline-md:\n    fontFamily: Inter\n    fontSize: 20px\n    fontWeight: \u0027600\u0027\n    lineHeight: 28px\n  body-lg:\n    fontFamily: Inter\n    fontSize: 16px\n    fontWeight: \u0027400\u0027\n    lineHeight: 24px\n  body-md:\n    fontFamily: Inter\n    fontSize: 14px\n    fontWeight: \u0027400\u0027\n    lineHeight: 20px\n  body-sm:\n    fontFamily: Inter\n    fontSize: 12px\n    fontWeight: \u0027400\u0027\n    lineHeight: 16px\n  code-md:\n    fontFamily: Geist\n    fontSize: 14px\n    fontWeight: \u0027500\u0027\n    lineHeight: 20px\n  code-sm:\n    fontFamily: Geist\n    fontSize: 12px\n    fontWeight: \u0027500\u0027\n    lineHeight: 16px\nrounded:\n  sm: 0.125rem\n  DEFAULT: 0.25rem\n  md: 0.375rem\n  lg: 0.5rem\n  xl: 0.75rem\n  full: 9999px\nspacing:\n  base: 8px\n  xs: 4px\n  sm: 8px\n  md: 16px\n  lg: 24px\n  xl: 32px\n  sidenav-width: 240px\n  topbar-height: 64px\n---\n\n## Brand \u0026 Style\n\nThe design system is engineered for high-stakes B2B logistics environments. It prioritizes clarity, speed of cognition, and data density. The brand personality is **authoritative, precise, and systematic**, reflecting the scale and complexity of a modern distribution center.\n\nThe visual style follows a **Modern Corporate** approach with a focus on **High-Density Minimalism**. This ensures that administrative users can manage thousands of SKUs and logistics workflows without cognitive fatigue. The UI relies on structured hierarchies, subtle transitions, and a strict adherence to a logic-driven layout.\n\nKey brand attributes:\n- **Efficiency:** Every pixel serves a functional purpose.\n- **Reliability:** A robust color palette that signals stability.\n- **Scalability:** Built to handle everything from mobile handheld scans to ultra-wide dashboard monitors.\n\n## Colors\n\nThe palette is anchored in **Deep Blue (#0F172A)** to establish a professional enterprise foundation. **Teal (#0D9488)** acts as the secondary driver for action-oriented components, providing a distinct but harmonious contrast.\n\n- **Primary \u0026 Secondary:** Used for high-level navigation, primary buttons, and brand reinforcement.\n- **Accent:** Reserved for focus states, active indicators, and highlighting critical data trends.\n- **Semantic Palette:** Follows strict industry standards to ensure immediate recognition of system status (Success, Warning, Error, Info).\n- **Neutrals (Slate/Zinc):** Used for surfaces, borders, and secondary text. In **Dark Mode**, the background transitions to a deep slate tint to maintain depth without pure black fatigue.\n\nAll color combinations must meet **WCAG 2.2 AA** contrast ratios, particularly for data labels and interactive states.\n\n## Typography\n\nThis design system utilizes **Inter** as the primary typeface for its exceptional legibility and neutral, professional tone. To support the technical nature of logistics (IDs, SKUs, Tracking Numbers), **Geist** is employed for monospaced data entries.\n\n- **Hierarchy:** Use `display-lg` sparingly for dashboard summaries. `headline-md` is the standard for card titles.\n- **Density:** `body-sm` and `body-md` are the workhorses of the system, optimized for dense data tables and property panels.\n- **Technical Data:** Use the \"Code\" roles for any alphanumeric identifiers (e.g., `LOT-99283-X`). This visual distinction helps users quickly scan for specific items within large lists.\n\n## Layout \u0026 Spacing\n\nThe system is built on a strict **8px grid**. This rhythm governs all padding, margins, and component heights, ensuring a mathematical harmony across the portal.\n\n- **AppShell:** Features a persistent **240px Sidenav** on the left for primary navigation and a **64px Topbar** for global search, notifications, and theme switching.\n- **Grid System:** A 12-column fluid grid is used for the main content area. In dense administrative views, margins are reduced to `16px` to maximize screen real estate.\n- **Density Control:** Components should offer \"Comfortable\" and \"Compact\" modes. Compact mode reduces vertical padding to `4px` (xs) for large data tables.\n- **Breakpoints:**\n  - Mobile (\u003c640px): Sidenav becomes a drawer; content is single-column.\n  - Tablet (640px - 1024px): Sidenav collapses to icons.\n  - Desktop (\u003e1024px): Full persistent shell.\n\n## Elevation \u0026 Depth\n\nTo maintain a clean, professional aesthetic, this design system uses **Tonal Layers** and **Low-Contrast Outlines** rather than heavy shadows.\n\n- **Level 0 (Background):** Base surface color.\n- **Level 1 (Cards/Panels):** Raised using a subtle `1px` border (Slate-200 in light mode, Slate-800 in dark mode) or a very soft, diffused ambient shadow (4px blur, 2% opacity).\n- **Level 2 (Modals/Popovers):** Higher contrast borders and a medium shadow to indicate temporary overlay status.\n- **Dark Mode Elevation:** Depth is communicated through increasing brightness of the slate surface. Backgrounds are the darkest, while cards and interactive elements are slightly lighter.\n\n## Shapes\n\nThe shape language is **Soft (0.25rem)**. This provides a modern touch without sacrificing the \"serious\" nature of an enterprise logistics tool.\n\n- **Standard Elements:** Buttons, Inputs, and Cards use the `rounded-sm` (4px) base.\n- **Large Containers:** Dashboard widgets or main content areas may use `rounded-lg` (8px).\n- **Interactive States:** Use a distinct \"focus ring\" (2px offset) in the Accent color for accessibility.\n- **Status Tags:** Use a slightly higher radius (`rounded-xl`) to distinguish them from actionable buttons.\n\n## Components\n\n### Tables (Data Grids)\nThe core of the portal. Use **Zebra Striping** and **Fixed Headers**. \n- Row height: 40px (Compact) or 56px (Default).\n- Column sorting indicators and inline actions (Edit/Delete) appear on hover.\n\n### KPI Cards\nDisplay vital metrics (e.g., \"Active Shipments\", \"Inventory Value\").\n- Include a small sparkline chart (Accent color).\n- Show \"Percentage Change\" indicators (Success/Error colors).\n\n### AppShell\n- **Sidenav:** High-contrast background (Primary Deep Blue). Active links use a Secondary Teal left-border indicator.\n- **Topbar:** Features a centered **Global Search** bar with a keyboard shortcut hint (e.g., `⌘K`). \n\n### Forms\n- **Validation:** Real-time inline validation using Semantic colors. Errors must include an icon for accessibility.\n- **Inputs:** Clear labels above the field with optional \"Helper Text\" below.\n\n### Microinteractions\n- Transitions should be fast (**150ms - 200ms**).\n- Button \"Press\" states should provide immediate visual feedback via a slight darkening of the background color.\n- Theme switching (Light/Dark) should utilize a cross-fade transition.",
+                        "colorVariant":  "FIDELITY",
+                        "overridePrimaryColor":  "#0f172a",
+                        "overrideSecondaryColor":  "#0d9488",
+                        "spacingScale":  2,
+                        "typography":  {
+                                           "body-lg":  {
+                                                           "fontFamily":  "Inter",
+                                                           "fontSize":  "16px",
+                                                           "fontWeight":  "400",
+                                                           "lineHeight":  "24px"
+                                                       },
+                                           "body-md":  {
+                                                           "fontFamily":  "Inter",
+                                                           "fontSize":  "14px",
+                                                           "fontWeight":  "400",
+                                                           "lineHeight":  "20px"
+                                                       },
+                                           "body-sm":  {
+                                                           "fontFamily":  "Inter",
+                                                           "fontSize":  "12px",
+                                                           "fontWeight":  "400",
+                                                           "lineHeight":  "16px"
+                                                       },
+                                           "code-md":  {
+                                                           "fontFamily":  "Geist",
+                                                           "fontSize":  "14px",
+                                                           "fontWeight":  "500",
+                                                           "lineHeight":  "20px"
+                                                       },
+                                           "code-sm":  {
+                                                           "fontFamily":  "Geist",
+                                                           "fontSize":  "12px",
+                                                           "fontWeight":  "500",
+                                                           "lineHeight":  "16px"
+                                                       },
+                                           "display-lg":  {
+                                                              "fontFamily":  "Inter",
+                                                              "fontSize":  "36px",
+                                                              "fontWeight":  "700",
+                                                              "lineHeight":  "44px",
+                                                              "letterSpacing":  "-0.02em"
+                                                          },
+                                           "headline-lg":  {
+                                                               "fontFamily":  "Inter",
+                                                               "fontSize":  "28px",
+                                                               "fontWeight":  "600",
+                                                               "lineHeight":  "36px"
+                                                           },
+                                           "headline-md":  {
+                                                               "fontFamily":  "Inter",
+                                                               "fontSize":  "20px",
+                                                               "fontWeight":  "600",
+                                                               "lineHeight":  "28px"
+                                                           }
+                                       },
+                        "spacing":  {
+                                        "base":  "8px",
+                                        "lg":  "24px",
+                                        "md":  "16px",
+                                        "sidenav-width":  "240px",
+                                        "sm":  "8px",
+                                        "topbar-height":  "64px",
+                                        "xl":  "32px",
+                                        "xs":  "4px"
+                                    },
+                        "headlineFontFamily":  "Inter",
+                        "bodyFontFamily":  "Inter",
+                        "labelFontFamily":  "Geist"
+                    },
+    "screenInstances":  [
+                            {
+                                "id":  "01a2b51489ef4d26a940c8538cecef96",
+                                "sourceScreen":  "projects/4660020320183620207/screens/01a2b51489ef4d26a940c8538cecef96",
+                                "x":  42677,
+                                "y":  -14,
+                                "width":  1724,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "0213440a13424e15b3956e190ebc8076",
+                                "sourceScreen":  "projects/4660020320183620207/screens/0213440a13424e15b3956e190ebc8076",
+                                "x":  102181,
+                                "y":  2627,
+                                "width":  1453,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "02157897515e4090ba091ec20abac27f",
+                                "sourceScreen":  "projects/4660020320183620207/screens/02157897515e4090ba091ec20abac27f",
+                                "x":  -3944,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "02861a2e-7fee-4563-bb69-31f05961d81d",
+                                "sourceScreen":  "projects/4660020320183620207/screens/3473501005033040758",
+                                "x":  2304,
+                                "y":  5307,
+                                "width":  600,
+                                "height":  900,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "03c9c9b9-f4fd-4d5c-b22b-dfd6bcdaaf5e",
+                                "sourceScreen":  "projects/4660020320183620207/screens/3473501005033040416",
+                                "x":  4296,
+                                "y":  5307,
+                                "width":  600,
+                                "height":  900,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "03fee3023ff94c1487bd6998b6cac438",
+                                "sourceScreen":  "projects/4660020320183620207/screens/03fee3023ff94c1487bd6998b6cac438",
+                                "x":  16128,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "05b760e9057c46e09c80a7f8294d1055",
+                                "sourceScreen":  "projects/4660020320183620207/screens/05b760e9057c46e09c80a7f8294d1055",
+                                "x":  9472,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "0623329591a74560a0591ee741ec44f9",
+                                "sourceScreen":  "projects/4660020320183620207/screens/0623329591a74560a0591ee741ec44f9",
+                                "x":  -1297,
+                                "y":  2940,
+                                "width":  600,
+                                "height":  600
+                            },
+                            {
+                                "id":  "0865e9e688254986aebd9550904ad653",
+                                "sourceScreen":  "projects/4660020320183620207/screens/0865e9e688254986aebd9550904ad653",
+                                "x":  9510,
+                                "y":  5307,
+                                "width":  1280,
+                                "height":  1022
+                            },
+                            {
+                                "id":  "0cdf29c3fcfe41bca9aac6e2d4aac287",
+                                "sourceScreen":  "projects/4660020320183620207/screens/0cdf29c3fcfe41bca9aac6e2d4aac287",
+                                "x":  10176,
+                                "y":  2636,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "100ba8c4f3c948d8831f857919cf2f7c",
+                                "sourceScreen":  "projects/4660020320183620207/screens/100ba8c4f3c948d8831f857919cf2f7c",
+                                "x":  14457,
+                                "y":  2613,
+                                "width":  1276,
+                                "height":  896,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "126cb7e1-7a5b-43cc-9eaf-674cf15c9ced",
+                                "sourceScreen":  "projects/4660020320183620207/screens/3473501005033040530",
+                                "x":  3632,
+                                "y":  5307,
+                                "width":  600,
+                                "height":  900,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "12e8866a141346819486e15cff82e3e9",
+                                "sourceScreen":  "projects/4660020320183620207/screens/12e8866a141346819486e15cff82e3e9",
+                                "x":  46297,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "16efe7e19456484b930d4257486900de",
+                                "sourceScreen":  "projects/4660020320183620207/screens/16efe7e19456484b930d4257486900de",
+                                "x":  24982,
+                                "y":  1333,
+                                "width":  3032,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "18f3084594014c79b95a22cd54ab3380",
+                                "sourceScreen":  "projects/4660020320183620207/screens/18f3084594014c79b95a22cd54ab3380",
+                                "x":  61711,
+                                "y":  -14,
+                                "width":  1280,
+                                "height":  1024
+                            },
+                            {
+                                "id":  "1932f9ac2f544ccf875870f4c8076bad",
+                                "sourceScreen":  "projects/4660020320183620207/screens/1932f9ac2f544ccf875870f4c8076bad",
+                                "x":  8064,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "1b36bb8318604da18240cdcdc9c7c9d1",
+                                "sourceScreen":  "projects/4660020320183620207/screens/1b36bb8318604da18240cdcdc9c7c9d1",
+                                "x":  38653,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "1c2492569f1b4d56ab43a02f5a016537",
+                                "sourceScreen":  "projects/4660020320183620207/screens/1c2492569f1b4d56ab43a02f5a016537",
+                                "x":  6784,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "1cf26b66c9304a77b96a6cc8bc0db97c",
+                                "sourceScreen":  "projects/4660020320183620207/screens/1cf26b66c9304a77b96a6cc8bc0db97c",
+                                "x":  103698,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "1d4878b50c8f4e60879625c8596283f2",
+                                "sourceScreen":  "projects/4660020320183620207/screens/1d4878b50c8f4e60879625c8596283f2",
+                                "x":  97742,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "1db311b72f714cb79d7826bb19a42831",
+                                "sourceScreen":  "projects/4660020320183620207/screens/1db311b72f714cb79d7826bb19a42831",
+                                "x":  4096,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "1e5b5a335c9d49b4b4559c1e41aebbee",
+                                "sourceScreen":  "projects/4660020320183620207/screens/1e5b5a335c9d49b4b4559c1e41aebbee",
+                                "x":  70247,
+                                "y":  2627,
+                                "width":  1276,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "1e8b23bf2f71420299183c2c65763cf9",
+                                "sourceScreen":  "projects/4660020320183620207/screens/1e8b23bf2f71420299183c2c65763cf9",
+                                "x":  -2585,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "1f9e4942f896480f8b1a638a9cd75fdd",
+                                "sourceScreen":  "projects/4660020320183620207/screens/1f9e4942f896480f8b1a638a9cd75fdd",
+                                "x":  64610,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "2066fe73b94444aba1ed3ab8f59c2fc5",
+                                "sourceScreen":  "projects/4660020320183620207/screens/2066fe73b94444aba1ed3ab8f59c2fc5",
+                                "x":  6807,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  722
+                            },
+                            {
+                                "id":  "2267c6ccf65e4c109714ca8fd3067169",
+                                "sourceScreen":  "projects/4660020320183620207/screens/2267c6ccf65e4c109714ca8fd3067169",
+                                "x":  17472,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "2975e8ebdba5463f9c2e2a719389c36f",
+                                "sourceScreen":  "projects/4660020320183620207/screens/2975e8ebdba5463f9c2e2a719389c36f",
+                                "x":  2775,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "2aa2358a06ce4737bad53125f96530da",
+                                "sourceScreen":  "projects/4660020320183620207/screens/2aa2358a06ce4737bad53125f96530da",
+                                "x":  8166,
+                                "y":  5307,
+                                "width":  1280,
+                                "height":  1272
+                            },
+                            {
+                                "id":  "2b0ed46559694516913b890630511666",
+                                "sourceScreen":  "projects/4660020320183620207/screens/2b0ed46559694516913b890630511666",
+                                "x":  13440,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "2bb60bceb1ef40b8a7722a552163af3f",
+                                "sourceScreen":  "projects/4660020320183620207/screens/2bb60bceb1ef40b8a7722a552163af3f",
+                                "x":  21504,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "2c1d7f42c443484d957db21db5216058",
+                                "sourceScreen":  "projects/4660020320183620207/screens/2c1d7f42c443484d957db21db5216058",
+                                "x":  14848,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "33990a7244c24005b24087b3ab1d62c8",
+                                "sourceScreen":  "projects/4660020320183620207/screens/33990a7244c24005b24087b3ab1d62c8",
+                                "x":  10854,
+                                "y":  5307,
+                                "width":  1587,
+                                "height":  1003,
+                                "isResized":  true
+                            },
+                            {
+                                "id":  "3746d5c1984b455191054fa55ea75be3",
+                                "sourceScreen":  "projects/4660020320183620207/screens/3746d5c1984b455191054fa55ea75be3",
+                                "x":  90032,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "37fc5af422fb4dfa940454c4b76a5a97",
+                                "sourceScreen":  "projects/4660020320183620207/screens/37fc5af422fb4dfa940454c4b76a5a97",
+                                "x":  65856,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "381dbea6559a4dacb7ad356c3bbc4d67",
+                                "sourceScreen":  "projects/4660020320183620207/screens/381dbea6559a4dacb7ad356c3bbc4d67",
+                                "x":  -57,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "385be9ecc5994dfaa399cdabe68898fa",
+                                "sourceScreen":  "projects/4660020320183620207/screens/385be9ecc5994dfaa399cdabe68898fa",
+                                "x":  26982,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "3b8444880df147ce9f8af2aa49de249a",
+                                "sourceScreen":  "projects/4660020320183620207/screens/3b8444880df147ce9f8af2aa49de249a",
+                                "x":  13117,
+                                "y":  1333,
+                                "width":  1276,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "3c5c9ed1cb434b43962752e5239a8ae3",
+                                "sourceScreen":  "projects/4660020320183620207/screens/3c5c9ed1cb434b43962752e5239a8ae3",
+                                "x":  87484,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "3d3b676a415d46cba27b56226b48a04d",
+                                "sourceScreen":  "projects/4660020320183620207/screens/3d3b676a415d46cba27b56226b48a04d",
+                                "x":  14096,
+                                "y":  5296,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "3f5e834e8d8746adb4c665809844236c",
+                                "sourceScreen":  "projects/4660020320183620207/screens/3f5e834e8d8746adb4c665809844236c",
+                                "x":  6155,
+                                "y":  2627,
+                                "width":  1276,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "40d0bf6ca48241908fdda28777582c59",
+                                "sourceScreen":  "projects/4660020320183620207/screens/40d0bf6ca48241908fdda28777582c59",
+                                "x":  18903,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "43693dbd1a474d899804d2f6e725634c",
+                                "sourceScreen":  "projects/4660020320183620207/screens/43693dbd1a474d899804d2f6e725634c",
+                                "x":  14886,
+                                "y":  5307,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "45cf17c924ea4dc18c4ae793c3f0d01d",
+                                "sourceScreen":  "projects/4660020320183620207/screens/45cf17c924ea4dc18c4ae793c3f0d01d",
+                                "x":  6822,
+                                "y":  5307,
+                                "width":  1280,
+                                "height":  1082
+                            },
+                            {
+                                "id":  "467ed84a77424a7dac0eb497ce0ee998",
+                                "sourceScreen":  "projects/4660020320183620207/screens/467ed84a77424a7dac0eb497ce0ee998",
+                                "x":  51393,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "47343885d5e04cc09eb52b140e996ce8",
+                                "sourceScreen":  "projects/4660020320183620207/screens/47343885d5e04cc09eb52b140e996ce8",
+                                "x":  96468,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "4ae17bdfaee44a47ab683704ae3d63df",
+                                "sourceScreen":  "projects/4660020320183620207/screens/4ae17bdfaee44a47ab683704ae3d63df",
+                                "x":  14784,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "4c24b167-41d1-4ca6-a287-bdaee005f0de",
+                                "sourceScreen":  "projects/4660020320183620207/screens/2307774301828855232",
+                                "x":  1217,
+                                "y":  3963,
+                                "width":  1131,
+                                "height":  1021,
+                                "hidden":  true,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "4c39961d7e014d09a1507e6a0d12c369",
+                                "sourceScreen":  "projects/4660020320183620207/screens/4c39961d7e014d09a1507e6a0d12c369",
+                                "x":  24294,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "4ce0cab79efe4ce8b6b1a2a816d8d6f7",
+                                "sourceScreen":  "projects/4660020320183620207/screens/4ce0cab79efe4ce8b6b1a2a816d8d6f7",
+                                "x":  38330,
+                                "y":  -16,
+                                "width":  1603,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "4cf8185e7da2464f9b79a5cd6b18c0e6",
+                                "sourceScreen":  "projects/4660020320183620207/screens/4cf8185e7da2464f9b79a5cd6b18c0e6",
+                                "x":  12752,
+                                "y":  5296,
+                                "width":  1280,
+                                "height":  1181
+                            },
+                            {
+                                "id":  "52ec2f89052c4b18b240d8114cb52597",
+                                "sourceScreen":  "projects/4660020320183620207/screens/52ec2f89052c4b18b240d8114cb52597",
+                                "x":  20224,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "533a15ab-6717-41fc-8ddd-c150026d7895",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7193568163321427354",
+                                "x":  1728,
+                                "y":  5307,
+                                "width":  512,
+                                "height":  285,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "5401578d577d44149f164109d3a407f4",
+                                "sourceScreen":  "projects/4660020320183620207/screens/5401578d577d44149f164109d3a407f4",
+                                "x":  66489,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "566c49277e904a9c80696064b9e828f2",
+                                "sourceScreen":  "projects/4660020320183620207/screens/566c49277e904a9c80696064b9e828f2",
+                                "x":  1344,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "59038a9303c3442880dfd305b1424938",
+                                "sourceScreen":  "projects/4660020320183620207/screens/59038a9303c3442880dfd305b1424938",
+                                "x":  -633,
+                                "y":  2918,
+                                "width":  512,
+                                "height":  512
+                            },
+                            {
+                                "id":  "5a5657568bea4bca99d84068aaebcab9",
+                                "sourceScreen":  "projects/4660020320183620207/screens/5a5657568bea4bca99d84068aaebcab9",
+                                "x":  5478,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "5b4f0805-c944-4c0f-b7f0-bdcdcc0650b6",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7193568163321427948",
+                                "y":  5307,
+                                "width":  512,
+                                "height":  325,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "5c42a893dd1844e3b3884c65d91ce45a",
+                                "sourceScreen":  "projects/4660020320183620207/screens/5c42a893dd1844e3b3884c65d91ce45a",
+                                "x":  79,
+                                "y":  2918,
+                                "width":  512,
+                                "height":  512
+                            },
+                            {
+                                "id":  "5ce8446db86e41cfa6832d5aeb2c8bdd",
+                                "sourceScreen":  "projects/4660020320183620207/screens/5ce8446db86e41cfa6832d5aeb2c8bdd",
+                                "x":  -2600,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "5dbe14ef46d348abb79aa348973d7887",
+                                "sourceScreen":  "projects/4660020320183620207/screens/5dbe14ef46d348abb79aa348973d7887",
+                                "x":  21568,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "5edf1422049c4b7e9cc9dac44b348855",
+                                "sourceScreen":  "projects/4660020320183620207/screens/5edf1422049c4b7e9cc9dac44b348855",
+                                "x":  62731,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "60d96a8f7d8e47509d71a97f86693f16",
+                                "sourceScreen":  "projects/4660020320183620207/screens/60d96a8f7d8e47509d71a97f86693f16",
+                                "x":  10816,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "6217e8d7f86841ba9163f158befbdb20",
+                                "sourceScreen":  "projects/4660020320183620207/screens/6217e8d7f86841ba9163f158befbdb20",
+                                "x":  42475,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "62f4cabc4ea04bcf91beb180e6bfe830",
+                                "sourceScreen":  "projects/4660020320183620207/screens/62f4cabc4ea04bcf91beb180e6bfe830",
+                                "x":  18880,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "64bbe7f646874053b3fc34ffb80d6517",
+                                "sourceScreen":  "projects/4660020320183620207/screens/64bbe7f646874053b3fc34ffb80d6517",
+                                "x":  55215,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "6dfb4a3b305245b5919bd7ee71e873ea",
+                                "sourceScreen":  "projects/4660020320183620207/screens/6dfb4a3b305245b5919bd7ee71e873ea",
+                                "x":  95194,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "6e1b6b900d554cd8a06b1ecd2abd0555",
+                                "sourceScreen":  "projects/4660020320183620207/screens/6e1b6b900d554cd8a06b1ecd2abd0555",
+                                "x":  10752,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "6ff63c464ac94571ba44ce8b573606af",
+                                "sourceScreen":  "projects/4660020320183620207/screens/6ff63c464ac94571ba44ce8b573606af",
+                                "x":  18816,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  691,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "71b7bae46dfb45e48624a2a9a488dbff",
+                                "sourceScreen":  "projects/4660020320183620207/screens/71b7bae46dfb45e48624a2a9a488dbff",
+                                "x":  36105,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "71e0bbbec13e4886b651bc47689f099e",
+                                "sourceScreen":  "projects/4660020320183620207/screens/71e0bbbec13e4886b651bc47689f099e",
+                                "x":  37379,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "72b7ef1c-2018-4276-b225-f8a738451f30",
+                                "sourceScreen":  "projects/4660020320183620207/screens/3473501005033040644",
+                                "x":  2968,
+                                "y":  5307,
+                                "width":  600,
+                                "height":  900,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "7323d388214d47009aa76b774a568cc4",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7323d388214d47009aa76b774a568cc4",
+                                "x":  14871,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  691
+                            },
+                            {
+                                "id":  "748233f061ee474c8ae90fb12f9aaae6",
+                                "sourceScreen":  "projects/4660020320183620207/screens/748233f061ee474c8ae90fb12f9aaae6",
+                                "x":  5440,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "7535db74ed1e4ad6b9fdcc40d97ba105",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7535db74ed1e4ad6b9fdcc40d97ba105",
+                                "x":  8128,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "76153cdc27e84de0bdd28860f1123a3f",
+                                "sourceScreen":  "projects/4660020320183620207/screens/76153cdc27e84de0bdd28860f1123a3f",
+                                "x":  50119,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "76a5aff4129247a7a51a601ae7d8b828",
+                                "sourceScreen":  "projects/4660020320183620207/screens/76a5aff4129247a7a51a601ae7d8b828",
+                                "x":  83596,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "76b2d1976cbb42d2b155ef12739b15ef",
+                                "sourceScreen":  "projects/4660020320183620207/screens/76b2d1976cbb42d2b155ef12739b15ef",
+                                "x":  100907,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "788bc6fde8c14a38ab947d1dd2971d7f",
+                                "sourceScreen":  "projects/4660020320183620207/screens/788bc6fde8c14a38ab947d1dd2971d7f",
+                                "x":  72861,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "78f94b050ee84380acd2255d605b8771",
+                                "sourceScreen":  "projects/4660020320183620207/screens/78f94b050ee84380acd2255d605b8771",
+                                "x":  71587,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "7a127e86-9be1-4e3f-a08f-475c5bec56e6",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7193568163321427750",
+                                "x":  576,
+                                "y":  5307,
+                                "width":  512,
+                                "height":  183,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "7a9156ca17574bd385bdf2f6080dbd52",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7a9156ca17574bd385bdf2f6080dbd52",
+                                "x":  4915,
+                                "y":  2918,
+                                "width":  600,
+                                "height":  600,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "7b29508780be4155ab355b5716ba2ebf",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7b29508780be4155ab355b5716ba2ebf",
+                                "x":  10839,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "7c2d9e90f9dc41a7b842cdc0ae4d1b5f",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7c2d9e90f9dc41a7b842cdc0ae4d1b5f",
+                                "x":  5463,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "7c7997c415b14ce68bd1a83e39b40487",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7c7997c415b14ce68bd1a83e39b40487",
+                                "x":  93920,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "7d4b1a17a489432f9a51265a095034fd",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7d4b1a17a489432f9a51265a095034fd",
+                                "x":  32358,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "7e1ab8a62c8f4b6aacff4a6c93482e35",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7e1ab8a62c8f4b6aacff4a6c93482e35",
+                                "x":  16192,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "7e9865a300e546ccab08306c529951df",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7e9865a300e546ccab08306c529951df",
+                                "x":  4032,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "82b9672298934c849819389911c94ba9",
+                                "sourceScreen":  "projects/4660020320183620207/screens/82b9672298934c849819389911c94ba9",
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "83a52e782cb948eabe5b5ee35bbcf32a",
+                                "sourceScreen":  "projects/4660020320183620207/screens/83a52e782cb948eabe5b5ee35bbcf32a",
+                                "x":  60852,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "83a8dda1b13040f0958078f1e4065fb8",
+                                "sourceScreen":  "projects/4660020320183620207/screens/83a8dda1b13040f0958078f1e4065fb8",
+                                "x":  1446,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "83e2eb507f7749eeb55c4f73e6deef69",
+                                "sourceScreen":  "projects/4660020320183620207/screens/83e2eb507f7749eeb55c4f73e6deef69",
+                                "x":  45023,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "85c97310b3434518bc445617d8ab2bc3",
+                                "sourceScreen":  "projects/4660020320183620207/screens/85c97310b3434518bc445617d8ab2bc3",
+                                "x":  1408,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "876209581eb6475fa86873512f8ca7a9",
+                                "sourceScreen":  "projects/4660020320183620207/screens/876209581eb6475fa86873512f8ca7a9",
+                                "x":  2688,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "88669af7775f4aac83f915fba955d233",
+                                "sourceScreen":  "projects/4660020320183620207/screens/88669af7775f4aac83f915fba955d233",
+                                "x":  102,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "8995651db71c4fdaaf58fe8d5139feb4",
+                                "sourceScreen":  "projects/4660020320183620207/screens/8995651db71c4fdaaf58fe8d5139feb4",
+                                "x":  20160,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "8c7a54b894994afe961bcdc001190b31",
+                                "sourceScreen":  "projects/4660020320183620207/screens/8c7a54b894994afe961bcdc001190b31",
+                                "x":  -3929,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "8de5ae43260b491daf61fb62a31d92a0",
+                                "sourceScreen":  "projects/4660020320183620207/screens/8de5ae43260b491daf61fb62a31d92a0",
+                                "x":  28326,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "90fe5e29f0e144bab49ae5e16f202473",
+                                "sourceScreen":  "projects/4660020320183620207/screens/90fe5e29f0e144bab49ae5e16f202473",
+                                "x":  79838,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "91c8bba8894a46a49f3f45cab7ead9f8",
+                                "sourceScreen":  "projects/4660020320183620207/screens/91c8bba8894a46a49f3f45cab7ead9f8",
+                                "x":  12160,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "91f01dea4e264bacb5a388478993337e",
+                                "sourceScreen":  "projects/4660020320183620207/screens/91f01dea4e264bacb5a388478993337e",
+                                "x":  91306,
+                                "y":  2627,
+                                "width":  1276,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "937b96e5113645efbe7e75f1a8724757",
+                                "sourceScreen":  "projects/4660020320183620207/screens/937b96e5113645efbe7e75f1a8724757",
+                                "x":  12096,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  723,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "9491cf6fdc75479b85c4b89d8d7e407c",
+                                "sourceScreen":  "projects/4660020320183620207/screens/9491cf6fdc75479b85c4b89d8d7e407c",
+                                "x":  22950,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "99e295c81c3c438ba0c3b2fecabc3cd3",
+                                "sourceScreen":  "projects/4660020320183620207/screens/99e295c81c3c438ba0c3b2fecabc3cd3",
+                                "x":  -1241,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "9ac6679439644f3c9fb4f8e210974c9d",
+                                "sourceScreen":  "projects/4660020320183620207/screens/9ac6679439644f3c9fb4f8e210974c9d",
+                                "x":  57094,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "9de0bc8b-9f5e-4a4a-93fc-13a2234bac46",
+                                "sourceScreen":  "projects/4660020320183620207/screens/10595040637977999288",
+                                "x":  -3922,
+                                "y":  2885,
+                                "width":  873,
+                                "height":  720,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "9fabc5d1cec04dffbd7e1fb501ff8743",
+                                "sourceScreen":  "projects/4660020320183620207/screens/9fabc5d1cec04dffbd7e1fb501ff8743",
+                                "x":  87,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "a4a38f851ba24bdfa1c86db58ec9d6c6",
+                                "sourceScreen":  "projects/4660020320183620207/screens/a4a38f851ba24bdfa1c86db58ec9d6c6",
+                                "x":  33702,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "a5b8508a1e6b4437ba4dacc318c32a13",
+                                "sourceScreen":  "projects/4660020320183620207/screens/a5b8508a1e6b4437ba4dacc318c32a13",
+                                "x":  88758,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "a87fc85893544ac6a9179347064e3615",
+                                "sourceScreen":  "projects/4660020320183620207/screens/a87fc85893544ac6a9179347064e3615",
+                                "x":  50295,
+                                "y":  -3,
+                                "width":  1503,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "aa0ef6c5e5984bde8cb90dbd7556d872",
+                                "sourceScreen":  "projects/4660020320183620207/screens/aa0ef6c5e5984bde8cb90dbd7556d872",
+                                "x":  17536,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "aa386a9bb00f443381f15fbe1b87fcbc",
+                                "sourceScreen":  "projects/4660020320183620207/screens/aa386a9bb00f443381f15fbe1b87fcbc",
+                                "x":  -1256,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "abc7909716ad4c26a2582be76aa66666",
+                                "sourceScreen":  "projects/4660020320183620207/screens/abc7909716ad4c26a2582be76aa66666",
+                                "x":  99016,
+                                "y":  2627,
+                                "width":  1827,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "ac69ee3342124980b727deff5af95faf",
+                                "sourceScreen":  "projects/4660020320183620207/screens/ac69ee3342124980b727deff5af95faf",
+                                "x":  58973,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "assets_c3a7bfdf08da453a95de3b908d1569a7",
+                                "x":  -2321,
+                                "y":  2940,
+                                "width":  960,
+                                "height":  540,
+                                "sourceAsset":  "assets/c3a7bfdf08da453a95de3b908d1569a7",
+                                "type":  "DESIGN_SYSTEM_INSTANCE"
+                            },
+                            {
+                                "id":  "b0eeed724913491994de3bdd586362df",
+                                "sourceScreen":  "projects/4660020320183620207/screens/b0eeed724913491994de3bdd586362df",
+                                "x":  18925,
+                                "y":  2613,
+                                "width":  1258,
+                                "height":  1300,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "b114fa3072724f4ca70fba21c73a4dcb",
+                                "sourceScreen":  "projects/4660020320183620207/screens/b114fa3072724f4ca70fba21c73a4dcb",
+                                "x":  64,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "b251f0f62c4f4a05a91baaa461255911",
+                                "sourceScreen":  "projects/4660020320183620207/screens/b251f0f62c4f4a05a91baaa461255911",
+                                "x":  12769,
+                                "y":  5293,
+                                "width":  1727,
+                                "height":  1178,
+                                "hidden":  true,
+                                "isResized":  true
+                            },
+                            {
+                                "id":  "b363e602a3954ffd95b320445d91268d",
+                                "sourceScreen":  "projects/4660020320183620207/screens/b363e602a3954ffd95b320445d91268d",
+                                "x":  25600,
+                                "width":  1280,
+                                "height":  862,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "b47128b91ee34a4384d0a106b2202828",
+                                "sourceScreen":  "projects/4660020320183620207/screens/b47128b91ee34a4384d0a106b2202828",
+                                "x":  17585,
+                                "y":  1333,
+                                "width":  1276,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "b61a6e9f6f9f450d862a4afd2d51e5f7",
+                                "sourceScreen":  "projects/4660020320183620207/screens/b61a6e9f6f9f450d862a4afd2d51e5f7",
+                                "x":  16230,
+                                "y":  5307,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "b622b84d9231414f9f029968b457f635",
+                                "sourceScreen":  "projects/4660020320183620207/screens/b622b84d9231414f9f029968b457f635",
+                                "x":  4119,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "b87abcc25a6c4715a9b55aeb1f58a1c5",
+                                "sourceScreen":  "projects/4660020320183620207/screens/b87abcc25a6c4715a9b55aeb1f58a1c5",
+                                "x":  20247,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "b8d8cdb951bd48b4947d96be9a953eef",
+                                "sourceScreen":  "projects/4660020320183620207/screens/b8d8cdb951bd48b4947d96be9a953eef",
+                                "x":  13504,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "bc3983f8-669e-473d-98ba-bba997c69418",
+                                "sourceScreen":  "projects/4660020320183620207/screens/14206815492961151845",
+                                "x":  2412,
+                                "y":  4681,
+                                "width":  1279,
+                                "height":  1021,
+                                "hidden":  true,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "bf18844134db4509b97546516e7c1592",
+                                "sourceScreen":  "projects/4660020320183620207/screens/bf18844134db4509b97546516e7c1592",
+                                "x":  12183,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "c0690d5a549e4f34a7cacc24cb707b4e",
+                                "sourceScreen":  "projects/4660020320183620207/screens/c0690d5a549e4f34a7cacc24cb707b4e",
+                                "x":  78498,
+                                "y":  2627,
+                                "width":  1276,
+                                "height":  896,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "c1c894df57dd4b9dbc848a9eaab94a76",
+                                "sourceScreen":  "projects/4660020320183620207/screens/c1c894df57dd4b9dbc848a9eaab94a76",
+                                "x":  92646,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "c1f7f9a621344490b16d88b96b80ca48",
+                                "sourceScreen":  "projects/4660020320183620207/screens/c1f7f9a621344490b16d88b96b80ca48",
+                                "x":  6720,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "c2125336df56408e8e4f9f1889caf2c7",
+                                "sourceScreen":  "projects/4660020320183620207/screens/c2125336df56408e8e4f9f1889caf2c7",
+                                "x":  9495,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "c27a5a1b5e204706b121e48f4ac6ee57",
+                                "sourceScreen":  "projects/4660020320183620207/screens/c27a5a1b5e204706b121e48f4ac6ee57",
+                                "x":  39927,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "c2cb6266c5704269b20cde586f237c30",
+                                "sourceScreen":  "projects/4660020320183620207/screens/c2cb6266c5704269b20cde586f237c30",
+                                "x":  53941,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "c3b28259e0214370ae7c317217431aee",
+                                "sourceScreen":  "projects/4660020320183620207/screens/c3b28259e0214370ae7c317217431aee",
+                                "x":  32110,
+                                "y":  8,
+                                "width":  1620,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "c4efd693a65643cc97c76b5f3042a28a",
+                                "sourceScreen":  "projects/4660020320183620207/screens/c4efd693a65643cc97c76b5f3042a28a",
+                                "x":  81717,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "c55e58434bfc4aadafedd1880c714039",
+                                "sourceScreen":  "projects/4660020320183620207/screens/c55e58434bfc4aadafedd1880c714039",
+                                "x":  8151,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "c579aeb9e5a7461da0da202fd39bd35c",
+                                "sourceScreen":  "projects/4660020320183620207/screens/c579aeb9e5a7461da0da202fd39bd35c",
+                                "x":  3755,
+                                "y":  1333,
+                                "width":  1096,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "c9457f53-a902-4253-b417-87754c39dbfd",
+                                "sourceScreen":  "projects/4660020320183620207/screens/7193568163321427552",
+                                "x":  1152,
+                                "y":  5307,
+                                "width":  512,
+                                "height":  192,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "cc68130a248b48699e877aec6cd0eb21",
+                                "sourceScreen":  "projects/4660020320183620207/screens/cc68130a248b48699e877aec6cd0eb21",
+                                "x":  17574,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "cccf1633370840e8853c148c0b795ff7",
+                                "sourceScreen":  "projects/4660020320183620207/screens/cccf1633370840e8853c148c0b795ff7",
+                                "x":  74740,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "cf910d7d04f943648920c2e963e46a96",
+                                "sourceScreen":  "projects/4660020320183620207/screens/cf910d7d04f943648920c2e963e46a96",
+                                "x":  29670,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "d0e5a3de4eb74a3699e06a00834b28ac",
+                                "sourceScreen":  "projects/4660020320183620207/screens/d0e5a3de4eb74a3699e06a00834b28ac",
+                                "x":  25638,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "d25b91a621804fa88d585e552cc40ee8",
+                                "sourceScreen":  "projects/4660020320183620207/screens/d25b91a621804fa88d585e552cc40ee8",
+                                "x":  12198,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "d3a7fdd9b84e4803a72e062148b0b0c3",
+                                "sourceScreen":  "projects/4660020320183620207/screens/d3a7fdd9b84e4803a72e062148b0b0c3",
+                                "x":  16215,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "d5a43314f083486daa85687c0faeb18c",
+                                "sourceScreen":  "projects/4660020320183620207/screens/d5a43314f083486daa85687c0faeb18c",
+                                "x":  2752,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "d64e87abd10441e2ae6954adc3e80292",
+                                "sourceScreen":  "projects/4660020320183620207/screens/d64e87abd10441e2ae6954adc3e80292",
+                                "x":  7495,
+                                "y":  1333,
+                                "width":  1276,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "d8f51631c60947c1a852c052ce898a79",
+                                "sourceScreen":  "projects/4660020320183620207/screens/d8f51631c60947c1a852c052ce898a79",
+                                "x":  36085,
+                                "y":  11,
+                                "width":  2714,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "d9ce3db070894b17a6e62b63c73a14e2",
+                                "sourceScreen":  "projects/4660020320183620207/screens/d9ce3db070894b17a6e62b63c73a14e2",
+                                "x":  48693,
+                                "y":  -12,
+                                "width":  1538,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "ddc9b49bee1343b992b9bed9f32d4630",
+                                "sourceScreen":  "projects/4660020320183620207/screens/ddc9b49bee1343b992b9bed9f32d4630",
+                                "x":  86210,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "deb1aee7a79b4e72bfdf803066c57b87",
+                                "sourceScreen":  "projects/4660020320183620207/screens/deb1aee7a79b4e72bfdf803066c57b87",
+                                "x":  22912,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "dffc4ab04d6c4990bdd085204955a8e5",
+                                "sourceScreen":  "projects/4660020320183620207/screens/dffc4ab04d6c4990bdd085204955a8e5",
+                                "x":  84870,
+                                "y":  2627,
+                                "width":  1276,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "e045208db9aa45469d2b206f768f4d10",
+                                "sourceScreen":  "projects/4660020320183620207/screens/e045208db9aa45469d2b206f768f4d10",
+                                "x":  43749,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "e077d14daf874fecaea9f01a5858a241",
+                                "sourceScreen":  "projects/4660020320183620207/screens/e077d14daf874fecaea9f01a5858a241",
+                                "x":  -2985,
+                                "y":  2951,
+                                "width":  600,
+                                "height":  600
+                            },
+                            {
+                                "id":  "e4063e0af3ae4050a6bcda4a940869ce",
+                                "sourceScreen":  "projects/4660020320183620207/screens/e4063e0af3ae4050a6bcda4a940869ce",
+                                "x":  67200,
+                                "y":  4169,
+                                "width":  390,
+                                "height":  390,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "e4f0a16519f54d06b506ff79367a577a",
+                                "sourceScreen":  "projects/4660020320183620207/screens/e4f0a16519f54d06b506ff79367a577a",
+                                "x":  34831,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "e50283032f1a4c9885a0d4a1700a12ea",
+                                "sourceScreen":  "projects/4660020320183620207/screens/e50283032f1a4c9885a0d4a1700a12ea",
+                                "x":  56642,
+                                "width":  2227,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "e5654231d0ef401db2143285d02d88f5",
+                                "sourceScreen":  "projects/4660020320183620207/screens/e5654231d0ef401db2143285d02d88f5",
+                                "x":  47571,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "e791d75bcacd44a4b76a8bf83fe6024d",
+                                "sourceScreen":  "projects/4660020320183620207/screens/e791d75bcacd44a4b76a8bf83fe6024d",
+                                "x":  21606,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1090,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "e897f8abfaec484a836afcce1cb8600f",
+                                "sourceScreen":  "projects/4660020320183620207/screens/e897f8abfaec484a836afcce1cb8600f",
+                                "x":  24256,
+                                "width":  1280,
+                                "height":  1024,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "e8bbe553101d4c088dd110c01f118358",
+                                "sourceScreen":  "projects/4660020320183620207/screens/e8bbe553101d4c088dd110c01f118358",
+                                "x":  48845,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "eafa7591863647579dd0c4413b429012",
+                                "sourceScreen":  "projects/4660020320183620207/screens/eafa7591863647579dd0c4413b429012",
+                                "x":  2790,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "eb55a145ae3c4de5b9f54ba6effdb3cf",
+                                "sourceScreen":  "projects/4660020320183620207/screens/eb55a145ae3c4de5b9f54ba6effdb3cf",
+                                "x":  47127,
+                                "y":  -14,
+                                "width":  1502,
+                                "height":  1021,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "ee155980af86418783024f7abfb4e577",
+                                "sourceScreen":  "projects/4660020320183620207/screens/ee155980af86418783024f7abfb4e577",
+                                "x":  17559,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720,
+                                "label":  "15. Relatórios Animado - MaxControLADM (1920x1080) Fixed"
+                            },
+                            {
+                                "id":  "ee660d9d5a1e497b9337ba045cc664df",
+                                "sourceScreen":  "projects/4660020320183620207/screens/ee660d9d5a1e497b9337ba045cc664df",
+                                "x":  4134,
+                                "y":  4289,
+                                "width":  1280,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "ef282d35f09c480484cb6f21e89eebed",
+                                "sourceScreen":  "projects/4660020320183620207/screens/ef282d35f09c480484cb6f21e89eebed",
+                                "x":  13527,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "f20725f5d6b4423f92139ebb825c96ff",
+                                "sourceScreen":  "projects/4660020320183620207/screens/f20725f5d6b4423f92139ebb825c96ff",
+                                "x":  68368,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "f2bb876d7c8949818ded085ac10daec3",
+                                "sourceScreen":  "projects/4660020320183620207/screens/f2bb876d7c8949818ded085ac10daec3",
+                                "x":  8835,
+                                "y":  2613,
+                                "width":  1277,
+                                "height":  1136,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "f4c1cc65d08a4523943ed1c2a9c40eaa",
+                                "sourceScreen":  "projects/4660020320183620207/screens/f4c1cc65d08a4523943ed1c2a9c40eaa",
+                                "x":  15440,
+                                "y":  5296,
+                                "width":  1280,
+                                "height":  1161
+                            },
+                            {
+                                "id":  "f636681641ab4980895d8eb3dc25d653",
+                                "sourceScreen":  "projects/4660020320183620207/screens/f636681641ab4980895d8eb3dc25d653",
+                                "x":  1431,
+                                "y":  4329,
+                                "width":  1280,
+                                "height":  720
+                            },
+                            {
+                                "id":  "f917a714e2384655a7b41a19cb83c898",
+                                "sourceScreen":  "projects/4660020320183620207/screens/f917a714e2384655a7b41a19cb83c898",
+                                "x":  5376,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "f9b476d0616640289ff98f186cad11f5",
+                                "sourceScreen":  "projects/4660020320183620207/screens/f9b476d0616640289ff98f186cad11f5",
+                                "x":  76619,
+                                "y":  2627,
+                                "width":  1815,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "fa6b9863678b4e58abc08ace395d6fa1",
+                                "sourceScreen":  "projects/4660020320183620207/screens/fa6b9863678b4e58abc08ace395d6fa1",
+                                "x":  64512,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "fb957e24500b4751b67bf462947c7b95",
+                                "sourceScreen":  "projects/4660020320183620207/screens/fb957e24500b4751b67bf462947c7b95",
+                                "x":  52667,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "fc42f92a-09d7-4cc6-b8a9-d9d2ba62d2be",
+                                "sourceScreen":  "projects/4660020320183620207/screens/3473501005033040302",
+                                "x":  4960,
+                                "y":  5307,
+                                "width":  600,
+                                "height":  900,
+                                "type":  "SCREEN_INSTANCE"
+                            },
+                            {
+                                "id":  "fe7575accd0d4ad79c10177cdb32b453",
+                                "sourceScreen":  "projects/4660020320183620207/screens/fe7575accd0d4ad79c10177cdb32b453",
+                                "x":  41201,
+                                "y":  2627,
+                                "width":  1210,
+                                "height":  1080,
+                                "hidden":  true
+                            },
+                            {
+                                "id":  "fef76a36d8a243729155de78676fe6fc",
+                                "sourceScreen":  "projects/4660020320183620207/screens/fef76a36d8a243729155de78676fe6fc",
+                                "x":  9408,
+                                "y":  4169,
+                                "width":  1280,
+                                "height":  720,
+                                "hidden":  true
+                            }
+                        ],
+    "metadata":  {
+                     "userRole":  "OWNER"
+                 }
+}

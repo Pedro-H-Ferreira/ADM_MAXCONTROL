@@ -1,0 +1,68 @@
+{
+    "screenId":  "aa386a9bb00f443381f15fbe1b87fcbc",
+    "name":  "projects/4660020320183620207/screens/aa386a9bb00f443381f15fbe1b87fcbc",
+    "title":  "05. Nova Despesa Animada - MaxControLADM (1920x1080) Fixed",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "aa386a9bb00f443381f15fbe1b87fcbc",
+                          "sourceScreen":  "projects/4660020320183620207/screens/aa386a9bb00f443381f15fbe1b87fcbc",
+                          "x":  -1256,
+                          "y":  4329,
+                          "width":  1280,
+                          "height":  720
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\05-nova-despesa-animada-maxcontroladm-1920x1080-fixed-aa386a9bb00f443381f15fbe1b87fcbc",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/4d26df8fe4864a33be7d3ab3dc5ae5bb",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzI4MzdjMzYwNDQ4NzQzOTc4OTc2N2QwMTdhNjZlOWFkEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\05-nova-despesa-animada-maxcontroladm-1920x1080-fixed-aa386a9bb00f443381f15fbe1b87fcbc\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\05-nova-despesa-animada-maxcontroladm-1920x1080-fixed-aa386a9bb00f443381f15fbe1b87fcbc\\screen.html",
+                                  "bytes":  25136,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/1db518b5baa341849914c2acd057f15a",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvO-kXnwGt2Jf7oWnUzlqQEazjiBsU40fPn7hpuUYBcawWU2u0K1HqPrJwzebOirCaV8taJLIjmAT42KzWwYCD9NAiTwn3Z84RHhptAiBq3XzL_zGmgr1v-xH2vCLwutd1wYjgaDx1aQdbm2W6uOgq7fb3WqCWkapFfLsTnhqXs0Ln2rxS0S09Z7G3lPsi_g2S9WESekHP7r3w6F--fmZ2icjfBA91IDd0b4I6VMbDekliu9K3RxNnm8jY",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\05-nova-despesa-animada-maxcontroladm-1920x1080-fixed-aa386a9bb00f443381f15fbe1b87fcbc\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\05-nova-despesa-animada-maxcontroladm-1920x1080-fixed-aa386a9bb00f443381f15fbe1b87fcbc\\screenshot.png",
+                                        "bytes":  27204,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/aa386a9bb00f443381f15fbe1b87fcbc",
+                   "title":  "05. Nova Despesa Animada - MaxControLADM (1920x1080) Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/1db518b5baa341849914c2acd057f15a",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvO-kXnwGt2Jf7oWnUzlqQEazjiBsU40fPn7hpuUYBcawWU2u0K1HqPrJwzebOirCaV8taJLIjmAT42KzWwYCD9NAiTwn3Z84RHhptAiBq3XzL_zGmgr1v-xH2vCLwutd1wYjgaDx1aQdbm2W6uOgq7fb3WqCWkapFfLsTnhqXs0Ln2rxS0S09Z7G3lPsi_g2S9WESekHP7r3w6F--fmZ2icjfBA91IDd0b4I6VMbDekliu9K3RxNnm8jY"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/4d26df8fe4864a33be7d3ab3dc5ae5bb",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzI4MzdjMzYwNDQ4NzQzOTc4OTc2N2QwMTdhNjZlOWFkEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

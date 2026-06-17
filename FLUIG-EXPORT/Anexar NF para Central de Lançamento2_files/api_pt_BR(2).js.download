@@ -1,0 +1,44 @@
+function GlobalSearchDATAAPI(){}
+function GlobalSearchDATAAPI_GlobalSearchService(){}
+GlobalSearchDATAAPI_GlobalSearchService.prototype.basePath = function(){
+return "/globalsearchapi/api/rest/globalsearch";}
+GlobalSearchDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+GlobalSearchDATAAPI_GlobalSearchService.prototype.ADVANCEDSEARCH__PATH = function(){
+return "/globalsearchapi/api/rest/globalsearch"+"/advanced";}
+GlobalSearchDATAAPI_GlobalSearchService.prototype.ADVANCEDSEARCH = function(__callData,obj_AbstractSearch){
+var __cmdurl__="/globalsearchapi/api/rest/globalsearch"+"/advanced";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=GlobalSearchAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_AbstractSearch));
+    return __ret__;
+}
+GlobalSearchDATAAPI.prototype.GlobalSearchService=new GlobalSearchDATAAPI_GlobalSearchService;
+var GlobalSearchAPI=new GlobalSearchDATAAPI();

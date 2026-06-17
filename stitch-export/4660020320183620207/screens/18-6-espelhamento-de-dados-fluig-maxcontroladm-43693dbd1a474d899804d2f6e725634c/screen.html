@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>18.6. Espelhamento de Dados Fluig - MaxControLADM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=Geist:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#2f3035",
+                        "on-secondary-fixed": "#0f1b33",
+                        "inverse-on-surface": "#f0f0f6",
+                        "surface-dim": "#dad9df",
+                        "on-secondary-fixed-variant": "#3c4660",
+                        "tertiary-fixed-dim": "#ffb877",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e2e2e7",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#754000",
+                        "on-primary-container": "#a2beff",
+                        "inverse-primary": "#afc6ff",
+                        "tertiary-fixed": "#ffdcc1",
+                        "primary-container": "#2a4b8b",
+                        "on-background": "#1a1c20",
+                        "on-tertiary-fixed": "#2e1600",
+                        "on-primary-fixed": "#001943",
+                        "secondary-fixed-dim": "#bbc6e5",
+                        "on-surface-variant": "#434650",
+                        "primary-fixed": "#d9e2ff",
+                        "on-surface": "#1a1c20",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface": "#f9f9fe",
+                        "secondary-container": "#d4dfff",
+                        "outline-variant": "#c4c6d2",
+                        "primary-fixed-dim": "#afc6ff",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#224585",
+                        "surface-variant": "#e2e2e7",
+                        "surface-bright": "#f9f9fe",
+                        "secondary": "#535e79",
+                        "surface-container-low": "#f3f3f9",
+                        "surface-container": "#eeedf3",
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#d8e2ff",
+                        "outline": "#747781",
+                        "surface-container-high": "#e8e8ed",
+                        "tertiary": "#542d00",
+                        "primary": "#0a3473",
+                        "on-secondary-container": "#57627d",
+                        "background": "#f9f9fe",
+                        "on-tertiary-fixed-variant": "#6c3a00",
+                        "on-tertiary-container": "#faae69",
+                        "surface-tint": "#3d5d9e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "topbar-height": "64px",
+                        "xl": "32px",
+                        "sidenav-width": "240px",
+                        "lg": "24px",
+                        "base": "8px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "code-md": ["Geist"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "code-sm": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom scrollbar for data density */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.surface-container-low');
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.outline-variant');
+            border-radius: theme('borderRadius.full');
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline');
+        }
+        
+        .transition-width {
+            transition-property: width;
+        }
+        
+        /* Retractable Sidenav Logic */
+        .group-hover-sidenav:hover .sidenav-text {
+            display: block;
+        }
+        .sidenav-collapsed .sidenav-text {
+            display: none;
+        }
+        .sidenav-collapsed {
+            width: 64px;
+        }
+        .sidenav-expanded {
+            width: theme('spacing.sidenav-width');
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md h-screen overflow-hidden flex selection:bg-primary-container selection:text-on-primary-container">
+<!-- AppShell: SideNavBar (Retractable) -->
+<nav aria-label="Sidebar Navigation" class="bg-inverse-surface dark:bg-surface-container-lowest text-primary-fixed dark:text-primary font-body-md text-body-md fixed left-0 top-0 h-full w-sidenav-width bg-inverse-surface shadow-lg transition-width duration-300 ease-in-out flex flex-col py-md z-40 group hover:w-[240px] w-[64px] overflow-hidden" id="sidenav">
+<!-- Header -->
+<div class="px-md mb-xl flex items-center gap-md shrink-0">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-primary text-[20px]" style="font-variation-settings: 'FILL' 1;">admin_panel_settings</span>
+</div>
+<div class="sidenav-text hidden group-hover:block whitespace-nowrap">
+<h2 class="font-headline-md text-headline-md text-on-primary-fixed">Admin Logística</h2>
+<p class="font-body-sm text-body-sm text-outline">Integração Fluig</p>
+</div>
+</div>
+<!-- Main Nav Tabs -->
+<ul class="flex-1 flex flex-col gap-xs px-xs">
+<li>
+<a class="flex items-center gap-md px-md py-3 text-surface-variant hover:text-white hover:bg-on-secondary-fixed-variant transition-all rounded-lg group/link" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="dashboard">dashboard</span>
+<span class="sidenav-text hidden group-hover:block whitespace-nowrap">Dashboard</span>
+</a>
+</li>
+<li>
+<a aria-current="page" class="flex items-center gap-md bg-primary-container text-on-primary-container rounded-lg mx-2 px-md py-3 transition-all group/link" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="history_edu">history_edu</span>
+<span class="sidenav-text hidden group-hover:block whitespace-nowrap font-medium">Sincronização</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-3 text-surface-variant hover:text-white hover:bg-on-secondary-fixed-variant transition-all rounded-lg group/link" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="account_tree">account_tree</span>
+<span class="sidenav-text hidden group-hover:block whitespace-nowrap">Workflows</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-3 text-surface-variant hover:text-white hover:bg-on-secondary-fixed-variant transition-all rounded-lg group/link" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="database">database</span>
+<span class="sidenav-text hidden group-hover:block whitespace-nowrap">Metadados</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-3 text-surface-variant hover:text-white hover:bg-on-secondary-fixed-variant transition-all rounded-lg group/link" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="settings">settings</span>
+<span class="sidenav-text hidden group-hover:block whitespace-nowrap">Configurações</span>
+</a>
+</li>
+</ul>
+<!-- Footer Nav Tabs -->
+<ul class="mt-auto flex flex-col gap-xs px-xs shrink-0">
+<li>
+<a class="flex items-center gap-md px-md py-3 text-surface-variant hover:text-white hover:bg-on-secondary-fixed-variant transition-all rounded-lg group/link" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="help">help</span>
+<span class="sidenav-text hidden group-hover:block whitespace-nowrap">Suporte</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-3 text-surface-variant hover:text-white hover:bg-on-secondary-fixed-variant transition-all rounded-lg group/link" href="#">
+<span class="material-symbols-outlined shrink-0" data-icon="logout">logout</span>
+<span class="sidenav-text hidden group-hover:block whitespace-nowrap">Sair</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col ml-[64px] transition-all duration-300 relative h-screen">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-inverse-surface text-primary dark:text-primary-fixed-dim font-headline-md text-headline-md fixed top-0 w-[calc(100%-64px)] z-50 border-b border-outline-variant dark:border-outline shadow-sm flex justify-between items-center h-topbar-height px-md bg-surface dark:bg-inverse-surface transition-all duration-300 ml-[64px]" id="topbar">
+<div class="flex items-center gap-lg w-full max-w-2xl">
+<span class="font-headline-lg text-headline-lg font-black text-primary dark:text-primary-fixed-dim whitespace-nowrap shrink-0">MaxControLADM</span>
+<!-- Search Bar (on_left) -->
+<div class="relative w-full hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full text-body-md font-body-md focus:ring-2 focus:ring-primary focus:bg-surface transition-all outline-none text-on-surface placeholder:text-outline" placeholder="Buscar ID Processo, Solicitação..." type="text"/>
+</div>
+</div>
+<!-- Trailing Icons -->
+<div class="flex items-center gap-sm shrink-0">
+<button aria-label="sync" class="p-2 rounded-full text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-secondary-fixed-dim transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="sync">sync</span>
+</button>
+<button aria-label="notifications" class="p-2 rounded-full text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-secondary-fixed-dim transition-colors active:scale-95 duration-150 relative">
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span>
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button aria-label="account_circle" class="p-2 rounded-full text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-secondary-fixed-dim transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Page Content -->
+<div class="mt-topbar-height p-lg flex-1 overflow-y-auto bg-background">
+<!-- Page Header -->
+<div class="flex justify-between items-end mb-lg">
+<div>
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="font-body-sm text-body-sm uppercase tracking-wider">Auditoria Workflow</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="font-code-md text-code-md">PRC-2023-8891</span>
+</div>
+<h1 class="font-display-lg text-display-lg text-on-background">18.6. Espelhamento de Dados Fluig</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-2 max-w-3xl">Auditoria de campos capturados via integração de formulários web. Compare os valores declarados no XML de origem com os dados registrados na base local.</p>
+</div>
+<div class="flex gap-md shrink-0">
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-body-md font-medium transition-colors border border-outline-variant shadow-sm active:scale-95">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                        Exportar Log
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container font-body-md font-medium transition-colors shadow-sm active:scale-95 group">
+<span class="material-symbols-outlined text-[18px] group-hover:rotate-180 transition-transform duration-500">sync</span>
+                        Forçar Recaptura
+                    </button>
+</div>
+</div>
+<!-- Dashboard Grid Layout -->
+<div class="grid grid-cols-12 gap-lg h-[calc(100vh-220px)]">
+<!-- Left Column: Data Mapping Table -->
+<div class="col-span-8 flex flex-col bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+<div class="px-md py-3 border-b border-outline-variant bg-surface-container-lowest flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md text-on-surface">Mapeamento de Propriedades</h3>
+<div class="flex items-center gap-2 text-body-sm font-body-sm text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full">
+<span class="w-2 h-2 rounded-full bg-[#10b981]"></span> <!-- Semantic success, allowed via custom hex per context if needed, but sticking to config colors -->
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+                            Status: Sincronizado
+                        </div>
+</div>
+<div class="flex-1 overflow-auto bg-surface-container-lowest">
+<table class="w-full text-left border-collapse">
+<thead class="sticky top-0 bg-surface-container-low z-10 border-b border-outline-variant shadow-sm">
+<tr>
+<th class="py-3 px-md font-code-md text-code-md text-on-surface-variant font-medium">Key (Fluig API)</th>
+<th class="py-3 px-md font-code-md text-code-md text-on-surface-variant font-medium">Type</th>
+<th class="py-3 px-md font-body-md text-body-md text-on-surface-variant font-medium">Valor Capturado (MaxControL)</th>
+<th class="py-3 px-md font-body-md text-body-md text-on-surface-variant font-medium text-right">Integridade</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface divide-y divide-outline-variant/50">
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-3 px-md font-code-md text-code-md text-primary">txt_solicitante_nome</td>
+<td class="py-3 px-md text-outline">String</td>
+<td class="py-3 px-md font-medium">João Silva Ferreira</td>
+<td class="py-3 px-md text-right">
+<span class="material-symbols-outlined text-primary text-[20px]" title="Match">check_circle</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors bg-surface-container-lowest group">
+<td class="py-3 px-md font-code-md text-code-md text-primary">num_centro_custo</td>
+<td class="py-3 px-md text-outline">Integer</td>
+<td class="py-3 px-md font-medium">450912</td>
+<td class="py-3 px-md text-right">
+<span class="material-symbols-outlined text-primary text-[20px]" title="Match">check_circle</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group bg-error-container/20">
+<td class="py-3 px-md font-code-md text-code-md text-error">dat_vencimento_fatura</td>
+<td class="py-3 px-md text-outline">Date</td>
+<td class="py-3 px-md font-medium text-error flex items-center gap-2">
+                                        2023-10-32 <span class="material-symbols-outlined text-[16px]">warning</span>
+</td>
+<td class="py-3 px-md text-right">
+<span class="material-symbols-outlined text-error text-[20px]" title="Type Mismatch">error</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors bg-surface-container-lowest group">
+<td class="py-3 px-md font-code-md text-code-md text-primary">val_total_aprovado</td>
+<td class="py-3 px-md text-outline">Decimal</td>
+<td class="py-3 px-md font-medium">R$ 45.900,00</td>
+<td class="py-3 px-md text-right">
+<span class="material-symbols-outlined text-primary text-[20px]" title="Match">check_circle</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-3 px-md font-code-md text-code-md text-primary">chk_requer_auditoria</td>
+<td class="py-3 px-md text-outline">Boolean</td>
+<td class="py-3 px-md font-medium">true</td>
+<td class="py-3 px-md text-right">
+<span class="material-symbols-outlined text-primary text-[20px]" title="Match">check_circle</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors bg-surface-container-lowest group">
+<td class="py-3 px-md font-code-md text-code-md text-primary">txt_observacoes_gerais</td>
+<td class="py-3 px-md text-outline">Text</td>
+<td class="py-3 px-md font-medium truncate max-w-[200px]" title="Aprovação em caráter de urgência conforme diretriz Q3.">Aprovação em caráter de urgência...</td>
+<td class="py-3 px-md text-right">
+<span class="material-symbols-outlined text-primary text-[20px]" title="Match">check_circle</span>
+</td>
+</tr>
+<!-- Dummy rows for density -->
+<tr class="hover:bg-surface-container-low transition-colors group"><td class="py-3 px-md font-code-md text-code-md text-primary">cod_filial_destino</td><td class="py-3 px-md text-outline">String</td><td class="py-3 px-md font-medium">SP-01-SUL</td><td class="py-3 px-md text-right"><span class="material-symbols-outlined text-primary text-[20px]">check_circle</span></td></tr>
+<tr class="hover:bg-surface-container-low transition-colors bg-surface-container-lowest group"><td class="py-3 px-md font-code-md text-code-md text-primary">lst_aprovadores_sec</td><td class="py-3 px-md text-outline">Array</td><td class="py-3 px-md font-medium">[mariana.costa, paulo.lima]</td><td class="py-3 px-md text-right"><span class="material-symbols-outlined text-primary text-[20px]">check_circle</span></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Right Column: Metadata & Details -->
+<div class="col-span-4 flex flex-col gap-md h-full">
+<!-- KPI / Health Check -->
+<div class="bg-surface rounded-xl border border-outline-variant p-md shadow-sm flex items-center justify-between shrink-0">
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-1">Taxa de Conformidade</p>
+<p class="font-display-lg text-display-lg text-on-surface">98.5%</p>
+</div>
+<div class="w-16 h-16 rounded-full border-4 border-surface-container-highest border-t-primary flex items-center justify-center rotate-45">
+<span class="material-symbols-outlined -rotate-45 text-primary">health_and_safety</span>
+</div>
+</div>
+<!-- Collapsible Raw Payload Card -->
+<div class="bg-inverse-surface rounded-xl border border-on-secondary-fixed shadow-lg flex-1 flex flex-col overflow-hidden text-on-primary">
+<div class="px-md py-3 border-b border-on-secondary-fixed-variant bg-[#1f2024] flex justify-between items-center cursor-pointer" onclick="document.getElementById('raw-payload').classList.toggle('hidden')">
+<h3 class="font-code-md text-code-md font-semibold text-primary-fixed">Raw XML Payload (Fluig)</h3>
+<button aria-label="Expand/Collapse" class="text-primary-fixed-dim hover:text-white transition-colors">
+<span class="material-symbols-outlined">unfold_more</span>
+</button>
+</div>
+<div class="flex-1 p-md overflow-auto font-code-sm text-code-sm leading-relaxed bg-[#1f2024]" id="raw-payload">
+<pre class="text-tertiary-fixed-dim">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;hcm_form_data&gt;
+  &lt;header&gt;
+    &lt;processId&gt;PRC-2023-8891&lt;/processId&gt;
+    &lt;timestamp&gt;2023-10-24T14:32:01Z&lt;/timestamp&gt;
+    &lt;version&gt;2.4&lt;/version&gt;
+  &lt;/header&gt;
+  &lt;fields&gt;
+    &lt;field name="txt_solicitante_nome" type="string"&gt;
+      &lt;value&gt;João Silva Ferreira&lt;/value&gt;
+    &lt;/field&gt;
+    &lt;field name="num_centro_custo" type="integer"&gt;
+      &lt;value&gt;450912&lt;/value&gt;
+    &lt;/field&gt;
+    &lt;field name="dat_vencimento_fatura" type="date"&gt;
+      &lt;value&gt;2023-10-32&lt;/value&gt;
+      <span class="text-error">&lt;!-- Error: Invalid date format detected in origin --&gt;</span>
+    &lt;/field&gt;
+    &lt;field name="val_total_aprovado" type="decimal"&gt;
+      &lt;value&gt;45900.00&lt;/value&gt;
+    &lt;/field&gt;
+  &lt;/fields&gt;
+&lt;/hcm_form_data&gt;
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Adjust Topbar width based on Sidenav hover state
+        const sidenav = document.getElementById('sidenav');
+        const topbar = document.getElementById('topbar');
+        const main = document.querySelector('main');
+
+        sidenav.addEventListener('mouseenter', () => {
+            topbar.style.width = 'calc(100% - 240px)';
+            topbar.style.marginLeft = '240px';
+            main.style.marginLeft = '240px';
+        });
+
+        sidenav.addEventListener('mouseleave', () => {
+            topbar.style.width = 'calc(100% - 64px)';
+            topbar.style.marginLeft = '64px';
+            main.style.marginLeft = '64px';
+        });
+    </script>
+</body></html>

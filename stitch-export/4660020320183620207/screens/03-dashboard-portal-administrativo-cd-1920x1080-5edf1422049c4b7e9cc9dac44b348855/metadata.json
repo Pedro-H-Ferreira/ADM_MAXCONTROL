@@ -1,0 +1,69 @@
+{
+    "screenId":  "5edf1422049c4b7e9cc9dac44b348855",
+    "name":  "projects/4660020320183620207/screens/5edf1422049c4b7e9cc9dac44b348855",
+    "title":  "03. Dashboard - Portal Administrativo CD (1920x1080)",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "5edf1422049c4b7e9cc9dac44b348855",
+                          "sourceScreen":  "projects/4660020320183620207/screens/5edf1422049c4b7e9cc9dac44b348855",
+                          "x":  62731,
+                          "y":  2627,
+                          "width":  1815,
+                          "height":  1080,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\03-dashboard-portal-administrativo-cd-1920x1080-5edf1422049c4b7e9cc9dac44b348855",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/2759347241773296390",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjIxNThjNGIwMmE5YWJkNThlMTE5MmIwEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\03-dashboard-portal-administrativo-cd-1920x1080-5edf1422049c4b7e9cc9dac44b348855\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\03-dashboard-portal-administrativo-cd-1920x1080-5edf1422049c4b7e9cc9dac44b348855\\screen.html",
+                                  "bytes":  22803,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/7025673cae2341c3b9b29c60dec72890",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvOsN75nnjO-K7fYArHeR2PzXeaXCNVdKfxPhN3us_MuyLTzlGFWp_vLuLGEk5EB0L1lIKF7Bkkmrr89_HXzxM9sO22k_WpCGEUmSkHRb2-bL9pHwPmXnEa_DF-2uBO7CTvyHKvnzNFdUZzlaAnICS5ZXAOcI6QB8qhvZN_j5skVTGut5RoxFOmSWy4HRGv7WuWyYV6GvwqNxxH5VxBfamXCRlCI7Qo6HB9TrDeMUaq3hc5KIcRzwRZlvQ",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\03-dashboard-portal-administrativo-cd-1920x1080-5edf1422049c4b7e9cc9dac44b348855\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\03-dashboard-portal-administrativo-cd-1920x1080-5edf1422049c4b7e9cc9dac44b348855\\screenshot.png",
+                                        "bytes":  29901,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/5edf1422049c4b7e9cc9dac44b348855",
+                   "title":  "03. Dashboard - Portal Administrativo CD (1920x1080)",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/7025673cae2341c3b9b29c60dec72890",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvOsN75nnjO-K7fYArHeR2PzXeaXCNVdKfxPhN3us_MuyLTzlGFWp_vLuLGEk5EB0L1lIKF7Bkkmrr89_HXzxM9sO22k_WpCGEUmSkHRb2-bL9pHwPmXnEa_DF-2uBO7CTvyHKvnzNFdUZzlaAnICS5ZXAOcI6QB8qhvZN_j5skVTGut5RoxFOmSWy4HRGv7WuWyYV6GvwqNxxH5VxBfamXCRlCI7Qo6HB9TrDeMUaq3hc5KIcRzwRZlvQ"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/2759347241773296390",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjIxNThjNGIwMmE5YWJkNThlMTE5MmIwEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

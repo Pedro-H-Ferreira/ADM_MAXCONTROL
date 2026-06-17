@@ -1,0 +1,266 @@
+<!DOCTYPE html><html class="light" lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>LogiCore Portal - Recuperação de Senha</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=Geist:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#565e74",
+                        "tertiary-fixed-dim": "#dec29a",
+                        "on-surface-variant": "#45464d",
+                        "on-primary-container": "#7c839b",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#dcd9db",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#c6c6cd",
+                        "inverse-primary": "#bec6e0",
+                        "on-tertiary-fixed-variant": "#574425",
+                        "surface-variant": "#e4e2e4",
+                        "surface-container-highest": "#e4e2e4",
+                        "on-primary-fixed": "#131b2e",
+                        "on-tertiary-fixed": "#271901",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "primary-fixed-dim": "#bec6e0",
+                        "surface-container-low": "#f6f3f5",
+                        "error": "#ba1a1a",
+                        "primary": "#000000",
+                        "on-secondary-fixed-variant": "#005049",
+                        "on-surface": "#1b1b1d",
+                        "on-background": "#1b1b1d",
+                        "secondary-fixed": "#89f5e7",
+                        "surface-container": "#f0edef",
+                        "primary-container": "#131b2e",
+                        "surface-container-high": "#eae7e9",
+                        "primary-fixed": "#dae2fd",
+                        "background": "#fcf8fa",
+                        "tertiary": "#000000",
+                        "on-secondary-fixed": "#00201d",
+                        "surface-bright": "#fcf8fa",
+                        "on-secondary-container": "#006f66",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#fcdeb5",
+                        "secondary-container": "#86f2e4",
+                        "tertiary-container": "#271901",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#fcf8fa",
+                        "on-tertiary-container": "#98805d",
+                        "error-container": "#ffdad6",
+                        "outline": "#76777d",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#f3f0f2",
+                        "secondary": "#006a61",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "on-secondary": "#ffffff",
+                        "inverse-surface": "#303032"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "sidenav-width": "240px",
+                        "base": "8px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "topbar-height": "64px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "code-sm": ["Geist"],
+                        "code-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Subtle background animation */
+        @keyframes subtle-drift {
+            0% { transform: translateY(0) scale(1); opacity: 0.5; }
+            50% { transform: translateY(-20px) scale(1.05); opacity: 0.8; }
+            100% { transform: translateY(0) scale(1); opacity: 0.5; }
+        }
+        .bg-blob {
+            animation: subtle-drift 15s infinite ease-in-out alternate;
+        }
+    </style>
+</head>
+<body class="bg-surface-container-low text-on-surface font-body-md w-[1920px] h-[1080px] flex items-center justify-center relative overflow-hidden antialiased">
+<!-- Professional Background Gradient/Texture -->
+<div class="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center">
+<!-- Abstract corporate shapes -->
+<div class="absolute w-[800px] h-[800px] bg-primary-fixed/30 rounded-full blur-[120px] top-[-20%] left-[-10%] bg-blob"></div>
+<div class="absolute w-[600px] h-[600px] bg-secondary-fixed/20 rounded-full blur-[100px] bottom-[-10%] right-[-5%] bg-blob" style="animation-delay: -5s;"></div>
+<!-- Noise overlay for texture -->
+<div class="absolute inset-0 opacity-[0.03]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E');"></div>
+</div>
+<!-- Main Card Container -->
+<main class="w-full max-w-[420px] mx-md z-10">
+<!-- Brand Anchor above card -->
+<div class="flex justify-center mb-lg">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined fill text-primary" style="font-size: 32px;">local_shipping</span>
+<span class="font-headline-md text-headline-md font-bold text-primary tracking-tight">LogiCore Portal</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden relative">
+<!-- Top indicator line -->
+<div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+<div class="p-xl flex flex-col gap-lg">
+<!-- View 1: Request Form -->
+<div class="flex flex-col gap-lg transition-opacity duration-300" id="recovery-form-view">
+<header class="flex flex-col gap-xs text-center">
+<h1 class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">Recuperação de Senha</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                            Informe seu e-mail corporativo. Enviaremos um link seguro para redefinição.
+                        </p>
+</header>
+<form class="flex flex-col gap-md" id="recovery-form" novalidate="">
+<div class="flex flex-col gap-xs">
+<label class="font-body-sm text-body-sm text-on-surface font-medium" for="email">E-mail Corporativo</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-sm text-on-surface-variant" style="font-size: 20px;">mail</span>
+<input class="w-full bg-surface border border-outline-variant rounded-lg pl-xl pr-sm py-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" id="email" name="email" placeholder="nome@empresa.com.br" required="" type="email">
+</div>
+<span class="hidden font-body-sm text-body-sm text-error mt-xs flex items-center gap-xs" id="email-error">
+<span class="material-symbols-outlined" style="font-size: 16px;">error</span>
+                                E-mail inválido ou não preenchido.
+                            </span>
+</div>
+<button class="w-full bg-primary text-on-primary font-body-md text-body-md font-bold py-[10px] rounded-lg flex items-center justify-center gap-sm hover:bg-on-primary-fixed-variant transition-colors group relative overflow-hidden" id="submit-btn" type="submit">
+<span>Enviar link</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" style="font-size: 20px;">arrow_forward</span>
+</button>
+</form>
+</div>
+<!-- View 2: Success State (Hidden initially) -->
+<div class="hidden flex-col items-center gap-md text-center py-sm opacity-0 transition-opacity duration-300" id="success-view">
+<div class="w-16 h-16 rounded-full bg-secondary-fixed/20 flex items-center justify-center mb-xs">
+<span class="material-symbols-outlined fill text-secondary" style="font-size: 32px;">check_circle</span>
+</div>
+<h2 class="font-headline-md text-headline-md font-bold text-on-surface">Link Enviado!</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                        Se o e-mail <strong><span class="text-on-surface font-medium" id="submitted-email"></span></strong> estiver registrado, você receberá as instruções em breve.
+                    </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-sm">
+                        Não recebeu? Verifique sua caixa de spam ou contate o suporte TI.
+                    </p>
+</div>
+</div>
+<!-- Footer Action -->
+<div class="bg-surface-container-low border-t border-outline-variant p-md flex justify-center">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-xs font-medium" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
+                    Voltar para o login
+                </a>
+</div>
+</div>
+<!-- System Footer -->
+<div class="text-center mt-lg font-body-sm text-body-sm text-on-surface-variant/70">
+            © 2024 LogiCore Systems. Uso corporativo restrito.
+        </div>
+</main>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('recovery-form');
+            const emailInput = document.getElementById('email');
+            const emailError = document.getElementById('email-error');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            const formView = document.getElementById('recovery-form-view');
+            const successView = document.getElementById('success-view');
+            const submittedEmailSpan = document.getElementById('submitted-email');
+
+            const validateEmail = (email) => {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            };
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const email = emailInput.value.trim();
+                
+                if (!email || !validateEmail(email)) {
+                    emailInput.classList.add('border-error', 'focus:border-error', 'focus:ring-error');
+                    emailInput.classList.remove('border-outline-variant', 'focus:border-primary', 'focus:ring-primary');
+                    emailError.classList.remove('hidden');
+                    return;
+                }
+
+                // Simulate processing state
+                const originalBtnContent = submitBtn.innerHTML;
+                submitBtn.innerHTML = `<span class="material-symbols-outlined animate-spin" style="font-size: 20px;">progress_activity</span><span>Enviando...</span>`;
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+
+                // Simulate API Call
+                setTimeout(() => {
+                    // Update success view with the email
+                    submittedEmailSpan.textContent = email;
+
+                    // Transition to success state
+                    formView.classList.add('opacity-0');
+                    
+                    setTimeout(() => {
+                        formView.classList.add('hidden');
+                        successView.classList.remove('hidden');
+                        
+                        // Small reflow delay before fading in
+                        requestAnimationFrame(() => {
+                            successView.classList.remove('opacity-0');
+                            successView.classList.add('opacity-100');
+                        });
+                    }, 300); // Matches transition duration
+                    
+                }, 1000);
+            });
+
+            // Reset error state on typing
+            emailInput.addEventListener('input', () => {
+                emailInput.classList.remove('border-error', 'focus:border-error', 'focus:ring-error');
+                emailInput.classList.add('border-outline-variant', 'focus:border-primary', 'focus:ring-primary');
+                emailError.classList.add('hidden');
+            });
+        });
+    </script>
+</body></html>

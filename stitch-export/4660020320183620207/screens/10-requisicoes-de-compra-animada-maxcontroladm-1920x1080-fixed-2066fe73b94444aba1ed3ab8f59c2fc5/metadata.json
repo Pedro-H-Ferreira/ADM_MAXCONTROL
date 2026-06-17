@@ -1,0 +1,68 @@
+{
+    "screenId":  "2066fe73b94444aba1ed3ab8f59c2fc5",
+    "name":  "projects/4660020320183620207/screens/2066fe73b94444aba1ed3ab8f59c2fc5",
+    "title":  "10. Requisições de Compra Animada - MaxControLADM (1920x1080) Fixed",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "2066fe73b94444aba1ed3ab8f59c2fc5",
+                          "sourceScreen":  "projects/4660020320183620207/screens/2066fe73b94444aba1ed3ab8f59c2fc5",
+                          "x":  6807,
+                          "y":  4329,
+                          "width":  1280,
+                          "height":  722
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\10-requisicoes-de-compra-animada-maxcontroladm-1920x1080-fixed-2066fe73b94444aba1ed3ab8f59c2fc5",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/f36a103685a64476b7a760312f3fff32",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2Y4MjJhZmJmYTgwMDQ1NDU5YjM4ZmE2YWI1OTJlZDZjEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\10-requisicoes-de-compra-animada-maxcontroladm-1920x1080-fixed-2066fe73b94444aba1ed3ab8f59c2fc5\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\10-requisicoes-de-compra-animada-maxcontroladm-1920x1080-fixed-2066fe73b94444aba1ed3ab8f59c2fc5\\screen.html",
+                                  "bytes":  33760,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/58b8e2ecf4c44ff6aca8929a48bdff98",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLti7ibJWHGVcuzzTCSRyJjfR8Kfj7O5ZVbi_E14mQVOR3SYyjNs4rDmOH-Nis3j57zLB_uAGq4vkz8CUxkCEFtTswtfjpON3Hb0-yY_wTioYlEF8-h0bMlZktxxKoRNdrBYiMLwjBqjjRsD6nzg74X1bsXgCFuY65HUHiRVrG3XkTgpSAwrHKQtqvO9fXIN-EouribKDN7BOX9FuOLQj-kox3VrmWT7G-q2Pf3ApjBU5ddwsxWHdiPvGg",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\10-requisicoes-de-compra-animada-maxcontroladm-1920x1080-fixed-2066fe73b94444aba1ed3ab8f59c2fc5\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\10-requisicoes-de-compra-animada-maxcontroladm-1920x1080-fixed-2066fe73b94444aba1ed3ab8f59c2fc5\\screenshot.png",
+                                        "bytes":  36876,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/2066fe73b94444aba1ed3ab8f59c2fc5",
+                   "title":  "10. Requisições de Compra Animada - MaxControLADM (1920x1080) Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/58b8e2ecf4c44ff6aca8929a48bdff98",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLti7ibJWHGVcuzzTCSRyJjfR8Kfj7O5ZVbi_E14mQVOR3SYyjNs4rDmOH-Nis3j57zLB_uAGq4vkz8CUxkCEFtTswtfjpON3Hb0-yY_wTioYlEF8-h0bMlZktxxKoRNdrBYiMLwjBqjjRsD6nzg74X1bsXgCFuY65HUHiRVrG3XkTgpSAwrHKQtqvO9fXIN-EouribKDN7BOX9FuOLQj-kox3VrmWT7G-q2Pf3ApjBU5ddwsxWHdiPvGg"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/f36a103685a64476b7a760312f3fff32",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2Y4MjJhZmJmYTgwMDQ1NDU5YjM4ZmE2YWI1OTJlZDZjEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3860",
+                   "height":  "2180",
+                   "deviceType":  "DESKTOP"
+               }
+}

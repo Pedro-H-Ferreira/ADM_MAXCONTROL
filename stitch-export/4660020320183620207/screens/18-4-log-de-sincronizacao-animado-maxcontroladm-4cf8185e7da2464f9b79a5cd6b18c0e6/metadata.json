@@ -1,0 +1,68 @@
+{
+    "screenId":  "4cf8185e7da2464f9b79a5cd6b18c0e6",
+    "name":  "projects/4660020320183620207/screens/4cf8185e7da2464f9b79a5cd6b18c0e6",
+    "title":  "18.4. Log de Sincronização Animado - MaxControLADM",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "4cf8185e7da2464f9b79a5cd6b18c0e6",
+                          "sourceScreen":  "projects/4660020320183620207/screens/4cf8185e7da2464f9b79a5cd6b18c0e6",
+                          "x":  12752,
+                          "y":  5296,
+                          "width":  1280,
+                          "height":  1181
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-4-log-de-sincronizacao-animado-maxcontroladm-4cf8185e7da2464f9b79a5cd6b18c0e6",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/7154aca8a552429eb553817f538b8b83",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2E4ZjVhNWE1N2JhMzQxMjY5MjE5YWQ4NzRiODJmNDI4EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-4-log-de-sincronizacao-animado-maxcontroladm-4cf8185e7da2464f9b79a5cd6b18c0e6\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-4-log-de-sincronizacao-animado-maxcontroladm-4cf8185e7da2464f9b79a5cd6b18c0e6\\screen.html",
+                                  "bytes":  29960,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/841ab166d4dc42d48a9105cd773b3d69",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLsE3JkRhAi7HcFaQLwY_CzukR4onBf-LoZWXcKpEnhGWhTX0L-2nj8JVfgYvi2eEfk2mI9RfS57XI5j53k2T0ik6zZ4ob0d1JrNHmq0vfbku8vCLct9IpoULSfiBzs_oAvyXa58lznwgXcssECS4Afd1lSaS1XsmT3mZgk0c0R9orcQ_P6X_6qacWHvZEwNHtCjzJ5zoWDn_T0fZcbGI217S0ZqN7_6nYUXG9l_4IyYuY18g0NsxwcmLhA",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-4-log-de-sincronizacao-animado-maxcontroladm-4cf8185e7da2464f9b79a5cd6b18c0e6\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-4-log-de-sincronizacao-animado-maxcontroladm-4cf8185e7da2464f9b79a5cd6b18c0e6\\screenshot.png",
+                                        "bytes":  52983,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/4cf8185e7da2464f9b79a5cd6b18c0e6",
+                   "title":  "18.4. Log de Sincronização Animado - MaxControLADM",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/841ab166d4dc42d48a9105cd773b3d69",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLsE3JkRhAi7HcFaQLwY_CzukR4onBf-LoZWXcKpEnhGWhTX0L-2nj8JVfgYvi2eEfk2mI9RfS57XI5j53k2T0ik6zZ4ob0d1JrNHmq0vfbku8vCLct9IpoULSfiBzs_oAvyXa58lznwgXcssECS4Afd1lSaS1XsmT3mZgk0c0R9orcQ_P6X_6qacWHvZEwNHtCjzJ5zoWDn_T0fZcbGI217S0ZqN7_6nYUXG9l_4IyYuY18g0NsxwcmLhA"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/7154aca8a552429eb553817f538b8b83",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2E4ZjVhNWE1N2JhMzQxMjY5MjE5YWQ4NzRiODJmNDI4EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2380",
+                   "deviceType":  "DESKTOP"
+               }
+}

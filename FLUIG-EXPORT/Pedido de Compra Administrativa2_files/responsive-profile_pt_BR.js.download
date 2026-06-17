@@ -1,0 +1,225 @@
+var ResponsiveProfile = SuperWidget.extend({
+
+  instanceId: null,
+  selectLanguageModal: null,
+  menuPopover: null,
+  usePolicyTemplate: null,
+  isEditableProfile: null,
+
+  bindings: {
+    local: {
+      'profile-menu-action': ['click_profileMenuAction'],
+      'open-menu-profile': ['shown.bs.popover_eventPopoverNotify']
+    },
+    global: {},
+  },
+
+  async init() {
+
+    WCMAPI.addListener(this, 'closePopoverProfile', () => {
+      this.hidePopoverMenuProfile();
+    });
+
+    // Esconde o popover de perfil caso o usuário clique
+		// em algum lugar da tela fora ele.
+		$(document).on('click', (el) => {
+			if (
+				!$(el.target).closest('.popover').length &&
+				!$(el.target).closest('[data-open-menu-profile]').length
+			) {
+				this.hidePopoverMenuProfile();
+			}
+		});
+
+    await this.setEditProfilePage();
+
+    this.popoverMenuProfile();
+  },
+
+  eventPopoverNotify() {
+    WCMAPI.fireEvent('closePopoverNotify');
+    WCMAPI.fireEvent('openPopoverProfile');
+    loadWidgets();
+  },
+
+  async popoverMenuProfile() {
+
+    await this.initTemplateUsePolicy();
+
+    const content = Mustache.render(
+      this.templates['popover-menu-profile-template'], {
+        usePolicyTemplate: this.usePolicyTemplate,
+        isEditableProfile: this.isEditableProfile,
+      }
+    );
+
+    this.menuPopover = FLUIGC.popover('[data-open-menu-profile]', {
+      container: '.container-popover-menu-profile',
+      trigger: 'click',
+      placement: 'bottom',
+      html: true,
+      content: content
+    });
+  },
+
+  async initTemplateUsePolicy() {
+    this.usePolicyTemplate = await this.basePromiseConvertFtl(
+      'usepolicy',
+      'header-menu.ftl',
+      null
+    );
+  },
+
+  hidePopoverMenuProfile() {
+    this.menuPopover && this.menuPopover.popover('hide');
+  },
+
+  profileMenuAction(el, ev) {
+    const action = $(el).data('profile-menu-action');
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    // Fechar o popover
+    // TODO: melhorar essa lógica de fechar o popover
+    $('.popover').popover('hide');
+
+    switch (action) {
+      case 'edit-image':
+        this.updateImageProfile();
+        break;
+      case 'news-fluig':
+        this.openAdminNewsFluig();
+        break;
+      case 'select-language':
+        this.selectLanguage();
+        break;
+      case 'help':
+        this.openPageHelp();
+        break;
+      case 'logoff':
+        this.logoff();
+        break;
+    }
+  },
+
+  updateImageProfile() {
+    WCMBC.cropImage({}, (err, data) => {
+      if (err) {
+        FLUIGC.toast({
+          message: 'Erro ao trocar imagem',
+          type: 'danger'
+        });
+        return false;
+      }
+      $(window).trigger('fluig.update.image.profile');
+    });
+  },
+
+  openAdminNewsFluig() {
+    WCMAPI.openAdminNewsFluigVersion(
+      WCMAPI.version.split('-')[0]
+    );
+  },
+
+  selectLanguage() {
+    this.selectLanguageModal = FLUIGC.modal({
+      title: 'Selecione o seu idioma',
+      content: {
+        widgetCode: 'wcmlanguage',
+        ftl: 'view.ftl',
+      },
+      id: 'select-language-modal',
+      actions: [{
+        'label': 'Cancelar',
+        'classType': 'btn-default',
+        'autoClose': true,
+      }],
+    }, () => {
+      $('#select-language-modal')
+        .css({
+          width: 'auto'
+        });
+      $('.widget-change-language')
+        .addClass('fs-height-inherit');
+    });
+  },
+
+  openPageHelp() {
+    FLUIGC.rightbar({
+      appCode: 'wcmhelp',
+      fileNameFtl: 'view.ftl'
+    });
+  },
+
+  logoff() {
+    if (WCMAPI.isSAMLEnabled) {
+
+      // TODO: Trocar por FLUIGC.confirm
+      const alertModal = WCMC.panel({
+        width: 380,
+        height: 80,
+        maximized: false,
+        btmaximize: false,
+        showbtclose: false,
+        showCloseIcon: false,
+        title: 'Atenção',
+        bodyContent: 'Ao efetuar o logoff, outras sessões do mesmo usuário poderão ser afetadas. Deseja continuar?',
+        customButtons: [
+          'Sim',
+          'Não'
+        ]
+      });
+
+      alertModal.bind('panel-button-0', () => {
+        WCMAPI.logoff();
+        alertModal.close();
+      });
+
+      alertModal.bind('panel-button-1', alertModal.close);
+    } else {
+      WCMAPI.logoff();
+    }
+  },
+
+  async setEditProfilePage() {
+
+    try {
+
+      const response = await this.serviceIsEditableProfile();
+      const isEditableProfile = response && JSON.parse(response.content);
+      this.isEditableProfile = isEditableProfile;
+    } catch(err) {
+      // Não é necessário tratamento de erro
+      console.error(err);
+    }
+  },
+
+  serviceIsEditableProfile() {
+    const url = WCMAPI.getContextPath() + '/api/rest/wcm/rest/admin/tenant/isEditableProfile';
+    const options = {
+        url,
+    };
+    return this.basePromiseAjax(options);
+  },
+
+  basePromiseConvertFtl(code, ftl, options) {
+    return new Promise((resolve, reject) => {
+      WCMAPI.convertFtlAsync(
+        code,
+        ftl,
+        options,
+        (data) => resolve(data),
+        (error) => reject(error),
+      );
+    });
+  },
+
+  basePromiseAjax(options) {
+    if (!options.loading) options.loading = false;
+    return new Promise((resolve, reject) => {
+      FLUIGC.ajax(options, (err, data) => err ? reject(err) : resolve(data));
+    });
+  },
+
+});

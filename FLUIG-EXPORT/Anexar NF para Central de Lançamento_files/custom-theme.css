@@ -1,0 +1,16 @@
+:root{
+	--brand-color: rgba(237, 20, 91, 1);
+	--notify-color: rgba(250, 250, 250, 1);
+}
+
+.fluig-style-guide .fluig-header-color {
+	background-color: var(--brand-color);
+}
+
+.fluig-style-guide .notify-color:after {
+	background-color: var(--notify-color);
+}
+
+.fluig-style-guide .fluig-menu-color:active, .fluig-style-guide .fluig-menu-color:focus {
+	color: var(--brand-color);
+}

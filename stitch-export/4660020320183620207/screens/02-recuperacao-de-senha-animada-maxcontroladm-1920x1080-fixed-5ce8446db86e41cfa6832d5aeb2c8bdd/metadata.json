@@ -1,0 +1,68 @@
+{
+    "screenId":  "5ce8446db86e41cfa6832d5aeb2c8bdd",
+    "name":  "projects/4660020320183620207/screens/5ce8446db86e41cfa6832d5aeb2c8bdd",
+    "title":  "02. Recuperação de Senha Animada - MaxControLADM (1920x1080) Fixed",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "5ce8446db86e41cfa6832d5aeb2c8bdd",
+                          "sourceScreen":  "projects/4660020320183620207/screens/5ce8446db86e41cfa6832d5aeb2c8bdd",
+                          "x":  -2600,
+                          "y":  4329,
+                          "width":  1280,
+                          "height":  720
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\02-recuperacao-de-senha-animada-maxcontroladm-1920x1080-fixed-5ce8446db86e41cfa6832d5aeb2c8bdd",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/eaa1ae26e97145eda14d688ab0d4e1bc",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzU4NzhmYzNjN2VjMDQ0YWFhZjBhNDFjN2EyYWEyNTU5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\02-recuperacao-de-senha-animada-maxcontroladm-1920x1080-fixed-5ce8446db86e41cfa6832d5aeb2c8bdd\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\02-recuperacao-de-senha-animada-maxcontroladm-1920x1080-fixed-5ce8446db86e41cfa6832d5aeb2c8bdd\\screen.html",
+                                  "bytes":  16849,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/287632ba33be40bca32b3f72ca9dfec6",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLsrI1znpWfQXhBLfoos2zxLb_eJaXiAUmyPZ5XUo6FErIkHqaiyMfH2-AZ-5qGohe4ouROCQZ-_k2OvGfSAdxd5DUuEVULYp6yF2bgK8QryREkGiLS97_wWlzlQNjSl8AkHF54lO6wrWnWMDp3bfhS_bpdUPYBdi5U6figamTdPPO77UEbJQ4qq0lhWsYzvfljj7BCfJpkTLSCnhEe3HV3jQXfSPtkmNHtPb4AgF6Mvg0hRlye-WeOSJVY",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\02-recuperacao-de-senha-animada-maxcontroladm-1920x1080-fixed-5ce8446db86e41cfa6832d5aeb2c8bdd\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\02-recuperacao-de-senha-animada-maxcontroladm-1920x1080-fixed-5ce8446db86e41cfa6832d5aeb2c8bdd\\screenshot.png",
+                                        "bytes":  9863,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/5ce8446db86e41cfa6832d5aeb2c8bdd",
+                   "title":  "02. Recuperação de Senha Animada - MaxControLADM (1920x1080) Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/287632ba33be40bca32b3f72ca9dfec6",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLsrI1znpWfQXhBLfoos2zxLb_eJaXiAUmyPZ5XUo6FErIkHqaiyMfH2-AZ-5qGohe4ouROCQZ-_k2OvGfSAdxd5DUuEVULYp6yF2bgK8QryREkGiLS97_wWlzlQNjSl8AkHF54lO6wrWnWMDp3bfhS_bpdUPYBdi5U6figamTdPPO77UEbJQ4qq0lhWsYzvfljj7BCfJpkTLSCnhEe3HV3jQXfSPtkmNHtPb4AgF6Mvg0hRlye-WeOSJVY"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/eaa1ae26e97145eda14d688ab0d4e1bc",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzU4NzhmYzNjN2VjMDQ0YWFhZjBhNDFjN2EyYWEyNTU5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

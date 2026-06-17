@@ -1,0 +1,379 @@
+var ResponsivePageEditor = SuperWidget.extend({
+
+  instanceId: null,
+  pageId: null,
+  loading: null,
+  publishPageModal: null,
+  changeLayoutModal: null,
+  changeFriendlyURLModal: null,
+  pageHistoryModal: null,
+
+  bindings: {
+    local: {
+      'edit-page-action': ['click_editPageAction']
+    },
+    global: {
+      'publish-page-action': ['click_publishPageAction']
+    },
+  },
+
+  init() {
+    this.pageId = WCMAPI.pageId;
+
+    this.loading = FLUIGC.loading(window);
+  },
+
+  editPageAction(el, ev) {
+    const action = $(el).data('edit-page-action');
+
+    switch (action) {
+      case 'edit-page':
+        this.editPage(el, ev);
+        break;
+      case 'publish-page':
+        this.publishPage(el, ev);
+        break;
+      case 'change-layout':
+        this.openModalChangeLayout();
+        break;
+      case 'discard-draft':
+        this.openModalDiscardDraft();
+        break;
+      case 'view-history':
+        this.openModalPageHistory();
+        break;
+      case 'change-friendly-url':
+        this.openModalChangeFriendlyURL();
+        break;
+      default:
+        window.location.href = WCMAPI.protectedContextPath + '/' + WCMAPI.getTenantCode() + '/' + alias;
+    }
+  },
+
+  openModalChangeFriendlyURL() {
+    this.changeFriendlyURLModal = FLUIGC.modal({
+      title: 'Trocar URL personalizada para acesso',
+      content: {
+        widgetCode: 'wcm_page',
+        ftl: 'friendlyURL.ftl',
+      },
+      id: 'change-friendly-url-modal',
+      actions: [{
+        'label': 'Descartar',
+        'bind': 'data-cancel-change-friendlyURL',
+        'classType': 'btn-default',
+        'autoClose': true,
+      }, {
+        'label': 'Aplicar',
+        'classType': 'btn-primary',
+        'bind': 'data-apply-change-friendlyURL',
+      }],
+    });
+  },
+
+  openModalDiscardDraft() {
+    FLUIGC.message.confirm({
+      message: 'Tem certeza que deseja descartar este rascunho?',
+      title: 'Descartar rascunho',
+      labelYes: 'Sim',
+      labelNo: 'Não',
+    }, async (result) => {
+      if (result) {
+
+        this.loading.show();
+
+        try {
+          const deleteUnpublishedVersion = await this.serviceDeleteUnpublishedVersion();
+
+          if (deleteUnpublishedVersion) {
+            window.location.href = currentUrlWithoutEdit();
+          } else {
+            FLUIGC.toast({
+              message: 'Um erro ocorreu tentando descartar este rascunho. Tente novamente.',
+              type: 'danger',
+            });
+          }
+        } catch (err) {
+          FLUIGC.toast({
+            message: 'Um erro ocorreu tentando descartar este rascunho. Tente novamente.',
+            type: 'danger',
+          });
+          console.error(err);
+        } finally {
+          this.loading.hide();
+        }
+
+      }
+    });
+  },
+
+  openModalChangeLayout() {
+    this.changeLayoutModal = FLUIGC.modal({
+      title: 'Trocar layout',
+      content: {
+        widgetCode: 'wcm_page',
+        ftl: 'changelayout.ftl',
+        callback: (err, data) => {
+          $('button[data-apply-change-layout]').addClass('disabled');
+        },
+      },
+      id: 'change-layout-modal',
+      size: 'large',
+      actions: [{
+        'label': 'Descartar',
+        'bind': 'data-cancel-change-layout',
+        'classType': 'btn-default',
+        'autoClose': true,
+      }, {
+        'label': 'Aplicar layout',
+        'classType': 'btn-primary',
+        'bind': 'data-apply-change-layout',
+      }],
+    });
+  },
+
+  openModalPageHistory() {
+    this.pageHistoryModal = FLUIGC.modal({
+      title: 'Histórico de página',
+      content: {
+        widgetCode: 'wcm_page_history',
+        ftl: 'view.ftl',
+        callback: function (err, data) {
+          return false;
+        },
+      },
+      id: 'page-history-modal',
+      size: 'large',
+      actions: [{
+        'label': 'Descartar',
+        'bind': 'data-cancel',
+        'classType': 'btn-default',
+        'autoClose': true,
+      }, {
+        'label': 'Restaurar',
+        'classType': 'btn-primary',
+        'bind': 'data-apply',
+      }],
+    });
+  },
+
+  async publishPage() {
+
+    this.loading.show();
+
+    try {
+      const isUnpublished = await this.serviceIsPageUnpublished();
+
+      if (isUnpublished) {
+        const isLastEditUser = await this.serviceIsLastEditUserEqualsCurrentUserForEdit();
+
+        if (isLastEditUser) {
+          const changeLastEditUser = await this.serviceChangeLastEditUser();
+
+          if (changeLastEditUser) {
+            this.openModalPublishPage();
+          }
+        } else {
+          this.openConcurrencyModal();
+        }
+      } else {
+        FLUIGC.message.alert({
+          title: 'Página já publicada',
+          message: 'Esta página já foi publicada.',
+          label: 'OK'
+        }, () => {
+          window.location.href = currentUrlWithoutEdit(); // TODO: change "magic function"
+        });
+      }
+    } catch (err) {
+      // TODO: tratamento de erro
+      console.error(err);
+    } finally {
+      this.loading.hide();
+    }
+  },
+
+  async publishPageAction() {
+    const message = this.formatMessage(
+      $('#publish-page-message').val()
+    );
+
+    if (message) {
+
+      this.loading.show();
+
+      try {
+        await this.servicePublishPage(message);
+      } catch (err) {
+        // TODO: tratamento de erro
+        console.error(err);
+      } finally {
+        this.loading.hide();
+      }
+
+      this.publishPageModal.remove();
+
+      window.location.href = currentUrlWithoutEdit(); // TODO: change "magic function"
+    } else {
+      FLUIGC.toast({
+        type: 'info',
+        message: 'É necessário descrever brevemente suas modificações.'
+      });
+    }
+  },
+
+  formatMessage(message) {
+    return message.replace(/[\\\/]/g, '|');
+  },
+
+  openModalPublishPage() {
+    const publishPageModalTemplate = this.templates['publish-page-modal-template'];
+
+    this.publishPageModal = FLUIGC.modal({
+      title: 'Publicando uma nova versão',
+      content: Mustache.render(publishPageModalTemplate),
+      id: 'publish-page-modal',
+      actions: [{
+        'label': 'Fechar',
+        'classType': 'btn-default',
+        'autoClose': true,
+      }, {
+        'label': 'Publicar página',
+        'classType': 'btn-primary',
+        'bind': 'data-publish-page-action',
+      }]
+    }, () => {
+      $('#publish-page-message').trigger('focus');
+    });
+  },
+
+  async editPage() {
+
+    this.loading.show();
+
+    try {
+      const isLastEditUser = await this.serviceIsLastEditUserEqualsCurrentUserForEdit();
+
+      if (isLastEditUser) {
+        this.openPageEdit();
+      } else {
+        this.openConcurrencyModal();
+      }
+    } catch (err) {
+      // TODO: tratamento de erro
+      console.error(err);
+    } finally {
+      this.loading.hide();
+    }
+  },
+
+  async openPageEdit() {
+
+    this.loading.show();
+
+    try {
+      const created = await this.serviceCreateUnpublishedPage();
+
+      if (created) {
+        window.location.href = currentUrlWithEdit(); // TODO: change "magic function"
+      }
+    } catch (err) {
+      // TODO: tratamento de erro
+      console.error(err);
+    } finally {
+      this.loading.hide();
+    }
+  },
+
+  // TODO: Criar um novo componente mais moderno
+  // para o WCM.editPage.concurrency
+  openConcurrencyModal() {
+    WCM.editPage.concurrency();
+    WCM.editPage.concurrency.panel.bind('panel-button-0', async () => {
+
+      try {
+        const changeLastEditUser = await this.serviceChangeLastEditUser();
+
+        if (changeLastEditUser) {
+          window.location.href = currentUrlWithEdit(); // TODO: change "magic function"
+        } else {
+          WCMC.messageError('Erro ao trocar usuário que estava editando');
+        }
+      } catch (err) {
+        // TODO: tratamento de erro
+        console.error(err);
+      }
+
+    });
+  },
+
+  serviceDeleteUnpublishedVersion() {
+    const url = WCMSpaceAPI.PageService.DELETEUNPUBLISHEDVERSION__PATH(
+      this.pageId
+    );
+    const options = {
+      url,
+    };
+    return this.basePromiseAjax(options);
+  },
+
+  servicePublishPage(message) {
+    const url = WCMSpaceAPI.PageService.PUBLISHPAGE__PATH(
+      this.pageId,
+      message,
+    );
+    const options = {
+      url,
+    };
+    return this.basePromiseAjax(options);
+  },
+
+  serviceIsPageUnpublished() {
+    const url = WCMSpaceAPI.PageService.ISPAGEUNPUBLISHED__PATH(
+      this.pageId
+    );
+    const options = {
+      url,
+    };
+    return this.basePromiseAjax(options);
+  },
+
+  serviceChangeLastEditUser() {
+    const url = WCMSpaceAPI.PageService.CHANGELASTEDITUSER__PATH();
+    const options = {
+      data: {
+        idPage: this.pageId
+      },
+      url,
+    };
+    return this.basePromiseAjax(options);
+  },
+
+  serviceIsLastEditUserEqualsCurrentUserForEdit() {
+    const url = WCMSpaceAPI.PageService.ISLASTEDITUSEREQUALSCURRENTUSERFOREDIT__PATH(
+      this.pageId
+    );
+    const options = {
+      url,
+    };
+    return this.basePromiseAjax(options);
+  },
+
+  serviceCreateUnpublishedPage() {
+    const url = WCMSpaceAPI.PageService.CREATEUNPUBLISHEDPAGE__PATH(
+      this.pageId
+    );
+    const options = {
+      url,
+    };
+    return this.basePromiseAjax(options);
+  },
+
+  basePromiseAjax(options) {
+    if (!options.loading) options.loading = false;
+    return new Promise((resolve, reject) => {
+      FLUIGC.ajax(options, (err, data) => err ? reject(err) : resolve(data));
+    });
+  },
+
+});

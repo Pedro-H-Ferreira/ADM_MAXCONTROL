@@ -1,0 +1,68 @@
+{
+    "screenId":  "7b29508780be4155ab355b5716ba2ebf",
+    "name":  "projects/4660020320183620207/screens/7b29508780be4155ab355b5716ba2ebf",
+    "title":  "12. Manutenção Animada - MaxControLADM (1920x1080) Fixed",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "7b29508780be4155ab355b5716ba2ebf",
+                          "sourceScreen":  "projects/4660020320183620207/screens/7b29508780be4155ab355b5716ba2ebf",
+                          "x":  10839,
+                          "y":  4329,
+                          "width":  1280,
+                          "height":  720
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-manutencao-animada-maxcontroladm-1920x1080-fixed-7b29508780be4155ab355b5716ba2ebf",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/bfe83e4d3e3148aba1226b9bd9a66067",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2FiNWJhZWJhNGQ4YjRkYWU4ZmMyZDgwMjJhZTgxNTgxEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-manutencao-animada-maxcontroladm-1920x1080-fixed-7b29508780be4155ab355b5716ba2ebf\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-manutencao-animada-maxcontroladm-1920x1080-fixed-7b29508780be4155ab355b5716ba2ebf\\screen.html",
+                                  "bytes":  33146,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/54c8e4d1df9d4a2f97ca0069a711c028",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtbk7ePHTjhwVzGMf3aytUxaSx41hbfRgjl4dP7nKNighGpsC3CxGE7rCOLs9BdbEmgwHLTSXE1huDrY-XHBG-OvyUEcXy-z4vC_iPdKQ2pDDduEtBq0gIPYBBcq3lo8yFMnxkmW7Ma2wqcNxAPwjLds5leDHEY__2Q8sO7jZfnSzC71yMSrSnRAjPzrEnCUYvod3XbdtKalEbEJS4nzlXTQROX6sb2CfHCzOjGGffueyDIZuo6DTCSNg",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-manutencao-animada-maxcontroladm-1920x1080-fixed-7b29508780be4155ab355b5716ba2ebf\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-manutencao-animada-maxcontroladm-1920x1080-fixed-7b29508780be4155ab355b5716ba2ebf\\screenshot.png",
+                                        "bytes":  33136,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/7b29508780be4155ab355b5716ba2ebf",
+                   "title":  "12. Manutenção Animada - MaxControLADM (1920x1080) Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/54c8e4d1df9d4a2f97ca0069a711c028",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtbk7ePHTjhwVzGMf3aytUxaSx41hbfRgjl4dP7nKNighGpsC3CxGE7rCOLs9BdbEmgwHLTSXE1huDrY-XHBG-OvyUEcXy-z4vC_iPdKQ2pDDduEtBq0gIPYBBcq3lo8yFMnxkmW7Ma2wqcNxAPwjLds5leDHEY__2Q8sO7jZfnSzC71yMSrSnRAjPzrEnCUYvod3XbdtKalEbEJS4nzlXTQROX6sb2CfHCzOjGGffueyDIZuo6DTCSNg"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/bfe83e4d3e3148aba1226b9bd9a66067",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2FiNWJhZWJhNGQ4YjRkYWU4ZmMyZDgwMjJhZTgxNTgxEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

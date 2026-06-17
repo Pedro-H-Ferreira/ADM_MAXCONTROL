@@ -1,0 +1,178 @@
+var SearchSuggest = SuperWidget
+	.extend({
+
+		instantceId: null,
+		limit: 6,
+		pendingResult: false,
+		openNewTab: false,
+		$inputSearch: null,
+		pattern: null,
+
+		bindings: {
+			local: {
+				'submit-search': ['submit_seeAllResults'],
+				'validate-search-xss': ['input_validateSearchXSS']
+			}
+		},
+
+		init: function() {
+			this.$inputSearch = $('input[name="searchInputText_' + this.instanceId + '"]', this.DOM);
+			this.$inputSearch.val(decodeURIComponent(this.pattern));
+			this.loadAutocomplete();
+		},
+
+		validateSearchXSS: function(el, ev) {
+			var value = el.value;
+			this.sanitizedSearchValue = WCMAPI.validateXSS(decodeURIComponent(value, true));
+			el.value = this.sanitizedSearchValue;
+	
+			// Realiza uma nova verificação de xss caso o 
+			// usuário tenha encodado várias vezes o texto
+			var newSanitized = WCMAPI.validateXSS(decodeURIComponent(el.value, true))
+	
+			if (newSanitized !== this.sanitizedSearchValue) {
+				this.validateSearchXSS(el, ev);
+			}
+		},
+
+		seeAllResults: function(el, ev, value) {
+			var newTab = this.openNewTab === 'true';
+			value = value ? WCMAPI.validateXSS(decodeURIComponent(value), true) : WCMAPI.validateXSS(decodeURIComponent(this.$inputSearch.val().trim()), true);
+			socialGlobal.showSearch(value, newTab);
+		},
+
+		doSearch: function(query, cb) {
+			var that = this, searchType, pattern = query.replace("#", "").toLowerCase(), service = GlobalSearchAPI.GlobalSearchService.ADVANCEDSEARCH, field = null, result = [], options;
+
+			if (query.indexOf("#") === 0) {
+				searchType = 'TAG';
+			} else {
+				searchType = 'WORD';
+			}
+
+			options = [{
+				"pattern": pattern,
+				"limit": that.limit || 6,
+				"offset": 0,
+				"searchType": searchType
+			}];
+
+			//Esse tratamento é feito para não encavalar dois resultados da busca
+			//na mesma lista.
+			if (!that.pendingResult) {
+				that.pendingResult = true;
+
+				that.rest(service, options, function(data) {
+					var obj = [];
+
+					//Se a busca não retornar nenhum resultado, o callback devolve
+					//a query digitada como sugestão.
+					if (!data.items.length) {
+						result.push(query);
+						that.pendingResult = false;
+						cb(result);
+						return;
+					}
+
+					data.items.forEach(function(item, idx) {
+						if (item.fields && item.fields[pattern]) {
+							result = result.concat(item.fields[pattern]);
+						}
+						if (searchType == 'TAG') {
+							for ( var i in result) {
+								obj[i] = '#' + result[i];
+							}
+							that.pendingResult = false;
+							cb(obj);
+						} else {
+							that.pendingResult = false;
+							cb(result);
+						}
+					});
+				}, function(err) {
+					that.pendingResult = false;
+					cb(null);
+				});
+			}
+		},
+
+		loadAutocomplete: function() {
+			var that = this, seeAllTemplate = Mustache.render(this.templates['suggest-search-see-all-template']);
+
+			this.$inputSearch.autocomplete({
+				source: function(req, cb) {
+					that.doSearch(req.term, cb);
+				},
+				open: function(event, ui) {
+					that.$inputSearch.autocomplete('widget').addClass('list-of-search-results').append(seeAllTemplate);
+				},
+				select: function(event, ui) {
+					that.seeAllResults(null, null, ui.item.value);
+				}
+			});
+
+			this.$inputSearch.on('focus', function(ev) {
+				controlOpenModel = true;
+			});
+
+			this.$inputSearch.on('blur', function(ev) {
+				controlOpenModel = false;
+			});
+		}
+
+	});
+
+var SearchSuggestEdit = SuperWidget.extend({
+
+	instantceId: null,
+
+	bindings: {
+		local: {
+			'change-search-new-tab': ['change_changeSearchNewTab']
+		}
+	},
+
+	init: function() {
+		// apply css rule only on edit mode
+		$('#SlotInstantSearch').addClass('edit-mode');
+
+		//this is for change the color text in agreement the top color
+		this.refreshLuminositySearch();
+	},
+
+	changeSearchNewTab: function(el, ev) {
+		var params = {
+			searchNewTab: $(el).is(':checked')
+		};
+
+		this.rest(WCMSpaceAPI.PageService.UPDATEPREFERENCES, [this.instanceId, params], function(data) {
+			FLUIGC.toast({
+				message: 'Configurações gravadas com sucesso.',
+				type: 'success'
+			});
+		}, function(xhr, text, errData) {
+			FLUIGC.toast({
+				message: 'Ops, não foi possível gravar as configurações no momento.',
+				type: 'danger'
+			});
+		});
+	},
+	refreshLuminositySearch: function() {
+		tag = 'suggestSearchEditLabel_' + this.instanceId;
+
+		var rgbLight = 'rgb(215,215,215)';
+		var rgbDark = 'rgb(0,0,0)';
+		var menuLuminosity = new TAGColour('wcm-header').getLuminosity();
+		if (!menuLuminosity) {
+			return;
+		}
+		var tagsLuminosityMenuColor = $("#" + tag);
+
+		if (menuLuminosity == 'dark') {
+			tagsLuminosityMenuColor.css('color', rgbLight);
+		} else {
+			tagsLuminosityMenuColor.css('color', rgbDark);
+		}
+	}
+
+});

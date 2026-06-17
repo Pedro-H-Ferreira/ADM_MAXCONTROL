@@ -1,0 +1,69 @@
+{
+    "screenId":  "788bc6fde8c14a38ab947d1dd2971d7f",
+    "name":  "projects/4660020320183620207/screens/788bc6fde8c14a38ab947d1dd2971d7f",
+    "title":  "14. Usuários e Perfis - Portal Administrativo CD (1920x1080)",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "788bc6fde8c14a38ab947d1dd2971d7f",
+                          "sourceScreen":  "projects/4660020320183620207/screens/788bc6fde8c14a38ab947d1dd2971d7f",
+                          "x":  72861,
+                          "y":  2627,
+                          "width":  1815,
+                          "height":  1080,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\14-usuarios-e-perfis-portal-administrativo-cd-1920x1080-788bc6fde8c14a38ab947d1dd2971d7f",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/10085267795621105130",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjIyODQ3M2YwMzgzOTM2MTJlMTUxYzk2EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\14-usuarios-e-perfis-portal-administrativo-cd-1920x1080-788bc6fde8c14a38ab947d1dd2971d7f\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\14-usuarios-e-perfis-portal-administrativo-cd-1920x1080-788bc6fde8c14a38ab947d1dd2971d7f\\screen.html",
+                                  "bytes":  26796,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/62261b9ff0674be8902777a2126ee6c3",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuaPmaOmocC2x0q4Rf6dgJsR2V2w2GvUsRzPmYQIwUuw3Kt3_RcHZjCJmOCFQEN5V-rpzdr9CsLKudceskDijUofnsT6UFP7927jChFiJMbmuEBow1czTh7lHFIu6Mh74-ZfkuDQbvCGhdswX0g8g8Plch4mEjBejnYUSkJMabvoavxH275ocVbXkJf8LTC4LQZizwtsEMYqPOxagt3kqNhxLvU8OKKc0i8ddNvxfGtDeXme7INhjEfZL8",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\14-usuarios-e-perfis-portal-administrativo-cd-1920x1080-788bc6fde8c14a38ab947d1dd2971d7f\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\14-usuarios-e-perfis-portal-administrativo-cd-1920x1080-788bc6fde8c14a38ab947d1dd2971d7f\\screenshot.png",
+                                        "bytes":  28785,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/788bc6fde8c14a38ab947d1dd2971d7f",
+                   "title":  "14. Usuários e Perfis - Portal Administrativo CD (1920x1080)",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/62261b9ff0674be8902777a2126ee6c3",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuaPmaOmocC2x0q4Rf6dgJsR2V2w2GvUsRzPmYQIwUuw3Kt3_RcHZjCJmOCFQEN5V-rpzdr9CsLKudceskDijUofnsT6UFP7927jChFiJMbmuEBow1czTh7lHFIu6Mh74-ZfkuDQbvCGhdswX0g8g8Plch4mEjBejnYUSkJMabvoavxH275ocVbXkJf8LTC4LQZizwtsEMYqPOxagt3kqNhxLvU8OKKc0i8ddNvxfGtDeXme7INhjEfZL8"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/10085267795621105130",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjIyODQ3M2YwMzgzOTM2MTJlMTUxYzk2EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

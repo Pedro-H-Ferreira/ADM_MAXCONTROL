@@ -1,0 +1,69 @@
+{
+    "screenId":  "47343885d5e04cc09eb52b140e996ce8",
+    "name":  "projects/4660020320183620207/screens/47343885d5e04cc09eb52b140e996ce8",
+    "title":  "12. Manutenção - Portal Administrativo CD",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "47343885d5e04cc09eb52b140e996ce8",
+                          "sourceScreen":  "projects/4660020320183620207/screens/47343885d5e04cc09eb52b140e996ce8",
+                          "x":  96468,
+                          "y":  2627,
+                          "width":  1210,
+                          "height":  1021,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-manutencao-portal-administrativo-cd-47343885d5e04cc09eb52b140e996ce8",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/17154648556167412431",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY1MTM0MDdiM2YwN2M0YzQ0OTY1MDc5NWYxEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-manutencao-portal-administrativo-cd-47343885d5e04cc09eb52b140e996ce8\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-manutencao-portal-administrativo-cd-47343885d5e04cc09eb52b140e996ce8\\screen.html",
+                                  "bytes":  27361,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/f60369e8c7e1445f9def465924f5109e",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLsszdEla0vz7GBvvbzo4SX2kIj2-aid1xK-hs-P4W1VLCcDRadoDUnAPbMrHnK9QRBH0ldehDkU7qjckv0B9Jx6IBvQH-aAEVGPve_jQQ02lPrq1GlCdn1ovA6QToKeNRXVdrn--NDDBCPxH-Dx4o83ZhzZodEWLM7ue-34cRZftBi0irAfiMk4LTtoDs0U9Zpx6bo9ub7Vqyhgwz854Yspt8-qj4twk00mKekMDCZ-cDXU8etz5i6iIlY",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-manutencao-portal-administrativo-cd-47343885d5e04cc09eb52b140e996ce8\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\12-manutencao-portal-administrativo-cd-47343885d5e04cc09eb52b140e996ce8\\screenshot.png",
+                                        "bytes":  28074,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/47343885d5e04cc09eb52b140e996ce8",
+                   "title":  "12. Manutenção - Portal Administrativo CD",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/f60369e8c7e1445f9def465924f5109e",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLsszdEla0vz7GBvvbzo4SX2kIj2-aid1xK-hs-P4W1VLCcDRadoDUnAPbMrHnK9QRBH0ldehDkU7qjckv0B9Jx6IBvQH-aAEVGPve_jQQ02lPrq1GlCdn1ovA6QToKeNRXVdrn--NDDBCPxH-Dx4o83ZhzZodEWLM7ue-34cRZftBi0irAfiMk4LTtoDs0U9Zpx6bo9ub7Vqyhgwz854Yspt8-qj4twk00mKekMDCZ-cDXU8etz5i6iIlY"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/17154648556167412431",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY1MTM0MDdiM2YwN2M0YzQ0OTY1MDc5NWYxEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

@@ -1,0 +1,69 @@
+{
+    "screenId":  "b0eeed724913491994de3bdd586362df",
+    "name":  "projects/4660020320183620207/screens/b0eeed724913491994de3bdd586362df",
+    "title":  "Ajuda e Suporte - Portal Administrativo CD",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "b0eeed724913491994de3bdd586362df",
+                          "sourceScreen":  "projects/4660020320183620207/screens/b0eeed724913491994de3bdd586362df",
+                          "x":  18925,
+                          "y":  2613,
+                          "width":  1258,
+                          "height":  1300,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\ajuda-e-suporte-portal-administrativo-cd-b0eeed724913491994de3bdd586362df",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/16169185619399126857",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjEzNzkzNWEwMzgzOWU5ZjhhMjgwNGVjEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\ajuda-e-suporte-portal-administrativo-cd-b0eeed724913491994de3bdd586362df\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\ajuda-e-suporte-portal-administrativo-cd-b0eeed724913491994de3bdd586362df\\screen.html",
+                                  "bytes":  23451,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/d6c0e2ef053d465682701e3751e00e08",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvSz8oKEsbr_OUUVKmh_vhQ8HupKlP5-iJn2KWTeZkzFXEVpL6D-CfJa9QTMUaeHg6x5tjOG0ugA1VuLoiVuu2NWmyxFIYkQ8PEIfTcTr7rJWTl3w1Jwewfw1hy53_oO53ruGLazWgBpIy-cVH4gycQbGtcu81t0j1lRHDMahogviBpiGogiWHhFHemp1QLUyOh_2-cSYF0qyv89UBRKLYkvsPnMoXFBc7n5kyvuadDb9zPRY7kHJKntXw",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\ajuda-e-suporte-portal-administrativo-cd-b0eeed724913491994de3bdd586362df\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\ajuda-e-suporte-portal-administrativo-cd-b0eeed724913491994de3bdd586362df\\screenshot.png",
+                                        "bytes":  60547,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/b0eeed724913491994de3bdd586362df",
+                   "title":  "Ajuda e Suporte - Portal Administrativo CD",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/d6c0e2ef053d465682701e3751e00e08",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvSz8oKEsbr_OUUVKmh_vhQ8HupKlP5-iJn2KWTeZkzFXEVpL6D-CfJa9QTMUaeHg6x5tjOG0ugA1VuLoiVuu2NWmyxFIYkQ8PEIfTcTr7rJWTl3w1Jwewfw1hy53_oO53ruGLazWgBpIy-cVH4gycQbGtcu81t0j1lRHDMahogviBpiGogiWHhFHemp1QLUyOh_2-cSYF0qyv89UBRKLYkvsPnMoXFBc7n5kyvuadDb9zPRY7kHJKntXw"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/16169185619399126857",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjEzNzkzNWEwMzgzOWU5ZjhhMjgwNGVjEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3040",
+                   "height":  "2048",
+                   "deviceType":  "DESKTOP"
+               }
+}

@@ -1,0 +1,68 @@
+{
+    "screenId":  "3d3b676a415d46cba27b56226b48a04d",
+    "name":  "projects/4660020320183620207/screens/3d3b676a415d46cba27b56226b48a04d",
+    "title":  "18.6. Espelhamento de Dados Animado - MaxControLADM",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "3d3b676a415d46cba27b56226b48a04d",
+                          "sourceScreen":  "projects/4660020320183620207/screens/3d3b676a415d46cba27b56226b48a04d",
+                          "x":  14096,
+                          "y":  5296,
+                          "width":  1280,
+                          "height":  720
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-6-espelhamento-de-dados-animado-maxcontroladm-3d3b676a415d46cba27b56226b48a04d",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/1dc483bef56c49aca61d8fab46ec6418",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzRiNGY4MzEzNTE2ODRmMTVhODRjMjY1Y2EyYmFjOGRmEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-6-espelhamento-de-dados-animado-maxcontroladm-3d3b676a415d46cba27b56226b48a04d\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-6-espelhamento-de-dados-animado-maxcontroladm-3d3b676a415d46cba27b56226b48a04d\\screen.html",
+                                  "bytes":  23973,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/936f8ef554ed489f8fd774f42080b9af",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvJQLTEzSxVZsn8wQXl-ufxhFCykpT6E14PeTSpWc9Cv5QqK5dBagVo4cw0PE1coTE31dNctt8aeuexh3YyybC47RSREP2UE_cqBspHysZbjovebcmhDLtBlBmTjO0k-1sks_U_tBmAeuf9_ySDkkCdzM_Hx3r0GUpVTV-RcfuFWDXBySNVRD-kgMMumMUrRvoQCwmqIdwuV2bzPiEx4KrmUxlUzFklx1ngYSr_pcvUIOGJRI-eWCuWwJ4",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-6-espelhamento-de-dados-animado-maxcontroladm-3d3b676a415d46cba27b56226b48a04d\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-6-espelhamento-de-dados-animado-maxcontroladm-3d3b676a415d46cba27b56226b48a04d\\screenshot.png",
+                                        "bytes":  43485,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/3d3b676a415d46cba27b56226b48a04d",
+                   "title":  "18.6. Espelhamento de Dados Animado - MaxControLADM",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/936f8ef554ed489f8fd774f42080b9af",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLvJQLTEzSxVZsn8wQXl-ufxhFCykpT6E14PeTSpWc9Cv5QqK5dBagVo4cw0PE1coTE31dNctt8aeuexh3YyybC47RSREP2UE_cqBspHysZbjovebcmhDLtBlBmTjO0k-1sks_U_tBmAeuf9_ySDkkCdzM_Hx3r0GUpVTV-RcfuFWDXBySNVRD-kgMMumMUrRvoQCwmqIdwuV2bzPiEx4KrmUxlUzFklx1ngYSr_pcvUIOGJRI-eWCuWwJ4"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/1dc483bef56c49aca61d8fab46ec6418",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzRiNGY4MzEzNTE2ODRmMTVhODRjMjY1Y2EyYmFjOGRmEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

@@ -1,0 +1,230 @@
+var ResponsiveSearch = SuperWidget.extend({
+
+  instanceId: null,
+  $inputSearch: null,
+  $smallInputSearch: null,
+  pendingResult: null,
+  openNewTab: null,
+  limit: 6,
+  loading: null,
+
+  bindings: {
+    local: {
+      'submit-search': ['submit_submitSearch'],
+      'toggle-small-search': ['click_toggleSmallSearch'],
+      'validate-search-xss': ['input_validateSearchXSS'],
+    },
+    global: {
+      'see-all-results': ['click_seeAllResults'],
+      'change-search-new-tab': ['change_changeSearchNewTab'],
+    },
+  },
+
+  init() {
+    this.$inputSearch = $('#searchInputText-' + this.instanceId, this.DOM);
+    this.$smallInputSearch = $('#smallSearchInputText-' + this.instanceId, this.DOM);
+
+    this.loading = FLUIGC.loading(window);
+
+    if (!this.isEditMode) {
+      this.loadAutocomplete();
+    }
+  },
+
+  toggleSmallSearch() {
+    $('.inner-header-navbar:first', this.DOM)
+      .toggleClass('hide');
+
+    $('.inner-header-search-navbar', this.DOM)
+      .toggleClass('hide');
+
+    if ($('.inner-header-search-navbar', this.DOM).is(':visible')) {
+      $('#smallSearchInputText-' + this.instanceId, this.DOM)
+        .trigger('focus');
+    } else {
+      // Limpa o valor digitado na busca
+      this.$smallInputSearch.val('');
+    }
+  },
+
+  async changeSearchNewTab(el) {
+    const params = {
+      searchNewTab: $(el).is(':checked')
+    };
+
+    this.loading.show();
+
+    try {
+      await this.serviceUpdatePreferences(params);
+
+      FLUIGC.toast({
+        message: 'Configurações gravadas com sucesso.',
+        type: 'success'
+      });
+    } catch (err) {
+      FLUIGC.toast({
+        message: 'Ops, não foi possível gravar as configurações no momento.',
+        type: 'danger'
+      });
+    } finally {
+      this.loading.hide();
+    }
+  },
+
+  loadAutocomplete() {
+    const that = this;
+    const seeAllTemplate = Mustache.render(
+      this.templates['suggest-search-see-all-template']
+    );
+
+    const settings = {
+      source: (req, cb) => {
+        this.doSearch(req.term, cb);
+      },
+      open: (event, ui) => {
+        this.$inputSearch
+          .autocomplete('widget')
+          .addClass('responsive-search-autocomplete')
+          .append(seeAllTemplate);
+
+        this.$smallInputSearch
+          .autocomplete('widget')
+          .addClass('responsive-search-autocomplete')
+          .append(seeAllTemplate);
+      },
+      select: (event, ui) => {
+        this.seeAllResults(null, null, ui.item.value);
+      },
+    };
+
+    this.$inputSearch.autocomplete(settings);
+    this.$smallInputSearch.autocomplete(settings);
+
+    const onfocus = (ev) => {
+      controlOpenModel = true;
+    };
+
+    const onblur = (ev) => {
+      controlOpenModel = false;
+    };
+
+    this.$inputSearch.on('focus', onfocus);
+    this.$smallInputSearch.on('focus', onfocus);
+
+    this.$inputSearch.on('blur', onblur);
+    this.$smallInputSearch.on('blur', onblur);
+  },
+
+  async doSearch(query, cb) {
+    const pattern = query.replace('#', '').toLowerCase();
+    const searchType = query.indexOf('#') === 0 ? 'TAG' : 'WORD';
+    let result = [];
+
+    const options = {
+      pattern: pattern,
+      limit: this.limit || 6,
+      offset: 0,
+      searchType: searchType
+    };
+
+    // Esse tratamento é feito para não encavalar dois resultados da busca
+    // na mesma lista.
+    if (!this.pendingResult) {
+
+      this.pendingResult = true;
+
+      try {
+        const results = await this.serviceAdvancedSearch(options);
+        const obj = [];
+
+        // Se a busca não retornar nenhum resultado, o callback devolve
+        // a query digitada como sugestão.
+        if (!results.items.length) {
+          result.push(query);
+          this.pendingResult = false;
+          cb(result);
+          return;
+        }
+
+        results.items.forEach((item, idx) => {
+          if (item.fields && item.fields[pattern]) {
+            result = result.concat(item.fields[pattern]);
+          }
+
+          if (searchType == 'TAG') {
+            for (let i in result) {
+              obj[i] = '#' + result[i];
+            }
+            this.pendingResult = false;
+            cb(obj);
+          } else {
+            this.pendingResult = false;
+            cb(result);
+          }
+        });
+      } catch (err) {
+        this.pendingResult = false;
+        cb(null);
+      }
+    }
+  },
+
+  submitSearch(el, ev) {
+
+    ev.preventDefault();
+
+    this.seeAllResults();
+  },
+
+  validateSearchXSS(el, ev) {
+		const value = el.value;
+		this.sanitizedSearchValue = WCMAPI.validateXSS(decodeURIComponent(value, true));
+		el.value = this.sanitizedSearchValue;
+
+		// Realiza uma nova verificação de xss caso o 
+		// usuário tenha encodado várias vezes o texto
+		const newSanitized = WCMAPI.validateXSS(decodeURIComponent(el.value, true))
+
+		if (newSanitized !== this.sanitizedSearchValue) {
+			this.validateSearchXSS(el, ev);
+		}
+	},
+
+  seeAllResults(el, ev, value) {
+    const newTab = this.openNewTab === 'true';
+    value = value || (this.$inputSearch.val().trim() || this.$smallInputSearch.val().trim());
+    socialGlobal.showSearch(value, newTab);
+  },
+
+  serviceUpdatePreferences(data) {
+    const url = WCMSpaceAPI.PageService.UPDATEPREFERENCES__PATH(
+      this.instanceId
+    );
+    const options = {
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(data),
+      url,
+    };
+    return this.basePromiseAjax(options);
+  },
+
+  serviceAdvancedSearch(data) {
+    const url = GlobalSearchAPI.GlobalSearchService.ADVANCEDSEARCH__PATH();
+    const options = {
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(data),
+      url,
+    };
+    return this.basePromiseAjax(options);
+  },
+
+  basePromiseAjax(options) {
+    if (!options.loading) options.loading = false;
+    return new Promise((resolve, reject) => {
+      FLUIGC.ajax(options, (err, data) => err ? reject(err) : resolve(data));
+    });
+  },
+
+});

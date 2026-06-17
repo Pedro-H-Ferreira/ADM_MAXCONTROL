@@ -1,0 +1,69 @@
+{
+    "screenId":  "9491cf6fdc75479b85c4b89d8d7e407c",
+    "name":  "projects/4660020320183620207/screens/9491cf6fdc75479b85c4b89d8d7e407c",
+    "title":  "11. Cotações e Aprovações Animada - MaxControLADM (1920x1080) Fixed",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "9491cf6fdc75479b85c4b89d8d7e407c",
+                          "sourceScreen":  "projects/4660020320183620207/screens/9491cf6fdc75479b85c4b89d8d7e407c",
+                          "x":  22950,
+                          "y":  4289,
+                          "width":  1280,
+                          "height":  1080,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\11-cotacoes-e-aprovacoes-animada-maxcontroladm-1920x1080-fixed-9491cf6fdc75479b85c4b89d8d7e407c",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/12829f1ed04f465487bd898ac341f69d",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzVjZmMzNWY2OTY2ZTQ5OTBhOTk3ODVhMzliZDBhNzRlEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\11-cotacoes-e-aprovacoes-animada-maxcontroladm-1920x1080-fixed-9491cf6fdc75479b85c4b89d8d7e407c\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\11-cotacoes-e-aprovacoes-animada-maxcontroladm-1920x1080-fixed-9491cf6fdc75479b85c4b89d8d7e407c\\screen.html",
+                                  "bytes":  30895,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/10cbdb2ffd534d3a83ff169cb8eddbd8",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLueun_e63gHiJTQ9RqeombKxnAYHDejCSOceerFm4KhqdwYbRVLXxVa9ZWBtzuNL4HhCb2_TSXyH2HgcGuZj312dLAIMyeC8cUt5svxpftcu1JGytYwsyOX8hEKNs38-pq8xTjrDLiM4RSzcqT-oUonlN5bYLj0bZzpUPy8Uow5XX_JaBKX15UZF6V2Mh1PurJiwpl_pjUF-S8flzXGpu3kd8NhVJYMX9FIs6zimEB0riLBC9l93dqfW3w",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\11-cotacoes-e-aprovacoes-animada-maxcontroladm-1920x1080-fixed-9491cf6fdc75479b85c4b89d8d7e407c\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\11-cotacoes-e-aprovacoes-animada-maxcontroladm-1920x1080-fixed-9491cf6fdc75479b85c4b89d8d7e407c\\screenshot.png",
+                                        "bytes":  38350,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/9491cf6fdc75479b85c4b89d8d7e407c",
+                   "title":  "11. Cotações e Aprovações Animada - MaxControLADM (1920x1080) Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/10cbdb2ffd534d3a83ff169cb8eddbd8",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLueun_e63gHiJTQ9RqeombKxnAYHDejCSOceerFm4KhqdwYbRVLXxVa9ZWBtzuNL4HhCb2_TSXyH2HgcGuZj312dLAIMyeC8cUt5svxpftcu1JGytYwsyOX8hEKNs38-pq8xTjrDLiM4RSzcqT-oUonlN5bYLj0bZzpUPy8Uow5XX_JaBKX15UZF6V2Mh1PurJiwpl_pjUF-S8flzXGpu3kd8NhVJYMX9FIs6zimEB0riLBC9l93dqfW3w"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/12829f1ed04f465487bd898ac341f69d",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzVjZmMzNWY2OTY2ZTQ5OTBhOTk3ODVhMzliZDBhNzRlEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

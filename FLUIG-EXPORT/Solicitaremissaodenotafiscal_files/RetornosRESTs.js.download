@@ -1,0 +1,478 @@
+
+function filtroFilial() {
+	console.log("filtro Filial")
+	var urlCodigo
+	//var pesquisaFilial = $("#PesquisaFornecPor").val();
+	var filial = $("#filial").val();
+
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=&";
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaFilialDDRest&searchField=Descricao&";
+	
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=coca&";
+	console.log()
+	var Filialsettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'CodDescricao',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+
+	var FilialFilter = FLUIGC.filter('#filial', Filialsettings);
+
+
+
+
+	FilialFilter.on('fluig.filter.item.added', function (data) {
+
+		$("#coFilial").val(data.item.CodFilial);
+	});
+
+}
+function filtroFilialDestino() {
+	console.log("filtro Filial")
+	var urlCodigo
+	//var pesquisaFilial = $("#PesquisaFornecPor").val();
+	var filialDestino = $("#filialDestino").val();
+
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=&";
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaFilialDDRest&searchField=Descricao&";
+	
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=coca&";
+	console.log()
+	var Filialsettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'CodDescricao',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+
+	var FilialFilter = FLUIGC.filter('#filialDestino', Filialsettings);
+
+
+
+
+	FilialFilter.on('fluig.filter.item.added', function (data) {
+
+		//$("#coFilial").val(data.item.CodFilial);
+	});
+
+}
+
+function filtroFuncionario() {
+	console.log("filtro Funcionario")
+	var urlCodigo
+	//var pesquisaFuncionario = $("#PesquisaFornecPor").val();
+	var nomeColaborador = $("#nomeColaborador").val();
+	var activity = WKNumState;
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=&";
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaUsuarioDD&searchField=Nome&";
+	
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=coca&";
+	console.log()
+	var Funcionariosettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'CodNome',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+	if (activity == 0 ||activity == 4 ) {
+	var FuncionarioFilter = FLUIGC.filter('#nomeColaborador', Funcionariosettings);
+	}
+
+
+
+	FuncionarioFilter.on('fluig.filter.item.added', function (data) {
+
+		//$("#codCNPJ").val(data.item.CPF);
+		//$("#fornecedor").val(data.item.Nome);
+	});
+
+}
+
+function filtroFuncionarioCentral() {
+	console.log("filtro Funcionario Central")
+	var urlCodigo
+	//var pesquisaFuncionario = $("#PesquisaFornecPor").val();
+	var nomeCentral = $("#nomeCentral").val();
+	var activity = WKNumState;
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=&";
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaUsuarioDD&searchField=Nome&";
+	
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=coca&";
+	console.log()
+	var Funcionariosettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'CodNome',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+	if (activity == 5 ) {
+	var FuncionarioFilter = FLUIGC.filter('#nomeCentral', Funcionariosettings);
+	}
+
+
+
+	FuncionarioFilter.on('fluig.filter.item.added', function (data) {
+
+		//$("#codCNPJ").val(data.item.CPF);
+		//$("#fornecedor").val(data.item.Nome);
+	});
+
+}function filtroFuncionarioAdministrativo() {
+	console.log("filtro Funcionario Administrativo")
+	var urlCodigo
+	//var pesquisaFuncionario = $("#PesquisaFornecPor").val();
+	var nomeAdministrativo = $("#nomeAdministrativo").val();
+	var activity = WKNumState;
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=&";
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaUsuarioDD&searchField=Nome&";
+	
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=coca&";
+	console.log()
+	var Funcionariosettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'CodNome',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+	if (activity == 14 ) {
+	var FuncionarioFilter = FLUIGC.filter('#nomeAdministrativo', Funcionariosettings);
+	}
+
+
+
+	FuncionarioFilter.on('fluig.filter.item.added', function (data) {
+
+		//$("#codCNPJ").val(data.item.CPF);
+		//$("#fornecedor").val(data.item.Nome);
+	});
+
+}
+
+function filtroFuncionarioConfirmar() {
+	console.log("filtro Funcionario Confirmar")
+	var urlCodigo
+	//var pesquisaFuncionario = $("#PesquisaFornecPor").val();
+	var nomeColaboradorConfirmar = $("#nomeColaboradorConfirmar").val();
+	var activity = WKNumState;
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=&";
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaUsuarioDD&searchField=Nome&";
+	
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=coca&";
+	console.log()
+	var Funcionariosettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'CodNome',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+	if (activity == 19 ||activity == 49 || activity == 53 ) {
+	var FuncionarioFilter = FLUIGC.filter('#nomeColaboradorConfirmar', Funcionariosettings);
+	}
+
+
+
+	FuncionarioFilter.on('fluig.filter.item.added', function (data) {
+
+		//$("#codCNPJ").val(data.item.CPF);
+		//$("#fornecedor").val(data.item.Nome);
+	});
+
+}
+
+
+function filtroCliente() {
+
+	var urlCodigo
+	var activity = WKNumState;
+	//var pesquisaFornecedor = $("#PesquisaFornecPor").val();
+	
+	var tipoTransacaoP = $("#tipoTransacao").val();
+	var clientes = $("#nomeComprador").val();
+	//var pesquisaLiberada = $("#liberado").val();
+	
+	//Filtro Cliente
+	if(tipoTransacaoP == "Baixa"){
+		console.log("filtro Cliente")
+
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=&";
+	urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaClientesRest&searchField=Descricao&";
+	
+	//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=coca&";
+	console.log()
+	var Clientessettings = {
+		source: {
+			url: urlCodigo + '',
+			/*
+			 * Também poderia ser informada a URL completa:
+			 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+			 * É importante manter o "&" no final da URL, pois os outros
+			 * parâmetros são montados sem levar em consideração que já possa
+			 * haver algo parametrizado no próprio link
+			 */
+			contentType: 'application/json',
+			root: 'content',
+			pattern: '',
+			limit: 10,
+			offset: 0,
+			patternKey: 'searchValue',
+			/*
+			 * Para que a consulta funcione, é importante que o valor do
+			 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+			 * dataset
+			 */
+			limitkey: 'limit',
+			offsetKey: 'offset'
+		},
+		displayKey: 'CodDescricao',
+		/*
+		 * Para o dataset de colleague optamos por mostrar o nome completo. É
+		 * aconselhável escolher o campo que, sozinho, represente melhor o
+		 * registro
+		 */
+
+		
+	};
+
+	//trava da consulta via API
+	
+	if (activity == 0 ||activity == 4 ||activity == 37 ) {
+	
+	   var ClientesFilter = FLUIGC.filter('#nomeComprador', Clientessettings);
+		
+
+	}
+
+
+
+	ClientesFilter.on('fluig.filter.item.added', function (data) {
+
+		$("#telefoneComprador").val(data.item.Telefone);
+		$("#cpfCNPJ").val(data.item.CGC);
+	});
+
+	}
+	if(tipoTransacaoP == "Manutenção"){
+		console.log("filtro Fornecedor")
+		
+		//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=&";
+		urlCodigo = "/api/public/ecm/dataset/search?datasetId=dsConsultaFornecedoresRest&searchField=Descricao&";
+		
+		//urlCodigo = "https://winthorapi.ddlabs.com.br/produtos/consultar.php?token=MTUwODIwMTk6UFJPRDoxNzQ1NzQwNDAwMTM0NQ==&pesquisar=coca&";
+		console.log()
+		var Fornecedorsettings = {
+			source: {
+				url: urlCodigo + '',
+				/*
+				 * Também poderia ser informada a URL completa:
+				 * 'http://{host}:{port}/api/public/ecm/dataset/search?datasetId=colleague&searchField=colleagueName&'
+				 * É importante manter o "&" no final da URL, pois os outros
+				 * parâmetros são montados sem levar em consideração que já possa
+				 * haver algo parametrizado no próprio link
+				 */
+				contentType: 'application/json',
+				root: 'content',
+				pattern: '',
+				limit: 10,
+				offset: 0,
+				patternKey: 'searchValue',
+				/*
+				 * Para que a consulta funcione, é importante que o valor do
+				 * 'patternKey' seja sempre 'searchValue' para o caso de zoom de
+				 * dataset
+				 */
+				limitkey: 'limit',
+				offsetKey: 'offset'
+			},
+			displayKey: 'CodDescricao',
+			/*
+			 * Para o dataset de colleague optamos por mostrar o nome completo. É
+			 * aconselhável escolher o campo que, sozinho, represente melhor o
+			 * registro
+			 */
+
+			
+		};
+
+		
+		//trava da consulta via API
+		
+		if (activity == 0 ||activity == 4 ||activity == 37 ) {
+		
+		   var FornecedorFilter = FLUIGC.filter('#nomeComprador', Fornecedorsettings);
+			
+
+		}
+
+
+
+		FornecedorFilter.on('fluig.filter.item.added', function (data) {
+
+			//$("#telefoneComprador").val(data.item.Telefone);
+			$("#cpfCNPJ").val(data.item.CGC);
+		});
+		
+	}
+}

@@ -1,0 +1,454 @@
+var beforeSendValidate = function( numState,nextState ) {
+    const ctx = "validate.js -> beforeSendValidate() -> ";
+    console.log( ctx + "Iniciado" );
+    
+    var inicio = 0;
+    var inicio1 = 4;
+    var realizarAjusteGestor = 93;
+    var AprovGestor = 60;
+    var AprovDiretor = 107;
+    var AprovGerenteRegional = 212;
+    var AprovPresidente = 196;
+    var realizarAjusteGerenteRegional = 225;
+    var realizarAjustePresidente = 206;
+    var realizarAjusteDiretor = 111;
+    var realizarAjusteControladoria = 181;
+    var extraOrcamentario = 142;
+    var extraOrcamentarioCentral = 150;
+    var analisarLancarNF = 64;
+    var corrigirProblemaPublicacao = 102;
+	var providenciarAjustes = 5;
+	var providenciarAjustesAtraso = 18;
+	var cobrarAtendimentoDemanda = 20;
+	var verificarAjustesEncerrarChamado = 7;
+	var financeiro = 124;
+	var canhotofinanceiro = 170;
+	var realizarAjusteFinanceiro = 174;
+	
+	var aprovacaoGestorImediato = 260;
+	var analisaCotar = 242;
+	var aprovarCotacao = 245;
+	var realizarCompra = 255;
+	var anexarNF = 240;
+	var fim = 11;
+	var fim2 = 68;
+
+	try{
+		var atividade = WKNumState;
+		var processo = WKNumProces;
+		var msg = new Array();
+		
+		//AVISO INFORMATIVO DE RETIRADA DOS DADOS BANCÁRIOS
+		var dataLimite = new Date(2026, 5, 15); 
+        var dataAtual = new Date();
+
+        if (dataAtual < dataLimite) {
+            var mensagemAviso = "A partir do dia 15/06/2026, os campos de dados bancários serão retirados deste formulário, pois essas informações já são integradas pelo ERP CONSINCO.";
+
+            FLUIGC.toast({
+                title: 'Aviso Importante: ',
+                message: mensagemAviso,
+                type: 'warning', 
+                timeout: 6000 
+            });
+        }
+        
+		if(atividade == inicio || atividade == inicio1){
+			
+			
+			
+			//setaValor("qtDespesas","0")
+			setaValor("financeiroResp","00035");
+			
+			
+			//Função de aprovação das contas para o gestor Marcos (Obra)
+            var codigoConta = $("#contaCentroCusto").val();
+		    if(codigoConta == 716088 || codigoConta == 716089 || codigoConta == 716090 || codigoConta == 716091 || codigoConta == 716092 || codigoConta == 716053 || codigoConta == 716094){
+			//console.log("Filial t: " + codigoF);
+		    var respAtend = "00288";
+		    var nomeRespAtend = "MARCOS ALEXANDRE";
+		    	setaValor("matGestorArea",respAtend)
+		    	setaValor("nomeGestor",nomeRespAtend)
+
+		    }
+		    
+		    //Aprovação de Gerentes Regionais
+		    
+			//var codigoF = $("#coFilial").val();
+            var codigoC = $("#codCentroCusto").val();
+        
+		    if( codigoC == 3111001 || codigoC == 3146001 || codigoC == 3111002 || codigoC == 4414001 || codigoC == 3141002){
+			    var tipoOperacao = "operacao";
+	            var gestorArea = $("#matGerenteLojaArea").val();
+	            var nomeGestorArea = $("#nomeGerenteLojaArea").val();
+		    	setaValor("tipoOperacao",tipoOperacao)
+		        setaValor("nomeGestor",nomeGestorArea)
+		    	setaValor("matGestorArea",gestorArea)
+		        setaValor("nomeGestorImediato",nomeGestorArea)
+		    	setaValor("matGestorImediato",gestorArea)
+		    	
+		   
+		    }
+		    /*
+			if($("input[name='radioExtraOrc']:checked").length == 0){
+				msg.push("\n O campo Extraorçamentario não foi selecionado!")
+			}
+		    */  
+
+		
+			//Validação dos campos
+			let inputs = new Array(
+					"filialPedido",
+					"centroCusto",
+					"contaCentroCusto",
+					"observacaoPedido"
+			)
+			
+			
+			for(let i = 0; i<inputs.length; i++){
+				let id = inputs[i]
+				if($("#"+id).val() == "" || $("#"+id).val() == null){
+					msg.push("\n O campo " + $("label[for='"+id+"']")[0].innerHTML + " não foi preenchido")
+				}
+			}
+			
+
+			if(msg.length > 0){
+				throw(msg.toString())
+			}else{
+
+				//Atualiza data de abertura
+				setaValor("dataPedido",dataAbertura)
+			    //setaValor("numeroSolicitacao",processo)
+				
+				
+			}
+		}
+		
+
+		
+		else if(atividade == AprovGestor){
+			setaValor("dataEnvioGestor",dataAbertura)
+		    setaValor("numeroSolicitacao",processo)
+			
+			
+
+			
+			
+		}
+		else if(atividade == aprovacaoGestorImediato){
+			setaValor("dataEnvioGestor",dataAbertura)
+		    setaValor("numeroSolicitacao",processo)
+		    setaValor("unidadeFilial",filialPedido)
+			
+		}
+		else if(atividade == analisaCotar){
+			setaValor("dataEnvioGestor",dataAbertura)
+		    setaValor("numeroSolicitacao",processo)
+		    setaValor("unidadeFilial",filialPedido)
+			if($("input[name='analisarRadioCompra']:checked").length == 0){
+				msg.push("\n Informe se a descrição do produto pode ser atendida!")
+			}
+			/*
+		    let inputs = new Array(
+					"analisarRadioCompra"
+				)
+				
+				for(let i = 0; i<inputs.length; i++){
+					let id = inputs[i]
+					if($("#"+id).val() == "" || $("#"+id).val() == null){
+						msg.push("\n O campo " + $("label[for='"+id+"']")[0].innerHTML + " não foi preenchido")
+					}
+				}
+			if(msg.length > 0){
+				throw(msg.toString())
+			}else{}
+			*/
+			
+		}
+		else if(atividade == aprovarCotacao){
+		    let inputs = new Array(
+					"obsGestaoCompra"
+				)
+				for(let i = 0; i<inputs.length; i++){
+					let id = inputs[i]
+					if($("#"+id).val() == "" || $("#"+id).val() == null){
+						msg.push("\n O campo " + $("label[for='"+id+"']")[0].innerHTML + " não foi preenchido")
+					}
+				}
+			if(msg.length > 0){
+				throw(msg.toString())
+			}
+			if($("input[name='radioGestaoCompra']:checked").length == 0){
+				msg.push("\n Informar se a cotação foi aprovada!")
+			}
+			if($("input[name='radioExtraOrc']:checked").length == 0){
+				msg.push("\n Informe se tem orçamento para a compra ou serviço!")
+			}
+			//Preencher o Responsavel pelo Recebimento do Pedido. 
+			var nomeSolicitanteP = $("#responsavelPedido").val();
+			var matSolicitanteP = $("#matResponsavelEnvio").val();
+						
+		    setaValor("matResponsavelRecebimento",matSolicitanteP)
+		    setaValor("responsavelRecebimento",nomeSolicitanteP)
+
+			
+		}
+		else if(atividade == realizarCompra){
+		    setaValor("valorNF",valorTotalPedido)
+		    let inputs = new Array(
+					"responsavelRecebimento",
+					"dataPrevisaoEntrega",
+					"obsGestaoCompraOrcComp"
+				)
+				for(let i = 0; i<inputs.length; i++){
+					let id = inputs[i]
+					if($("#"+id).val() == "" || $("#"+id).val() == null){
+						msg.push("\n O campo " + $("label[for='"+id+"']")[0].innerHTML + " não foi preenchido")
+					}
+				}
+			if(msg.length > 0){
+				throw(msg.toString())
+			}
+			
+		}
+		else if(atividade == anexarNF){
+			//Validação dos campos
+			let inputs = new Array(
+					"unidadeFilial",
+					"centroCusto",
+					"codCNPJ",
+					"dataEmissaoNF",
+					"vencPagNota",
+					"contaCentroCusto",
+					"nomeColaborador",
+					"valorNF",
+					"nNotaFiscal",
+					"descricaoDemandaEnvio"
+			)
+			
+			
+			for(let i = 0; i<inputs.length; i++){
+				let id = inputs[i]
+				if($("#"+id).val() == "" || $("#"+id).val() == null){
+					msg.push("\n O campo " + $("label[for='"+id+"']")[0].innerHTML + " não foi preenchido")
+				}
+			}
+			if(msg.length > 0){
+				throw(msg.toString())
+			}
+
+			
+		}
+		else if(atividade == realizarAjusteGestor){
+			  setaValor("radioAreaGestorNao","nao")
+			  setaValor("numeroSolicitacao",processo)
+			  
+			//setaValor("obsAreaGestor","Ajustar")
+			
+		}
+		
+		else if(atividade == AprovDiretor){
+			
+
+			//setaValor("radioAreaDiretoria","sim")
+			//setaValor("obsAreaDiretoria","Aprovado")
+			setaValor("dataEnvioDiretor",dataAbertura)
+			//setaValor("numeroSolicitacao",WKNumProces)
+			
+
+            /*			
+			let inputs = new Array(
+					"obsAreaDiretoria"
+				)
+				
+				for(let i = 0; i<inputs.length; i++){
+					let id = inputs[i]
+					if($("#"+id).val() == "" || $("#"+id).val() == null){
+						msg.push("\n O campo " + $("label[for='"+id+"']")[0].innerHTML + " não foi preenchido")
+					}
+				}
+
+				if($("input[name='radioGestorAreaDiretoria']:checked").length == 0){
+					msg.push("\n Informe se a Nota Fiscal foi aprovada pela Diretoria!")
+				}
+				
+			*/
+			
+		}
+		else if(atividade == extraOrcamentario){
+			setaValor("radioAreaControladoria","Sim")
+			setaValor("dataEnvioControladoria",dataAbertura)
+			
+		}
+		
+		else if(atividade == extraOrcamentarioCentral){
+			setaValor("radioAreaControladoria","Sim")
+			setaValor("dataEnvioControladoria",dataAbertura)
+			
+		}
+		
+		
+		else if(atividade == realizarAjusteDiretor){
+			//setaValor("radioAreaDiretoria","nao")
+			//setaValor("obsAreaDiretoria","Ajustar")
+			
+		}
+		
+		
+		else if(atividade == analisarLancarNF || atividade == verificarAjustesEncerrarChamado){
+			//Edição do campo responsavel pelo financeiro
+
+		    var codigoF = $("#coFilial").val();
+		    
+			console.log("Filial t: " + codigoF);
+		    //var respAtend = 00131;
+		    if (codigoF == "2"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "5"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "9"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "10"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "11"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "14"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "20"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "23"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "24"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "31"){
+		    	setaValor("financeiroResp","00131")
+		    }
+		    if (codigoF == "36"){
+		    	setaValor("financeiroResp","00131")
+		    }
+			
+			    setaValor("numeroSolicitacao",processo)
+			    let inputs = new Array(
+					"obsLancaInputNF"
+				)
+				
+				for(let i = 0; i<inputs.length; i++){
+					let id = inputs[i]
+					if($("#"+id).val() == "" || $("#"+id).val() == null){
+						msg.push("\n O campo " + $("label[for='"+id+"']")[0].innerHTML + " não foi preenchido")
+					}
+				}
+
+				if(msg.length > 0){
+					throw(msg.toString())
+				}else{
+
+					
+					
+					//Atualiza prazos
+					if($("#tipoUrgente").prop("checked") == true){
+						setaValor("prazoAtenderDemanda","001:00")
+						//setaValor("prazoCobrarDemanda","000:30")
+					}
+					
+									
+
+					//Atualiza data de abertura
+					//setaValor("dataSolic",dataAbertura)
+				}
+				
+				
+			
+			
+		}
+		
+		else if(atividade == solicitarAjusteNF){
+			
+
+			if($("input[name='radioDemanda']:checked").length == 0){
+				msg.push("\n Informe o tipo de Demanda!")
+			}
+
+
+			if(msg.length > 0){
+				throw(msg.toString())
+			}else{
+
+				
+				
+				//Atualiza prazos
+				if($("#tipoUrgente").prop("checked") == true){
+					setaValor("prazoAtenderDemanda","001:00")
+					//setaValor("prazoCobrarDemanda","000:30")
+				}
+				
+								
+
+				//Atualiza data de abertura
+				//setaValor("dataSolic",dataAbertura)
+			}
+		}else if(atividade == providenciarAjustes || atividade == providenciarAjustesAtraso){
+			
+			let inputs = new Array(
+				"obsAtendimento"
+			)
+			
+			for(let i = 0; i<inputs.length; i++){
+				let id = inputs[i]
+				if($("#"+id).val() == "" || $("#"+id).val() == null){
+					msg.push("\n O campo " + $("label[for='"+id+"']")[0].innerHTML + " não foi preenchido")
+				}
+			}
+
+			if($("input[name='radioAtendimentoResolvida']:checked").length == 0){
+				msg.push("\n Informe se a demanda foi resolvida!")
+			}
+
+		}
+	/*	
+		else if(atividade == verificarAjustesEncerrarChamado){
+			
+			setaValor("prazoAtenderDemanda","001:00")
+			
+			let inputs = new Array(
+				"obsInput"
+			)
+			
+			for(let i = 0; i<inputs.length; i++){
+				let id = inputs[i]
+				if($("#"+id).val() == "" || $("#"+id).val() == null){
+					msg.push("\n O campo " + $("label[for='"+id+"']")[0].innerHTML + " não foi preenchido")
+				}
+			}
+
+			if($("input[name='radioInputResolvida']:checked").length == 0){
+				msg.push("\n Informe se a demanda foi resolvida!")
+			}
+
+			if($("#radioInputResolvidaSim").prop("checked") == false){
+				setaValor("solucaoArea","nao")
+			}else{
+				setaValor("solucaoArea"," ")
+			}
+
+		}
+		
+	*/	
+		if(msg.length > 0){
+			throw(msg.toString())
+		}
+	}catch(e){
+		throw(e.toString())
+	}
+
+}

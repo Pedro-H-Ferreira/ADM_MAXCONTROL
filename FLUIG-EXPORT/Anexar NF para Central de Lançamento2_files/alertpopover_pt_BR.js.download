@@ -1,0 +1,764 @@
+var AlertPopover = SuperWidget
+	.extend({
+
+		alertCentralBS: null,
+		timeInteraction: null,
+
+		bindings: {
+			local: {
+				'timeline-link-supported': ['click_peopleList'],
+				'mark-all-read': ['click_markAllRead'],
+				'actions-notification': ['click_executeAction'],
+				'mark-read': ['click_markAlertAsRead'],
+				'show-note': ['click_showNote'],
+				'search-action': ['click_searchAction'],
+				'open-answer-form': ['click_openAnswerForm'],
+				'global-alert-popover': ['click_openListAlerts']
+			}
+		},
+
+		init: function() {
+			var that = this;
+			this.timeInteraction = FLUIGC.timeInteraction;
+			this.alertCentralBS = AlertCentralBS.instance(this.instanceId, 'DOM', {});
+			this.countUnreadAlerts();
+			this.listenNotifications();
+			this.popover();
+
+			FLUIGC.utilities.isolatedScroll('#popover-content');
+
+			// bypassando o bind da SuperWidget para poder bindar todos
+			// os <a> das notificações
+			$(this.DOM).on('click', '[data-alert-id] a', function(ev) {
+				that.markAlertAsRead($(this).parent('[data-alert-id]').find('[data-mark-read]')[0], ev);
+				if (!$(this).data('open-answer-form')) {
+					var openInNewBlank = this.href.match(/^(.*)(#blank)$/);
+					if (openInNewBlank) {
+						ev.preventDefault();
+						window.open(openInNewBlank[1], '_blank');
+					} else {
+						location.href = this.href;
+					}
+				}
+			});
+		},
+
+		openListAlerts: function(el, ev) {
+			ev.preventDefault();
+		},
+
+		showNote: function(el, ev) {
+			var that = this, element = $(el), parent = element.parents('li.list-group-item'), isVisible = parent
+				.data('is-note-visible'), alertId = parent.data('alert-id'), note = $('#note' + alertId);
+
+			ev.preventDefault();
+			ev.stopPropagation();
+
+			if (isVisible) {
+				note.remove();
+			} else {
+				if (element.data('note-html')) {
+					parent.append(element.data('note-html'));
+				} else {
+					var options = {
+						url: '/api/public/mention/findMentions',
+						contentType: 'application/json',
+						dataType: 'json',
+						type: 'GET',
+						data: {
+							mentioningId: alertId,
+							mentioningClass: 'com.totvs.technology.foundation.alert.entity.FDNAlert'
+						}
+					}
+					this
+						.baseAjax(
+							options,
+							function(err, data) {
+
+								if (err) {
+									return;
+								}
+
+								var html = '<div class="well well-sm fs-no-margin-bottom" id="note' + alertId
+									+ '"> <small>';
+								html += '<a href="#" class="fluigicon fluigicon-remove-circle fs-no-text-underline pull-right" title="Fechar nota" ';
+								html += 'data-note="{{object.note}}" data-show-note></a>';
+								html += that.generateContentTextFormatted(element.data('note'), data);
+								html += '</small></div>';
+								parent.append(html);
+								element.data("note-html", html);
+
+							});
+				}
+			}
+
+			parent.data('is-note-visible', !isVisible);
+		},
+
+		openAnswerForm: function(el, ev) {
+
+			ev.preventDefault();
+			ev.stopPropagation();
+
+			var element = $(el);
+
+			var formId = element.data('open-answer-form');
+			if (isNaN(formId)) {
+				FLUIGC.toast({
+					message: "Não foi possível localizar o formulário compartilhado",
+					type: 'danger'
+				});
+			} else {
+				SOCIALBC.openAnswerForm(formId);
+			}
+		},
+
+		countUnreadAlerts: function() {
+			this.alertCentralBS.countUnreadAlerts(function(err, data) {
+				if (err) {
+					socialGlobal.message({
+						type: 'information',
+						text: 'Não foi possível recuperar o total de notificações',
+						timeout: 2000
+					});
+					return;
+				}
+
+				$('#unread-alert-counter').html(data);
+
+				if (data > 0) {
+					$('#unread-alert-counter').parents('#global-alert-popover:first').addClass('btn-warning')
+						.removeClass('btn-default');
+				} else {
+					$('#unread-alert-counter').parents('#global-alert-popover:first').removeClass('btn-warning')
+						.removeClass('btn-warning').addClass('btn-primary');
+				}
+			});
+		},
+
+		popover: function() {
+			var that = this;
+			$('#global-alert-popover').totvsPopover({
+				popoverPosition: 'topRight',
+				fadeIn: 200,
+				fadeOut: 200,
+				width: 412,
+				calcWidth: 412,
+				onClick: function(el) {
+					if (!$(el).find('#popover-box').length) {
+						$(el).addClass('loading');
+						WCMAPI.convertFtlAsync('alertpopover', 'popover.ftl', {}, function(html) {
+							$(el).removeClass('loading');
+							$(el).find('.wrapper-popover').append(html);
+							that.getNotificationList();
+						});
+					}
+				}
+			});
+		},
+
+		peopleList: function(el, ev) {
+
+			var $this = $(el);
+
+			FLUIGC.modal({
+				title: $this.data("dialog-title"),
+				content: {
+					widgetCode: 'alertuserlist',
+					ftl: 'view.ftl',
+					data: {
+						'alertId': $this.data('alert-id')
+					}
+				},
+				id: 'fluig-modal-alertpopover'
+			});
+		},
+
+		markAllRead: function(el, ev) {
+			var that = this;
+
+			socialGlobal.showLoading();
+
+			this.alertCentralBS.markAllAlertsAsRead(function(err, data) {
+				if (err) {
+					socialGlobal.message({
+						type: 'error',
+						text: 'Ocorreu um erro ao tentar marcar as notificações como lidas',
+						timeout: 2000
+					});
+				} else {
+					socialGlobal.message({
+						type: 'success',
+						text: 'As notificações foram marcadas como lidas',
+						timeout: 2000
+					});
+					that.getNotificationList();
+				}
+				that.updateAlertCounter();
+				socialGlobal.hideLoading();
+			});
+		},
+
+		// Este método atualiza o número de notificações.
+		updateAlertCounter: function() {
+			this.countUnreadAlerts();
+		},
+
+		refreshPeriods: function() {
+			this.timeInteraction.init({
+				parent: '.global-alert-popover',
+				period: 10000
+			});
+		},
+
+		// Registra os listeners para eventos de novas notificações
+		listenNotifications: function() {
+			var that = this, $unreadAlertCounter = $('#unread-alert-counter', this.DOM), $globalAlertPopover = $(
+				'#global-alert-popover', this.DOM);
+
+			WCMAPI.addListener(this, 'countunreadalerts', function(evName, data) {
+				if (data.unreadalerts != 0) {
+					$globalAlertPopover.removeClass('btn-warning').addClass('btn-primary');
+					setTimeout(function() {
+						$unreadAlertCounter.html(data.unreadalerts);
+						$globalAlertPopover.removeClass('btn-primary').addClass('btn-warning');
+					}, 300);
+				} else {
+					$globalAlertPopover.removeClass('btn-warning').addClass('btn-primary');
+				}
+
+				that.getNotificationList();
+			});
+
+			// atualiza a lista de notificações
+			WCMAPI.addListener(this, 'refreshNotificationList', function(evName, data) {
+				that.getNotificationList();
+			});
+		},
+
+		getNotificationList: function() {
+
+			var that = this, html;
+
+			this.alertCentralBS.notificationList(function(err, data) {
+
+				if (err) {
+					socialGlobal.message({
+						text: 'Não foi possível recuperar as notificações',
+						type: 'error',
+						timeout: 2000
+					});
+					return;
+				}
+
+				html = that.notificationList(data);
+
+				$('#popover-content', that.DOM).html(html);
+				that.refreshPeriods();
+			}, 5, 0);
+		},
+
+		/*
+		 * Esta função de listar notificações foi isolada para reaproveita-lá na renderização de uma única noticifação.
+		 */
+		notificationList: function(data) {
+
+			var that = this, lastDate;
+
+			function hasNotifications() {
+				if (data.length) {
+					return true;
+				}
+				return false;
+			}
+
+			function descriptionNotEmpty() {
+				return this.description !== '';
+			}
+
+			function getDate() {
+				return lastDate;
+			}
+
+			function getEvent() {
+				if (this.senders.length > 1) {
+					return this.event.groupDescription;
+				}
+				return this.event.singleDescription;
+			}
+
+			function getEventIcon() {
+				return this.event.icon;
+			}
+
+			function hasEventIcon() {
+				return this.event.icon ? true : false;
+			}
+
+			function getComunityIcon() {
+				var iconPath;
+				if (this.object.link) {
+					var linkPath = this.object.link;
+					var linkSplit = linkPath.split('/');
+					var comunityAlias = linkSplit[linkSplit.length - 1];
+					iconPath = '/social/api/rest/social/image/profile/' + comunityAlias + '/X_SMALL_PICTURE';
+				}
+				return iconPath;
+			}
+
+			function getSenders() {
+				var senders, name = socialGlobal.getSocialUser().name;
+
+				if (this.senders.length > 3) {
+					senders = this.senders.slice(0, 2);
+				} else {
+					senders = this.senders.slice(0, 3);
+				}
+
+				senders.map(function(el) {
+					if (name === el.user.fullName) {
+						el.user.fullName = "Você";
+					}
+					return el;
+				});
+
+				if (senders.length > 1) {
+					for (i = 1; i <= senders.length; i++) {
+						if (i < senders.length) {
+							senders[i-1].user.fullName = senders[i-1].user.fullName + ","
+						}
+					}
+				}
+
+				return senders;
+			}
+
+			function hasMorePeople() {
+				return this.senders.length > 3;
+			}
+
+			function getAdditionalPeople() {
+				if (this.senders) {
+					return this.senders.slice(2);
+				}
+
+				return '';
+			}
+
+			function getNumAdditionalPeople() {
+				if (this.senders) {
+					return this.senders.slice(2).length;
+				}
+
+				return 0;
+			}
+
+			function getSenderLink() {
+				return defaultURL() + '/social/' + this.user.login;
+			}
+
+			function defaultURL() {
+				return socialGlobal.defaultURL();
+			}
+
+			function hasSenders() {
+				if (this.senders && this.senders.length > 0) {
+					return true;
+				} else {
+					return false;
+				}
+			}
+
+			function getLastSenderLogin() {
+				var sender = this.senders[0];
+				return sender.user.login;
+			}
+
+			// Valida se existe ação na notificação.
+			function hasActionsNotification() {
+				if (this.actions) {
+					return true;
+				}
+				return false;
+			}
+
+			// Retorna as ações referentes aquela notificação.
+			function getActionsNotification() {
+				return this.actions;
+			}
+
+			/*
+			 * Retorna a ação já executada
+			 */
+			function getExecutedActionsNotification() {
+				var actions = this.actions;
+				for (i in actions) {
+					if (actions[i].executed) {
+						return actions[i];
+					}
+				}
+			}
+
+			/*
+			 * Verifica se a ações não são em grupo, ( menor ou igual a 2 ações ) e se ação foi executada.
+			 */
+			function hasNotificationsSingleActions() {
+				if (this.actions) {
+					return this.actions.length <= 2 && !hasAlreadyExecutedAnyAction(this.actions);
+				}
+				return false;
+			}
+			/*
+			 * Verifica se a ações são em grupo, ( maior que 2 ações ) e se nenhuma a exe utada.
+			 */
+			function hasNotificationsGroupActions() {
+				if (this.actions) {
+					return this.actions.length > 2 && !hasAlreadyExecutedAnyAction(this.actions);
+				}
+				return false;
+			}
+
+			/*
+			 * Verifica se alguma ação já foi executada.
+			 */
+			function hasAlreadyExecutedAnyAction(actions) {
+				for (i in actions) {
+					if (actions[i].executed) {
+						return true;
+					}
+				}
+				return false;
+			}
+			/*
+			 * Verifica qual é o tipo de botão para retornar a classe correta. Pintar o botã cor c rreta.
+			 */
+			function getClassButtonType() {
+				if (this.actionType === 'MAIN') {
+					return 'btn-primary';
+				}
+				return 'btn-default';
+			}
+
+			/*
+			 * Verifica se a notificação possui uma nota.
+			 */
+			function hasNote() {
+				if (this.object == null) {
+					return false
+				}
+				return this.object.note == null ? false : true;
+			}
+
+			/*
+			 * Verifica se o objeto da notificação possui um link.
+			 */
+			function hasLink() {
+				return this.link == null ? false : true;
+			}
+			/*
+			 * Verifica se o link externo para a notificação informado pelo usuário é uma URL válida
+			 */
+			function hasExternalLink() {
+				if (this.link != null) {
+					var exp = /(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/igm;
+					var regExp = new RegExp(exp);
+
+					var testRegExp = regExp.test(this.link);
+
+					if (testRegExp) {
+						var urlLink = this.link;
+
+						if (urlLink.search(/^http[s]?\:\/\//) == -1) {
+							urlLink = 'http://' + urlLink;
+							this.link = urlLink;
+						}
+					}
+
+					return testRegExp;
+				}
+
+				return false;
+			}
+			/*
+			 * Verifica se o objeto da notificação é um formulário.
+			 */
+			function isForm() {
+				if (this.typeDescriptionKey == 'sociable.the.form') {
+					return true;
+				}
+				return false;
+			}
+			/*
+			 * Verifica se a notificacao é do tipo watch para efetuar uma personalização.
+			 */
+			function isEventKeyWatch() {
+				if (this.event) {
+					if (this.event.eventKey) {
+						return this.event.eventKey == "WATCH_COMMENT";
+					}
+				}
+				return false;
+			}
+			/*
+			 * Retorna o valor do form se houver.
+			 */
+			function formId() {
+				var formIdentifier;
+				if (this.link) {
+					if (this.typeDescriptionKey == 'sociable.the.form') {
+						if (this.link.indexOf('ecmnavigation?app_ecm_navigation_doc=') > -1) {
+							var indexOf1 = this.link.indexOf('=');
+							var indexOf2 = this.link.indexOf('&');
+							if (indexOf2 && indexOf1) {
+								formIdentifier = this.link.substring(indexOf1 + 1, indexOf2);
+							}
+						} else {
+							formIdentifier = this.link.split('/');
+							formIdentifier = formIdentifier[formIdentifier.length - 1];
+						}
+					}
+				}
+				return formIdentifier;
+			}
+
+			/*
+			 * Verifica se a notificação possui uma nota.
+			 */
+			function isNoteVisible() {
+				var noteElement = $("#note" + this.id);
+				if (noteElement.length) {
+					return true;
+				}
+
+				return false;
+			}
+
+			function noteValue() {
+				var noteElement = $("#note" + this.id);
+				if (noteElement.length) {
+					return $('<div>').append($('#note' + this.id).clone()).html();
+				} else {
+					return "";
+				}
+			}
+
+			function isFolderDownload() {
+				if (this.event) {
+					if (this.event.eventKey) {
+						return this.event.eventKey == "FOLDER_DOWNLOAD_ENDED";
+					}
+				}
+				return false;
+			}
+
+			var html = Mustache.render(that.templates.tpl_notification_list, {
+				defaultURL: defaultURL,
+				hasNotifications: hasNotifications,
+				notifications: data,
+				getDate: getDate,
+				getEvent: getEvent,
+				getEventIcon: getEventIcon,
+				hasSenders: hasSenders,
+				getSenders: getSenders,
+				hasMorePeople: hasMorePeople,
+				getAdditionalPeople: getAdditionalPeople,
+				getNumAdditionalPeople: getNumAdditionalPeople,
+				getSenderLink: getSenderLink,
+				getLastSenderLogin: getLastSenderLogin,
+				hasActionsNotification: hasActionsNotification,
+				hasAlreadyExecutedAnyAction: hasAlreadyExecutedAnyAction,
+				getActionsNotification: getActionsNotification,
+				getExecutedActionsNotification: getExecutedActionsNotification,
+				hasNotificationsSingleActions: hasNotificationsSingleActions,
+				hasNotificationsGroupActions: hasNotificationsGroupActions,
+				getClassButtonType: getClassButtonType,
+				hasNote: hasNote,
+				hasLink: hasLink,
+				isFolderDownload: isFolderDownload,
+				hasExternalLink: hasExternalLink,
+				isNoteVisible: isNoteVisible,
+				noteValue: noteValue,
+				isForm: isForm,
+				formId: formId,
+				isEventKeyWatch: isEventKeyWatch,
+				hasEventIcon: hasEventIcon,
+				getComunityIcon: getComunityIcon,
+				descriptionNotEmpty: descriptionNotEmpty
+			}, {
+				genericTemplate: this.templates['notification-object-generic-template'],
+				folderTemplate: this.templates['notification-object-folder-template']
+			});
+
+			return html;
+		},
+
+		executeAction: function(el, ev) {
+
+			var that = this, actionType = $(el).data('notification-action-type'), actionUrl = $(el).data(
+				'notification-action-url'), actionId = $(el).data('actions-notification'), notificationId = $(el)
+				.parents('.list-group-item').data('alert-id'), arrNotificationId = [];
+
+			if (actionType === 'NONE' && actionUrl !== '') {
+				arrNotificationId.push(notificationId);
+				that.alertCentralBS.markSelectedAsRead(arrNotificationId, function() {
+					that.countUnreadAlerts();
+					that.getNotification(notificationId);
+
+					WCMAPI.fireEvent('newalertid', {
+						alertid: notificationId
+					});
+				});
+
+				var openInNewBlank = actionUrl.match(/^(.*)(#blank)$/);
+				if (openInNewBlank) {
+					window.open(WCMAPI.getProtectedContextPath() + openInNewBlank[1], '_blank');
+				} else {
+					window.location = WCMAPI.getProtectedContextPath() + actionUrl;
+				}
+
+				return;
+
+			}
+
+			this.alertCentralBS.executeAction(actionId, function(err, data) {
+				if (err) {
+					socialGlobal.message({
+						type: 'error',
+						text: 'Ocorreu um erro ao tentar executar esta ação',
+						timeout: 2000
+					});
+					return;
+				}
+				if (data) {
+					arrNotificationId.push(notificationId);
+					that.alertCentralBS.markSelectedAsRead(arrNotificationId, function() {
+						that.countUnreadAlerts();
+						that.getNotification(notificationId);
+
+						WCMAPI.fireEvent('newalertid', {
+							alertid: notificationId
+						});
+					});
+					return;
+				}
+			});
+		},
+
+		markAlertAsRead: function(el, ev) {
+			var target = $(ev.target);
+
+			// valida se a notificação ja foi lida (quando não possui a classe "notification-unread")
+			// e quando clicar no botão dropdown não marca ela como lida também.
+			if ($(el).closest('.notification-unread') && !target.is('[data-toggle="dropdown"]')) {
+				var alertId = $(el).parent('[data-alert-id]').data('alert-id'),
+					that = this;
+
+				this.alertCentralBS.markSelectedAsRead([alertId], function() {
+					that.getNotificationList();
+					that.countUnreadAlerts();
+				}, function() {
+					socialGlobal.message({
+						type: 'error',
+						text: 'Ocorreu um erro ao tentar marcar as notificações como lidas',
+						timeout: 2000
+					});
+				});
+			}
+		},
+		getNotification: function(id) {
+			var that = this, notificationId = {}, dataNotification = [], html;
+
+			notificationId.alertid = id;
+
+			this.alertCentralBS.getNotification(notificationId, function(err, data) {
+				/*
+				 * Ao tentar buscar a notificação, se a notificação foi removida o sistema devolve um erro e então
+				 * removemos a notificação da tela. É necessário fazer um tratamento mais correto para essa situação.
+				 */
+				if (err) {
+					$('[data-alert-id="' + id + '"]').remove();
+					return;
+				}
+
+				dataNotification.push(data);
+
+				html = that.notificationList(dataNotification);
+
+				$('[data-alert-id="' + id + '"]', that.DOM).replaceWith(html);
+			});
+		},
+
+		generateContentTextFormatted: function(text, mentions) {
+			if (!text) {
+				return '';
+			}
+
+			text = FLUIGC.utilities.preventXSS(text);
+			text = this.formatSeeMore(text);
+			text = this.formatMentions(text, mentions);
+			text = this.formatLink(text);
+			text = this.formatTags(text);
+			text = this.formatLineBreak(text);
+
+			return text;
+		},
+
+		formatSeeMore: function(text) {
+
+			if (text.length >= 80) {
+				text = text.substring(0, 60);
+				var html = Mustache.render(this.templates['social-alertpopover-seemore'], {
+					tenantURI: socialGlobal.defaultURL()
+				});
+				text = text + "..." + html;
+			}
+			return text;
+		},
+
+		formatMentions: function(text, mentions) {
+
+			var data = {}, regex, html = '', mention;
+
+			for (mention in mentions.content) {
+				regex = new RegExp('\\@\\[' + mention + '\\]', 'ig');
+				data.alias = mention;
+				data.name = mentions.content[mention];
+				data.tenantURI = socialGlobal.defaultURL();
+				html = Mustache.render(this.templates['social-timeline-mention-template'], data);
+				text = text.replace(regex, html);
+			}
+
+			return text;
+		},
+
+		formatTags: function(text) {
+			var html = Mustache.render(this.templates['social-timeline-tag-template']);
+			return text.replace(/(#[à-ú,\p{L}\w]+)/ig, html);
+		},
+
+		formatLink: function(text) {
+			var html = Mustache.render(this.templates['social-timeline-link-template']);
+			return text.replace(/((((https?|ftp|file):\/\/)|(www))[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig,
+				html);
+		},
+
+		formatLineBreak: function(text) {
+			var html = Mustache.render(this.templates['social-timeline-line-break-template']);
+			return text.replace(/\n/g, html);
+		},
+
+		searchAction: function(el, ev) {
+			socialGlobal.showSearch($(el).text());
+		},
+
+		baseAjax: function(options, cb) {
+			options = options || {};
+
+			$.ajax(options).done(function(data) {
+				cb(null, data);
+			}).fail(function(xhr, status, text) {
+				cb(xhr);
+			});
+		},
+
+	});

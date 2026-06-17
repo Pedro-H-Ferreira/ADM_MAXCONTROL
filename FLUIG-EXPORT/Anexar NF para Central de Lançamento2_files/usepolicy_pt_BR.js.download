@@ -1,0 +1,115 @@
+var SocialUsePolicy = SuperWidget.extend({
+
+	instanceId: null,
+	alias: null,
+
+	i18n: {
+		'label.idioma.pt': "Português",
+		'label.idioma.es': "Espanhol",
+		'label.idioma.en': "Inglês",
+		'label.doc.default.true': "Documento padrão",
+		'label.doc.default.false': "",
+		'label.no.doc.was.selected': "Nenhum documento selecionado.",
+		'use.policy.error.no.usepolicy': "use.policy.error.no.usepolicy",
+		'use.policy.error.language.not.supported': "use.policy.error.language.not.supported",
+		'use.policy.error.document.creation': "use.policy.error.document.creation",
+		'use.policy.error.no.document': "Não existe documento com o ID informado.",
+		'use.policy.error.no.tenant': "use.policy.error.no.tenant",
+		'use.policy.error.unsupported.document': "use.policy.error.unsupported.document",
+		'use.policy.error.generic.error': "Erro. Contate o administrador.",
+		'use.policy.error.default.doc.error': "use.policy.error.default.doc.error",
+		'label.close': "Fechar",
+		'label.warning': "Atenção"
+	},
+
+	init: function() {
+		//code
+	},
+
+	bindings: {
+		local: {
+			'view-use-policy': ['click_viewUsePolicy']
+		},
+
+		global: {
+
+		}
+	},
+
+	viewUsePolicy: function(el, ev) {
+
+		var that = this, url = '/usepolicyapi/api/rest/usepolicy/usepolicydocument';
+		
+		ev.preventDefault();
+
+		$.ajax({
+			type: 'GET',
+			url: url,
+			success: function(data) {
+
+				var idDoc = data.content.documentId;
+				var version = data.content.documentVersion;
+
+				ECM.documentView = {};
+				controlOpenModel = true;
+
+				var cfg = {
+					url: "/ecm_documentview/documentView.ftl",
+					width: 600,
+					height: '100%',
+					maximized: true,
+					title: "navigation.documentView",
+					showbtclose: false,
+					customButtons: []
+				};
+
+				ECM.documentView.panel = WCMC.panel(cfg);
+
+				ECM.documentView.removePropertiesDocumentView();
+
+				ECM.documentView.panel.bind("panel-load", function() {
+					setTimeout(function() {
+						if (!ECM.documentView.getDocument) {
+							loadDocument();
+							return;
+						}
+
+						loadDocument();
+					}, 500);
+				});
+
+				function loadDocument() {
+					ECM.documentView.getDocument(idDoc, version, false);
+				}
+
+				ECM.documentView.panel.bind("panel-close", function() {
+					controlOpenModel = false;
+					if (ECM.documentView.toUndefined == undefined || ECM.documentView.toUndefined) {
+						ECM.documentView = undefined;
+					}
+					if (WCMAPI.isIe()) {
+						var iframe = $("#ecm-documentview-docframe");
+						if (iframe) {
+							iframe.hide();
+						}
+					}
+				});
+
+			},
+			error: function(err) {
+				var error = JSON.parse(err.responseText);
+				var message = (that.i18n[error.message.message])
+				? that.i18n[error.message.message]
+				: error.message.message;
+
+				FLUIGC.message.alert({
+					message: message,
+					title: that.i18n['label.warning'],
+					label: that.i18n['label.close']
+				});
+			}
+		});
+
+	}
+
+});

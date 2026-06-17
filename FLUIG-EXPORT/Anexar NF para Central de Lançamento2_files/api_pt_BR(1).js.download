@@ -1,0 +1,2692 @@
+function SocialDATAAPI(){}
+function SocialDATAAPI_MentionService(){}
+SocialDATAAPI_MentionService.prototype.basePath = function(){
+return "/social/api/rest/mention";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_MentionService.prototype.REPLACEMENTIONS__PATH = function(){
+return "/social/api/rest/mention"+"/";}
+SocialDATAAPI_MentionService.prototype.REPLACEMENTIONS = function(__callData,objectId,objectClass,hasMentions,objectText,replacePattern){
+var __cmdurl__="/social/api/rest/mention"+"/";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (objectId){
+__cmdurl__+="&objectId=";
+__cmdurl__+=encodeURIComponent(objectId);
+}
+if (objectClass){
+__cmdurl__+="&objectClass=";
+__cmdurl__+=encodeURIComponent(objectClass);
+}
+if (hasMentions){
+__cmdurl__+="&hasMentions=";
+__cmdurl__+=encodeURIComponent(hasMentions);
+}
+if (objectText){
+__cmdurl__+="&objectText=";
+__cmdurl__+=encodeURIComponent(objectText);
+}
+if (replacePattern){
+__cmdurl__+="&replacePattern=";
+__cmdurl__+=encodeURIComponent(replacePattern);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "text", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI.prototype.MentionService=new SocialDATAAPI_MentionService;
+function SocialDATAAPI_CommunityService(){}
+SocialDATAAPI_CommunityService.prototype.basePath = function(){
+return "/social/api/rest/community";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_CommunityService.prototype.LISTALLCOMMUNITIES__PATH = function(){
+return "/social/api/rest/community"+"/listAllCommunities";}
+SocialDATAAPI_CommunityService.prototype.LISTALLCOMMUNITIES = function(__callData,limit,offset){
+var __cmdurl__="/social/api/rest/community"+"/listAllCommunities";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.SWITCHCOMMUNITYADMIN__PATH = function(communityId,socialAlias){
+return "/social/api/rest/community"+"/swhithCommunityAdmin/"+encodeURIComponent(communityId)+"/"+encodeURIComponent(socialAlias)+"";}
+SocialDATAAPI_CommunityService.prototype.SWITCHCOMMUNITYADMIN = function(__callData,communityId,socialAlias){
+var __cmdurl__="/social/api/rest/community"+"/swhithCommunityAdmin/"+encodeURIComponent(communityId)+"/"+encodeURIComponent(socialAlias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.LISTALLCOMMUNITIESBYNAME__PATH = function(){
+return "/social/api/rest/community"+"/listAllCommunitiesByName";}
+SocialDATAAPI_CommunityService.prototype.LISTALLCOMMUNITIESBYNAME = function(__callData,name,limit,offset){
+var __cmdurl__="/social/api/rest/community"+"/listAllCommunitiesByName";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (name){
+__cmdurl__+="&name=";
+__cmdurl__+=encodeURIComponent(name);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.REMOVEPARTICIPATIONFROMCOMMUNITY__PATH = function(communityId,socialId){
+return "/social/api/rest/community"+"/removeParticipationFromCommunity/"+encodeURIComponent(communityId)+"/"+encodeURIComponent(socialId)+"";}
+SocialDATAAPI_CommunityService.prototype.REMOVEPARTICIPATIONFROMCOMMUNITY = function(__callData,communityId,socialId){
+var __cmdurl__="/social/api/rest/community"+"/removeParticipationFromCommunity/"+encodeURIComponent(communityId)+"/"+encodeURIComponent(socialId)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.CHANGECOMMUNITIESSTATUS__PATH = function(){
+return "/social/api/rest/community"+"/changeCommunitiesStatus";}
+SocialDATAAPI_CommunityService.prototype.CHANGECOMMUNITIESSTATUS = function(__callData,obj_List){
+var __cmdurl__="/social/api/rest/community"+"/changeCommunitiesStatus";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.ISVALIDCOMMUNITYALIAS__PATH = function(alias){
+return "/social/api/rest/community"+"/isValidCommunityAlias/"+encodeURIComponent(alias)+"";}
+SocialDATAAPI_CommunityService.prototype.ISVALIDCOMMUNITYALIAS = function(__callData,alias){
+var __cmdurl__="/social/api/rest/community"+"/isValidCommunityAlias/"+encodeURIComponent(alias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.LISTALLCOMMUNITIESWITHORDERBY__PATH = function(){
+return "/social/api/rest/community"+"/listAllCommunitiesWithOrderBy";}
+SocialDATAAPI_CommunityService.prototype.LISTALLCOMMUNITIESWITHORDERBY = function(__callData,pattern,orderby,limit,offset){
+var __cmdurl__="/social/api/rest/community"+"/listAllCommunitiesWithOrderBy";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (orderby){
+__cmdurl__+="&orderby=";
+__cmdurl__+=encodeURIComponent(orderby);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.LISTALLCOMMUNITIESWITHRELEVANCE__PATH = function(){
+return "/social/api/rest/community"+"/listAllCommunitiesWithRelevance";}
+SocialDATAAPI_CommunityService.prototype.LISTALLCOMMUNITIESWITHRELEVANCE = function(__callData,pattern,orderType,limit,offset){
+var __cmdurl__="/social/api/rest/community"+"/listAllCommunitiesWithRelevance";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (orderType){
+__cmdurl__+="&orderType=";
+__cmdurl__+=encodeURIComponent(orderType);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.LISTPARTICIPANTSWITHRELEVANCE__PATH = function(){
+return "/social/api/rest/community"+"/listParticipantsWithRelevance";}
+SocialDATAAPI_CommunityService.prototype.LISTPARTICIPANTSWITHRELEVANCE = function(__callData,communityAlias,pattern,orderType,limit,offset){
+var __cmdurl__="/social/api/rest/community"+"/listParticipantsWithRelevance";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (communityAlias){
+__cmdurl__+="&communityAlias=";
+__cmdurl__+=encodeURIComponent(communityAlias);
+}
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (orderType){
+__cmdurl__+="&orderType=";
+__cmdurl__+=encodeURIComponent(orderType);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.THISSOCIALISCOMMUNITYADMIN__PATH = function(){
+return "/social/api/rest/community"+"/thisSocialisCommunityAdmin";}
+SocialDATAAPI_CommunityService.prototype.THISSOCIALISCOMMUNITYADMIN = function(__callData,communityId,socialId){
+var __cmdurl__="/social/api/rest/community"+"/thisSocialisCommunityAdmin";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (communityId){
+__cmdurl__+="&communityId=";
+__cmdurl__+=encodeURIComponent(communityId);
+}
+if (socialId){
+__cmdurl__+="&socialId=";
+__cmdurl__+=encodeURIComponent(socialId);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.LISTPARTICIPANTSFILTER__PATH = function(communityId,pattern,limit,offset){
+return "/social/api/rest/community"+"/listParticipantsFilter/"+encodeURIComponent(communityId)+"/"+encodeURIComponent(pattern)+"/"+encodeURIComponent(limit)+"/"+encodeURIComponent(offset)+"";}
+SocialDATAAPI_CommunityService.prototype.LISTPARTICIPANTSFILTER = function(__callData,communityId,pattern,limit,offset){
+var __cmdurl__="/social/api/rest/community"+"/listParticipantsFilter/"+encodeURIComponent(communityId)+"/"+encodeURIComponent(pattern)+"/"+encodeURIComponent(limit)+"/"+encodeURIComponent(offset)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.ADDPARTICIPANTMODERATION__PATH = function(communityId,socialId){
+return "/social/api/rest/community"+"/addParticipantModeration/"+encodeURIComponent(communityId)+"/"+encodeURIComponent(socialId)+"";}
+SocialDATAAPI_CommunityService.prototype.ADDPARTICIPANTMODERATION = function(__callData,communityId,socialId){
+var __cmdurl__="/social/api/rest/community"+"/addParticipantModeration/"+encodeURIComponent(communityId)+"/"+encodeURIComponent(socialId)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.REMOVEPARTICIPANTMODERATION__PATH = function(communityId,socialId){
+return "/social/api/rest/community"+"/removeParticipantModeration/"+encodeURIComponent(communityId)+"/"+encodeURIComponent(socialId)+"";}
+SocialDATAAPI_CommunityService.prototype.REMOVEPARTICIPANTMODERATION = function(__callData,communityId,socialId){
+var __cmdurl__="/social/api/rest/community"+"/removeParticipantModeration/"+encodeURIComponent(communityId)+"/"+encodeURIComponent(socialId)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.REQUESTPAGE__PATH = function(alias){
+return "/social/api/rest/community"+"/requestpage/"+encodeURIComponent(alias)+"";}
+SocialDATAAPI_CommunityService.prototype.REQUESTPAGE = function(__callData,alias){
+var __cmdurl__="/social/api/rest/community"+"/requestpage/"+encodeURIComponent(alias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.ISCOMMUNITYADMIN__PATH = function(){
+return "/social/api/rest/community"+"/isCommunityAdmin";}
+SocialDATAAPI_CommunityService.prototype.ISCOMMUNITYADMIN = function(__callData,communityId){
+var __cmdurl__="/social/api/rest/community"+"/isCommunityAdmin";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (communityId){
+__cmdurl__+="&communityId=";
+__cmdurl__+=encodeURIComponent(communityId);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.ADDGROUP__PATH = function(communityId){
+return "/social/api/rest/community"+"/addGroup/"+encodeURIComponent(communityId)+"";}
+SocialDATAAPI_CommunityService.prototype.ADDGROUP = function(__callData,communityId,obj_List){
+var __cmdurl__="/social/api/rest/community"+"/addGroup/"+encodeURIComponent(communityId)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_CommunityService.prototype.ADDSOCIAL__PATH = function(communityId){
+return "/social/api/rest/community"+"/addSocial/"+encodeURIComponent(communityId)+"";}
+SocialDATAAPI_CommunityService.prototype.ADDSOCIAL = function(__callData,communityId,obj_List){
+var __cmdurl__="/social/api/rest/community"+"/addSocial/"+encodeURIComponent(communityId)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI.prototype.CommunityService=new SocialDATAAPI_CommunityService;
+function SocialDATAAPI_TagSearchServiceRest(){}
+SocialDATAAPI_TagSearchServiceRest.prototype.basePath = function(){
+return "/social/api/rest/tagService";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_TagSearchServiceRest.prototype.SUGGESTTAGS__PATH = function(){
+return "/social/api/rest/tagService"+"/suggestTags";}
+SocialDATAAPI_TagSearchServiceRest.prototype.SUGGESTTAGS = function(__callData,pattern,limit){
+var __cmdurl__="/social/api/rest/tagService"+"/suggestTags";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI.prototype.TagSearchServiceRest=new SocialDATAAPI_TagSearchServiceRest;
+function SocialDATAAPI_AccessControlService(){}
+SocialDATAAPI_AccessControlService.prototype.basePath = function(){
+return "/social/api/rest/accesscontrol";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_AccessControlService.prototype.LISTGROUPBYUSERS__PATH = function(user){
+return "/social/api/rest/accesscontrol"+"/user/"+encodeURIComponent(user)+"/groups";}
+SocialDATAAPI_AccessControlService.prototype.LISTGROUPBYUSERS = function(__callData,user,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/user/"+encodeURIComponent(user)+"/groups";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.SEARCHUSERSINGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/users/search";}
+SocialDATAAPI_AccessControlService.prototype.SEARCHUSERSINGROUP = function(__callData,code,pattern,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/users/search";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.SEARCHUSERSEXCLUDEGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/exlude/users/search";}
+SocialDATAAPI_AccessControlService.prototype.SEARCHUSERSEXCLUDEGROUP = function(__callData,code,pattern,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/exlude/users/search";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.SEARCHCOMMUNITIESINGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/communities/search";}
+SocialDATAAPI_AccessControlService.prototype.SEARCHCOMMUNITIESINGROUP = function(__callData,code,pattern,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/communities/search";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.SEARCHCOMMUNITIESEXCLUDEGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/exclude/communities/search";}
+SocialDATAAPI_AccessControlService.prototype.SEARCHCOMMUNITIESEXCLUDEGROUP = function(__callData,code,pattern,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/exclude/communities/search";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.UPDATEGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/update";}
+SocialDATAAPI_AccessControlService.prototype.UPDATEGROUP = function(__callData,code,obj_Map){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/update";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/json", JSON.stringify(obj_Map));
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.REMOVEGROUPS__PATH = function(){
+return "/social/api/rest/accesscontrol"+"/group/remove";}
+SocialDATAAPI_AccessControlService.prototype.REMOVEGROUPS = function(__callData,obj_List){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/remove";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.ISACCESSCONTROLENABLED__PATH = function(){
+return "/social/api/rest/accesscontrol"+"/isAccessControlEnabled";}
+SocialDATAAPI_AccessControlService.prototype.ISACCESSCONTROLENABLED = function(__callData){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/isAccessControlEnabled";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "text", "application/json", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.FINDGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"";}
+SocialDATAAPI_AccessControlService.prototype.FINDGROUP = function(__callData,code){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.ADDUSERSTOGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/add/users";}
+SocialDATAAPI_AccessControlService.prototype.ADDUSERSTOGROUP = function(__callData,code,obj_List){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/add/users";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.REMOVEUSERSFROMGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/remove/users";}
+SocialDATAAPI_AccessControlService.prototype.REMOVEUSERSFROMGROUP = function(__callData,code,obj_List){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/remove/users";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.LISTGROUPUSERS__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/users";}
+SocialDATAAPI_AccessControlService.prototype.LISTGROUPUSERS = function(__callData,code,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/users";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.ADDCOMMUNITIESTOGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/add/communities";}
+SocialDATAAPI_AccessControlService.prototype.ADDCOMMUNITIESTOGROUP = function(__callData,code,obj_List){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/add/communities";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.REMOVECOMMUNITIESFROMGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/remove/communities";}
+SocialDATAAPI_AccessControlService.prototype.REMOVECOMMUNITIESFROMGROUP = function(__callData,code,obj_List){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/remove/communities";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.LISTGROUPCOMMUNITIES__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/communities";}
+SocialDATAAPI_AccessControlService.prototype.LISTGROUPCOMMUNITIES = function(__callData,code,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/communities";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.LISTGROUPSBYCOMMUNITY__PATH = function(alias){
+return "/social/api/rest/accesscontrol"+"/community/"+encodeURIComponent(alias)+"/groups";}
+SocialDATAAPI_AccessControlService.prototype.LISTGROUPSBYCOMMUNITY = function(__callData,alias,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/community/"+encodeURIComponent(alias)+"/groups";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.ENABLEACCESSCONTROL__PATH = function(){
+return "/social/api/rest/accesscontrol"+"/enabled";}
+SocialDATAAPI_AccessControlService.prototype.ENABLEACCESSCONTROL = function(__callData,obj_Boolean){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/enabled";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/json", JSON.stringify(obj_Boolean));
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.SETDEFAULTACCESSCONTROLGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/default/";}
+SocialDATAAPI_AccessControlService.prototype.SETDEFAULTACCESSCONTROLGROUP = function(__callData,code){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/"+encodeURIComponent(code)+"/default/";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/json", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.GETDEFAULTACCESSCONTROLGROUP__PATH = function(){
+return "/social/api/rest/accesscontrol"+"/group/default";}
+SocialDATAAPI_AccessControlService.prototype.GETDEFAULTACCESSCONTROLGROUP = function(__callData){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/default";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.SEARCHGROUPSBYGROUPCODE__PATH = function(){
+return "/social/api/rest/accesscontrol"+"/group/search";}
+SocialDATAAPI_AccessControlService.prototype.SEARCHGROUPSBYGROUPCODE = function(__callData,pattern,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/search";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.LISTALLCOMMUNITIESNOTINGROUP__PATH = function(code){
+return "/social/api/rest/accesscontrol"+"/group/all/communities/notin/group/"+encodeURIComponent(code)+"";}
+SocialDATAAPI_AccessControlService.prototype.LISTALLCOMMUNITIESNOTINGROUP = function(__callData,code){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/all/communities/notin/group/"+encodeURIComponent(code)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.FINDALLINSOCIALCLOUD__PATH = function(cloudCode){
+return "/social/api/rest/accesscontrol"+"/in/"+encodeURIComponent(cloudCode)+"";}
+SocialDATAAPI_AccessControlService.prototype.FINDALLINSOCIALCLOUD = function(__callData,pattern,cloudCode,socialType,orderBy,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/in/"+encodeURIComponent(cloudCode)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (socialType){
+__cmdurl__+="&socialType=";
+__cmdurl__+=encodeURIComponent(socialType);
+}
+if (orderBy){
+__cmdurl__+="&orderBy=";
+__cmdurl__+=encodeURIComponent(orderBy);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.FINDALLOUTSOCIALCLOUD__PATH = function(cloudCode){
+return "/social/api/rest/accesscontrol"+"/out/"+encodeURIComponent(cloudCode)+"";}
+SocialDATAAPI_AccessControlService.prototype.FINDALLOUTSOCIALCLOUD = function(__callData,pattern,cloudCode,socialType,orderBy,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/out/"+encodeURIComponent(cloudCode)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (socialType){
+__cmdurl__+="&socialType=";
+__cmdurl__+=encodeURIComponent(socialType);
+}
+if (orderBy){
+__cmdurl__+="&orderBy=";
+__cmdurl__+=encodeURIComponent(orderBy);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.LISTGROUPS__PATH = function(){
+return "/social/api/rest/accesscontrol"+"/group/list";}
+SocialDATAAPI_AccessControlService.prototype.LISTGROUPS = function(__callData,limit,offset){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group/list";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.CREATEGROUP__PATH = function(){
+return "/social/api/rest/accesscontrol"+"/group";}
+SocialDATAAPI_AccessControlService.prototype.CREATEGROUP = function(__callData,obj_Map){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/group";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_Map));
+    return __ret__;
+}
+SocialDATAAPI_AccessControlService.prototype.CANACCESS__PATH = function(user,social){
+return "/social/api/rest/accesscontrol"+"/access/"+encodeURIComponent(user)+"/"+encodeURIComponent(social)+"";}
+SocialDATAAPI_AccessControlService.prototype.CANACCESS = function(__callData,user,social){
+var __cmdurl__="/social/api/rest/accesscontrol"+"/access/"+encodeURIComponent(user)+"/"+encodeURIComponent(social)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI.prototype.AccessControlService=new SocialDATAAPI_AccessControlService;
+function SocialDATAAPI_SociableService(){}
+SocialDATAAPI_SociableService.prototype.basePath = function(){
+return "/social/api/rest/sociable";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_SociableService.prototype.LIKEALLIDS__PATH = function(){
+return "/social/api/rest/sociable"+"/likeAllIds";}
+SocialDATAAPI_SociableService.prototype.LIKEALLIDS = function(__callData,sociableId,objectClass){
+var __cmdurl__="/social/api/rest/sociable"+"/likeAllIds";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+if (objectClass){
+__cmdurl__+="&objectClass=";
+__cmdurl__+=encodeURIComponent(objectClass);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.GETDENOUNCESFILTER__PATH = function(){
+return "/social/api/rest/sociable"+"/denounces/filter";}
+SocialDATAAPI_SociableService.prototype.GETDENOUNCESFILTER = function(__callData,alias,community,type,status,initdate,finaldate,limit,offset){
+var __cmdurl__="/social/api/rest/sociable"+"/denounces/filter";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (alias){
+__cmdurl__+="&alias=";
+__cmdurl__+=encodeURIComponent(alias);
+}
+if (community){
+__cmdurl__+="&community=";
+__cmdurl__+=encodeURIComponent(community);
+}
+if (type){
+__cmdurl__+="&type=";
+__cmdurl__+=encodeURIComponent(type);
+}
+if (status){
+__cmdurl__+="&status=";
+__cmdurl__+=encodeURIComponent(status);
+}
+if (initdate){
+__cmdurl__+="&initdate=";
+__cmdurl__+=encodeURIComponent(initdate);
+}
+if (finaldate){
+__cmdurl__+="&finaldate=";
+__cmdurl__+=encodeURIComponent(finaldate);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.SHARE__PATH = function(){
+return "/social/api/rest/sociable"+"/share";}
+SocialDATAAPI_SociableService.prototype.SHARE = function(__callData,sociableId,shareType,obj_List,text){
+var __cmdurl__="/social/api/rest/sociable"+"/share";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+if (shareType){
+__cmdurl__+="&shareType=";
+__cmdurl__+=encodeURIComponent(shareType);
+}
+if (text){
+__cmdurl__+="&text=";
+__cmdurl__+=encodeURIComponent(text);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.LIKE__PATH = function(){
+return "/social/api/rest/sociable"+"/like";}
+SocialDATAAPI_SociableService.prototype.LIKE = function(__callData,sociableId){
+var __cmdurl__="/social/api/rest/sociable"+"/like";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.GETNUMBERLIKES__PATH = function(){
+return "/social/api/rest/sociable"+"/likes/count";}
+SocialDATAAPI_SociableService.prototype.GETNUMBERLIKES = function(__callData,sociableId){
+var __cmdurl__="/social/api/rest/sociable"+"/likes/count";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.FINDSOCIABLE__PATH = function(){
+return "/social/api/rest/sociable"+"/find";}
+SocialDATAAPI_SociableService.prototype.FINDSOCIABLE = function(__callData,objectClass,objectId){
+var __cmdurl__="/social/api/rest/sociable"+"/find";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (objectClass){
+__cmdurl__+="&objectClass=";
+__cmdurl__+=encodeURIComponent(objectClass);
+}
+if (objectId){
+__cmdurl__+="&objectId=";
+__cmdurl__+=encodeURIComponent(objectId);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/json", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.REMOVECOMMENT__PATH = function(){
+return "/social/api/rest/sociable"+"/comment/remove";}
+SocialDATAAPI_SociableService.prototype.REMOVECOMMENT = function(__callData,sociableId){
+var __cmdurl__="/social/api/rest/sociable"+"/comment/remove";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.ARCHIVEDENOUNCE__PATH = function(){
+return "/social/api/rest/sociable"+"/denounce/archive";}
+SocialDATAAPI_SociableService.prototype.ARCHIVEDENOUNCE = function(__callData,text,obj_List){
+var __cmdurl__="/social/api/rest/sociable"+"/denounce/archive";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (text){
+__cmdurl__+="&text=";
+__cmdurl__+=encodeURIComponent(text);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.REVOKEDENOUNCE__PATH = function(){
+return "/social/api/rest/sociable"+"/denounce/revoke";}
+SocialDATAAPI_SociableService.prototype.REVOKEDENOUNCE = function(__callData,text,obj_List){
+var __cmdurl__="/social/api/rest/sociable"+"/denounce/revoke";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (text){
+__cmdurl__+="&text=";
+__cmdurl__+=encodeURIComponent(text);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.PENDINGDENOUNCE__PATH = function(){
+return "/social/api/rest/sociable"+"/denounce/pending";}
+SocialDATAAPI_SociableService.prototype.PENDINGDENOUNCE = function(__callData,text,obj_List){
+var __cmdurl__="/social/api/rest/sociable"+"/denounce/pending";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (text){
+__cmdurl__+="&text=";
+__cmdurl__+=encodeURIComponent(text);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.REMOVEDENOUNCE__PATH = function(){
+return "/social/api/rest/sociable"+"/denounce/remove";}
+SocialDATAAPI_SociableService.prototype.REMOVEDENOUNCE = function(__callData,sociableId,userId){
+var __cmdurl__="/social/api/rest/sociable"+"/denounce/remove";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+if (userId){
+__cmdurl__+="&userId=";
+__cmdurl__+=encodeURIComponent(userId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.GETSHARES__PATH = function(){
+return "/social/api/rest/sociable"+"/shares";}
+SocialDATAAPI_SociableService.prototype.GETSHARES = function(__callData,sociableId,limit,offset){
+var __cmdurl__="/social/api/rest/sociable"+"/shares";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.SHARESOCIAL__PATH = function(){
+return "/social/api/rest/sociable"+"/share/social";}
+SocialDATAAPI_SociableService.prototype.SHARESOCIAL = function(__callData,socialId,shareType,obj_List,text){
+var __cmdurl__="/social/api/rest/sociable"+"/share/social";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (socialId){
+__cmdurl__+="&socialId=";
+__cmdurl__+=encodeURIComponent(socialId);
+}
+if (shareType){
+__cmdurl__+="&shareType=";
+__cmdurl__+=encodeURIComponent(shareType);
+}
+if (text){
+__cmdurl__+="&text=";
+__cmdurl__+=encodeURIComponent(text);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.GETDENOUNCES__PATH = function(){
+return "/social/api/rest/sociable"+"/denounces";}
+SocialDATAAPI_SociableService.prototype.GETDENOUNCES = function(__callData,sociableId,limit,offset){
+var __cmdurl__="/social/api/rest/sociable"+"/denounces";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.GETDENOUNCEHISTORY__PATH = function(){
+return "/social/api/rest/sociable"+"/denounces/history";}
+SocialDATAAPI_SociableService.prototype.GETDENOUNCEHISTORY = function(__callData,denounceId){
+var __cmdurl__="/social/api/rest/sociable"+"/denounces/history";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (denounceId){
+__cmdurl__+="&denounceId=";
+__cmdurl__+=encodeURIComponent(denounceId);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.GETMOSTDENOUNCEDUSERS__PATH = function(){
+return "/social/api/rest/sociable"+"/denounces/mostDenouncedUsers";}
+SocialDATAAPI_SociableService.prototype.GETMOSTDENOUNCEDUSERS = function(__callData){
+var __cmdurl__="/social/api/rest/sociable"+"/denounces/mostDenouncedUsers";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.GETMOSTDENOUNCERUSERS__PATH = function(){
+return "/social/api/rest/sociable"+"/denounces/mostDenouncerUsers";}
+SocialDATAAPI_SociableService.prototype.GETMOSTDENOUNCERUSERS = function(__callData){
+var __cmdurl__="/social/api/rest/sociable"+"/denounces/mostDenouncerUsers";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.GETLIKES__PATH = function(){
+return "/social/api/rest/sociable"+"/likes";}
+SocialDATAAPI_SociableService.prototype.GETLIKES = function(__callData,sociableId,limit,offset){
+var __cmdurl__="/social/api/rest/sociable"+"/likes";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.FINDCOMMENT__PATH = function(){
+return "/social/api/rest/sociable"+"/comments/find";}
+SocialDATAAPI_SociableService.prototype.FINDCOMMENT = function(__callData,sociableId){
+var __cmdurl__="/social/api/rest/sociable"+"/comments/find";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.DENOUNCE__PATH = function(){
+return "/social/api/rest/sociable"+"/denounce/create";}
+SocialDATAAPI_SociableService.prototype.DENOUNCE = function(__callData,sociableId,text){
+var __cmdurl__="/social/api/rest/sociable"+"/denounce/create";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+if (text){
+__cmdurl__+="&text=";
+__cmdurl__+=encodeURIComponent(text);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SociableService.prototype.COMMENT__PATH = function(){
+return "/social/api/rest/sociable"+"/comment/create";}
+SocialDATAAPI_SociableService.prototype.COMMENT = function(__callData,sociableId,commentText){
+var __cmdurl__="/social/api/rest/sociable"+"/comment/create";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+if (commentText){
+__cmdurl__+="&commentText=";
+__cmdurl__+=encodeURIComponent(commentText);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI.prototype.SociableService=new SocialDATAAPI_SociableService;
+function SocialDATAAPI_SocialFavoriteService(){}
+SocialDATAAPI_SocialFavoriteService.prototype.basePath = function(){
+return "/social/api/rest/socialfavorite";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_SocialFavoriteService.prototype.LISTBYTYPE__PATH = function(type){
+return "/social/api/rest/socialfavorite"+"/list/"+encodeURIComponent(type)+"";}
+SocialDATAAPI_SocialFavoriteService.prototype.LISTBYTYPE = function(__callData,type){
+var __cmdurl__="/social/api/rest/socialfavorite"+"/list/"+encodeURIComponent(type)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialFavoriteService.prototype.REMOVELIST__PATH = function(){
+return "/social/api/rest/socialfavorite"+"/remove/list";}
+SocialDATAAPI_SocialFavoriteService.prototype.REMOVELIST = function(__callData,obj_List){
+var __cmdurl__="/social/api/rest/socialfavorite"+"/remove/list";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI_SocialFavoriteService.prototype.ADD__PATH = function(){
+return "/social/api/rest/socialfavorite"+"/add";}
+SocialDATAAPI_SocialFavoriteService.prototype.ADD = function(__callData,alias){
+var __cmdurl__="/social/api/rest/socialfavorite"+"/add";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (alias){
+__cmdurl__+="&alias=";
+__cmdurl__+=encodeURIComponent(alias);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialFavoriteService.prototype.REMOVE__PATH = function(){
+return "/social/api/rest/socialfavorite"+"/remove";}
+SocialDATAAPI_SocialFavoriteService.prototype.REMOVE = function(__callData,alias){
+var __cmdurl__="/social/api/rest/socialfavorite"+"/remove";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (alias){
+__cmdurl__+="&alias=";
+__cmdurl__+=encodeURIComponent(alias);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialFavoriteService.prototype.LIST__PATH = function(){
+return "/social/api/rest/socialfavorite"+"/list";}
+SocialDATAAPI_SocialFavoriteService.prototype.LIST = function(__callData){
+var __cmdurl__="/social/api/rest/socialfavorite"+"/list";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI.prototype.SocialFavoriteService=new SocialDATAAPI_SocialFavoriteService;
+function SocialDATAAPI_ProfanityFilterRest(){}
+SocialDATAAPI_ProfanityFilterRest.prototype.basePath = function(){
+return "/social/api/rest/profanityfilter";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_ProfanityFilterRest.prototype.GETPROFANITYFILTERSTATUS__PATH = function(){
+return "/social/api/rest/profanityfilter"+"/getProfanityFilterStatus";}
+SocialDATAAPI_ProfanityFilterRest.prototype.GETPROFANITYFILTERSTATUS = function(__callData){
+var __cmdurl__="/social/api/rest/profanityfilter"+"/getProfanityFilterStatus";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ProfanityFilterRest.prototype.CHECKTEXTFORPROFANITYWORDS__PATH = function(){
+return "/social/api/rest/profanityfilter"+"/checkTextForProfanityWords";}
+SocialDATAAPI_ProfanityFilterRest.prototype.CHECKTEXTFORPROFANITYWORDS = function(__callData,obj_String){
+var __cmdurl__="/social/api/rest/profanityfilter"+"/checkTextForProfanityWords";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_String));
+    return __ret__;
+}
+SocialDATAAPI_ProfanityFilterRest.prototype.GETPROFANITIESWORDSONTEXT__PATH = function(){
+return "/social/api/rest/profanityfilter"+"/getProfanitiesWordsOnText";}
+SocialDATAAPI_ProfanityFilterRest.prototype.GETPROFANITIESWORDSONTEXT = function(__callData,obj_String){
+var __cmdurl__="/social/api/rest/profanityfilter"+"/getProfanitiesWordsOnText";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", JSON.stringify(obj_String));
+    return __ret__;
+}
+SocialDATAAPI_ProfanityFilterRest.prototype.GETPROFANITIESWORDSREGISTRED__PATH = function(){
+return "/social/api/rest/profanityfilter"+"/getProfanitiesWordsRegistred";}
+SocialDATAAPI_ProfanityFilterRest.prototype.GETPROFANITIESWORDSREGISTRED = function(__callData){
+var __cmdurl__="/social/api/rest/profanityfilter"+"/getProfanitiesWordsRegistred";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ProfanityFilterRest.prototype.ADDPROFANITYWORDS__PATH = function(){
+return "/social/api/rest/profanityfilter"+"/addProfanityWords";}
+SocialDATAAPI_ProfanityFilterRest.prototype.ADDPROFANITYWORDS = function(__callData,obj_String){
+var __cmdurl__="/social/api/rest/profanityfilter"+"/addProfanityWords";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", JSON.stringify(obj_String));
+    return __ret__;
+}
+SocialDATAAPI_ProfanityFilterRest.prototype.REMOVEPROFANITYWORDS__PATH = function(){
+return "/social/api/rest/profanityfilter"+"/removeProfanityWords";}
+SocialDATAAPI_ProfanityFilterRest.prototype.REMOVEPROFANITYWORDS = function(__callData,obj_String){
+var __cmdurl__="/social/api/rest/profanityfilter"+"/removeProfanityWords";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", JSON.stringify(obj_String));
+    return __ret__;
+}
+SocialDATAAPI_ProfanityFilterRest.prototype.ENABLE__PATH = function(){
+return "/social/api/rest/profanityfilter"+"/enable";}
+SocialDATAAPI_ProfanityFilterRest.prototype.ENABLE = function(__callData){
+var __cmdurl__="/social/api/rest/profanityfilter"+"/enable";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ProfanityFilterRest.prototype.DISABLE__PATH = function(){
+return "/social/api/rest/profanityfilter"+"/disable";}
+SocialDATAAPI_ProfanityFilterRest.prototype.DISABLE = function(__callData){
+var __cmdurl__="/social/api/rest/profanityfilter"+"/disable";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI.prototype.ProfanityFilterRest=new SocialDATAAPI_ProfanityFilterRest;
+function SocialDATAAPI_ParticipationService(){}
+SocialDATAAPI_ParticipationService.prototype.basePath = function(){
+return "/social/api/rest/participation";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_ParticipationService.prototype.LISTCOMMUNITYORDERFAVORITES__PATH = function(){
+return "/social/api/rest/participation"+"/search/listCommunityOrderFavorites";}
+SocialDATAAPI_ParticipationService.prototype.LISTCOMMUNITYORDERFAVORITES = function(__callData,pattern,limit,offset){
+var __cmdurl__="/social/api/rest/participation"+"/search/listCommunityOrderFavorites";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ParticipationService.prototype.PARTICIPANTRELATION__PATH = function(userId,socialId){
+return "/social/api/rest/participation"+"/relation/"+encodeURIComponent(userId)+"/"+encodeURIComponent(socialId)+"";}
+SocialDATAAPI_ParticipationService.prototype.PARTICIPANTRELATION = function(__callData,userId,socialId){
+var __cmdurl__="/social/api/rest/participation"+"/relation/"+encodeURIComponent(userId)+"/"+encodeURIComponent(socialId)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ParticipationService.prototype.PARTICIPANTRELATION__PATH = function(socialId){
+return "/social/api/rest/participation"+"/relation/"+encodeURIComponent(socialId)+"";}
+SocialDATAAPI_ParticipationService.prototype.PARTICIPANTRELATION = function(__callData,socialId){
+var __cmdurl__="/social/api/rest/participation"+"/relation/"+encodeURIComponent(socialId)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ParticipationService.prototype.ADDCOMMUNITMODERATOR__PATH = function(socialId){
+return "/social/api/rest/participation"+"/community/add/"+encodeURIComponent(socialId)+"/moderator";}
+SocialDATAAPI_ParticipationService.prototype.ADDCOMMUNITMODERATOR = function(__callData,socialId,userId){
+var __cmdurl__="/social/api/rest/participation"+"/community/add/"+encodeURIComponent(socialId)+"/moderator";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (userId){
+__cmdurl__+="&userId=";
+__cmdurl__+=encodeURIComponent(userId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ParticipationService.prototype.REMOVECOMMUNITYMODERATOR__PATH = function(socialId){
+return "/social/api/rest/participation"+"/community/remove/"+encodeURIComponent(socialId)+"/moderator";}
+SocialDATAAPI_ParticipationService.prototype.REMOVECOMMUNITYMODERATOR = function(__callData,socialId,userId){
+var __cmdurl__="/social/api/rest/participation"+"/community/remove/"+encodeURIComponent(socialId)+"/moderator";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (userId){
+__cmdurl__+="&userId=";
+__cmdurl__+=encodeURIComponent(userId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ParticipationService.prototype.LISTPARTICIPANTS__PATH = function(socialId){
+return "/social/api/rest/participation"+"/relation/"+encodeURIComponent(socialId)+"/participants";}
+SocialDATAAPI_ParticipationService.prototype.LISTPARTICIPANTS = function(__callData,socialId,limit,offset){
+var __cmdurl__="/social/api/rest/participation"+"/relation/"+encodeURIComponent(socialId)+"/participants";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ParticipationService.prototype.REQUESTPARTICIPATION__PATH = function(){
+return "/social/api/rest/participation"+"/request";}
+SocialDATAAPI_ParticipationService.prototype.REQUESTPARTICIPATION = function(__callData,requestedId){
+var __cmdurl__="/social/api/rest/participation"+"/request";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (requestedId){
+__cmdurl__+="&requestedId=";
+__cmdurl__+=encodeURIComponent(requestedId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ParticipationService.prototype.ACCEPTPARTICIPATION__PATH = function(){
+return "/social/api/rest/participation"+"/accept";}
+SocialDATAAPI_ParticipationService.prototype.ACCEPTPARTICIPATION = function(__callData,requesterId,requestedId){
+var __cmdurl__="/social/api/rest/participation"+"/accept";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (requesterId){
+__cmdurl__+="&requesterId=";
+__cmdurl__+=encodeURIComponent(requesterId);
+}
+if (requestedId){
+__cmdurl__+="&requestedId=";
+__cmdurl__+=encodeURIComponent(requestedId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ParticipationService.prototype.REJECTPARTICIPATION__PATH = function(){
+return "/social/api/rest/participation"+"/reject";}
+SocialDATAAPI_ParticipationService.prototype.REJECTPARTICIPATION = function(__callData,requesterId,requestedId){
+var __cmdurl__="/social/api/rest/participation"+"/reject";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (requesterId){
+__cmdurl__+="&requesterId=";
+__cmdurl__+=encodeURIComponent(requesterId);
+}
+if (requestedId){
+__cmdurl__+="&requestedId=";
+__cmdurl__+=encodeURIComponent(requestedId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_ParticipationService.prototype.REMOVEPARTICIPATION__PATH = function(){
+return "/social/api/rest/participation"+"/remove";}
+SocialDATAAPI_ParticipationService.prototype.REMOVEPARTICIPATION = function(__callData,socialId){
+var __cmdurl__="/social/api/rest/participation"+"/remove";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (socialId){
+__cmdurl__+="&socialId=";
+__cmdurl__+=encodeURIComponent(socialId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI.prototype.ParticipationService=new SocialDATAAPI_ParticipationService;
+function SocialDATAAPI_SearchService(){}
+SocialDATAAPI_SearchService.prototype.basePath = function(){
+return "/social/api/rest/index";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_SearchService.prototype.SEARCHSOCIALWITHFAVORITEANDRELATEDPRIORITY__PATH = function(){
+return "/social/api/rest/index"+"/search/favoriterelatedpriority";}
+SocialDATAAPI_SearchService.prototype.SEARCHSOCIALWITHFAVORITEANDRELATEDPRIORITY = function(__callData,pattern,types,limit,offset){
+var __cmdurl__="/social/api/rest/index"+"/search/favoriterelatedpriority";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (types){
+__cmdurl__+="&types=";
+__cmdurl__+=encodeURIComponent(types);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SearchService.prototype.SEARCHSOCIALS__PATH = function(){
+return "/social/api/rest/index"+"/search/socials";}
+SocialDATAAPI_SearchService.prototype.SEARCHSOCIALS = function(__callData,pattern,types,limit,offset){
+var __cmdurl__="/social/api/rest/index"+"/search/socials";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (types){
+__cmdurl__+="&types=";
+__cmdurl__+=encodeURIComponent(types);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI.prototype.SearchService=new SocialDATAAPI_SearchService;
+function SocialDATAAPI_WatchService(){}
+SocialDATAAPI_WatchService.prototype.basePath = function(){
+return "/social/api/rest/watch";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_WatchService.prototype.WATCHLIST__PATH = function(){
+return "/social/api/rest/watch"+"/watchlist";}
+SocialDATAAPI_WatchService.prototype.WATCHLIST = function(__callData,sociableId,limit,offset){
+var __cmdurl__="/social/api/rest/watch"+"/watchlist";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_WatchService.prototype.WATCHLIST__PATH = function(){
+return "/social/api/rest/watch"+"/getNumberWatchs";}
+SocialDATAAPI_WatchService.prototype.WATCHLIST = function(__callData,sociableId){
+var __cmdurl__="/social/api/rest/watch"+"/getNumberWatchs";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_WatchService.prototype.WATCHLISTBYUSERANDSOCIAL__PATH = function(){
+return "/social/api/rest/watch"+"/watchListByUserAndSocial";}
+SocialDATAAPI_WatchService.prototype.WATCHLISTBYUSERANDSOCIAL = function(__callData,socialId,limit,offset){
+var __cmdurl__="/social/api/rest/watch"+"/watchListByUserAndSocial";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (socialId){
+__cmdurl__+="&socialId=";
+__cmdurl__+=encodeURIComponent(socialId);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_WatchService.prototype.WATCHSOCIAL__PATH = function(socialId){
+return "/social/api/rest/watch"+"/watchSocial/"+encodeURIComponent(socialId)+"";}
+SocialDATAAPI_WatchService.prototype.WATCHSOCIAL = function(__callData,socialId){
+var __cmdurl__="/social/api/rest/watch"+"/watchSocial/"+encodeURIComponent(socialId)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_WatchService.prototype.ISWATCHINGSOCIAL__PATH = function(){
+return "/social/api/rest/watch"+"/isWatchingSocial";}
+SocialDATAAPI_WatchService.prototype.ISWATCHINGSOCIAL = function(__callData,socialId){
+var __cmdurl__="/social/api/rest/watch"+"/isWatchingSocial";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (socialId){
+__cmdurl__+="&socialId=";
+__cmdurl__+=encodeURIComponent(socialId);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_WatchService.prototype.WATCHLISTSOCIAL__PATH = function(){
+return "/social/api/rest/watch"+"/watchListSocial";}
+SocialDATAAPI_WatchService.prototype.WATCHLISTSOCIAL = function(__callData,socialId,limit,offset){
+var __cmdurl__="/social/api/rest/watch"+"/watchListSocial";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (socialId){
+__cmdurl__+="&socialId=";
+__cmdurl__+=encodeURIComponent(socialId);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_WatchService.prototype.WATCHLISTBYOBJECTIDANDOBJECTCLASS__PATH = function(){
+return "/social/api/rest/watch"+"/watchlistByObjectIdAndObjectClass";}
+SocialDATAAPI_WatchService.prototype.WATCHLISTBYOBJECTIDANDOBJECTCLASS = function(__callData,objectId,objectClass,limit,offset){
+var __cmdurl__="/social/api/rest/watch"+"/watchlistByObjectIdAndObjectClass";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (objectId){
+__cmdurl__+="&objectId=";
+__cmdurl__+=encodeURIComponent(objectId);
+}
+if (objectClass){
+__cmdurl__+="&objectClass=";
+__cmdurl__+=encodeURIComponent(objectClass);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_WatchService.prototype.WATCH__PATH = function(){
+return "/social/api/rest/watch"+"/watch";}
+SocialDATAAPI_WatchService.prototype.WATCH = function(__callData,obj_Long){
+var __cmdurl__="/social/api/rest/watch"+"/watch";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", JSON.stringify(obj_Long));
+    return __ret__;
+}
+SocialDATAAPI_WatchService.prototype.ISWATCHING__PATH = function(){
+return "/social/api/rest/watch"+"/isWatching";}
+SocialDATAAPI_WatchService.prototype.ISWATCHING = function(__callData,sociableId){
+var __cmdurl__="/social/api/rest/watch"+"/isWatching";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI.prototype.WatchService=new SocialDATAAPI_WatchService;
+function SocialDATAAPI_SocialService(){}
+SocialDATAAPI_SocialService.prototype.basePath = function(){
+return "/social/api/rest/social";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGE__PATH = function(alias){
+return "/social/api/rest/social"+"/image/"+encodeURIComponent(alias)+"";}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGE = function(__callData,alias,obj_Request){
+var __cmdurl__="/social/api/rest/social"+"/image/"+encodeURIComponent(alias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "image/png", "application/x-www-form-urlencoded", JSON.stringify(obj_Request));
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.CREATESOCIALCOMMUNITYWITHADMINALIAS__PATH = function(){
+return "/social/api/rest/social"+"/community/createWithAdminAlias";}
+SocialDATAAPI_SocialService.prototype.CREATESOCIALCOMMUNITYWITHADMINALIAS = function(__callData,alias,name,description,adminUserAlias,hidden,privateContent,approvalRequired,ecmFolderInfo){
+var __cmdurl__="/social/api/rest/social"+"/community/createWithAdminAlias";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (alias){
+__cmdurl__+="&alias=";
+__cmdurl__+=encodeURIComponent(alias);
+}
+if (name){
+__cmdurl__+="&name=";
+__cmdurl__+=encodeURIComponent(name);
+}
+if (description){
+__cmdurl__+="&description=";
+__cmdurl__+=encodeURIComponent(description);
+}
+if (adminUserAlias){
+__cmdurl__+="&adminUserAlias=";
+__cmdurl__+=encodeURIComponent(adminUserAlias);
+}
+if (hidden){
+__cmdurl__+="&hidden=";
+__cmdurl__+=encodeURIComponent(hidden);
+}
+if (privateContent){
+__cmdurl__+="&privateContent=";
+__cmdurl__+=encodeURIComponent(privateContent);
+}
+if (approvalRequired){
+__cmdurl__+="&approvalRequired=";
+__cmdurl__+=encodeURIComponent(approvalRequired);
+}
+if (ecmFolderInfo){
+__cmdurl__+="&ecmFolderInfo=";
+__cmdurl__+=encodeURIComponent(ecmFolderInfo);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.UPDATESOCIALDESCRIPTION__PATH = function(){
+return "/social/api/rest/social"+"/social/updatedescription";}
+SocialDATAAPI_SocialService.prototype.UPDATESOCIALDESCRIPTION = function(__callData,alias,description){
+var __cmdurl__="/social/api/rest/social"+"/social/updatedescription";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (alias){
+__cmdurl__+="&alias=";
+__cmdurl__+=encodeURIComponent(alias);
+}
+if (description){
+__cmdurl__+="&description=";
+__cmdurl__+=encodeURIComponent(description);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.VALIDATESOCIALPERMISSIONS__PATH = function(socialId){
+return "/social/api/rest/social"+"/social/"+encodeURIComponent(socialId)+"/security";}
+SocialDATAAPI_SocialService.prototype.VALIDATESOCIALPERMISSIONS = function(__callData,socialId,userId){
+var __cmdurl__="/social/api/rest/social"+"/social/"+encodeURIComponent(socialId)+"/security";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (userId){
+__cmdurl__+="&userId=";
+__cmdurl__+=encodeURIComponent(userId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.ACTIVATESOCIAL__PATH = function(socialId){
+return "/social/api/rest/social"+"/social/"+encodeURIComponent(socialId)+"/active";}
+SocialDATAAPI_SocialService.prototype.ACTIVATESOCIAL = function(__callData,socialId){
+var __cmdurl__="/social/api/rest/social"+"/social/"+encodeURIComponent(socialId)+"/active";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.BLOCKSOCIAL__PATH = function(socialId){
+return "/social/api/rest/social"+"/social/"+encodeURIComponent(socialId)+"/block";}
+SocialDATAAPI_SocialService.prototype.BLOCKSOCIAL = function(__callData,socialId){
+var __cmdurl__="/social/api/rest/social"+"/social/"+encodeURIComponent(socialId)+"/block";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.LISTCOMMUNITYFOLDER__PATH = function(tenantId,alias){
+return "/social/api/rest/social"+"/communityDocs/"+encodeURIComponent(tenantId)+"/"+encodeURIComponent(alias)+"";}
+SocialDATAAPI_SocialService.prototype.LISTCOMMUNITYFOLDER = function(__callData,tenantId,alias){
+var __cmdurl__="/social/api/rest/social"+"/communityDocs/"+encodeURIComponent(tenantId)+"/"+encodeURIComponent(alias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.LISTSOCIALSFILTER__PATH = function(){
+return "/social/api/rest/social"+"/socialsFilter";}
+SocialDATAAPI_SocialService.prototype.LISTSOCIALSFILTER = function(__callData,pattern,states,types,limit,offset){
+var __cmdurl__="/social/api/rest/social"+"/socialsFilter";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (states){
+__cmdurl__+="&states=";
+__cmdurl__+=encodeURIComponent(states);
+}
+if (types){
+__cmdurl__+="&types=";
+__cmdurl__+=encodeURIComponent(types);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGETHUMB__PATH = function(alias){
+return "/social/api/rest/social"+"/image/thumb/"+encodeURIComponent(alias)+"";}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGETHUMB = function(__callData,alias,obj_Request){
+var __cmdurl__="/social/api/rest/social"+"/image/thumb/"+encodeURIComponent(alias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "image/png", "application/x-www-form-urlencoded", JSON.stringify(obj_Request));
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGETHUMBPROFILE__PATH = function(alias,type){
+return "/social/api/rest/social"+"/image/profile/"+encodeURIComponent(alias)+"/"+encodeURIComponent(type)+"";}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGETHUMBPROFILE = function(__callData,alias,type,obj_Request){
+var __cmdurl__="/social/api/rest/social"+"/image/profile/"+encodeURIComponent(alias)+"/"+encodeURIComponent(type)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "image/png", "application/x-www-form-urlencoded", JSON.stringify(obj_Request));
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.GETCONVERSATIONIMAGE__PATH = function(conversationId,type){
+return "/social/api/rest/social"+"/image/conversation/"+encodeURIComponent(conversationId)+"/"+encodeURIComponent(type)+"";}
+SocialDATAAPI_SocialService.prototype.GETCONVERSATIONIMAGE = function(__callData,conversationId,type,obj_Request){
+var __cmdurl__="/social/api/rest/social"+"/image/conversation/"+encodeURIComponent(conversationId)+"/"+encodeURIComponent(type)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "image/png", "application/x-www-form-urlencoded", JSON.stringify(obj_Request));
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGEORIGINALPROFILE__PATH = function(alias){
+return "/social/api/rest/social"+"/image/original/profile/"+encodeURIComponent(alias)+"";}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGEORIGINALPROFILE = function(__callData,alias,temporary,obj_Request){
+var __cmdurl__="/social/api/rest/social"+"/image/original/profile/"+encodeURIComponent(alias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (temporary){
+__cmdurl__+="&temporary=";
+__cmdurl__+=encodeURIComponent(temporary);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "image/png", "application/x-www-form-urlencoded", JSON.stringify(obj_Request));
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGETYPE__PATH = function(type,alias){
+return "/social/api/rest/social"+"/imagetype/"+encodeURIComponent(type)+"/"+encodeURIComponent(alias)+"";}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGETYPE = function(__callData,type,alias,obj_Request){
+var __cmdurl__="/social/api/rest/social"+"/imagetype/"+encodeURIComponent(type)+"/"+encodeURIComponent(alias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "image/png", "application/x-www-form-urlencoded", JSON.stringify(obj_Request));
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGETYPETHUMB__PATH = function(type,alias){
+return "/social/api/rest/social"+"/imagetype/"+encodeURIComponent(type)+"/thumb/"+encodeURIComponent(alias)+"";}
+SocialDATAAPI_SocialService.prototype.SOCIALIMAGETYPETHUMB = function(__callData,type,alias,obj_Request){
+var __cmdurl__="/social/api/rest/social"+"/imagetype/"+encodeURIComponent(type)+"/thumb/"+encodeURIComponent(alias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "image/png", "application/x-www-form-urlencoded", JSON.stringify(obj_Request));
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.REMOVEUPLOADTEMPORARYFILE__PATH = function(alias){
+return "/social/api/rest/social"+"/remove/upload/image/"+encodeURIComponent(alias)+"";}
+SocialDATAAPI_SocialService.prototype.REMOVEUPLOADTEMPORARYFILE = function(__callData,alias){
+var __cmdurl__="/social/api/rest/social"+"/remove/upload/image/"+encodeURIComponent(alias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.CREATESOCIALCOMMUNITY__PATH = function(){
+return "/social/api/rest/social"+"/community/create";}
+SocialDATAAPI_SocialService.prototype.CREATESOCIALCOMMUNITY = function(__callData,alias,name,description,adminUserId,hidden,privateContent,approvalRequired,ecmFolderInfo){
+var __cmdurl__="/social/api/rest/social"+"/community/create";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (alias){
+__cmdurl__+="&alias=";
+__cmdurl__+=encodeURIComponent(alias);
+}
+if (name){
+__cmdurl__+="&name=";
+__cmdurl__+=encodeURIComponent(name);
+}
+if (description){
+__cmdurl__+="&description=";
+__cmdurl__+=encodeURIComponent(description);
+}
+if (adminUserId){
+__cmdurl__+="&adminUserId=";
+__cmdurl__+=encodeURIComponent(adminUserId);
+}
+if (hidden){
+__cmdurl__+="&hidden=";
+__cmdurl__+=encodeURIComponent(hidden);
+}
+if (privateContent){
+__cmdurl__+="&privateContent=";
+__cmdurl__+=encodeURIComponent(privateContent);
+}
+if (approvalRequired){
+__cmdurl__+="&approvalRequired=";
+__cmdurl__+=encodeURIComponent(approvalRequired);
+}
+if (ecmFolderInfo){
+__cmdurl__+="&ecmFolderInfo=";
+__cmdurl__+=encodeURIComponent(ecmFolderInfo);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.UPDATESOCIALCOMMUNITY__PATH = function(){
+return "/social/api/rest/social"+"/community/updateSocial";}
+SocialDATAAPI_SocialService.prototype.UPDATESOCIALCOMMUNITY = function(__callData,obj_SocialVO){
+var __cmdurl__="/social/api/rest/social"+"/community/updateSocial";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_SocialVO));
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.UPDATESOCIALCOMMUNITY__PATH = function(){
+return "/social/api/rest/social"+"/community/update";}
+SocialDATAAPI_SocialService.prototype.UPDATESOCIALCOMMUNITY = function(__callData,alias,name,description,approvalRequired,privateContent,hidden,ecmFolderInfo){
+var __cmdurl__="/social/api/rest/social"+"/community/update";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (alias){
+__cmdurl__+="&alias=";
+__cmdurl__+=encodeURIComponent(alias);
+}
+if (name){
+__cmdurl__+="&name=";
+__cmdurl__+=encodeURIComponent(name);
+}
+if (description){
+__cmdurl__+="&description=";
+__cmdurl__+=encodeURIComponent(description);
+}
+if (approvalRequired){
+__cmdurl__+="&approvalRequired=";
+__cmdurl__+=encodeURIComponent(approvalRequired);
+}
+if (privateContent){
+__cmdurl__+="&privateContent=";
+__cmdurl__+=encodeURIComponent(privateContent);
+}
+if (hidden){
+__cmdurl__+="&hidden=";
+__cmdurl__+=encodeURIComponent(hidden);
+}
+if (ecmFolderInfo){
+__cmdurl__+="&ecmFolderInfo=";
+__cmdurl__+=encodeURIComponent(ecmFolderInfo);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.FINDSOCIALUSER__PATH = function(id){
+return "/social/api/rest/social"+"/find/"+encodeURIComponent(id)+"";}
+SocialDATAAPI_SocialService.prototype.FINDSOCIALUSER = function(__callData,id){
+var __cmdurl__="/social/api/rest/social"+"/find/"+encodeURIComponent(id)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.LISTSOCIALS__PATH = function(){
+return "/social/api/rest/social"+"/socials";}
+SocialDATAAPI_SocialService.prototype.LISTSOCIALS = function(__callData,types,limit,offset){
+var __cmdurl__="/social/api/rest/social"+"/socials";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (types){
+__cmdurl__+="&types=";
+__cmdurl__+=encodeURIComponent(types);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.LISTSOCIALSDYNAMIC__PATH = function(){
+return "/social/api/rest/social"+"/listSocialsDinamic";}
+SocialDATAAPI_SocialService.prototype.LISTSOCIALSDYNAMIC = function(__callData,socialType,relationType,relatedAlias,favoriteOnly,pattern,order,limit,offset){
+var __cmdurl__="/social/api/rest/social"+"/listSocialsDinamic";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (socialType){
+__cmdurl__+="&socialType=";
+__cmdurl__+=encodeURIComponent(socialType);
+}
+if (relationType){
+__cmdurl__+="&relationType=";
+__cmdurl__+=encodeURIComponent(relationType);
+}
+if (relatedAlias){
+__cmdurl__+="&relatedAlias=";
+__cmdurl__+=encodeURIComponent(relatedAlias);
+}
+if (favoriteOnly){
+__cmdurl__+="&favoriteOnly=";
+__cmdurl__+=encodeURIComponent(favoriteOnly);
+}
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (order){
+__cmdurl__+="&order=";
+__cmdurl__+=encodeURIComponent(order);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/json", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.UPDATESOCIAL__PATH = function(){
+return "/social/api/rest/social"+"/social/update";}
+SocialDATAAPI_SocialService.prototype.UPDATESOCIAL = function(__callData,alias,name,description,obj_Map){
+var __cmdurl__="/social/api/rest/social"+"/social/update";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (alias){
+__cmdurl__+="&alias=";
+__cmdurl__+=encodeURIComponent(alias);
+}
+if (name){
+__cmdurl__+="&name=";
+__cmdurl__+=encodeURIComponent(name);
+}
+if (description){
+__cmdurl__+="&description=";
+__cmdurl__+=encodeURIComponent(description);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_Map));
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.FINDSOCIALBYALIAS__PATH = function(alias){
+return "/social/api/rest/social"+"/findbyalias/"+encodeURIComponent(alias)+"";}
+SocialDATAAPI_SocialService.prototype.FINDSOCIALBYALIAS = function(__callData,alias){
+var __cmdurl__="/social/api/rest/social"+"/findbyalias/"+encodeURIComponent(alias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.FINDSOCIAL__PATH = function(){
+return "/social/api/rest/social"+"/find";}
+SocialDATAAPI_SocialService.prototype.FINDSOCIAL = function(__callData){
+var __cmdurl__="/social/api/rest/social"+"/find";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.REMOVESOCIAL__PATH = function(socialId){
+return "/social/api/rest/social"+"/social/"+encodeURIComponent(socialId)+"/remove";}
+SocialDATAAPI_SocialService.prototype.REMOVESOCIAL = function(__callData,socialId,state){
+var __cmdurl__="/social/api/rest/social"+"/social/"+encodeURIComponent(socialId)+"/remove";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (state){
+__cmdurl__+="&state=";
+__cmdurl__+=encodeURIComponent(state);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "text", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.SAVEORUPDATECOMMUNITYFOLDER__PATH = function(tenantId,alias){
+return "/social/api/rest/social"+"/saveCommunityFolder/"+encodeURIComponent(tenantId)+"/"+encodeURIComponent(alias)+"";}
+SocialDATAAPI_SocialService.prototype.SAVEORUPDATECOMMUNITYFOLDER = function(__callData,tenantId,alias,obj_SocialDocumentVO){
+var __cmdurl__="/social/api/rest/social"+"/saveCommunityFolder/"+encodeURIComponent(tenantId)+"/"+encodeURIComponent(alias)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_SocialDocumentVO));
+    return __ret__;
+}
+SocialDATAAPI_SocialService.prototype.CHANGEORIGINALNAMEPICTURE__PATH = function(){
+return "/social/api/rest/social"+"/change/original";}
+SocialDATAAPI_SocialService.prototype.CHANGEORIGINALNAMEPICTURE = function(__callData){
+var __cmdurl__="/social/api/rest/social"+"/change/original";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI.prototype.SocialService=new SocialDATAAPI_SocialService;
+function SocialDATAAPI_FollowService(){}
+SocialDATAAPI_FollowService.prototype.basePath = function(){
+return "/social/api/rest/follow";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_FollowService.prototype.REQUESTFOLLOW__PATH = function(){
+return "/social/api/rest/follow"+"/request";}
+SocialDATAAPI_FollowService.prototype.REQUESTFOLLOW = function(__callData,requestedId){
+var __cmdurl__="/social/api/rest/follow"+"/request";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (requestedId){
+__cmdurl__+="&requestedId=";
+__cmdurl__+=encodeURIComponent(requestedId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_FollowService.prototype.ACCEPTFOLLOW__PATH = function(){
+return "/social/api/rest/follow"+"/accept";}
+SocialDATAAPI_FollowService.prototype.ACCEPTFOLLOW = function(__callData,requesterId){
+var __cmdurl__="/social/api/rest/follow"+"/accept";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (requesterId){
+__cmdurl__+="&requesterId=";
+__cmdurl__+=encodeURIComponent(requesterId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_FollowService.prototype.REJECTFOLLOW__PATH = function(){
+return "/social/api/rest/follow"+"/reject";}
+SocialDATAAPI_FollowService.prototype.REJECTFOLLOW = function(__callData,requesterId){
+var __cmdurl__="/social/api/rest/follow"+"/reject";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (requesterId){
+__cmdurl__+="&requesterId=";
+__cmdurl__+=encodeURIComponent(requesterId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_FollowService.prototype.REMOVEFOLLOWING__PATH = function(){
+return "/social/api/rest/follow"+"/remove";}
+SocialDATAAPI_FollowService.prototype.REMOVEFOLLOWING = function(__callData,followingId){
+var __cmdurl__="/social/api/rest/follow"+"/remove";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (followingId){
+__cmdurl__+="&followingId=";
+__cmdurl__+=encodeURIComponent(followingId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_FollowService.prototype.REMOVEALLFOLLOWING__PATH = function(){
+return "/social/api/rest/follow"+"/removeAll";}
+SocialDATAAPI_FollowService.prototype.REMOVEALLFOLLOWING = function(__callData,socialId){
+var __cmdurl__="/social/api/rest/follow"+"/removeAll";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (socialId){
+__cmdurl__+="&socialId=";
+__cmdurl__+=encodeURIComponent(socialId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_FollowService.prototype.LISTFOLLOWERSWITHRELEVANCE__PATH = function(){
+return "/social/api/rest/follow"+"/listFollowersRelevance";}
+SocialDATAAPI_FollowService.prototype.LISTFOLLOWERSWITHRELEVANCE = function(__callData,relatedAlias,pattern,orderType,limit,offset){
+var __cmdurl__="/social/api/rest/follow"+"/listFollowersRelevance";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (relatedAlias){
+__cmdurl__+="&relatedAlias=";
+__cmdurl__+=encodeURIComponent(relatedAlias);
+}
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (orderType){
+__cmdurl__+="&orderType=";
+__cmdurl__+=encodeURIComponent(orderType);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_FollowService.prototype.LISTFOLLOWINGWITHRELEVANCE__PATH = function(){
+return "/social/api/rest/follow"+"/listFollowingRelevance";}
+SocialDATAAPI_FollowService.prototype.LISTFOLLOWINGWITHRELEVANCE = function(__callData,relatedAlias,pattern,orderType,limit,offset){
+var __cmdurl__="/social/api/rest/follow"+"/listFollowingRelevance";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (relatedAlias){
+__cmdurl__+="&relatedAlias=";
+__cmdurl__+=encodeURIComponent(relatedAlias);
+}
+if (pattern){
+__cmdurl__+="&pattern=";
+__cmdurl__+=encodeURIComponent(pattern);
+}
+if (orderType){
+__cmdurl__+="&orderType=";
+__cmdurl__+=encodeURIComponent(orderType);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_FollowService.prototype.FOLLOWRELATION__PATH = function(userId){
+return "/social/api/rest/follow"+"/relation/"+encodeURIComponent(userId)+"";}
+SocialDATAAPI_FollowService.prototype.FOLLOWRELATION = function(__callData,userId){
+var __cmdurl__="/social/api/rest/follow"+"/relation/"+encodeURIComponent(userId)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_FollowService.prototype.FOLLOWINGRELATION__PATH = function(socialId,followingId){
+return "/social/api/rest/follow"+"/relation/"+encodeURIComponent(socialId)+"/"+encodeURIComponent(followingId)+"";}
+SocialDATAAPI_FollowService.prototype.FOLLOWINGRELATION = function(__callData,socialId,followingId){
+var __cmdurl__="/social/api/rest/follow"+"/relation/"+encodeURIComponent(socialId)+"/"+encodeURIComponent(followingId)+"";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_FollowService.prototype.GETFOLLOWING__PATH = function(){
+return "/social/api/rest/follow"+"/following";}
+SocialDATAAPI_FollowService.prototype.GETFOLLOWING = function(__callData,socialId,limit,offset){
+var __cmdurl__="/social/api/rest/follow"+"/following";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (socialId){
+__cmdurl__+="&socialId=";
+__cmdurl__+=encodeURIComponent(socialId);
+}
+if (limit){
+__cmdurl__+="&limit=";
+__cmdurl__+=encodeURIComponent(limit);
+}
+if (offset){
+__cmdurl__+="&offset=";
+__cmdurl__+=encodeURIComponent(offset);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/json", undefined);
+    return __ret__;
+}
+SocialDATAAPI.prototype.FollowService=new SocialDATAAPI_FollowService;
+function SocialDATAAPI_PostService(){}
+SocialDATAAPI_PostService.prototype.basePath = function(){
+return "/social/api/rest/post";}
+SocialDATAAPI.prototype.ajaxCall = function(__httpMethod__, __callData, __cmdurl__, __datatype__, __contentType__, __postdata__){
+var 	__ret__=null;
+	jQuery.ajax( {
+    	type : __httpMethod__ ,
+    	async : __callData.async,
+    	url : __cmdurl__ ,
+    	dataType : __datatype__,
+    	contentType: __contentType__ +"; charset=utf-8",
+    	data: __postdata__,
+    	success : function(response) {
+if (      	__callData.async == false){
+      	__ret__=response;
+}else{
+      	__callData.success.call(__callData.oObj, response, __callData);
+}
+    	},
+    	error : function(XMLHttpRequest, textStatus, errorThrown) {
+      	errorThrown=eval('('+XMLHttpRequest.responseText+')');
+      	if (__callData.errorCallback) {
+          	__callData.errorCallback.call(__callData.oObj, XMLHttpRequest, textStatus, errorThrown, __callData);
+      	}else{
+          	throw errorThrown;
+    	}}
+	});
+if (	__callData.async == false){
+    	return __ret__;
+}
+	}
+SocialDATAAPI_PostService.prototype.CANVIEWPOST__PATH = function(){
+return "/social/api/rest/post"+"/canViewPost";}
+SocialDATAAPI_PostService.prototype.CANVIEWPOST = function(__callData,sociableId){
+var __cmdurl__="/social/api/rest/post"+"/canViewPost";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+__ret__=SocialAPI.ajaxCall("GET", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_PostService.prototype.REMOVEPOST__PATH = function(){
+return "/social/api/rest/post"+"/remove";}
+SocialDATAAPI_PostService.prototype.REMOVEPOST = function(__callData,sociableId,alias){
+var __cmdurl__="/social/api/rest/post"+"/remove";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+if (alias){
+__cmdurl__+="&alias=";
+__cmdurl__+=encodeURIComponent(alias);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_PostService.prototype.FINDTIMELINEPOST__PATH = function(){
+return "/social/api/rest/post"+"/find";}
+SocialDATAAPI_PostService.prototype.FINDTIMELINEPOST = function(__callData,sociableId){
+var __cmdurl__="/social/api/rest/post"+"/find";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/x-www-form-urlencoded", undefined);
+    return __ret__;
+}
+SocialDATAAPI_PostService.prototype.CREATEPOST__PATH = function(){
+return "/social/api/rest/post"+"/create";}
+SocialDATAAPI_PostService.prototype.CREATEPOST = function(__callData,text,visibility,alias,sociableId,obj_List){
+var __cmdurl__="/social/api/rest/post"+"/create";
+var __ret__=null;
+WCMAPI.extendSession();
+__cmdurl__+="?space=" + WCMAPI.getSpaceAlias() + "";
+if (text){
+__cmdurl__+="&text=";
+__cmdurl__+=encodeURIComponent(text);
+}
+if (visibility){
+__cmdurl__+="&visibility=";
+__cmdurl__+=encodeURIComponent(visibility);
+}
+if (alias){
+__cmdurl__+="&alias=";
+__cmdurl__+=encodeURIComponent(alias);
+}
+if (sociableId){
+__cmdurl__+="&sociableId=";
+__cmdurl__+=encodeURIComponent(sociableId);
+}
+__ret__=SocialAPI.ajaxCall("POST", __callData, __cmdurl__, "application/json", "application/json", JSON.stringify(obj_List));
+    return __ret__;
+}
+SocialDATAAPI.prototype.PostService=new SocialDATAAPI_PostService;
+var SocialAPI=new SocialDATAAPI();

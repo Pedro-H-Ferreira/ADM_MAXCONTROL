@@ -1,0 +1,68 @@
+{
+    "screenId":  "02157897515e4090ba091ec20abac27f",
+    "name":  "projects/4660020320183620207/screens/02157897515e4090ba091ec20abac27f",
+    "title":  "01. Login Animado - MaxControLADM (1920x1080) Fixed",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "02157897515e4090ba091ec20abac27f",
+                          "sourceScreen":  "projects/4660020320183620207/screens/02157897515e4090ba091ec20abac27f",
+                          "x":  -3944,
+                          "y":  4329,
+                          "width":  1280,
+                          "height":  720
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\01-login-animado-maxcontroladm-1920x1080-fixed-02157897515e4090ba091ec20abac27f",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/344a71e272b04b0189a1f0f43abfc3e4",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzlkOTZhNDY1MzE3ODQ2ZGQ4N2M1ZDQ0MjA4NGNjZjljEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\01-login-animado-maxcontroladm-1920x1080-fixed-02157897515e4090ba091ec20abac27f\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\01-login-animado-maxcontroladm-1920x1080-fixed-02157897515e4090ba091ec20abac27f\\screen.html",
+                                  "bytes":  14705,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/a35109d86cb141ab9ff675c0f1e59685",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtj8B5lwEMvGdoxq-VATragFa7BbW8LNZZnE4vwT0oJzkzK8jqQYxGzJzzP9C8r1v7WNckGSIJ-ljPprKQJBuuEfj1FR5ACSbXKCqunbVi9n_OaViBpZGOeVmqXjoy4ftSBsthRuTi1kizmR0y8oD4rUrzJQnodRQuGjMTJTMkIPCTvN8DYGb7f0GIgSqMJlZiAl84jR5ErjpxOZJt3QOlqPOTY2iDTLhWa8cZAIYjaWHRlfJm70QI6oZQ",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\01-login-animado-maxcontroladm-1920x1080-fixed-02157897515e4090ba091ec20abac27f\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\01-login-animado-maxcontroladm-1920x1080-fixed-02157897515e4090ba091ec20abac27f\\screenshot.png",
+                                        "bytes":  62475,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/02157897515e4090ba091ec20abac27f",
+                   "title":  "01. Login Animado - MaxControLADM (1920x1080) Fixed",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/a35109d86cb141ab9ff675c0f1e59685",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtj8B5lwEMvGdoxq-VATragFa7BbW8LNZZnE4vwT0oJzkzK8jqQYxGzJzzP9C8r1v7WNckGSIJ-ljPprKQJBuuEfj1FR5ACSbXKCqunbVi9n_OaViBpZGOeVmqXjoy4ftSBsthRuTi1kizmR0y8oD4rUrzJQnodRQuGjMTJTMkIPCTvN8DYGb7f0GIgSqMJlZiAl84jR5ErjpxOZJt3QOlqPOTY2iDTLhWa8cZAIYjaWHRlfJm70QI6oZQ"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/344a71e272b04b0189a1f0f43abfc3e4",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzlkOTZhNDY1MzE3ODQ2ZGQ4N2M1ZDQ0MjA4NGNjZjljEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

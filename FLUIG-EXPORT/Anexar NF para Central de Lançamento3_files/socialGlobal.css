@@ -1,0 +1,274 @@
+.sociable-action-bar .sociable-icon {
+	background:url("/social/resources/images/sprites_sociable.png") no-repeat;
+	height:16px;
+}
+
+/* Link definitions */
+.sociable-action-bar .sociable-link {
+	display:inline-block;
+	font-size:inherit;
+	padding:0 0 0 22px;
+}
+.sociable-action-bar .sociable-link:link,
+.sociable-action-bar .sociable-link:visited,
+.sociable-action-bar .sociable-link:active {
+	text-decoration:none;
+}
+.sociable-action-bar .sociable-link:hover {
+	text-decoration:underline;
+}
+
+
+/* Icon positions */
+.sociable-action-bar .sociable-comment {
+	background-position:0 -16px;
+}
+.sociable-action-bar .sociable-comment.status-commented {
+	background-position:0 -208px;
+}
+.sociable-action-bar .sociable-support {
+	background-position: 0 0;
+}
+.sociable-action-bar .sociable-support.status-supported {
+	background-position: 0 -191px;
+}
+.sociable-action-bar .sociable-watch {
+	background-position:0 -224px;
+}
+.sociable-action-bar .sociable-watch.status-watched {
+	background-position:0 -240px;
+}
+.sociable-action-bar .sociable-recommend {
+	background-position:0 -33px;
+}
+.sociable-action-bar .sociable-recommend.status-recommended {
+	background-position:0 -256px;
+}
+.sociable-action-bar .sociable-delete {
+	background-position:0 -96px;
+}
+.sociable-action-bar .sociable-view {
+	background-position:0 -64px;
+}
+.sociable-action-bar .sociable-denounce {
+	background-position:0 -48px;
+}
+.sociable-action-bar .sociable-more-content {
+	background-position:0 -128px;
+}
+
+
+/* Interactions number */
+.sociable-action-bar .interactions-number {
+	vertical-align:top;
+}
+.sociable-action-bar .interactions-number > a {
+	vertical-align:inherit;
+}
+
+/* Adequar o popover quando estiver dentro de um widget com o guia de estilos. */
+.fluig-style-guide .totvs-btn,
+.fluig-style-guide .totvs-btn-action,
+.fluig-style-guide .totvs-btn-relation {
+	padding: 2px 10px !important;
+}
+
+.fluig-style-guide .totvs-btn-relation,
+.fluig-style-guide .totvs-btn-action {
+	color: #fff !important;	
+}
+
+/*JQUERYPOPOVER END*/
+
+
+/*JQUERY MENTION START*/
+
+.mentions-input-box {
+    position: relative;
+    background: #fff;
+}
+
+.mentions-input-box textarea,
+.mentions-input-box .mentions,
+.mentions-input-box .mentions span {
+	font-family: inherit !important;
+	font-size: 14px;
+	line-height: 1.5;
+	transition: none !important;
+	-webkit-transition: none !important;
+	-moz-transition: none !important;
+	-ms-transition: none !important;
+	text-rendering: optimizelegibility;
+}
+
+.mentions-input-box .container-mention-scroll textarea,
+.mentions-input-box .container-mention-scroll .mentions,
+.mentions-input-box .container-mention-scroll .mentions span {
+	line-height: inherit;
+}
+
+.mentions-input-box .container-mention-scroll textarea {
+	min-height: 78px;
+}
+
+.mentions-input-box textarea,
+.mentions-input-box .mentions {
+	padding: 9px !important;
+	display: none;
+}
+
+.mentions-input-box textarea {
+    width: 100%;
+    display: block;
+    border: 1px solid #dcdcdc;
+    border-radius:3px;
+    overflow: hidden;
+    position: relative;
+    outline: 0;
+    resize: none !important;
+    box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+    resize: none !important;
+    margin: 0 !important;
+}
+
+.mentions-input-box .mentions {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.mentions-input-box .mentions > div {
+    color: #fff;
+    white-space: pre-wrap;
+    height: 100%;
+}
+
+.mentions-input-box .mentions > div > strong {
+    font-weight: normal;
+    background: #d8dfea;
+}
+
+.mentions-input-box .mentions > div > strong > span {
+    filter: progid:DXImageTransform.Microsoft.Alpha(opacity=0);
+}
+
+.mentions-input-box .container-mention-scroll {
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    overflow-y: scroll;
+    height: 80px;
+    position: relative;
+}
+
+/*
+ *
+ * Lista de autocomplete
+ *
+ */
+
+.mentions-input-box .mentions-autocomplete-list {
+    display: none;
+    background: #fff;
+    color: #656565;
+    font-size: 12px;
+    border: 1px solid #b2b2b2;
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    margin-top: -2px;
+    border-radius:5px;
+    border-top-right-radius:0;
+    border-top-left-radius:0;
+    -webkit-box-shadow: 0 2px 5px rgba(0, 0, 0, 0.148438);
+	-moz-box-shadow: 0 2px 5px rgba(0, 0, 0, 0.148438);
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.148438);
+}
+
+.mentions-input-box .mentions-autocomplete-list ul {
+    margin: 0;
+    padding: 0;
+}
+
+.mentions-input-box .mentions-autocomplete-list li {
+    background-color: #fff;
+    padding: 0 5px;
+    margin: 0;
+    width: auto;
+    border-bottom: 1px solid #eee;
+    height: 26px;
+    line-height: 26px;
+    overflow: hidden;
+    cursor: pointer;
+    list-style: none;
+    white-space: nowrap;
+}
+
+.mentions-input-box .mentions-autocomplete-list li:last-child {
+    border-radius: 5px;
+}
+
+.mentions-input-box .mentions-autocomplete-list li > img,
+.mentions-input-box .mentions-autocomplete-list li > div.icon {
+    width: 16px;
+    height: 16px;
+    float: left;
+    margin-top: 5px;
+    margin-right: 5px;
+    -moz-background-origin: 3px;
+    border-radius: 3px;
+}
+
+.mentions-input-box .mentions-autocomplete-list li em {
+    font-weight: bold;
+    font-style: none;
+}
+
+.mentions-input-box .mentions-autocomplete-list li:hover,
+.mentions-input-box .mentions-autocomplete-list li.active {
+    background-color: #e7e7e7;
+}
+
+.mentions-input-box .mentions-autocomplete-list li b {
+    background: #ffff99;
+    font-weight: normal;
+}
+
+.mentions-input-box .mentions-autocomplete-list li {
+    height: 40px !important;
+}
+
+.mentions-input-box .mentions-autocomplete-list li img,
+.mentions-input-box .mentions-autocomplete-list li div.icon {
+    width: 30px;
+    height: auto;
+    margin-top: -2px;
+}
+
+.mentions-input-box .mention-container-avatar {
+    width: 30px;
+    height: 32px;
+    overflow: hidden;
+    float: left;
+    margin: 4px 4px 0 0;
+}
+
+.mentions-input-box .mention-user-type {
+    margin-top: -1px;
+    line-height: 1em;
+    font-size: 11px;
+    color: #aaa;
+}
+
+.mentions-input-box .new-class:after {
+	color: #f00;
+	margin-left: 10px;
+	content: attr(data-new);
+}
+
+/*JQUERY MENTION END*/

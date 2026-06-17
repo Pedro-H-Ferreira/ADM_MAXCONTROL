@@ -1,0 +1,202 @@
+.responsive-header-widget {
+	--popover-discount-height: 188px; /* soma das alturas do header e do popover header e footer */
+}
+
+.responsive-header-widget .popover.popover-notify .alert-popover-max-height {
+    max-height: calc(100vh - var(--popover-discount-height));
+}
+
+.responsive-header-widget .btn.btn-notification .global-notifications-badge {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: var(--system-danger-color);
+	position: absolute;
+	right: 8px;
+}
+
+.responsive-header-widget .popover.popover-notify {
+	left: unset !important;
+	right: 15px !important;
+	top: 100% !important;
+	max-width: inherit !important;
+	width: 412px !important;
+	margin: 0 !important;
+}
+
+.responsive-header-widget .popover.popover-notify .popover-content {
+	padding: 0 !important;
+}
+
+.responsive-header-widget .popover.popover-notify .popover-content .panel-default {
+	margin-bottom: 0;
+}
+
+.responsive-header-widget .responsive-header-mark-read {
+	position: absolute;
+	right: 15px;
+	top: 15px;
+}
+
+.responsive-header-widget .responsive-header-media-alert-container {
+	width: calc(100% - 25px);
+}
+
+.responsive-header-widget .responsive-header-notification-popover {
+	top: 70px !important;
+	left: unset !important;
+	right: 120px !important;
+}
+
+.responsive-header-widget .responsive-header-notification-popover .action-notify {
+	display: inline-block;
+	vertical-align: top;
+	margin-left: 10px;
+}
+
+.responsive-header-widget .responsive-header-notification-popover .text-notify-header {
+	font-size: .8em !important;
+}
+
+.responsive-header-widget .responsive-header-notification-popover.totvs-popover .responsive-header-wrapper-popover {
+	box-shadow: 0 1px 18px 0 rgba(0, 0, 0, 0.06), 0 6px 10px 0 rgba(0, 0, 0, 0.12) !important;
+}
+
+.responsive-header-widget .responsive-header-fade-in-down {
+	-webkit-animation-name: fadeInDown;
+	animation-name: fadeInDown;
+	-webkit-animation-duration: 0.4s;
+	animation-duration: 0.4s;
+	-webkit-animation-fill-mode: both;
+	animation-fill-mode: both;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down ul#popover-content.list-group > li {
+	border: 1px solid #f3f3f3 !important;
+	margin: 10px 20px !important;
+	border-radius: 4px !important;
+	padding: 15px !important;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down ul#popover-content.list-group li .media .pull-left {
+	background-color: #e6e5e4;
+	border-radius: 50%;
+	padding: 10px;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down ul#popover-content.list-group li .media img.thumb-profile {
+	height: 30px;
+	width: 30px;
+	border-radius: 50%;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down ul#popover-content.list-group li .media-body {
+	font-size: 14px;
+	line-height: 21px;
+	color: #757575;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down ul#popover-content.list-group li .media-body a {
+	font-weight: bold;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down ul#popover-content.list-group li .media-body .text-muted {
+	margin: 0px 0px 0px 0px !important;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down .panel {
+	margin-bottom: 0px;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down .panel .panel-heading {
+	border-top: 1px solid #e5e5e5;
+	border-bottom: none;
+	border-left: none;
+	border-right: none;
+	font-size: 14px;
+	color: #757575 !important;
+	background-color: #f7f7f7;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down .panel .panel-heading button {
+	border: none;
+	background: none;
+	font-size: 18px;
+	padding: 0px 0px 0px 0px;
+	color: #757575 !important;
+	box-shadow: none;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down .panel .panel-heading button:active,
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down .panel .panel-heading button:focus,
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down .panel .panel-heading button:hover {
+	box-shadow: none;
+	outline: none;
+	background-color: #f7f7f7;
+	color: #454545 !important;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down .panel .panel-footer {
+	background-color: #f7f7f7;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down:before {
+	display: none;
+}
+
+.responsive-header-widget .responsive-header-wrapper-popover.responsive-header-fade-in-down:after {
+  display: none;
+}
+
+@-webkit-keyframes fadeInDown {
+  from {
+      opacity: 0;
+      -webkit-transform: translate3d(0, -15%, 0);
+      transform: translate3d(0, -15%, 0);
+ }
+  to {
+      opacity: 1;
+      -webkit-transform: none;
+      transform: none;
+ }
+}
+@keyframes fadeInDown {
+  from {
+      opacity: 0;
+      -webkit-transform: translate3d(0, -15%, 0);
+      transform: translate3d(0, -15%, 0);
+ }
+  to {
+      opacity: 1;
+      -webkit-transform: none;
+      transform: none;
+ }
+}
+@media (max-width: 767px) {
+  .responsive-header-widget .popover.popover-notify {
+    left: 0 !important;
+    right: unset !important;
+    width: 100vw !important;
+    height: calc(100vh - 80px) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .responsive-header-widget .popover.popover-notify .panel-heading {
+    display: none;
+  }
+  .responsive-header-widget .popover.popover-notify .alert-popover-max-height {
+    max-height: inherit;
+    height: calc(100vh - 80px - 36px);
+  }
+  .responsive-header-widget .popover.popover-notify .panel-footer,
+  .responsive-header-widget .popover.popover-notify .list-group {
+    background-color: #f3f3f3;
+  }
+  .responsive-header-widget .popover.popover-notify .panel-footer,
+  .responsive-header-widget .popover.popover-notify ul#popover-content.list-group .list-group-item {
+    border-color: #e8e9eb !important;
+  }
+  .responsive-header-widget .popover.popover-notify .panel-footer {
+    border-top-width: 1px;
+  }
+}

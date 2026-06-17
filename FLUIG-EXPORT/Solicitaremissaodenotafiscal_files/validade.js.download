@@ -1,0 +1,39 @@
+var beforeSendValidate = function( numState,nextState ) {
+    const ctx = "validate.js -> beforeSendValidate() -> ";
+    console.log( ctx + "Iniciado" );
+
+    var inicio = 0;
+    var inicio1 = 4;
+    var EmissaoNF = 5;
+    var MovimentarAtivo = 14;
+    var InformarRetorno = 30;
+    var RealizarUpload = 19;
+    var RealizarAjuste = 37;
+    var ConfirmarMovimentacao = 49;
+    var ConfirmarTransferencia = 53;
+    var fim = 21;
+
+	try{
+		var atividade = WKNumState;
+		var msg = new Array();
+		
+		if(atividade == inicio || atividade == inicio1){
+
+				//Atualiza data de abertura
+				setaValor("dataEnvio",dataAbertura)
+				
+				
+				
+				
+			}
+		
+
+
+		if(msg.length > 0){
+			throw(msg.toString())
+		}
+	}catch(e){
+		throw(e.toString())
+	}
+
+}

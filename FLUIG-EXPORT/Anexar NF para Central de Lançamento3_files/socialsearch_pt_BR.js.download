@@ -1,0 +1,487 @@
+var SearchSocial = SuperWidget.extend({
+
+	instanceId: null,
+	DOM: null,
+	searchResultsDropdown: null,
+	searchResults: null,
+	cachedPattern: null,
+	// will hold the applet instance (?) or something like that
+	appletHolder: {},
+
+	bindings: {
+		local: {
+			'btnSearchSocial': ['click_btnSearchSocial'],
+			'searchInputText': ['keyup_searchInputText'],
+			'btnSearchSeeAll': ['click_btnSearchSeeAll'],
+			'btnSearchSeeMore': ['click_btnSearchSeeMore'],
+			'btn-follow': ['click_btnFollow'],
+			'btn-unfollow': ['click_btnUnfollow'],
+			'btn-participate': ['click_btnParticipate'],
+			'btn-leave': ['click_btnLeave'],
+			'add-favorites': ['click_addFavorites'],
+			'edit-metadata': ['click_editMetadata'],
+			'edit-content': ['click_editContent'],
+			'remove-document': ['click_removeDocument'],
+			'download': ['click_download'],
+			'filter-type': ['click_filterType'],
+			'showResults': ['click_showResults'],
+			'showDropdownResults': ['click_showDropdownResults'],
+			'seeMoreResults': ['click_seeMoreResults'],
+			'setFiltersHeight': ['click_setFiltersHeight'],
+			'searchTypes': ['click_searchTypes']
+		},
+		global: {}
+	},
+
+	init: function() {
+		this.DOM = $('#socialSearch_' + this.instanceId);
+		this.searchResultsDropdown = $('#searchResultsDropdown', this.DOM);
+		this.searchResults = $('#searchResults_' + this.instanceId, this.DOM);
+		this.setFiltersHeight();
+
+		//
+		// Solução paleativa, por favor me lembrar disso
+		//
+		var self = this;
+		$(document).on("click", function(ev) {
+			var resultContainer = self.searchResultsDropdown;
+			targetParent = $(ev.target).closest("#searchResultsDropdown");
+
+			if (resultContainer.is(":visible") && !targetParent.length) {
+				resultContainer.hide();
+			}
+		});
+
+		this.injectApplet(this.appletHolder);
+
+	},
+
+	btnSearchSocial: function(el, ev) {
+		var text = $(el).siblings('.search-input-text:first').val();
+		if (text != "") {
+			this.showResults(text);
+		}
+	},
+
+	searchInputText: function(el, ev) {
+		var text = $(el).val();
+
+		// Only search with one char or more
+		if (text.length < 1) {
+			return;
+		}
+
+		if (ev.keyCode == '13') {
+			ev.preventDefault();
+			this.showResults(text);
+		} else {
+			this.showDropdownResults(text);
+		}
+	},
+
+	btnSearchSeeAll: function(el, ev) {
+		var text = $('#searchInputText', this.DOM).val();
+		this.showResults(text);
+	},
+
+	btnSearchSeeMore: function(el, ev) {
+		this.seeMoreResults();
+	},
+
+	btnFollow: function(el, ev) {
+		var userId = $(el).parent().attr('userid');
+		this.rest(SocialAPI.FollowService.REQUESTFOLLOW, [userId], function(data) {
+			if (data)
+				data = data.content;
+			if (data === 'ACCEPTED') {
+				$(el).hide();
+				$(el).siblings('[data-btn-unfollow]').show();
+			} else if (data === 'PENDING') {
+				$(el).hide();
+				$(el).siblings('[data-btn-pending]').show();
+			}
+		});
+	},
+
+	btnUnfollow: function(el, ev) {
+		var userId = $(el).parent().attr('userid');
+		this.rest(SocialAPI.FollowService.REMOVEFOLLOWING, [userId], function(unfollow) {
+			$(el).hide();
+			$(el).siblings('[data-btn-follow]').show();
+		});
+	},
+
+	btnParticipate: function(el, ev) {
+
+		var socialId = $(el).parent().data('socialid');
+		this.rest(SocialAPI.ParticipationService.REQUESTPARTICIPATION, [socialId], function(participate) {
+			if (participate && participate.content && participate.content === "ACCEPTED") {
+				$(el).hide();
+				$(el).siblings('[data-btn-leave]').show();
+			} else if (participate && participate.content && participate.content === "PENDING") {
+				$(el).hide();
+				$(el).siblings('[data-btn-pending]').show();
+			}
+		});
+	},
+
+	btnLeave: function(el, ev) {
+		var socialId = $(el).parent().data('socialid');
+		this.rest(SocialAPI.ParticipationService.REMOVEPARTICIPATION, [socialId], function() {
+			$(el).hide();
+			$(el).siblings('[data-btn-participate]').show();
+		}, function() {
+			FLUIGC.toast({
+				message: 'O administrador não pode deixar a comunidade.',
+				type: 'danger'
+			});
+		});
+	},
+
+	addFavorites: function(el, ev) {
+		var instance = el;
+		var documentId = $(el).data('doc-id');
+		var version = $(el).data('doc-version');
+
+		WCMAPI.Create({
+			url: ECM.restUrl + "favorites/addFavorites/" + documentId + "/" + version + "/",
+			success: function() {
+				FLUIGC.toast({
+					message: 'Adicionado aos favoritos com sucesso',
+					type: 'success'
+				});
+				$(instance).remove();
+			}
+		});
+	},
+
+	// document content edit via applet (argghttt...)
+	editContent: function(el, ev) {
+		var $el = $(el), documentId = $el.data('doc-id'), version = $el.data('doc-version');
+		ECM.core.editAppletContent(documentId, version, this.appletHolder);
+	},
+
+	removeDocument: function(el, ev) {
+		var $el = $(el), documentId = $el.data('doc-id'), parentId = $el.data('doc-parent-id'), data = {
+			docsToDelete: []
+		}, url = ECM.restUrl + "navigation/removeDoc/";
+
+		if (!confirm("Tem certeza que deseja eliminar o documento?")) {
+			return false;
+		}
+		data.docsToDelete.push({
+			docId: documentId,
+			isLink: false, // mirrors doesn't appear at search.
+			parentId: parentId
+		});
+
+		WCMAPI.Delete({
+			url: url,
+			data: data,
+			success: function(data) {
+				if (data) {
+					WCMC.messageInfo("Documento eliminado com sucesso");
+					$el.parents('.search-result').fadeOut().remove();
+				} else {
+					WCMC.messageWarn("Falha ao eliminar documento");
+				}
+			},
+			error: function(args) {
+				WCMAPI.failHandler(args);
+			}
+		});
+	},
+
+	editMetadata: function(el, ev) {
+		var docId = $(el).data('doc-id');
+		var docType = $(el).data('doc-type');
+		var docVersion = $(el).data('doc-version');
+		var parentDocumentId = $(el).data('doc-parent-id');
+		var privateDocument = $(el).data('doc-private');
+
+		//Pastas
+		if (docType == "FOLDER") {
+			ECM.folderPublisher = new Object();
+			var cfg = {
+				url: "/ecm_folderpublisher/folderPublisher.ftl",
+				width: 750,
+				height: 550,
+				maximized: true,
+				title: "Editar metadados",
+				callBack: function() {
+					ECM.folderPublisher.init(docId, docVersion, docType, parentDocumentId, privateDocument);
+				},
+				customButtons: new Array("Confirmar")
+			};
+
+			ECM.folderPublisher.panel = WCMC.panel(cfg);
+			ECM.folderPublisher.panel.bind("panel-load", function() {
+			});
+
+			ECM.folderPublisher.panel.bind("panel-close", function() {
+			});
+
+			ECM.folderPublisher.panel.bind("panel-button-0", function() {
+				ECM.folderPublisher.apply();
+			});
+		}
+
+		//Documentos
+		else if (docType == "FILEDOCUMENT" || docType == "FILEREPORT") {
+
+			ECM.documentPublisher = new Object();
+			ECM.documentPublisher.action = "update";
+
+			var docTypeId = docType == "FILEDOCUMENT" ? "2" : "10";
+			var cfg = {
+				url: "/ecm_documentpublisher/documentpublisher.ftl",
+				width: 750,
+				height: 550,
+				maximized: true,
+				title: "Editar metadados",
+				callBack: function() {
+					ECM.documentPublisher.getDocument(docId, docTypeId, docVersion, parentDocumentId);
+				},
+				customButtons: new Array("Confirmar")
+			};
+			ECM.documentPublisher.panel = WCMC.panel(cfg);
+			ECM.documentPublisher.panel.bind("panel-close", function() {
+				$('#inputFile').fileupload('disable');
+			});
+
+			ECM.documentPublisher.panel.bind("panel-button-close", function() {
+				$('#inputFile').fileupload('disable');
+				ECM.documentPublisher.close();
+			});
+
+			//panel-button-0 referece à primeira posicao do Array dos botoes, neste caso o Confirmar
+			ECM.documentPublisher.panel.bind("panel-button-0", function() {
+				ECM.documentPublisher.apply();
+			});
+		}
+
+		//Ficharios
+		else if (docType == "CARDINDEX") {
+
+			ECM.cardIndexPublisher = new Object();
+			ECM.cardIndexPublisher.action = 'update';
+
+			var cfg = {
+				url: "/ecm_cardindexpublisher/cardindexpublisher.ftl",
+				width: 750,
+				height: 550,
+				maximized: true,
+				title: "Editar metadados",
+				callBack: function() {
+					if (parentDocumentId == 0) {
+						rootPrivateFolder = true;
+					} else {
+						rootPrivateFolder = false;
+					}
+					ECM.cardIndexPublisher.getDocument(docId, docVersion, parentDocumentId);
+				},
+				customButtons: new Array("Confirmar")
+			};
+
+			ECM.cardIndexPublisher.panel = WCMC.panel(cfg);
+			ECM.cardIndexPublisher.panel.bind("panel-load", function() {
+			});
+
+			ECM.cardIndexPublisher.panel.bind("panel-close", function() {
+			});
+
+			//panel-button-0 referece à primeira posicao do Array dos botoes, neste caso o Confirmar
+			ECM.cardIndexPublisher.panel.bind("panel-button-0", function() {
+				ECM.cardIndexPublisher.apply();
+			});
+		}
+
+		//Card
+		else if (docType == "CARD") {
+			ECM.cardPublisher = new Object();
+			var cfg = {
+				url: "/ecm_cardpublisher/cardPublisher.ftl",
+				width: 750,
+				height: 550,
+				maximized: true,
+				title: "Editar metadados",
+				callBack: function() {
+					ECM.cardPublisher.action = "update";
+					ECM.cardPublisher.getDocument(docId, docType, docVersion, parentDocumentId);
+				},
+				customButtons: new Array("Confirmar")
+			};
+
+			ECM.cardPublisher.panel = WCMC.panel(cfg);
+
+			ECM.cardPublisher.panel.bind("panel-close", function() {
+			});
+
+			ECM.cardPublisher.panel.bind("panel-button-0", function() {
+				ECM.cardPublisher.apply();
+			});
+		}
+
+		//Documento externo
+		else if (docType == "EXTERNALLINK") {
+			ECM.externalDocumentPublisher = {};
+
+			var cfg = {
+				url: "/ecm_externaldocumentpublisher/externalDocumentPublisher.ftl",
+				width: 750,
+				height: 550,
+				maximized: true,
+				title: "Editar metadados",
+				callBack: function() {
+					ECM.externalDocumentPublisher.getDocument(docId, docVersion, parentDocumentId);
+				},
+				customButtons: new Array("Confirmar")
+			};
+
+			ECM.externalDocumentPublisher.panel = new WCMC.panel(cfg);
+
+			ECM.externalDocumentPublisher.panel.bind("panel-button-0", function() {
+				ECM.externalDocumentPublisher.apply();
+			});
+		}
+
+		//Documento editável (CKEditor)
+		else if (docType == "EDITABLEDOCUMENT") {
+			ECM.editableDocumentPublisher = new Object();
+
+			var cfg = {
+				url: "/ecm_editabledocumentpublisher/view.ftl",
+				width: 750,
+				height: 550,
+				maximized: true,
+				title: "Editar metadados",
+				callBack: function() {
+					ECM.editableDocumentPublisher.init(docId, docVersion, parentDocumentId);
+				},
+				customButtons: new Array("Salvar rascunho",
+					"Cancelar rascunho", "Publicar")
+			};
+
+			ECM.editableDocumentPublisher.panel = WCMC.panel(cfg);
+			ECM.editableDocumentPublisher.panel.bind("panel-load", function() {
+			});
+
+			ECM.editableDocumentPublisher.panel.bind("panel-close", function() {
+				CKEDITOR.instances.ecm_editableDocumentPublisher_content.destroy();
+			});
+
+			ECM.editableDocumentPublisher.panel.bind("panel-button-0", function() {
+				ECM.editableDocumentPublisher.save(true);
+			});
+
+			ECM.editableDocumentPublisher.panel.bind("panel-button-1", function() {
+				ECM.editableDocumentPublisher.cancelDraftItem(docId, docVersion);
+			});
+
+			ECM.editableDocumentPublisher.panel.bind("panel-button-2", function() {
+				ECM.editableDocumentPublisher.save(false);
+			});
+		}
+	},
+
+	download: function(el, ev) {
+		var documentId = $(el).data('doc-id');
+		var companyId = $(el).data('company-id');
+		var version = $(el).data('doc-version');
+		window.location.href = WCMAPI.getServerURL() + "/webdesk/webdownload?WDNrDocto=" + documentId + "&WDNrVersao="
+			+ version + "&WDCompanyId=" + companyId;
+	},
+
+	filterType: function(el, ev) {
+		$(el).siblings('.filter-type').removeClass('selected');
+		var type = $(el).attr('type');
+		this.searchTypes(type);
+		$(el).addClass('selected');
+	},
+
+	showResults: function(pattern) {
+		socialGlobal.showSearch(pattern);
+	},
+
+	showDropdownResults: function(pattern) {
+		if (pattern === this.cachedPattern) {
+			return;
+		}
+		this.cachedPattern = pattern;
+		var self = this;
+		this.rest(WCMSpaceAPI.PageService.RENDERWIDGETPARTIAL, [this.instanceId, 'results-dropdown.ftl', {
+			"pattern": pattern
+		}], function(html) {
+			self.searchResultsDropdown.html(html.content);
+			self.searchResultsDropdown.show();
+		});
+	},
+
+	seeMoreResults: function() {
+
+		socialGlobal.showLoading();
+
+		$('.see-more', this.searchResults).remove();
+
+		var pattern = this.searchResults.attr('pattern');
+		var types = this.searchResults.attr('types');
+		var limit = parseInt(this.searchResults.attr('limit'));
+		var offset = parseInt(this.searchResults.attr('offset'));
+		var self = this;
+		offset = limit + offset;
+
+		this.rest(WCMSpaceAPI.PageService.RENDERWIDGETPARTIAL, [this.instanceId, 'results.ftl', {
+			"pattern": pattern,
+			"types": types,
+			"limit": limit,
+			"offset": offset
+		}], function(data) {
+			if (data) {
+				self.searchResults.append(data.content);
+				self.searchResults.attr('offset', offset);
+			}
+			self.setFiltersHeight();
+			socialGlobal.hideLoading();
+		});
+
+	},
+
+	setFiltersHeight: function() {
+		var resultsHeight = $('.search-results', this.DOM).height();
+		var filtersHeight = $('.search-filters', this.DOM).height();
+		$('.search-filters', this.DOM).height(resultsHeight);
+	},
+
+	searchTypes: function(type) {
+		socialGlobal.showLoading();
+		$('.see-more', this.searchResults).remove();
+		var pattern = this.searchResults.attr('pattern');
+		var types = type;
+		var limit = parseInt(this.searchResults.attr('limit'));
+		var offset = 0;
+
+		var html = this.restSync(WCMSpaceAPI.PageService.RENDERWIDGETPARTIAL, [this.instanceId, 'results.ftl', {
+			"pattern": pattern,
+			"types": types,
+			"limit": limit,
+			"offset": offset
+		}]);
+		if (html) {
+			this.searchResults.html(html.content);
+			this.searchResults.attr('types', types);
+			this.searchResults.attr('offset', offset);
+			socialGlobal.loadFavorites();
+		}
+		this.setFiltersHeight();
+		socialGlobal.hideLoading();
+	},
+
+	injectApplet: function(holder) {
+		// se houver 1 ou mais resultados que possam ser editados via webdav
+		if ($('.document-action.edit-content:visible').length > 0) {
+			// insere o applet na pagina
+			ECM.core.insertApplet("fluig-search-WdkApplet", holder, "wcm-busca-containerApplet");
+		}
+	}
+
+});

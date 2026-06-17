@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Cadastro de Nova Despesa - LogisticsPortal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#faae69",
+                        "on-secondary-fixed": "#0f1b33",
+                        "tertiary-fixed": "#ffdcc1",
+                        "outline-variant": "#c4c6d2",
+                        "on-primary-container": "#a2beff",
+                        "tertiary-fixed-dim": "#ffb877",
+                        "tertiary": "#542d00",
+                        "secondary-container": "#d4dfff",
+                        "surface-tint": "#3d5d9e",
+                        "primary-fixed-dim": "#afc6ff",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary": "#0a3473",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#afc6ff",
+                        "surface-container-high": "#e8e8ed",
+                        "on-background": "#1a1c20",
+                        "on-tertiary-fixed-variant": "#6c3a00",
+                        "on-surface-variant": "#434650",
+                        "inverse-surface": "#2f3035",
+                        "secondary-fixed-dim": "#bbc6e5",
+                        "outline": "#747781",
+                        "surface-container-highest": "#e2e2e7",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1a1c20",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-tertiary-fixed": "#2e1600",
+                        "on-secondary-fixed-variant": "#3c4660",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#535e79",
+                        "surface-container-low": "#f3f3f9",
+                        "on-error-container": "#93000a",
+                        "surface": "#f9f9fe",
+                        "on-primary-fixed": "#001943",
+                        "tertiary-container": "#754000",
+                        "surface-bright": "#f9f9fe",
+                        "inverse-on-surface": "#f0f0f6",
+                        "background": "#f9f9fe",
+                        "surface-variant": "#e2e2e7",
+                        "surface-dim": "#dad9df",
+                        "primary-fixed": "#d9e2ff",
+                        "on-primary-fixed-variant": "#224585",
+                        "error": "#ba1a1a",
+                        "primary-container": "#2a4b8b",
+                        "surface-container": "#eeedf3",
+                        "on-secondary-container": "#57627d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "md": "16px",
+                        "sm": "8px",
+                        "base": "8px",
+                        "sidenav-width": "240px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "topbar-height": "64px"
+                    },
+                    "fontFamily": {
+                        "code-sm": ["Geist"],
+                        "code-md": ["Geist"],
+                        "body-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    },
+                    keyframes: {
+                        'fade-in-up': {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        'success-pop': {
+                            '0%': { transform: 'scale(0.8)', opacity: '0' },
+                            '50%': { transform: 'scale(1.2)' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        }
+                    },
+                    animation: {
+                        'fade-in-up': 'fade-in-up 0.4s ease-out forwards',
+                        'success-pop': 'success-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                    }
+                }
+            }
+        }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased h-screen overflow-hidden flex" style="width: 1920px; height: 1080px; margin: 0 auto; position: relative; overflow: hidden;">
+<!-- SideNavBar -->
+<nav class="w-20 hover:w-sidenav-width fixed left-0 top-0 bg-primary-container border-r border-outline-variant flex flex-col z-50 transition-all duration-300 ease-in-out group h-full"><!-- Brand Header -->
+<div class="h-topbar-height flex items-center px-lg border-b border-outline-variant/30">
+<span class="font-headline-md text-headline-md font-bold text-on-primary-fixed opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">MaxControLADM</span>
+</div>
+<!-- User Profile Area -->
+<div class="p-lg flex items-center gap-md border-b border-outline-variant/30">
+<div class="w-10 h-10 rounded-full bg-surface-tint flex items-center justify-center overflow-hidden shrink-0">
+<span class="material-symbols-outlined text-on-primary">person</span>
+</div>
+<div class="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
+<span class="text-on-primary-fixed text-body-md font-medium">Administrador Principal</span>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 py-md overflow-y-auto font-body-md text-body-md">
+<!-- Dashboard -->
+<a class="flex items-center px-lg py-sm gap-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 overflow-hidden whitespace-nowrap" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Dashboard</span>
+</a>
+<!-- Despesas (Active) -->
+<a class="flex items-center px-lg py-sm gap-md border-l-4 border-secondary bg-surface-container-low text-on-surface transition-colors duration-150 scale-98 active:opacity-80 overflow-hidden whitespace-nowrap" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">payments</span>
+<span class="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Despesas</span>
+</a>
+<!-- Contratos -->
+<a class="flex items-center px-lg py-sm gap-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 overflow-hidden whitespace-nowrap" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Contratos</span>
+</a>
+<!-- Fornecedores -->
+<a class="flex items-center px-lg py-sm gap-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 overflow-hidden whitespace-nowrap" href="#">
+<span class="material-symbols-outlined">local_shipping</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Fornecedores</span>
+</a>
+<!-- Produtos -->
+<a class="flex items-center px-lg py-sm gap-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 overflow-hidden whitespace-nowrap" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Produtos</span>
+</a>
+<!-- Requisições -->
+<a class="flex items-center px-lg py-sm gap-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 overflow-hidden whitespace-nowrap" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Requisições</span>
+</a>
+<!-- Manutenção -->
+<a class="flex items-center px-lg py-sm gap-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 overflow-hidden whitespace-nowrap" href="#">
+<span class="material-symbols-outlined">build</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Manutenção</span>
+</a>
+<!-- Tarefas -->
+<a class="flex items-center px-lg py-sm gap-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 overflow-hidden whitespace-nowrap" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Tarefas</span>
+</a>
+<!-- Usuários -->
+<a class="flex items-center px-lg py-sm gap-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 overflow-hidden whitespace-nowrap" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Usuários</span>
+</a>
+<!-- Relatórios -->
+<a class="flex items-center px-lg py-sm gap-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 overflow-hidden whitespace-nowrap" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Relatórios</span>
+</a>
+</div>
+<!-- Bottom Fixed Section -->
+<div class="py-md border-t border-outline-variant/30">
+<a class="flex items-center px-lg py-sm gap-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 overflow-hidden whitespace-nowrap" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Configurações</span>
+</a>
+</div></nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col h-full overflow-hidden w-full ml-20">
+<!-- TopNavBar -->
+<header class="h-topbar-height shrink-0 bg-surface border-b border-outline-variant shadow-sm flex justify-between items-center px-lg transition-all duration-200 ease-in-out">
+<!-- Left: Brand / Search -->
+<div class="flex items-center gap-lg flex-1">
+<span class="font-headline-md text-headline-md text-on-surface hidden lg:block">MaxControLADM</span>
+<div class="relative max-w-md w-full ml-auto lg:ml-0">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-full py-sm pl-xl pr-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" placeholder="Buscar despesas, fornecedores (Administrativo)..." type="text"/>
+<div class="absolute right-sm top-1/2 -translate-y-1/2 flex items-center gap-xs">
+<kbd class="font-code-sm text-code-sm text-on-surface-variant bg-surface-container-high px-xs rounded border border-outline-variant">⌘K</kbd>
+</div>
+</div>
+</div>
+<!-- Right: Actions & Profile -->
+<div class="flex items-center gap-sm ml-lg">
+<button class="p-sm text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all flex items-center justify-center">
+<span class="material-symbols-outlined">domain</span>
+</button>
+<button class="p-sm text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all flex items-center justify-center relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-sm right-sm w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-sm text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all flex items-center justify-center">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-tint flex items-center justify-center ml-sm overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-on-primary text-sm">person</span>
+</div>
+</div>
+</header>
+<!-- Page Content Canvas -->
+<main class="flex-1 p-lg lg:p-xl overflow-y-auto">
+<div class="max-w-[1200px] mx-auto w-full">
+<!-- Page Header -->
+<div class="mb-xl animate-fade-in-up">
+<div class="flex items-center gap-xs text-body-sm font-body-sm text-on-surface-variant mb-xs">
+<a class="hover:text-primary transition-colors" href="#">Despesas</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-on-surface">Nova Despesa</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Cadastro de Nova Despesa</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Insira os detalhes para registrar uma nova despesa no sistema administrativo.</p>
+</div>
+<!-- Main Form Card -->
+<div class="bg-surface rounded-xl border border-outline-variant shadow-sm w-full">
+<form class="p-lg lg:p-xl flex flex-col gap-xl">
+<!-- Section Title -->
+<div class="border-b border-outline-variant pb-sm animate-fade-in-up [animation-delay:100ms] opacity-0">
+<h2 class="font-headline-md text-headline-md text-on-surface">Detalhes Financeiros</h2>
+</div>
+<!-- Grid Layout for Fields -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-lg gap-y-md">
+<!-- Fornecedor -->
+<div class="flex flex-col gap-xs animate-fade-in-up [animation-delay:200ms] opacity-0">
+<label class="font-body-sm text-body-sm font-medium text-on-surface" for="fornecedor">Fornecedor <span class="text-error">*</span></label>
+<div class="relative">
+<select class="w-full bg-surface-container-low border border-outline rounded-lg px-md py-sm font-body-md text-body-md text-on-surface appearance-none focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors cursor-pointer" id="fornecedor">
+<option disabled="" selected="" value="">Selecione um fornecedor</option>
+<option value="1">Transportadora Alpha Ltda.</option>
+<option value="2">Logística Expresso Nacional</option>
+<option value="3">Manutenção Predial Silva</option>
+<option value="4">Posto de Combustível BR</option>
+</select>
+<span class="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+</div>
+<!-- Categoria (Showing Inline Error Example) -->
+<div class="flex flex-col gap-xs animate-fade-in-up [animation-delay:300ms] opacity-0">
+<label class="font-body-sm text-body-sm font-medium text-error" for="categoria">Categoria <span class="text-error">*</span></label>
+<div class="relative">
+<select class="w-full bg-error-container border-2 border-error rounded-lg px-md py-sm font-body-md text-body-md text-on-surface appearance-none focus:outline-none focus:ring-1 focus:ring-error transition-colors cursor-pointer" id="categoria">
+<option disabled="" selected="" value="">Selecione uma categoria</option>
+<option value="1">Frete e Transporte</option>
+<option value="2">Combustível</option>
+<option value="3">Manutenção de Frota</option>
+<option value="4">Despesas Administrativas</option>
+</select>
+<span class="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 pointer-events-none text-error">error</span>
+</div>
+<p class="font-body-sm text-body-sm text-error flex items-center gap-xs mt-xs">
+                                Selecione uma categoria válida para classificação.
+                            </p>
+</div>
+<!-- Descrição -->
+<div class="flex flex-col gap-xs md:col-span-2 animate-fade-in-up [animation-delay:400ms] opacity-0">
+<label class="font-body-sm text-body-sm font-medium text-on-surface" for="descricao">Descrição da Despesa <span class="text-error">*</span></label>
+<input class="w-full bg-surface-container-low border border-outline rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors" id="descricao" placeholder="Ex: Manutenção preventiva do caminhão placa ABC-1234" type="text"/>
+</div>
+<!-- Data de Vencimento -->
+<div class="flex flex-col gap-xs animate-fade-in-up [animation-delay:500ms] opacity-0">
+<label class="font-body-sm text-body-sm font-medium text-on-surface" for="vencimento">Data de Vencimento <span class="text-error">*</span></label>
+<div class="relative">
+<input class="w-full bg-surface-container-low border border-outline rounded-lg px-md py-sm pl-xl font-body-md text-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors [color-scheme:light]" id="vencimento" type="date"/>
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[20px]">calendar_today</span>
+</div>
+</div>
+<!-- Valor em BRL -->
+<div class="flex flex-col gap-xs animate-fade-in-up [animation-delay:600ms] opacity-0">
+<label class="font-body-sm text-body-sm font-medium text-on-surface" for="valor">Valor Total (BRL) <span class="text-error">*</span></label>
+<div class="relative flex items-center">
+<span class="absolute left-md font-body-md text-body-md text-on-surface-variant pointer-events-none">R$</span>
+<input class="w-full bg-surface-container-low border border-outline rounded-lg py-sm pr-md pl-xl text-right font-code-md text-code-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors" id="valor" placeholder="0,00" type="text"/>
+</div>
+</div>
+<!-- Centro de Custo -->
+<div class="flex flex-col gap-xs animate-fade-in-up [animation-delay:700ms] opacity-0">
+<label class="font-body-sm text-body-sm font-medium text-on-surface" for="centro_custo">Centro de Custo</label>
+<div class="relative">
+<select class="w-full bg-surface-container-low border border-outline rounded-lg px-md py-sm font-body-md text-body-md text-on-surface appearance-none focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors cursor-pointer" id="centro_custo">
+<option disabled="" selected="" value="">Opcional</option>
+<option value="1">CC-Operações Norte</option>
+<option value="2">CC-Operações Sul</option>
+<option value="3">CC-Administrativo Matriz</option>
+</select>
+<span class="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+</div>
+<!-- Link da Nota Fiscal -->
+<div class="flex flex-col gap-xs md:col-span-2 mt-sm animate-fade-in-up [animation-delay:800ms] opacity-0">
+<label class="font-body-sm text-body-sm font-medium text-on-surface" for="link_nf">Link da Nota Fiscal / Documento</label>
+<div class="flex gap-sm items-start">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[20px]">link</span>
+<input class="w-full bg-surface-container-low border border-outline rounded-lg py-sm pr-md pl-xl font-body-md text-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors" id="link_nf" placeholder="https://..." type="url" value="https://nfe.fazenda.gov.br/portal/visualizar?chave=123456789"/>
+</div>
+<button class="h-10 px-md rounded-lg border border-outline font-body-md text-body-md font-medium text-on-surface hover:bg-surface-container-high transition-colors flex items-center gap-xs whitespace-nowrap" type="button">
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+                                    Verificar
+                                </button>
+</div>
+<!-- Visual Preview Placeholder for URL -->
+<div class="mt-sm bg-surface-container-highest border border-outline-variant border-dashed rounded-lg p-md flex items-center gap-md hover:animate-pulse cursor-pointer transition-all duration-300">
+<div class="w-12 h-12 bg-surface rounded flex items-center justify-center border border-outline-variant shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant">receipt_long</span>
+</div>
+<div class="flex flex-col overflow-hidden">
+<span class="font-body-sm text-body-sm font-medium text-on-surface truncate">Nota Fiscal Eletrônica - Chave 123456789</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">nfe.fazenda.gov.br</span>
+</div>
+<div class="ml-auto flex items-center">
+<span class="bg-secondary-container text-on-secondary-container font-code-sm text-code-sm px-xs py-[2px] rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] animate-success-pop">check_circle</span>
+    Válido
+</span>
+</div>
+</div>
+</div>
+<!-- Observações -->
+<div class="flex flex-col gap-xs md:col-span-2 mt-sm animate-fade-in-up [animation-delay:900ms] opacity-0">
+<label class="font-body-sm text-body-sm font-medium text-on-surface" for="observacoes">Observações Adicionais</label>
+<textarea class="w-full bg-surface-container-low border border-outline rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors resize-y" id="observacoes" placeholder="Detalhes extras sobre a aprovação ou contexto da despesa..." rows="3"></textarea>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="mt-md pt-lg border-t border-outline-variant flex flex-col-reverse sm:flex-row justify-end gap-md animate-fade-in-up [animation-delay:1000ms] opacity-0">
+<button class="px-lg py-sm rounded-lg font-body-md text-body-md font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors w-full sm:w-auto text-center" type="button">
+                            Cancelar
+                        </button>
+<button class="px-lg py-sm rounded-lg border border-outline font-body-md text-body-md font-medium text-on-surface hover:bg-surface-container-high hover:scale-105 active:scale-95 transition-all duration-200 w-full sm:w-auto text-center flex items-center justify-center gap-xs" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                            Salvar e criar outra
+                        </button>
+<button class="px-lg py-sm rounded-lg bg-primary text-on-primary font-body-md text-body-md font-medium hover:bg-inverse-surface hover:scale-105 active:scale-95 transition-all duration-200 w-full sm:w-auto text-center shadow-sm" type="submit">
+                            Salvar Despesa
+                        </button>
+</div>
+</form>
+</div>
+</div>
+</main>
+</div>
+</body></html>

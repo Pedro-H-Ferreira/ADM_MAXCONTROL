@@ -1,0 +1,116 @@
+function initCargo(){
+    setaValor("responsavelEnvio",nomeUsuario)
+    setaValor("respGerente",codigoUsuario)
+    //setaValor("grupoSolicitante",groupId)
+
+    
+    
+}
+function setaValor(id,valor){
+	$("#"+id).attr("value",valor)
+    //document.getElementById(id).value = valor
+}
+
+
+function documentoDP01(obj) {
+	
+	var idPatrimonio = $("#codPatrimonio").val();
+	var idNF = $("#filial").val();
+    var nomeDocumento = " Nota Fiscal - "+idNF+ " - " +idPatrimonio;
+    JSInterface.showCamera(nomeDocumento);
+    top.document.getElementsByClassName("topBtn")[0].click();
+} 
+
+function documentoDP02(obj) {
+	
+	var idPatrimonio = $("#codPatrimonio").val();
+	var idNF = $("#filial").val();
+    var nomeDocumento = " Termo - "+idNF+ " - " +idPatrimonio;
+    JSInterface.showCamera(nomeDocumento);
+    top.document.getElementsByClassName("topBtn")[0].click();
+}
+
+function documentoDP03(obj) {
+	
+	var idPatrimonio = $("#codPatrimonio").val();
+	var idNF = $("#filial").val();
+    var nomeDocumento = " Foto - "+idNF+ " - " +idPatrimonio;
+    JSInterface.showCamera(nomeDocumento);
+    top.document.getElementsByClassName("topBtn")[0].click();
+}
+
+function PreencherCampoData(){
+
+
+	var prazoFormulario = $("#dataPrevSaida").val();
+	console.log("Datas0: " + prazoFormulario);
+    /* Extrai os dados da data do formulário para um array, para posteriormente transformar em data do Javascript */
+    var arrayPrazoConclusao = prazoFormulario.split("/");
+    var dia = arrayPrazoConclusao[0]; // Posição 0 do array é o dia
+    var mes = arrayPrazoConclusao[1] - 1; // Posição 1 do array é o mês (Subtraímos 1 porque na data do Javascript o mês vai de 0 a 11)
+    var ano = arrayPrazoConclusao[2]; // Posição 2 do array é o ano
+    var dataDoPrazo = new Date();
+    var dataDoPrazo2 = new Date();
+    var dataDoPrazo3 = new Date();
+	console.log("DatasNoti1: " + dataDoPrazo);
+    dataDoPrazo.setMonth(mes);
+    dataDoPrazo.setDate(dia);
+    dataDoPrazo.setFullYear(ano);
+	var dia = dataDoPrazo;
+	console.log("Datas1: " + dia);
+	dia.setDate(dia.getDate() + 180);
+	console.log("DatasNoti2: " + dia);
+
+	
+
+
+	FLUIGC.calendar("#dataPrevSaida", { 
+	  language: 'pt-br',
+	  minDate: dia,
+	  maxDate: new Date(),
+	  pickDate: true,
+	  pickTime: false 
+	});
+	
+	var today = dia;
+	console.log("Datas3: " + today);
+	var year = today.getFullYear();
+	var month = (today.getMonth() + 1) < 10 ? '0' + (today.getMonth() + 1)	: (today.getMonth() + 1);
+	var day = today.getDate() < 10 ? '0' + today.getDate() : today.getDate();		
+	var hour = today.getHours() < 10 ? '0' + today.getHours() : today.getHours();
+	var minute = today.getMinutes() < 10 ? '0' + today.getMinutes() : today.getMinutes();
+	var second = today.getSeconds() < 10 ? '0' + today.getSeconds() : today.getSeconds();
+	var currentHour = hour + ":" + minute + ":" + second;
+	var currentDate = day + '/' + month + '/' + year;
+	console.log("Datas4: " + currentDate);
+	
+
+	$("#notDataPrevRetorno").val(currentDate);
+
+	
+    //setaValor("dataPrevRetorno",dataDoPrazo2)
+
+}
+
+function fnCustomDelete(oElement){
+	 
+    //Customização
+    alert ("Cancelar Patrimonio!");
+ 
+    // Chamada a funcao padrao, NAO RETIRAR
+    fnWdkRemoveChild(oElement);
+    //quantTotal();
+    //valorTotal();
+    //bloqueiaDataLanc();
+ 
+    //Customização
+    //alert ("Nota Fiscal eliminada!");
+}
+
+function addPatrimonio() {
+	  //var row = wdkAddChild('Rateio');
+	  wdkAddChild('Patrimonio');
+	 
+	  MaskEvent.init();
+	  //valorTotalRateio();
+}

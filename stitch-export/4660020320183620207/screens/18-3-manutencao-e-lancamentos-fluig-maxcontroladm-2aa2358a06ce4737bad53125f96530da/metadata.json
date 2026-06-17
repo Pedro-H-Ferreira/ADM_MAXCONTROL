@@ -1,0 +1,68 @@
+{
+    "screenId":  "2aa2358a06ce4737bad53125f96530da",
+    "name":  "projects/4660020320183620207/screens/2aa2358a06ce4737bad53125f96530da",
+    "title":  "18.3. Manutenção e Lançamentos (Fluig) - MaxControLADM",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "2aa2358a06ce4737bad53125f96530da",
+                          "sourceScreen":  "projects/4660020320183620207/screens/2aa2358a06ce4737bad53125f96530da",
+                          "x":  8166,
+                          "y":  5307,
+                          "width":  1280,
+                          "height":  1272
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-3-manutencao-e-lancamentos-fluig-maxcontroladm-2aa2358a06ce4737bad53125f96530da",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/44e36f46635a40999202d898a0e2ddef",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2QzZGZjMDdkZjZhMjQ0YTFiMjljOGE2YTU3YjUzMzNlEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-3-manutencao-e-lancamentos-fluig-maxcontroladm-2aa2358a06ce4737bad53125f96530da\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-3-manutencao-e-lancamentos-fluig-maxcontroladm-2aa2358a06ce4737bad53125f96530da\\screen.html",
+                                  "bytes":  27772,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/48afcc41c4a74615800ad2dde35e49cb",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtuZQk_zXwtTaZ5-nrWFCibKDpNDdxu2lEMQZcj_Merto0chYXb3FtxF4prcQNpfCpgKne-WfteeE65fsALCN8M_-zm3uN6jSA5klpfxa2WGjLmEOrIeM8Py7SkJRkG4iUSoLEcbc9L7TjaHLv4_LxZYR-TVD95fFHBsPXPw-K5KiW4Pyd6icAf4NzU6c_sJI6KAIp2XYCg6pcVo_EmoxH15Fm59znUOGGrGMLwfn2pEA8Cg84V_jFlLSs",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-3-manutencao-e-lancamentos-fluig-maxcontroladm-2aa2358a06ce4737bad53125f96530da\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\18-3-manutencao-e-lancamentos-fluig-maxcontroladm-2aa2358a06ce4737bad53125f96530da\\screenshot.png",
+                                        "bytes":  82100,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/2aa2358a06ce4737bad53125f96530da",
+                   "title":  "18.3. Manutenção e Lançamentos (Fluig) - MaxControLADM",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/48afcc41c4a74615800ad2dde35e49cb",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLtuZQk_zXwtTaZ5-nrWFCibKDpNDdxu2lEMQZcj_Merto0chYXb3FtxF4prcQNpfCpgKne-WfteeE65fsALCN8M_-zm3uN6jSA5klpfxa2WGjLmEOrIeM8Py7SkJRkG4iUSoLEcbc9L7TjaHLv4_LxZYR-TVD95fFHBsPXPw-K5KiW4Pyd6icAf4NzU6c_sJI6KAIp2XYCg6pcVo_EmoxH15Fm59znUOGGrGMLwfn2pEA8Cg84V_jFlLSs"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/44e36f46635a40999202d898a0e2ddef",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2QzZGZjMDdkZjZhMjQ0YTFiMjljOGE2YTU3YjUzMzNlEgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "2560",
+                   "height":  "2554",
+                   "deviceType":  "DESKTOP"
+               }
+}

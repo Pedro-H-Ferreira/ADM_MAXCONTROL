@@ -1,0 +1,250 @@
+<!DOCTYPE html><html class="light" lang="pt-BR" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Nova Ordem de Serviço - MaxControLADM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#bec6e0",
+                        "surface-variant": "#e4e2e4",
+                        "tertiary-fixed-dim": "#dec29a",
+                        "inverse-surface": "#303032",
+                        "surface-bright": "#fcf8fa",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#1b1b1d",
+                        "inverse-on-surface": "#f3f0f2",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "on-secondary-fixed": "#00201d",
+                        "outline": "#76777d",
+                        "on-surface": "#1b1b1d",
+                        "primary": "#000000",
+                        "on-tertiary-container": "#98805d",
+                        "surface-container-highest": "#e4e2e4",
+                        "on-tertiary-fixed": "#271901",
+                        "tertiary": "#000000",
+                        "surface-container-low": "#f6f3f5",
+                        "on-secondary-fixed-variant": "#005049",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#006a61",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "on-primary-container": "#7c839b",
+                        "background": "#fcf8fa",
+                        "primary-fixed": "#dae2fd",
+                        "on-surface-variant": "#45464d",
+                        "error": "#ba1a1a",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#006f66",
+                        "surface-dim": "#dcd9db",
+                        "surface-container": "#f0edef",
+                        "primary-fixed-dim": "#bec6e0",
+                        "surface": "#fcf8fa",
+                        "secondary-fixed": "#89f5e7",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#271901",
+                        "primary-container": "#131b2e",
+                        "on-tertiary-fixed-variant": "#574425",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#eae7e9",
+                        "secondary-container": "#86f2e4",
+                        "outline-variant": "#c6c6cd",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed": "#fcdeb5",
+                        "surface-tint": "#565e74",
+                        "on-primary-fixed": "#131b2e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "xs": "4px",
+                        "sidenav-width": "240px",
+                        "xl": "32px",
+                        "topbar-height": "64px",
+                        "base": "8px",
+                        "sm": "8px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "code-md": ["Geist"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "code-sm": ["Geist"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: theme('colors.background'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined[data-weight="fill"] { font-variation-settings: 'FILL' 1; }
+    </style>
+</head>
+<body class="bg-background text-on-background h-screen overflow-hidden flex" style="width: 1920px; height: 1080px; overflow: hidden; position: absolute; left: 23040px; top: 0px;">
+<!-- SideNavBar -->
+<nav class="bg-primary dark:bg-primary-container text-secondary-fixed dark:text-secondary-fixed-dim font-body-md text-body-md fixed left-0 top-0 h-full w-[80px] hover:w-sidenav-width transition-all duration-300 border-r border-outline-variant shadow-sm flex flex-col py-lg z-50 group overflow-hidden">
+<div class="px-md mb-xl flex items-center justify-center">
+<span class="font-headline-md text-headline-md font-bold text-on-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">MaxControLADM</span>
+</div>
+<div class="flex-1 flex flex-col gap-base mt-lg px-base">
+<a class="text-on-primary opacity-70 hover:opacity-100 hover:bg-primary-container transition-colors transition-all duration-200 ease-in-out flex items-center gap-md px-md py-base rounded" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Dashboard</span>
+</a>
+<a class="border-l-4 border-secondary text-secondary-fixed-dim font-bold bg-primary-container/50 hover:bg-primary-container transition-colors transition-all duration-200 ease-in-out flex items-center gap-md px-md py-base rounded" href="#">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Operações</span>
+</a>
+<a class="text-on-primary opacity-70 hover:opacity-100 hover:bg-primary-container transition-colors transition-all duration-200 ease-in-out flex items-center gap-md px-md py-base rounded" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Relatórios</span>
+</a>
+<a class="text-on-primary opacity-70 hover:opacity-100 hover:bg-primary-container transition-colors transition-all duration-200 ease-in-out flex items-center gap-md px-md py-base rounded" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Equipe</span>
+</a>
+<a class="text-on-primary opacity-70 hover:opacity-100 hover:bg-primary-container transition-colors transition-all duration-200 ease-in-out flex items-center gap-md px-md py-base rounded" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Documentos</span>
+</a>
+</div>
+<div class="mt-auto px-base border-t border-outline-variant/30 pt-md">
+<a class="text-on-primary opacity-70 hover:opacity-100 hover:bg-primary-container transition-colors transition-all duration-200 ease-in-out flex items-center gap-md px-md py-base rounded" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap w-0 invisible group-hover:w-auto group-hover:visible">Configurações</span>
+</a>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="ml-[80px] flex-1 flex flex-col h-full bg-surface-container-lowest overflow-y-auto transition-all duration-300 w-full">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-surface-dim text-primary dark:text-on-surface font-body-md text-body-md docked full-width top-0 h-topbar-height border-b border-outline-variant flat no shadows fixed right-0 left-[80px] z-40 flex justify-between items-center px-lg bg-surface/95 backdrop-blur-sm transition-all duration-300" style="width: 1840px;">
+<div class="flex items-center gap-md">
+<!-- Search can go here -->
+</div>
+<div class="flex items-center gap-md cursor-pointer transition-opacity">
+<span class="material-symbols-outlined hover:text-primary dark:hover:text-secondary-fixed-dim text-on-surface-variant" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined hover:text-primary dark:hover:text-secondary-fixed-dim text-on-surface-variant" data-icon="help_outline">help_outline</span>
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center ml-md border border-outline-variant overflow-hidden">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="person">person</span>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="mt-topbar-height p-xl w-full mx-auto">
+<div class="mb-lg">
+<h1 class="font-display-lg text-display-lg text-on-surface mb-xs">Nova Ordem de Serviço</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Preencha os detalhes abaixo para registrar uma nova solicitação.</p>
+</div>
+<form class="bg-surface border border-outline-variant rounded-lg shadow-sm p-lg flex flex-col gap-xl">
+<!-- Sec: Identificação -->
+<section class="flex flex-col gap-md">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-surface-variant pb-xs">Identificação</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg mt-sm">
+<div class="flex flex-col gap-xs">
+<label class="font-body-md text-body-md font-semibold text-on-surface" for="os-title">Título/Assunto</label>
+<input class="bg-surface-container-lowest border border-outline text-on-surface font-body-md text-body-md rounded-md p-sm focus:ring-secondary focus:border-secondary outline-none transition-colors" id="os-title" placeholder="Ex: Vazamento no Setor A" type="text">
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-body-md text-body-md font-semibold text-on-surface" for="os-category">Categoria</label>
+<select class="bg-surface-container-lowest border border-outline text-on-surface font-body-md text-body-md rounded-md p-sm focus:ring-secondary focus:border-secondary outline-none transition-colors appearance-none" id="os-category">
+<option disabled="" selected="" value="">Selecione uma categoria</option>
+<option value="hidraulica">Hidráulica</option>
+<option value="eletrica">Elétrica</option>
+<option value="infraestrutura">Infraestrutura</option>
+<option value="equipamentos">Equipamentos</option>
+</select>
+</div>
+<div class="flex flex-col gap-xs md:col-span-2">
+<label class="font-body-md text-body-md font-semibold text-on-surface" for="os-location">Localização (Setor/Corredor)</label>
+<input class="bg-surface-container-lowest border border-outline text-on-surface font-body-md text-body-md rounded-md p-sm focus:ring-secondary focus:border-secondary outline-none transition-colors" id="os-location" placeholder="Ex: Galpão 3, Corredor B" type="text">
+</div>
+</div>
+</section>
+<!-- Sec: Descrição -->
+<section class="flex flex-col gap-md">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-surface-variant pb-xs">Descrição do Problema</h2>
+<div class="flex flex-col gap-xs mt-sm">
+<label class="font-body-md text-body-md font-semibold text-on-surface" for="os-desc">Detalhes</label>
+<textarea class="bg-surface-container-lowest border border-outline text-on-surface font-body-md text-body-md rounded-md p-sm focus:ring-secondary focus:border-secondary outline-none transition-colors resize-y" id="os-desc" placeholder="Descreva o problema com o máximo de detalhes possível..." rows="4"></textarea>
+</div>
+</section>
+<!-- Sec: Anexos & Prioridade -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-xl">
+<div class="flex flex-col gap-md">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-surface-variant pb-xs">Anexos</h2>
+<div class="mt-sm border-2 border-dashed border-outline-variant rounded-lg p-lg flex flex-col items-center justify-center text-center bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer min-h-[160px]">
+<span class="material-symbols-outlined text-outline text-display-lg mb-sm" data-icon="cloud_upload">cloud_upload</span>
+<span class="font-body-md text-body-md text-on-surface font-semibold">Clique para fazer upload</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant mt-xs">ou arraste as fotos de evidência aqui (JPG, PNG)</span>
+</div>
+</div>
+<div class="flex flex-col gap-md">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-surface-variant pb-xs">Prioridade</h2>
+<div class="grid grid-cols-2 gap-sm mt-sm h-full">
+<label class="relative flex flex-col items-center justify-center p-md border border-outline-variant rounded-lg cursor-pointer bg-surface-container-lowest hover:bg-surface-container transition-colors has-[:checked]:border-secondary has-[:checked]:bg-secondary/10">
+<input class="sr-only" name="priority" type="radio" value="baixa">
+<span class="material-symbols-outlined text-on-surface-variant mb-xs" data-icon="low_priority">low_priority</span>
+<span class="font-body-md text-body-md font-semibold text-on-surface">Baixa</span>
+</label>
+<label class="relative flex flex-col items-center justify-center p-md border border-outline-variant rounded-lg cursor-pointer bg-surface-container-lowest hover:bg-surface-container transition-colors has-[:checked]:border-tertiary-fixed-dim has-[:checked]:bg-tertiary-fixed-dim/10">
+<input checked="" class="sr-only" name="priority" type="radio" value="media">
+<span class="material-symbols-outlined text-tertiary-fixed-dim mb-xs" data-icon="drag_handle">drag_handle</span>
+<span class="font-body-md text-body-md font-semibold text-on-surface">Média</span>
+</label>
+<label class="relative flex flex-col items-center justify-center p-md border border-outline-variant rounded-lg cursor-pointer bg-surface-container-lowest hover:bg-surface-container transition-colors has-[:checked]:border-error has-[:checked]:bg-error/10">
+<input class="sr-only" name="priority" type="radio" value="alta">
+<span class="material-symbols-outlined text-error mb-xs" data-icon="priority_high">priority_high</span>
+<span class="font-body-md text-body-md font-semibold text-on-surface">Alta</span>
+</label>
+<label class="relative flex flex-col items-center justify-center p-md border border-outline-variant rounded-lg cursor-pointer bg-surface-container-lowest hover:bg-surface-container transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/10">
+<input class="sr-only" name="priority" type="radio" value="critica">
+<span class="material-symbols-outlined text-primary mb-xs" data-icon="warning">warning</span>
+<span class="font-body-md text-body-md font-semibold text-on-surface">Crítica</span>
+</label>
+</div>
+</div>
+</section>
+<!-- Actions -->
+<div class="flex items-center justify-end gap-md mt-lg pt-lg border-t border-surface-variant">
+<button class="px-lg py-sm rounded border border-outline font-body-md text-body-md font-semibold text-on-surface hover:bg-surface-container transition-colors" type="button">
+                        Cancelar
+                    </button>
+<button class="px-lg py-sm rounded bg-primary text-on-primary font-body-md text-body-md font-semibold hover:bg-primary/90 transition-colors flex items-center gap-sm" type="submit">
+<span class="material-symbols-outlined" data-icon="add_task">add_task</span>
+                        Abrir Ordem de Serviço
+                    </button>
+</div>
+</form>
+</div>
+</main>
+
+
+</body></html>

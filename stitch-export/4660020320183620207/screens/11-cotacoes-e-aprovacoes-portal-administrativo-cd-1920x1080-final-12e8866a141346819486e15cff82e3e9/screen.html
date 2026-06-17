@@ -1,0 +1,526 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Aprovação de Cotações - LogisticsPortal</title>
+<!-- Tailwind CSS via CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter & Geist -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind Config injected from Brand Anchors -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-tint": "#565e74",
+                    "tertiary-fixed-dim": "#dec29a",
+                    "on-surface-variant": "#45464d",
+                    "on-primary-container": "#7c839b",
+                    "on-error": "#ffffff",
+                    "surface-dim": "#dcd9db",
+                    "on-error-container": "#93000a",
+                    "outline-variant": "#c6c6cd",
+                    "inverse-primary": "#bec6e0",
+                    "on-tertiary-fixed-variant": "#574425",
+                    "surface-variant": "#e4e2e4",
+                    "surface-container-highest": "#e4e2e4",
+                    "on-primary-fixed": "#131b2e",
+                    "on-tertiary-fixed": "#271901",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "primary-fixed-dim": "#bec6e0",
+                    "surface-container-low": "#f6f3f5",
+                    "error": "#ba1a1a",
+                    "primary": "#000000",
+                    "on-secondary-fixed-variant": "#005049",
+                    "on-surface": "#1b1b1d",
+                    "on-background": "#1b1b1d",
+                    "secondary-fixed": "#89f5e7",
+                    "surface-container": "#f0edef",
+                    "primary-container": "#131b2e",
+                    "surface-container-high": "#eae7e9",
+                    "primary-fixed": "#dae2fd",
+                    "background": "#fcf8fa",
+                    "tertiary": "#000000",
+                    "on-secondary-fixed": "#00201d",
+                    "surface-bright": "#fcf8fa",
+                    "on-secondary-container": "#006f66",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed": "#fcdeb5",
+                    "secondary-container": "#86f2e4",
+                    "tertiary-container": "#271901",
+                    "surface-container-lowest": "#ffffff",
+                    "surface": "#fcf8fa",
+                    "on-tertiary-container": "#98805d",
+                    "error-container": "#ffdad6",
+                    "outline": "#76777d",
+                    "on-tertiary": "#ffffff",
+                    "inverse-on-surface": "#f3f0f2",
+                    "secondary": "#006a61",
+                    "secondary-fixed-dim": "#6bd8cb",
+                    "on-secondary": "#ffffff",
+                    "inverse-surface": "#303032"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "sidenav-width": "240px",
+                    "base": "8px",
+                    "xl": "32px",
+                    "lg": "24px",
+                    "xs": "4px",
+                    "topbar-height": "64px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "body-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "code-sm": ["Geist"],
+                    "code-md": ["Geist"]
+            },
+            "fontSize": {
+                    "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                    "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "code-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        /* Custom scrollbar for tables */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: theme('colors.surface-container-lowest');
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: theme('colors.outline-variant');
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-surface-container-highest text-on-surface font-body-md antialiased min-h-screen flex items-center justify-center">
+<!-- App Shell Container -->
+<div class="flex h-[1080px] w-[1920px] shrink-0 bg-background overflow-hidden relative shadow-2xl antialiased">
+<!-- SideNavBar Shared Component -->
+<!-- Execution of style_* keys from JSON -->
+<aside class="hidden md:flex flex-col h-full w-sidenav-width shrink-0 bg-primary-container border-r border-outline-variant z-50">
+<!-- Header -->
+<div class="flex items-center p-md border-b border-outline-variant/20 gap-md">
+<div class="w-10 h-10 rounded-full bg-surface-container-lowest overflow-hidden shrink-0">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A professional headshot of a corporate logistics administrator in a bright modern office setting, wearing a smart casual dark suit. The lighting is soft and natural, emphasizing competence and authority in a B2B context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuANUABgxZD7RlnLwHZslOIvkq2Iu96ARjzRMDZ4xUS3m-xmofYFjoFPaf1mMHzhbb8fFlRYC3JGIeMGop8ey4qAv1KD0NSO9S9dJJOfHv1otE2Fk0VqwO3VB75xXdm36I1AlycjDpjcYwR62_gnOvey672RkKppD_-RGPW466r0NeHvQN9vdK31QxB7Gw737Gq5H8n8wepjxwcUc0Xj-uMkvswt4uUUlL9z1rQ-hXfjzuiFmH-HaclIBVSusdb3Fpxa3xFWVyKD29s">
+</div>
+<div class="flex flex-col overflow-hidden">
+<span class="font-headline-md text-headline-md font-bold text-on-primary-fixed truncate">Logística CD</span>
+<span class="font-body-sm text-body-sm text-on-primary-container truncate">Administrador Principal</span>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 overflow-y-auto py-sm custom-scrollbar">
+<ul class="flex flex-col space-y-1 px-sm">
+<!-- Tab 0: Dashboard -->
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 font-body-md text-body-md scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-secondary">dashboard</span>
+                            Dashboard
+                        </a>
+</li>
+<!-- Tab 1: Despesas -->
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 font-body-md text-body-md scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-secondary">payments</span>
+                            Despesas
+                        </a>
+</li>
+<!-- Tab 2: Contratos -->
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 font-body-md text-body-md scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-secondary">description</span>
+                            Contratos
+                        </a>
+</li>
+<!-- Tab 3: Fornecedores -->
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 font-body-md text-body-md scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-secondary">local_shipping</span>
+                            Fornecedores
+                        </a>
+</li>
+<!-- Tab 4: Produtos -->
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 font-body-md text-body-md scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-secondary">inventory_2</span>
+                            Produtos
+                        </a>
+</li>
+<!-- Tab 5: Requisições (ACTIVE STATE) -->
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded-md border-l-4 border-secondary bg-surface-container-low text-on-surface font-body-md text-body-md scale-98 active:opacity-80 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">shopping_cart</span>
+                            Requisições
+                        </a>
+</li>
+<!-- Tab 6: Manutenção -->
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 font-body-md text-body-md scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-secondary">build</span>
+                            Manutenção
+                        </a>
+</li>
+<!-- Tab 7: Tarefas -->
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 font-body-md text-body-md scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-secondary">assignment</span>
+                            Tarefas
+                        </a>
+</li>
+<!-- Tab 8: Usuários -->
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 font-body-md text-body-md scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-secondary">group</span>
+                            Usuários
+                        </a>
+</li>
+<!-- Tab 9: Relatórios -->
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 font-body-md text-body-md scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-secondary">analytics</span>
+                            Relatórios
+                        </a>
+</li>
+<!-- Tab 10: Configurações -->
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 font-body-md text-body-md scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-secondary">settings</span>
+                            Configurações
+                        </a>
+</li>
+</ul>
+</nav>
+</aside>
+<!-- Main Canvas Area -->
+<div class="flex-1 flex flex-col h-full overflow-hidden bg-background">
+<!-- TopNavBar Shared Component -->
+<!-- Execution of style_* keys from JSON -->
+<header class="h-topbar-height bg-surface border-b border-outline-variant shadow-sm flex justify-between items-center px-lg shrink-0 z-40 w-full">
+<!-- Search Bar (on_left) -->
+<div class="flex items-center flex-1 max-w-md">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-md py-sm pl-10 pr-4 text-on-surface font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" placeholder="Buscar no LogisticsPortal..." type="text">
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-50">
+<kbd class="font-code-sm text-code-sm border border-outline-variant rounded px-1">⌘</kbd>
+<kbd class="font-code-sm text-code-sm border border-outline-variant rounded px-1">K</kbd>
+</div>
+</div>
+</div>
+<!-- Trailing Actions & Profile -->
+<div class="flex items-center gap-sm ml-auto">
+<button aria-label="domain" class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out">
+<span class="material-symbols-outlined">domain</span>
+</button>
+<button aria-label="notifications" class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button aria-label="dark_mode" class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<div class="ml-sm pl-sm border-l border-outline-variant flex items-center">
+<img alt="Administrator" class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="A small square thumbnail headshot of an administrator in a corporate setting, looking competent." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqXpWNFe5gCREpfdlDjmyx5J1pVzMU1NGvTgkZcXMaPmwNAdFo4npGdwOO96oXY9SPwjpr3bo9bGS77cPOTWf7S87urHdhMPWMupQauaTFAdhlXgpHnaD5EA6ygNEE2jsyt4bxttmZo0jBXxzUrEXsC0Fc_dew8tFzfHIW0NjHPdKJTwPys3D1pVF0GW7pmIM8WbyZlMpUWA4NwSldHtf91WJu0kRZZMHzTxgRQs0qMHA3oqrMXne9KE47Gnyu_kb1mTvNgMP349s">
+</div>
+</div>
+</header>
+<!-- Page Content (Scrollable) -->
+<main class="flex-1 overflow-y-auto p-lg flex flex-col gap-lg custom-scrollbar w-full px-xl">
+<!-- Page Header & Context -->
+<div class="flex flex-col gap-xs">
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<a class="hover:text-primary transition-colors" href="#">Requisições</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span>Aprovação de Cotações</span>
+</div>
+<div class="flex justify-between items-start md:items-center flex-col md:flex-row gap-4">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface flex items-center gap-3">
+                                REQ-2023-0894
+                                <span class="bg-surface-container-highest text-on-surface-variant font-body-sm text-body-sm px-2 py-1 rounded-md border border-outline-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">hourglass_empty</span>
+                                    Aguardando Decisão
+                                </span>
+</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Comparativo de propostas para aquisição de insumos de embalagem.</p>
+</div>
+<!-- Top-level quick action (optional, for density) -->
+<div class="flex gap-sm">
+<button class="flex items-center gap-1 px-3 py-1.5 border border-outline-variant rounded bg-surface-container-lowest text-on-surface font-code-md text-code-md hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                                PDF Resumo
+                            </button>
+</div>
+</div>
+</div>
+<!-- Main Layout Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-lg flex-1 items-start gap-xl">
+<!-- Left Area: The Comparative Table (Spans 9 cols) -->
+<div class="xl:col-span-9 lg:col-span-12 flex flex-col gap-lg">
+<!-- Table Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm flex flex-col">
+<div class="p-md border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
+<h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined">compare_arrows</span>
+                                    Propostas Recebidas
+                                </h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant">3 Fornecedores Responderam</span>
+</div>
+<div class="overflow-x-auto custom-scrollbar">
+<table class="w-full text-left border-collapse min-w-[900px]">
+<thead class="bg-surface-container-highest text-on-surface-variant font-body-sm text-body-sm border-b border-outline-variant">
+<tr>
+<th class="p-md font-medium w-[25%]">Fornecedor</th>
+<th class="p-md font-medium text-right">Valor Total (BRL)</th>
+<th class="p-md font-medium text-right">Frete</th>
+<th class="p-md font-medium text-right">Prazo Entrega</th>
+<th class="p-md font-medium">Cond. Pagamento</th>
+<th class="p-md font-medium text-center">Score Logístico</th>
+<th class="p-md font-medium text-center">Seleção</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface">
+<!-- Proposal 1: Best Price -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors group cursor-pointer bg-surface-container-lowest">
+<td class="p-md">
+<div class="flex flex-col">
+<span class="font-semibold text-primary">Embalagens Sul S.A.</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">CNPJ: 12.345.678/0001-90</span>
+</div>
+</td>
+<td class="p-md text-right">
+<div class="flex flex-col items-end gap-1">
+<span class="font-code-md text-code-md font-medium">R$ 45.200,00</span>
+<!-- Highlight Badge -->
+<span class="bg-secondary-container text-on-secondary-container font-body-sm text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full flex items-center gap-1 border border-secondary/20">
+<span class="material-symbols-outlined text-[12px]">monetization_on</span> Melhor Preço
+                                                    </span>
+</div>
+</td>
+<td class="p-md text-right">
+<span class="font-code-md text-code-md text-secondary">Grátis</span>
+</td>
+<td class="p-md text-right">15 dias úteis</td>
+<td class="p-md">30/60/90 dias</td>
+<td class="p-md text-center">
+<div class="inline-flex items-center gap-1 bg-surface-container px-2 py-1 rounded text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-secondary">star</span>
+<span class="font-code-sm">92/100</span>
+</div>
+</td>
+<td class="p-md text-center">
+<input checked="" class="w-5 h-5 text-secondary focus:ring-secondary border-outline-variant" name="selected_proposal" type="radio">
+</td>
+</tr>
+<!-- Proposal 2: Best Time -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors group cursor-pointer bg-surface-container-low/30">
+<td class="p-md">
+<div class="flex flex-col">
+<span class="font-medium">LogisPak Distribuidora</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">CNPJ: 98.765.432/0001-10</span>
+</div>
+</td>
+<td class="p-md text-right">
+<span class="font-code-md text-code-md">R$ 48.950,00</span>
+</td>
+<td class="p-md text-right">
+<span class="font-code-md text-code-md">R$ 450,00</span>
+</td>
+<td class="p-md text-right">
+<div class="flex flex-col items-end gap-1">
+<span>3 dias úteis</span>
+<!-- Highlight Badge -->
+<span class="bg-tertiary-fixed text-on-tertiary-fixed font-body-sm text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full flex items-center gap-1 border border-tertiary/20">
+<span class="material-symbols-outlined text-[12px]">local_shipping</span> Melhor Prazo
+                                                    </span>
+</div>
+</td>
+<td class="p-md">À vista</td>
+<td class="p-md text-center">
+<div class="inline-flex items-center gap-1 bg-surface-container px-2 py-1 rounded text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-secondary">star</span>
+<span class="font-code-sm">98/100</span>
+</div>
+</td>
+<td class="p-md text-center">
+<input class="w-5 h-5 text-secondary focus:ring-secondary border-outline-variant" name="selected_proposal" type="radio">
+</td>
+</tr>
+<!-- Proposal 3: Standard -->
+<tr class="hover:bg-surface-container-low transition-colors group cursor-pointer bg-surface-container-lowest">
+<td class="p-md">
+<div class="flex flex-col">
+<span class="font-medium text-on-surface-variant">Nacional Pallets &amp; Fitas</span>
+<span class="font-code-sm text-code-sm text-outline">CNPJ: 45.678.901/0001-55</span>
+</div>
+</td>
+<td class="p-md text-right">
+<span class="font-code-md text-code-md text-on-surface-variant">R$ 46.800,00</span>
+</td>
+<td class="p-md text-right">
+<span class="font-code-md text-code-md text-on-surface-variant">R$ 300,00</span>
+</td>
+<td class="p-md text-right text-on-surface-variant">10 dias úteis</td>
+<td class="p-md text-on-surface-variant">30 dias</td>
+<td class="p-md text-center">
+<div class="inline-flex items-center gap-1 bg-surface-container px-2 py-1 rounded text-outline">
+<span class="material-symbols-outlined text-[14px]">star_half</span>
+<span class="font-code-sm">85/100</span>
+</div>
+</td>
+<td class="p-md text-center">
+<input class="w-5 h-5 text-secondary focus:ring-secondary border-outline-variant" name="selected_proposal" type="radio">
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer Context -->
+<div class="bg-surface-bright p-sm px-md border-t border-outline-variant flex justify-between items-center text-on-surface-variant font-body-sm text-body-sm">
+<span>Os valores não incluem ICMS ST.</span>
+<span>Cotação válida até: 25/10/2023</span>
+</div>
+</div>
+<!-- Item Details Bento Box -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-sm">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex items-start gap-md">
+<div class="p-2 bg-surface-container rounded-lg text-on-surface-variant">
+<span class="material-symbols-outlined">inventory</span>
+</div>
+<div class="flex flex-col flex-1">
+<span class="font-headline-md text-headline-md text-on-surface">Filme Stretch Premium</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">SKU: EMB-0042 • 500mm x 25 mic</span>
+<div class="mt-2 flex justify-between border-t border-outline-variant/30 pt-2">
+<span class="font-body-sm text-on-surface-variant">Quantidade solicitada:</span>
+<span class="font-code-md font-medium text-on-surface">1.200 bobinas</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex items-start gap-md">
+<div class="p-2 bg-surface-container rounded-lg text-on-surface-variant">
+<span class="material-symbols-outlined">inventory_2</span>
+</div>
+<div class="flex flex-col flex-1">
+<span class="font-headline-md text-headline-md text-on-surface">Fita Adesiva Acrílica</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">SKU: EMB-0105 • 48mm x 50m Transparente</span>
+<div class="mt-2 flex justify-between border-t border-outline-variant/30 pt-2">
+<span class="font-body-sm text-on-surface-variant">Quantidade solicitada:</span>
+<span class="font-code-md font-medium text-on-surface">500 caixas</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Area: Summary & Actions (Spans 3 cols) -->
+<div class="xl:col-span-3 lg:col-span-12 flex flex-col gap-lg">
+<!-- Governance Decision Card -->
+<div class="bg-surface-container-lowest border-2 border-primary-container/10 rounded-xl p-lg flex flex-col gap-md shadow-sm relative overflow-hidden">
+<!-- Subtle Background Pattern/Gradient for Action Card -->
+<div class="absolute inset-0 bg-gradient-to-br from-transparent to-primary-container/5 pointer-events-none"></div>
+<h3 class="font-headline-md text-headline-md text-on-surface border-b border-outline-variant/50 pb-2 flex items-center gap-2">
+<span class="material-symbols-outlined">gavel</span>
+                                Decisão de Compra
+                            </h3>
+<div class="flex flex-col gap-y-3 font-body-sm text-body-sm relative z-10">
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant">Orçamento Aprovado C.C.:</span>
+<span class="font-code-md font-medium text-on-surface">R$ 50.000,00</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant">Proposta Selecionada:</span>
+<span class="font-code-md font-medium text-primary">R$ 45.200,00</span>
+</div>
+<div class="flex justify-between items-center pt-2 border-t border-outline-variant/50">
+<span class="text-on-surface-variant font-medium">Impacto no Budget:</span>
+<span class="font-code-md font-medium text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">arrow_downward</span>
+                                        -9.6% (Economia)
+                                    </span>
+</div>
+</div>
+<!-- Comment Box -->
+<div class="flex flex-col gap-1 mt-2 relative z-10">
+<label class="font-body-sm text-body-sm text-on-surface-variant" for="approval_comment">Justificativa / Observação (Obrigatório para Reprovação)</label>
+<textarea class="w-full bg-surface-bright border border-outline-variant rounded-md p-2 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none placeholder:text-outline" id="approval_comment" placeholder="Insira o motivo da decisão..." rows="3"></textarea>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-sm mt-4 relative z-10">
+<!-- Primary Approve -->
+<button class="w-full bg-primary text-on-primary py-3 rounded-lg font-headline-md text-body-lg font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors shadow-sm scale-98 active:scale-95">
+<span class="material-symbols-outlined">check_circle</span>
+                                    Aprovar Proposta
+                                </button>
+<div class="flex gap-sm">
+<!-- Secondary Revise -->
+<button class="flex-1 bg-surface-container border border-outline-variant text-on-surface py-2.5 rounded-lg font-body-md font-medium flex items-center justify-center gap-2 hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">history</span>
+                                        Revisar
+                                    </button>
+<!-- Destructive Reject -->
+<button class="flex-1 bg-surface-bright border border-error text-error py-2.5 rounded-lg font-body-md font-medium flex items-center justify-center gap-2 hover:bg-error-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">block</span>
+                                        Reprovar
+                                    </button>
+</div>
+</div>
+</div>
+<!-- Context Info Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-sm">
+<h3 class="font-body-lg font-semibold text-on-surface mb-1">Dados da Requisição</h3>
+<div class="grid grid-cols-2 gap-y-3 font-body-sm text-body-sm">
+<div class="flex flex-col">
+<span class="text-on-surface-variant">Solicitante</span>
+<span class="font-medium text-on-surface truncate">Carlos Mendes</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant">Departamento</span>
+<span class="font-medium text-on-surface truncate">Expedição (CD-01)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant">Data da Solicitação</span>
+<span class="font-code-sm text-on-surface">12/10/2023</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant">Necessidade p/</span>
+<span class="font-code-sm text-on-surface flex items-center gap-1 text-error">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+                                        05/11/2023
+                                    </span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

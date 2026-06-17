@@ -1,0 +1,440 @@
+<!DOCTYPE html><html class="light" lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>LogisticsPortal - Contratos</title>
+<!-- Google Fonts: Inter & Geist -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@500&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-error": "#ffffff",
+                    "primary-container": "#131b2e",
+                    "inverse-primary": "#bec6e0",
+                    "on-tertiary-container": "#98805d",
+                    "outline-variant": "#c6c6cd",
+                    "tertiary-fixed-dim": "#dec29a",
+                    "primary": "#000000",
+                    "on-background": "#1b1b1d",
+                    "outline": "#76777d",
+                    "surface-container-low": "#f6f3f5",
+                    "on-secondary-fixed-variant": "#005049",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "secondary-container": "#86f2e4",
+                    "inverse-on-surface": "#f3f0f2",
+                    "surface-variant": "#e4e2e4",
+                    "surface-dim": "#dcd9db",
+                    "on-error-container": "#93000a",
+                    "surface-container-high": "#eae7e9",
+                    "surface-tint": "#565e74",
+                    "tertiary": "#000000",
+                    "on-primary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "inverse-surface": "#303032",
+                    "secondary-fixed-dim": "#6bd8cb",
+                    "primary-fixed": "#dae2fd",
+                    "on-tertiary-fixed-variant": "#574425",
+                    "on-tertiary": "#ffffff",
+                    "surface": "#fcf8fa",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "tertiary-container": "#271901",
+                    "surface-container-highest": "#e4e2e4",
+                    "on-primary-container": "#7c839b",
+                    "secondary-fixed": "#89f5e7",
+                    "on-tertiary-fixed": "#271901",
+                    "secondary": "#006a61",
+                    "on-secondary-container": "#006f66",
+                    "on-secondary-fixed": "#00201d",
+                    "error-container": "#ffdad6",
+                    "surface-container": "#f0edef",
+                    "background": "#fcf8fa",
+                    "surface-bright": "#fcf8fa",
+                    "on-primary-fixed": "#131b2e",
+                    "tertiary-fixed": "#fcdeb5",
+                    "on-surface": "#1b1b1d",
+                    "on-surface-variant": "#45464d",
+                    "primary-fixed-dim": "#bec6e0"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "sidenav-width": "240px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "base": "8px",
+                    "xl": "32px",
+                    "topbar-height": "64px",
+                    "lg": "24px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "code-sm": ["Geist"],
+                    "headline-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "code-md": ["Geist"]
+            },
+            "fontSize": {
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "headline-lg": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                    "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "code-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for tables */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: theme('colors.surface-container-low');
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: theme('colors.outline-variant');
+            border-radius: theme('borderRadius.full');
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased w-[1920px] h-[1080px] overflow-hidden flex relative mx-auto">
+<!-- SideNavBar -->
+<nav class="bg-primary-container w-sidenav-width h-[1080px] absolute left-0 top-0 border-r border-outline-variant flex flex-col z-50">
+<!-- Brand Header -->
+<div class="h-topbar-height flex items-center px-md border-b border-outline-variant/20">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-DEFAULT bg-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary text-[20px]">local_shipping</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-on-primary-fixed">Logística CD</h1>
+<p class="font-body-sm text-body-sm text-on-primary-container">Administrador Principal</p>
+</div>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 overflow-y-auto py-md flex flex-col gap-xs custom-scrollbar">
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+                Despesas
+            </a>
+<!-- ACTIVE TAB -->
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md border-l-4 border-secondary bg-surface-container-low text-on-surface transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px] fill text-secondary">description</span>
+                Contratos
+            </a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">local_shipping</span>
+                Fornecedores
+            </a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">inventory_2</span>
+                Produtos
+            </a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+                Requisições
+            </a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">build</span>
+                Manutenção
+            </a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">assignment</span>
+                Tarefas
+            </a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">group</span>
+                Usuários
+            </a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+                Relatórios
+            </a>
+<a class="flex items-center gap-md px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+                Configurações
+            </a>
+</div>
+</nav>
+<!-- TopNavBar -->
+<header class="bg-surface h-topbar-height absolute top-0 right-0 w-[1680px] z-40 border-b border-outline-variant shadow-sm flex justify-between items-center px-lg">
+<!-- Search Area -->
+<div class="flex-1 flex items-center">
+<div class="relative w-full max-w-md group">
+<div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px] group-focus-within:text-primary transition-colors">search</span>
+</div>
+<input class="block w-full pl-xl pr-sm py-sm border-outline-variant rounded-DEFAULT bg-surface-container-low text-on-surface font-body-md focus:ring-primary focus:border-primary transition-all placeholder:text-on-surface-variant/70 border" placeholder="Buscar em contratos..." type="text">
+<div class="absolute inset-y-0 right-0 pr-sm flex items-center pointer-events-none">
+<span class="font-code-sm text-code-sm text-on-surface-variant border border-outline-variant rounded-sm px-xs bg-surface hidden md:inline-block">⌘K</span>
+</div>
+</div>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-sm">
+<button class="p-sm text-on-surface-variant hover:bg-surface-container-high hover:text-primary rounded-full transition-all duration-200 ease-in-out">
+<span class="material-symbols-outlined">domain</span>
+</button>
+<button class="p-sm text-on-surface-variant hover:bg-surface-container-high hover:text-primary rounded-full transition-all duration-200 ease-in-out relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-sm text-on-surface-variant hover:bg-surface-container-high hover:text-primary rounded-full transition-all duration-200 ease-in-out">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<div class="h-8 w-px bg-outline-variant mx-sm"></div>
+<button class="flex items-center gap-sm p-xs rounded-DEFAULT hover:bg-surface-container-high transition-colors">
+<img alt="Administrator" class="w-8 h-8 rounded-DEFAULT object-cover border border-outline-variant" data-alt="A professional headshot of a corporate administrator, realistic, bright office lighting, neutral background, sharp focus, suitable for a B2B platform avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCs4eWOvbsfNz2f1DV7m2tmBmLXIZoKG9N6jnzq9GQp7mVwUJ7sW8hjZYsgmkiO5D8lKjPFRgAkz-3lriozHS9mJakhbMZUc47-C5P7STgqlpM_Vst3jj3vnPrZ5UF13pTZ-3d8WQNxpF3qHKAeKZXSYw5bjxda7s6z6FJHhxtqHZq4SlhYZH89RgRT0-dM7b2Nzs-vJEX85ZHpxXGqAP2J9XXVH1lU8wVgQvj-gwMF_PXeIseUqcw6XpqT7UJurJEz8b1Wul_ooqY">
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-sidenav-width mt-topbar-height w-[1680px] h-[1016px] overflow-y-auto bg-background flex flex-col">
+<!-- Page Header & Actions -->
+<div class="px-lg py-md flex flex-col sm:flex-row sm:items-center justify-between gap-md border-b border-surface-variant bg-surface">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Gestão de Contratos</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Monitore fornecedores, vigências e obrigações mensais.</p>
+</div>
+<div class="flex items-center gap-sm">
+<button class="px-md py-sm flex items-center gap-sm bg-surface-container-low border border-outline-variant text-on-surface font-body-md font-medium rounded-DEFAULT hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    Exportar
+                </button>
+<button class="px-md py-sm flex items-center gap-sm bg-primary text-on-primary font-body-md font-medium rounded-DEFAULT hover:bg-primary/90 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    Novo Contrato
+                </button>
+</div>
+</div>
+<div class="p-lg flex-1 flex flex-col gap-lg">
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<!-- KPI 1 -->
+<div class="bg-surface rounded-lg border border-outline-variant p-md shadow-sm flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<span class="font-body-sm text-body-sm text-on-surface-variant font-medium uppercase tracking-wide">Total de Contratos</span>
+<span class="material-symbols-outlined text-outline">description</span>
+</div>
+<div class="mt-md">
+<span class="font-display-lg text-display-lg text-on-surface">142</span>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="bg-surface rounded-lg border border-outline-variant p-md shadow-sm flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<span class="font-body-sm text-body-sm text-on-surface-variant font-medium uppercase tracking-wide">Valor Mensal Ativo</span>
+<span class="material-symbols-outlined text-secondary">payments</span>
+</div>
+<div class="mt-md flex items-baseline gap-sm">
+<span class="font-display-lg text-display-lg text-on-surface">R$ 1.2M</span>
+<span class="font-body-sm text-body-sm text-secondary bg-secondary-container px-xs py-0.5 rounded-sm flex items-center">
+<span class="material-symbols-outlined text-[12px] mr-0.5">trending_up</span> 2.4%
+                        </span>
+</div>
+</div>
+<!-- KPI 3 (Alert Focus) -->
+<div class="bg-error-container/20 rounded-lg border border-error/30 p-md shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="absolute -right-4 -top-4 text-error/10 pointer-events-none">
+<span class="material-symbols-outlined text-[100px] fill">warning</span>
+</div>
+<div class="flex justify-between items-start relative z-10">
+<span class="font-body-sm text-body-sm text-on-error-container font-semibold uppercase tracking-wide flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px] text-error">error</span>
+                            Vencendo &lt; 30 dias
+                        </span>
+</div>
+<div class="mt-md relative z-10">
+<span class="font-display-lg text-display-lg text-error">8</span>
+<p class="font-body-sm text-body-sm text-on-error-container mt-xs">Requer atenção imediata</p>
+</div>
+</div>
+</div>
+<!-- Table Section (Bento-style container) -->
+<div class="bg-surface border border-outline-variant rounded-lg shadow-sm flex flex-col flex-1 overflow-hidden">
+<!-- Table Filters & Toolbar -->
+<div class="p-md border-b border-outline-variant bg-surface-container-lowest flex flex-wrap gap-md items-center justify-between">
+<div class="flex items-center gap-md">
+<!-- Filter: Status -->
+<div class="flex flex-col gap-xs">
+<label class="font-body-sm text-body-sm text-on-surface-variant">Status de Vigência</label>
+<select class="border-outline-variant bg-surface text-on-surface font-body-md rounded-DEFAULT py-1.5 pl-sm pr-xl focus:ring-primary focus:border-primary">
+<option>Todos os Status</option>
+<option>Vigente</option>
+<option>Expirando (&lt; 30 dias)</option>
+<option>Encerrado</option>
+</select>
+</div>
+<!-- Filter: Categoria -->
+<div class="flex flex-col gap-xs">
+<label class="font-body-sm text-body-sm text-on-surface-variant">Categoria</label>
+<select class="border-outline-variant bg-surface text-on-surface font-body-md rounded-DEFAULT py-1.5 pl-sm pr-xl focus:ring-primary focus:border-primary">
+<option>Todas as Categorias</option>
+<option>Transporte Terrestre</option>
+<option>Manutenção Predial</option>
+<option>Software / TI</option>
+<option>Segurança</option>
+</select>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-sm text-on-surface-variant hover:bg-surface-container-high rounded-DEFAULT border border-transparent hover:border-outline-variant transition-all">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+</button>
+</div>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto custom-scrollbar">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="py-sm px-md font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Fornecedor</th>
+<th class="py-sm px-md font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Título do Contrato</th>
+<th class="py-sm px-md font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Categoria</th>
+<th class="py-sm px-md font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Início</th>
+<th class="py-sm px-md font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Fim</th>
+<th class="py-sm px-md font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap text-right">Valor Mensal</th>
+<th class="py-sm px-md font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap text-center">Status</th>
+<th class="py-sm px-md w-10"></th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface">
+<!-- Row 1: Vigente -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors group h-14">
+<td class="py-xs px-md font-medium flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs">TR</div>
+                                    TransLog Nacional
+                                </td>
+<td class="py-xs px-md max-w-[200px] truncate" title="Frota Terrestre Região Sul">Frota Terrestre Região Sul</td>
+<td class="py-xs px-md text-on-surface-variant">Transporte Terrestre</td>
+<td class="py-xs px-md text-on-surface-variant">10/01/2023</td>
+<td class="py-xs px-md text-on-surface-variant">10/01/2026</td>
+<td class="py-xs px-md font-code-md text-code-md text-right">R$ 150.000,00</td>
+<td class="py-xs px-md text-center">
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-secondary/10 text-secondary border border-secondary/20 text-xs font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Vigente
+                                    </span>
+</td>
+<td class="py-xs px-md text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</td>
+</tr>
+<!-- Row 2: Expirando (ALERT) -->
+<tr class="border-b border-error/30 bg-error/5 hover:bg-error/10 transition-colors group h-14 relative">
+<td class="py-xs px-md font-medium flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs">SP</div>
+                                    SecurePredial S.A.
+                                </td>
+<td class="py-xs px-md max-w-[200px] truncate font-medium text-error" title="Segurança Patrimonial CD Leste">
+                                    Segurança Patrimonial CD Leste
+                                </td>
+<td class="py-xs px-md text-on-surface-variant">Segurança</td>
+<td class="py-xs px-md text-on-surface-variant">15/11/2022</td>
+<td class="py-xs px-md font-bold text-error flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">warning</span>
+                                    20/11/2023
+                                </td>
+<td class="py-xs px-md font-code-md text-code-md text-right">R$ 45.200,00</td>
+<td class="py-xs px-md text-center">
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-error/10 text-error border border-error/20 text-xs font-bold animate-pulse">
+<span class="material-symbols-outlined text-[12px]">schedule</span> Expirando (12d)
+                                    </span>
+</td>
+<td class="py-xs px-md text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</td>
+</tr>
+<!-- Row 3: Vigente -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors group h-14">
+<td class="py-xs px-md font-medium flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs">CW</div>
+                                    CloudWorks TI
+                                </td>
+<td class="py-xs px-md max-w-[200px] truncate" title="Licenciamento WMS Enterprise">Licenciamento WMS Enterprise</td>
+<td class="py-xs px-md text-on-surface-variant">Software / TI</td>
+<td class="py-xs px-md text-on-surface-variant">01/03/2021</td>
+<td class="py-xs px-md text-on-surface-variant">01/03/2025</td>
+<td class="py-xs px-md font-code-md text-code-md text-right">R$ 85.000,00</td>
+<td class="py-xs px-md text-center">
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-secondary/10 text-secondary border border-secondary/20 text-xs font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Vigente
+                                    </span>
+</td>
+<td class="py-xs px-md text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</td>
+</tr>
+<!-- Row 4: Encerrado -->
+<tr class="border-b border-outline-variant/50 bg-surface-container-low/50 hover:bg-surface-container-lowest transition-colors group h-14 opacity-75">
+<td class="py-xs px-md font-medium flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center font-bold text-xs border border-outline-variant">LM</div>
+                                    LimpMax
+                                </td>
+<td class="py-xs px-md max-w-[200px] truncate line-through decoration-outline-variant" title="Limpeza Industrial Setor C">Limpeza Industrial Setor C</td>
+<td class="py-xs px-md text-on-surface-variant">Manutenção Predial</td>
+<td class="py-xs px-md text-on-surface-variant">05/05/2020</td>
+<td class="py-xs px-md text-on-surface-variant">05/05/2022</td>
+<td class="py-xs px-md font-code-md text-code-md text-right text-on-surface-variant">-</td>
+<td class="py-xs px-md text-center">
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-surface-variant text-on-surface-variant border border-outline-variant text-xs font-medium">
+                                        Encerrado
+                                    </span>
+</td>
+<td class="py-xs px-md text-right opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<div class="p-sm px-md border-t border-outline-variant bg-surface flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Mostrando 1-4 de 142 contratos</span>
+<div class="flex items-center gap-sm">
+<button class="p-xs text-outline hover:text-primary disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<button class="p-xs text-on-surface-variant hover:text-primary">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

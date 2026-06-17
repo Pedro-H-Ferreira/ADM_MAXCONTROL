@@ -1,0 +1,69 @@
+{
+    "screenId":  "1d4878b50c8f4e60879625c8596283f2",
+    "name":  "projects/4660020320183620207/screens/1d4878b50c8f4e60879625c8596283f2",
+    "title":  "13. Tarefas e Checklists - Portal Administrativo CD",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "1d4878b50c8f4e60879625c8596283f2",
+                          "sourceScreen":  "projects/4660020320183620207/screens/1d4878b50c8f4e60879625c8596283f2",
+                          "x":  97742,
+                          "y":  2627,
+                          "width":  1210,
+                          "height":  1021,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\13-tarefas-e-checklists-portal-administrativo-cd-1d4878b50c8f4e60879625c8596283f2",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/9561949117769308914",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY1MTQzZjVhZjUwNTQ5YzM5MTczMWNjMjA1EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\13-tarefas-e-checklists-portal-administrativo-cd-1d4878b50c8f4e60879625c8596283f2\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\13-tarefas-e-checklists-portal-administrativo-cd-1d4878b50c8f4e60879625c8596283f2\\screen.html",
+                                  "bytes":  31953,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/df8fae7822c642bc827b3b551885484d",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuiTjnmFFQe7gtelf8FqWGe7pVtgHvYWqz_xng128MYfwhT1yUipfZ-oTMeT0Xh1hK69fb41Sv8p-agfEhr-UCO1M5PheAUzrjzAENWT7XMNeqdvVnr3A9P4qTBMeF0sHavGnTS-WRM7VhPzB8eZkvZpX5Gwn91dIsuglLJl-vrQrxmM2SQqvKCWW48qNaDA1EOas7-mY7sDFEaXe3ecs8YjfTz7V_PrcewfpQZyRXx6lDvjPPUAClSCKo",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\13-tarefas-e-checklists-portal-administrativo-cd-1d4878b50c8f4e60879625c8596283f2\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\13-tarefas-e-checklists-portal-administrativo-cd-1d4878b50c8f4e60879625c8596283f2\\screenshot.png",
+                                        "bytes":  29749,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/1d4878b50c8f4e60879625c8596283f2",
+                   "title":  "13. Tarefas e Checklists - Portal Administrativo CD",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/df8fae7822c642bc827b3b551885484d",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLuiTjnmFFQe7gtelf8FqWGe7pVtgHvYWqz_xng128MYfwhT1yUipfZ-oTMeT0Xh1hK69fb41Sv8p-agfEhr-UCO1M5PheAUzrjzAENWT7XMNeqdvVnr3A9P4qTBMeF0sHavGnTS-WRM7VhPzB8eZkvZpX5Gwn91dIsuglLJl-vrQrxmM2SQqvKCWW48qNaDA1EOas7-mY7sDFEaXe3ecs8YjfTz7V_PrcewfpQZyRXx6lDvjPPUAClSCKo"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/9561949117769308914",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY1MTQzZjVhZjUwNTQ5YzM5MTczMWNjMjA1EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

@@ -1,0 +1,69 @@
+{
+    "screenId":  "c27a5a1b5e204706b121e48f4ac6ee57",
+    "name":  "projects/4660020320183620207/screens/c27a5a1b5e204706b121e48f4ac6ee57",
+    "title":  "08. Fornecedores - Portal Administrativo CD (1920x1080) Final",
+    "listedByListScreens":  false,
+    "instances":  [
+                      {
+                          "id":  "c27a5a1b5e204706b121e48f4ac6ee57",
+                          "sourceScreen":  "projects/4660020320183620207/screens/c27a5a1b5e204706b121e48f4ac6ee57",
+                          "x":  39927,
+                          "y":  2627,
+                          "width":  1210,
+                          "height":  1080,
+                          "hidden":  true
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\08-fornecedores-portal-administrativo-cd-1920x1080-final-c27a5a1b5e204706b121e48f4ac6ee57",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/15675590348426121224",
+                 "mimeType":  "text/html",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjFlMWUwZjMwMWE2MDM2NzdlMDgwYTA5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\08-fornecedores-portal-administrativo-cd-1920x1080-final-c27a5a1b5e204706b121e48f4ac6ee57\\screen.html",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\08-fornecedores-portal-administrativo-cd-1920x1080-final-c27a5a1b5e204706b121e48f4ac6ee57\\screen.html",
+                                  "bytes":  24168,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/html",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  {
+                       "sourceName":  "projects/4660020320183620207/files/813c035612cc41d3bc7598501a94a363",
+                       "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLsIjofwfxF-mUMEOWZbYtiF3h1OBQnX4nJhQL4gGU4TTfqGeTTEjs-AZEyjLtl3L7ePwNCGtUy84FRiMJpY1Dk7raf6V7tOBTdcXQPRi1ITmipAdP6bNOpucEoOcYVRrbPh5oPytZyvOwL_nuRYokjUZtMKEoimDK55EH4J-KgSDXRtzcBSN058I1kP9v4rq-Uuyv50qvCkf5FlPGW5tKcDmZS_kOpngHsFbXUXVFTkYFIeD_ROMqEjZw",
+                       "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\08-fornecedores-portal-administrativo-cd-1920x1080-final-c27a5a1b5e204706b121e48f4ac6ee57\\screenshot.png",
+                       "download":  {
+                                        "ok":  true,
+                                        "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\08-fornecedores-portal-administrativo-cd-1920x1080-final-c27a5a1b5e204706b121e48f4ac6ee57\\screenshot.png",
+                                        "bytes":  26674,
+                                        "httpStatus":  "200",
+                                        "contentType":  "image/png",
+                                        "error":  null
+                                    }
+                   },
+    "missing":  [
+
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/c27a5a1b5e204706b121e48f4ac6ee57",
+                   "title":  "08. Fornecedores - Portal Administrativo CD (1920x1080) Final",
+                   "screenshot":  {
+                                      "name":  "projects/4660020320183620207/files/813c035612cc41d3bc7598501a94a363",
+                                      "downloadUrl":  "https://lh3.googleusercontent.com/aida/AP1WRLsIjofwfxF-mUMEOWZbYtiF3h1OBQnX4nJhQL4gGU4TTfqGeTTEjs-AZEyjLtl3L7ePwNCGtUy84FRiMJpY1Dk7raf6V7tOBTdcXQPRi1ITmipAdP6bNOpucEoOcYVRrbPh5oPytZyvOwL_nuRYokjUZtMKEoimDK55EH4J-KgSDXRtzcBSN058I1kP9v4rq-Uuyv50qvCkf5FlPGW5tKcDmZS_kOpngHsFbXUXVFTkYFIeD_ROMqEjZw"
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/15675590348426121224",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1NDY2YjFlMWUwZjMwMWE2MDM2NzdlMDgwYTA5EgsSBxDLhNTZmAkYAZIBIwoKcHJvamVjdF9pZBIVQhM0NjYwMDIwMzIwMTgzNjIwMjA3\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/html"
+                                },
+                   "width":  "3840",
+                   "height":  "2160",
+                   "deviceType":  "DESKTOP"
+               }
+}

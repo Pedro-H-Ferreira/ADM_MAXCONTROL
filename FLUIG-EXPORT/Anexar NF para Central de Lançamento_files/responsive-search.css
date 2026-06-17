@@ -1,0 +1,49 @@
+/* TODO: Mover para um arquivo global ou alterar esse estilo */
+/* Essas formatações serão temporárias */
+.responsive-search-autocomplete.ui-autocomplete {
+  -webkit-box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+  font-family: "Helvetica Neue" !important;
+  border-radius: 4px !important;
+  border: none !important;
+}
+
+.responsive-search-autocomplete.ui-autocomplete .ui-menu-item {
+  border: none !important;
+  padding: 14px 14px 14px 26px;
+  color: #58595b;
+}
+
+.responsive-search-autocomplete.ui-autocomplete .see-all-results {
+  background-color: #f3f3f3;
+  border-width: 1px 0 0 0;
+  border-style: solid;
+  border-color: #e8e9eb;
+  padding: 14px !important;
+  width: 100%;
+  text-align: center;
+}
+
+.responsive-search-autocomplete.ui-autocomplete .see-all-results a {
+  color: #d41251;
+}
+
+.responsive-search-autocomplete.ui-autocomplete .ui-state-focus {
+  background-color: #f3f3f3;
+}
+
+.responsive-search-autocomplete.ui-autocomplete .ui-menu-item {
+  padding: 0 !important;
+}
+
+.responsive-search-autocomplete.ui-autocomplete .ui-menu-item .ui-menu-item-wrapper {
+  padding: 14px 14px 14px 26px;
+}
+
+.responsive-search-autocomplete.ui-autocomplete .ui-menu-item .ui-menu-item-wrapper.ui-state-active {
+  outline: none;
+  border: none;
+  color: inherit;
+  background-color: #e8e9eb;
+  background-image: none;
+}

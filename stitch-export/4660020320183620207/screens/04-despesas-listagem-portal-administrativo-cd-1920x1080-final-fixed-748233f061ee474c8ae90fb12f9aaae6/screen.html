@@ -1,0 +1,438 @@
+<!DOCTYPE html><html lang="pt-BR" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>MaxControLADM - Despesas</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-error": "#ffffff",
+                    "primary-container": "#131b2e",
+                    "inverse-primary": "#bec6e0",
+                    "on-tertiary-container": "#98805d",
+                    "outline-variant": "#c6c6cd",
+                    "tertiary-fixed-dim": "#dec29a",
+                    "primary": "#000000",
+                    "on-background": "#1b1b1d",
+                    "outline": "#76777d",
+                    "surface-container-low": "#f6f3f5",
+                    "on-secondary-fixed-variant": "#005049",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "secondary-container": "#86f2e4",
+                    "inverse-on-surface": "#f3f0f2",
+                    "surface-variant": "#e4e2e4",
+                    "surface-dim": "#dcd9db",
+                    "on-error-container": "#93000a",
+                    "surface-container-high": "#eae7e9",
+                    "surface-tint": "#565e74",
+                    "tertiary": "#000000",
+                    "on-primary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "inverse-surface": "#303032",
+                    "secondary-fixed-dim": "#6bd8cb",
+                    "primary-fixed": "#dae2fd",
+                    "on-tertiary-fixed-variant": "#574425",
+                    "on-tertiary": "#ffffff",
+                    "surface": "#fcf8fa",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "tertiary-container": "#271901",
+                    "surface-container-highest": "#e4e2e4",
+                    "on-primary-container": "#7c839b",
+                    "secondary-fixed": "#89f5e7",
+                    "on-tertiary-fixed": "#271901",
+                    "secondary": "#006a61",
+                    "on-secondary-container": "#006f66",
+                    "on-secondary-fixed": "#00201d",
+                    "error-container": "#ffdad6",
+                    "surface-container": "#f0edef",
+                    "background": "#fcf8fa",
+                    "surface-bright": "#fcf8fa",
+                    "on-primary-fixed": "#131b2e",
+                    "tertiary-fixed": "#fcdeb5",
+                    "on-surface": "#1b1b1d",
+                    "on-surface-variant": "#45464d",
+                    "primary-fixed-dim": "#bec6e0"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "sidenav-width": "240px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "base": "8px",
+                    "xl": "32px",
+                    "topbar-height": "64px",
+                    "lg": "24px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "code-sm": ["Geist"],
+                    "headline-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "code-md": ["Geist"]
+            },
+            "fontSize": {
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "headline-lg": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                    "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "code-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}]
+            }
+          }
+        }
+      }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md overflow-hidden flex" style="width: 100vw; height: 100vh; margin: 0px; padding: 0px;" data-position="04. Despesas - Listagem">
+<!-- AppShell: SideNavBar -->
+<aside class="hover:w-sidenav-width h-screen fixed left-0 top-0 border-r border-outline-variant bg-primary-container z-50 flex flex-col hidden md:flex transition-all duration-300 ease-in-out group/sidebar w-20">
+<!-- Header -->
+<div class="h-topbar-height flex items-center px-md border-b border-outline-variant/20">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold mr-sm">
+                LC
+            </div>
+<div class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 overflow-hidden whitespace-nowrap"><h1 class="font-headline-md text-headline-md font-bold text-on-primary-fixed">MaxControLADM</h1><p class="font-body-sm text-body-sm text-on-primary-container">Administrativo</p></div>
+</div>
+<!-- Navigation -->
+<nav class="flex-1 overflow-y-auto py-sm">
+<ul class="flex flex-col gap-xs">
+<li class="">
+<a class="flex items-center px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined mr-sm text-[20px] shrink-0">dashboard</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Dashboard</span></a>
+</li>
+<li class="">
+<a class="flex items-center px-md py-sm font-body-md text-body-md border-l-4 border-secondary bg-surface-container-low text-on-surface transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined mr-sm text-[20px] shrink-0">payments</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Despesas</span></a>
+</li>
+<li class="">
+<a class="flex items-center px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined mr-sm text-[20px] shrink-0">description</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Contratos</span></a>
+</li>
+<li class="">
+<a class="flex items-center px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined mr-sm text-[20px] shrink-0">local_shipping</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Fornecedores</span></a>
+</li>
+<li class="">
+<a class="flex items-center px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined mr-sm text-[20px] shrink-0">inventory_2</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Produtos</span></a>
+</li>
+<li class="">
+<a class="flex items-center px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined mr-sm text-[20px] shrink-0">shopping_cart</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Requisições</span></a>
+</li>
+<li class="">
+<a class="flex items-center px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined mr-sm text-[20px] shrink-0">build</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Manutenção</span></a>
+</li>
+<li class="">
+<a class="flex items-center px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined mr-sm text-[20px] shrink-0">assignment</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Tarefas</span></a>
+</li>
+<li class="">
+<a class="flex items-center px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined mr-sm text-[20px] shrink-0">group</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Usuários</span></a>
+</li>
+<li class="">
+<a class="flex items-center px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined mr-sm text-[20px] shrink-0">analytics</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Relatórios</span></a>
+</li>
+
+</ul>
+</nav>
+<div class="mt-auto border-t border-outline-variant/20 py-sm"><a class="flex items-center px-md py-sm font-body-md text-body-md text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#"><span class="material-symbols-outlined mr-sm text-[20px] shrink-0">settings</span><span class="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Configurações</span></a></div></aside>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-16 flex flex-col h-full transition-all duration-300 ease-in-out ml-20">
+<!-- AppShell: TopNavBar -->
+<header class="h-topbar-height bg-surface border-b border-outline-variant shadow-sm z-40 flex justify-between items-center px-lg shrink-0">
+<!-- Left: Brand / Mobile Menu (Hidden on desktop as per strict structural rules, normally brand is here if no sidenav, but sidenav handles it) -->
+<div class="flex items-center gap-md">
+<!-- Search Bar -->
+<div class="relative hidden sm:block w-64 lg:w-[600px]"><span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span><input class="w-full h-10 pl-10 pr-sm bg-surface-container-low border border-outline-variant rounded-full font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200 ease-in-out" placeholder="Buscar despesas..." type="text"><div class="absolute right-sm top-1/2 -translate-y-1/2 bg-surface-variant text-on-surface-variant text-[10px] px-1.5 rounded border border-outline-variant">⌘K</div></div>
+</div>
+<!-- Right: Actions & Profile -->
+<div class="flex items-center gap-sm">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out">
+<span class="material-symbols-outlined">domain</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<div class="ml-sm w-8 h-8 rounded-full bg-secondary-container border border-outline-variant flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+<img alt="Administrator" class="w-full h-full object-cover" data-alt="A professional headshot of a corporate administrator in a bright, modern office setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCP5YxCDXPkB1WrT_DfOb27Gp6vU3HX7AUQirbjwYh7eOKxJeoBShjKv-kYZeYMIbJPdCD3tI4OU85sRfFYbmrnyd6Ozlbp5yfroZ31YeHpHWv6d1QV6U4TzCWXrMqB68Win10DpBfvmAmCCTXA5WQN6-PGw9KtdYdjqzLH07avfdFirRrSUfVtyqDOfcyOio_cNbGJWz2GC77nq10kip22wM3kRg-FXE_ZFUyJag_CMn_a5ffLlaGlXYejBbtIjOgFQz0rvxWoU9s">
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="flex-1 overflow-auto p-md lg:p-lg flex flex-col gap-md bg-surface-container-lowest">
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Despesas</h2>
+
+</div>
+<div class="flex gap-sm">
+<button class="flex items-center gap-xs px-md py-sm bg-surface-container border border-outline-variant rounded text-on-surface font-body-md text-body-md font-medium hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                        Exportar
+                    </button>
+<button class="flex items-center gap-xs px-md py-sm bg-primary text-on-primary rounded font-body-md text-body-md font-medium hover:bg-primary/90 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                        Nova Despesa
+                    </button>
+</div>
+</div>
+<!-- Main Layout: Filters + Table -->
+<div class="flex flex-col gap-md flex-1 min-h-0">
+<!-- Side Filters Panel -->
+
+<!-- Data Table Area -->
+<div class="flex-1 bg-surface border border-outline-variant rounded-lg flex flex-col min-h-0 overflow-hidden relative"><div class="p-md border-b border-outline-variant bg-surface flex flex-wrap items-center gap-md shrink-0">
+    <div class="flex items-center gap-sm">
+        <span class="material-symbols-outlined text-on-surface-variant text-[20px]">filter_list</span>
+        <span class="font-body-sm font-bold text-on-surface-variant uppercase tracking-wider">Filtros:</span>
+    </div>
+    <div class="flex items-center gap-sm">
+        <label class="font-body-sm text-on-surface-variant">Período:</label>
+        <select class="h-10 px-md min-w-[140px] bg-surface-container-low border border-outline-variant rounded font-body-sm text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none">
+            <option>Este Mês</option>
+            <option>Mês Passado</option>
+            <option>Últimos 30 Dias</option>
+        </select>
+    </div>
+    <div class="flex items-center gap-sm">
+        <label class="font-body-sm text-on-surface-variant">Status:</label>
+        <select class="h-10 px-md min-w-[120px] bg-surface-container-low border border-outline-variant rounded font-body-sm text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none">
+            <option>Todos</option>
+            <option>Pendente</option>
+            <option>Pago</option>
+            <option>Atrasado</option>
+        </select>
+    </div>
+    <div class="flex items-center gap-sm">
+        <label class="font-body-sm text-on-surface-variant">Centro de Custo:</label>
+        <select class="h-10 px-md bg-surface-container-low border border-outline-variant rounded font-body-sm text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none min-w-[160px]">
+            <option>Todos</option>
+            <option>OP-01</option>
+            <option>MT-02</option>
+            <option>TI-03</option>
+            <option>AD-04</option>
+        </select>
+    </div>
+    <button class="ml-auto text-secondary font-body-sm hover:underline">Limpar Filtros</button>
+</div>
+<!-- Table Toolbar (Bulk Actions) -->
+<div class="hidden h-14 bg-surface-container-high border-b border-outline-variant px-md items-center justify-between shrink-0 absolute top-0 left-0 w-full z-10" id="bulk-actions-toolbar">
+<div class="flex items-center gap-md">
+<span class="font-body-md text-body-md text-on-surface font-medium"><span id="selected-count" class="">2</span> itens selecionados</span>
+<div class="h-4 w-px bg-outline-variant"></div>
+<button class="flex items-center gap-xs px-sm py-1 bg-surface border border-outline-variant rounded text-on-surface font-body-sm text-body-sm hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                                Marcar como Pago
+                            </button>
+<button class="flex items-center gap-xs px-sm py-1 bg-surface border border-outline-variant rounded text-error font-body-sm text-body-sm hover:bg-error-container hover:text-on-error-container transition-colors">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+                                Excluir
+                            </button>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface p-1" id="clear-selection">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Table Container -->
+<div class="flex-1 overflow-auto">
+<table class="w-full text-left border-collapse min-w-[900px]">
+<thead class="sticky top-0 bg-surface z-0 shadow-[0_1px_0_var(--tw-colors-outline-variant)]">
+<tr>
+<th class="p-sm pl-md w-12 font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase">
+<input class="w-4 h-4 rounded text-secondary border-outline-variant focus:ring-secondary" id="select-all" type="checkbox">
+</th>
+<th class="p-sm font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase cursor-pointer hover:bg-surface-container-low transition-colors group">
+                                        Vencimento <span class="material-symbols-outlined text-[16px] inline-block align-text-bottom opacity-0 group-hover:opacity-100">arrow_downward</span>
+</th>
+<th class="p-sm font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase">Fornecedor</th>
+<th class="p-sm font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase">Categoria</th>
+<th class="p-sm font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase">Descrição</th>
+<th class="p-sm font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase">Centro de Custo</th>
+<th class="p-sm font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase text-right">Valor (BRL)</th>
+<th class="p-sm font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase text-center">Status</th>
+<th class="p-sm pr-md w-12 font-body-sm text-body-sm font-semibold text-on-surface-variant uppercase"></th>
+</tr>
+</thead>
+<tbody class="font-code-md text-code-md text-on-surface divide-y divide-outline-variant/50">
+<!-- Row 1 (Atrasado) -->
+<tr class="hover:bg-surface-container-low transition-colors group h-10">
+<td class="p-xs pl-md align-middle">
+<input class="row-checkbox w-4 h-4 rounded text-secondary border-outline-variant focus:ring-secondary" type="checkbox">
+</td>
+<td class="p-xs align-middle text-error font-medium">10/10/2023</td>
+<td class="p-xs align-middle font-body-md text-body-md">Logística BR Transportes</td>
+<td class="p-xs align-middle font-body-sm text-body-sm text-on-surface-variant">Frete Internacional</td>
+<td class="p-xs align-middle font-body-md text-body-md truncate max-w-[200px]" title="Serviço de transporte carga GRU-CD">Serviço de transporte carga GRU-CD</td>
+<td class="p-xs align-middle font-body-sm text-body-sm"><span class="bg-surface-container px-1 py-0.5 rounded border border-outline-variant">OP-01</span></td>
+<td class="p-xs align-middle text-right tabular-nums font-medium">45.200,00</td>
+<td class="p-xs align-middle text-center">
+<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-body-sm text-body-sm font-medium">
+                                            Atrasado
+                                        </span>
+</td>
+<td class="p-xs pr-md align-middle text-right">
+<button class="text-on-surface-variant hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 (Pendente) -->
+<tr class="hover:bg-surface-container-low transition-colors group h-10">
+<td class="p-xs pl-md align-middle">
+<input class="row-checkbox w-4 h-4 rounded text-secondary border-outline-variant focus:ring-secondary" type="checkbox">
+</td>
+<td class="p-xs align-middle">25/10/2023</td>
+<td class="p-xs align-middle font-body-md text-body-md">Manutenção Predial Silva</td>
+<td class="p-xs align-middle font-body-sm text-body-sm text-on-surface-variant">Serviços Terceiros</td>
+<td class="p-xs align-middle font-body-md text-body-md truncate max-w-[200px]" title="Reparo sistema HVAC Setor B">Reparo sistema HVAC Setor B</td>
+<td class="p-xs align-middle font-body-sm text-body-sm"><span class="bg-surface-container px-1 py-0.5 rounded border border-outline-variant">MT-02</span></td>
+<td class="p-xs align-middle text-right tabular-nums font-medium">8.540,50</td>
+<td class="p-xs align-middle text-center">
+<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-[#fef08a] text-[#854d0e] font-body-sm text-body-sm font-medium">
+                                            Pendente
+                                        </span>
+</td>
+<td class="p-xs pr-md align-middle text-right">
+<button class="text-on-surface-variant hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 (Pago) -->
+<tr class="hover:bg-surface-container-low transition-colors group h-10 bg-surface-container-lowest">
+<td class="p-xs pl-md align-middle">
+<input class="row-checkbox w-4 h-4 rounded text-secondary border-outline-variant focus:ring-secondary" type="checkbox">
+</td>
+<td class="p-xs align-middle text-on-surface-variant">05/10/2023</td>
+<td class="p-xs align-middle font-body-md text-body-md">TechCorp Equipamentos</td>
+<td class="p-xs align-middle font-body-sm text-body-sm text-on-surface-variant">Aquisição TI</td>
+<td class="p-xs align-middle font-body-md text-body-md truncate max-w-[200px]" title="Compra de 5 coletores de dados Zebra">Compra de 5 coletores de dados...</td>
+<td class="p-xs align-middle font-body-sm text-body-sm"><span class="bg-surface-container px-1 py-0.5 rounded border border-outline-variant">TI-03</span></td>
+<td class="p-xs align-middle text-right tabular-nums font-medium">32.100,00</td>
+<td class="p-xs align-middle text-center">
+<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-body-sm text-body-sm font-medium">
+                                            Pago
+                                        </span>
+</td>
+<td class="p-xs pr-md align-middle text-right">
+<button class="text-on-surface-variant hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 (Pendente) -->
+<tr class="hover:bg-surface-container-low transition-colors group h-10">
+<td class="p-xs pl-md align-middle">
+<input class="row-checkbox w-4 h-4 rounded text-secondary border-outline-variant focus:ring-secondary" type="checkbox">
+</td>
+<td class="p-xs align-middle">28/10/2023</td>
+<td class="p-xs align-middle font-body-md text-body-md">Energia Nacional S.A.</td>
+<td class="p-xs align-middle font-body-sm text-body-sm text-on-surface-variant">Utilidades</td>
+<td class="p-xs align-middle font-body-md text-body-md truncate max-w-[200px]" title="Conta de Energia Elétrica Ref. Setembro">Conta de Energia Elétrica Ref. Se...</td>
+<td class="p-xs align-middle font-body-sm text-body-sm"><span class="bg-surface-container px-1 py-0.5 rounded border border-outline-variant">AD-04</span></td>
+<td class="p-xs align-middle text-right tabular-nums font-medium">112.450,20</td>
+<td class="p-xs align-middle text-center">
+<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-[#fef08a] text-[#854d0e] font-body-sm text-body-sm font-medium">
+                                            Pendente
+                                        </span>
+</td>
+<td class="p-xs pr-md align-middle text-right">
+<button class="text-on-surface-variant hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="h-12 border-t border-outline-variant bg-surface flex items-center justify-between px-md shrink-0">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Mostrando 1-4 de 128 despesas</span>
+<div class="flex items-center gap-sm">
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container disabled:opacity-50 text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button>
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Página 1</span>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple script to toggle bulk actions toolbar based on checkbox selection
+        document.addEventListener('DOMContentLoaded', () => {
+            const selectAllCheckbox = document.getElementById('select-all');
+            const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+            const bulkToolbar = document.getElementById('bulk-actions-toolbar');
+            const selectedCountSpan = document.getElementById('selected-count');
+            const clearSelectionBtn = document.getElementById('clear-selection');
+
+            function updateToolbarState() {
+                const checkedCount = Array.from(rowCheckboxes).filter(cb => cb.checked).length;
+                
+                if (checkedCount > 0) {
+                    bulkToolbar.classList.remove('hidden');
+                    bulkToolbar.classList.add('flex');
+                    selectedCountSpan.textContent = checkedCount;
+                } else {
+                    bulkToolbar.classList.add('hidden');
+                    bulkToolbar.classList.remove('flex');
+                }
+                
+                selectAllCheckbox.checked = checkedCount === rowCheckboxes.length && rowCheckboxes.length > 0;
+            }
+
+            selectAllCheckbox.addEventListener('change', (e) => {
+                rowCheckboxes.forEach(cb => cb.checked = e.target.checked);
+                updateToolbarState();
+            });
+
+            rowCheckboxes.forEach(cb => {
+                cb.addEventListener('change', updateToolbarState);
+            });
+
+            clearSelectionBtn.addEventListener('click', () => {
+                selectAllCheckbox.checked = false;
+                rowCheckboxes.forEach(cb => cb.checked = false);
+                updateToolbarState();
+            });
+        });
+    </script>
+
+
+
+
+
+
+
+
+
+
+
+
+</body></html>

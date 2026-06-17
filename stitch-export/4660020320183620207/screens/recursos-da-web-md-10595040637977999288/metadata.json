@@ -1,0 +1,55 @@
+{
+    "screenId":  "10595040637977999288",
+    "name":  "projects/4660020320183620207/screens/10595040637977999288",
+    "title":  "Recursos da web.md",
+    "listedByListScreens":  true,
+    "instances":  [
+                      {
+                          "id":  "9de0bc8b-9f5e-4a4a-93fc-13a2234bac46",
+                          "sourceScreen":  "projects/4660020320183620207/screens/10595040637977999288",
+                          "x":  -3922,
+                          "y":  2885,
+                          "width":  873,
+                          "height":  720,
+                          "type":  "SCREEN_INSTANCE"
+                      }
+                  ],
+    "fetched":  true,
+    "fetchError":  null,
+    "screenFolder":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\recursos-da-web-md-10595040637977999288",
+    "html":  {
+                 "sourceName":  "projects/4660020320183620207/files/10595040637978000427",
+                 "mimeType":  "text/markdown",
+                 "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBKNARIhYXBwX2NvbXBhbmlvbl91c2VyX3VwbG9hZGVkX2ZpbGVzGmgKM3VzZXJfdXBsb2FkZWRfaHRtbF8wMDA2NTQ2Njg4Y2ZjYjI0MDIyZDQwYTdjYTBlOTkxYhILEgcQy4TU2ZgJGAGSASMKCnByb2plY3RfaWQSFUITNDY2MDAyMDMyMDE4MzYyMDIwNw\u0026filename=\u0026opi=89354086",
+                 "localPath":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\recursos-da-web-md-10595040637977999288\\screen.md",
+                 "download":  {
+                                  "ok":  true,
+                                  "path":  "D:\\PROJETOS\\ADM_MAXCONTROL\\stitch-export\\4660020320183620207\\screens\\recursos-da-web-md-10595040637977999288\\screen.md",
+                                  "bytes":  1928,
+                                  "httpStatus":  "200",
+                                  "contentType":  "text/markdown",
+                                  "error":  null
+                              }
+             },
+    "screenshot":  null,
+    "missing":  [
+                    "screenshot"
+                ],
+    "validation":  [
+
+                   ],
+    "source":  {
+                   "name":  "projects/4660020320183620207/screens/10595040637977999288",
+                   "title":  "Recursos da web.md",
+                   "screenshot":  {
+
+                                  },
+                   "htmlCode":  {
+                                    "name":  "projects/4660020320183620207/files/10595040637978000427",
+                                    "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBKNARIhYXBwX2NvbXBhbmlvbl91c2VyX3VwbG9hZGVkX2ZpbGVzGmgKM3VzZXJfdXBsb2FkZWRfaHRtbF8wMDA2NTQ2Njg4Y2ZjYjI0MDIyZDQwYTdjYTBlOTkxYhILEgcQy4TU2ZgJGAGSASMKCnByb2plY3RfaWQSFUITNDY2MDAyMDMyMDE4MzYyMDIwNw\u0026filename=\u0026opi=89354086",
+                                    "mimeType":  "text/markdown"
+                                },
+                   "width":  "780",
+                   "height":  "1768"
+               }
+}

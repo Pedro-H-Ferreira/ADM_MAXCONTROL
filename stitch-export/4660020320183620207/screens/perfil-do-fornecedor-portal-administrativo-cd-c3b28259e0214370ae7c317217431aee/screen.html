@@ -1,0 +1,438 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>LogisticsPortal - Detalhes do Fornecedor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error": "#ffffff",
+                      "primary-container": "#131b2e",
+                      "inverse-primary": "#bec6e0",
+                      "on-tertiary-container": "#98805d",
+                      "outline-variant": "#c6c6cd",
+                      "tertiary-fixed-dim": "#dec29a",
+                      "primary": "#000000",
+                      "on-background": "#1b1b1d",
+                      "outline": "#76777d",
+                      "surface-container-low": "#f6f3f5",
+                      "on-secondary-fixed-variant": "#005049",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "secondary-container": "#86f2e4",
+                      "inverse-on-surface": "#f3f0f2",
+                      "surface-variant": "#e4e2e4",
+                      "surface-dim": "#dcd9db",
+                      "on-error-container": "#93000a",
+                      "surface-container-high": "#eae7e9",
+                      "surface-tint": "#565e74",
+                      "tertiary": "#000000",
+                      "on-primary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "inverse-surface": "#303032",
+                      "secondary-fixed-dim": "#6bd8cb",
+                      "primary-fixed": "#dae2fd",
+                      "on-tertiary-fixed-variant": "#574425",
+                      "on-tertiary": "#ffffff",
+                      "surface": "#fcf8fa",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#271901",
+                      "surface-container-highest": "#e4e2e4",
+                      "on-primary-container": "#7c839b",
+                      "secondary-fixed": "#89f5e7",
+                      "on-tertiary-fixed": "#271901",
+                      "secondary": "#006a61",
+                      "on-secondary-container": "#006f66",
+                      "on-secondary-fixed": "#00201d",
+                      "error-container": "#ffdad6",
+                      "surface-container": "#f0edef",
+                      "background": "#fcf8fa",
+                      "surface-bright": "#fcf8fa",
+                      "on-primary-fixed": "#131b2e",
+                      "tertiary-fixed": "#fcdeb5",
+                      "on-surface": "#1b1b1d",
+                      "on-surface-variant": "#45464d",
+                      "primary-fixed-dim": "#bec6e0"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "sm": "8px",
+                      "sidenav-width": "240px",
+                      "md": "16px",
+                      "xs": "4px",
+                      "base": "8px",
+                      "xl": "32px",
+                      "topbar-height": "64px",
+                      "lg": "24px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "code-sm": [
+                              "Geist"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "code-md": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "code-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "36px",
+                              {
+                                      "lineHeight": "44px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "code-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen">
+<!-- TopNavBar -->
+<nav class="bg-surface dark:bg-surface-dim font-body-md text-body-md h-topbar-height fixed top-0 right-0 w-[calc(100%-240px)] z-40 border-b border-outline-variant shadow-sm flex justify-between items-center px-lg h-full transition-all duration-200 ease-in-out">
+<div class="flex items-center gap-md">
+<!-- Search -->
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-sm text-on-surface-variant" data-icon="search">search</span>
+<input class="pl-[36px] pr-sm py-sm bg-surface-container-highest border-none rounded text-body-md focus:ring-2 focus:ring-primary outline-none text-on-surface w-64 placeholder-on-surface-variant" placeholder="Buscar..." type="text">
+<span class="absolute right-sm text-body-sm text-on-surface-variant font-code-sm border border-outline-variant rounded px-1">⌘K</span>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:bg-surface-container-high p-sm rounded-full transition-all flex items-center justify-center relative">
+<span class="material-symbols-outlined" data-icon="domain">domain</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-high p-sm rounded-full transition-all flex items-center justify-center relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-[6px] right-[6px] w-[8px] h-[8px] bg-error rounded-full"></span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-high p-sm rounded-full transition-all flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<div class="w-[32px] h-[32px] rounded-full overflow-hidden ml-sm cursor-pointer border border-outline-variant">
+<img alt="Administrator" class="w-full h-full object-cover" data-alt="A professional headshot of an administrator in a corporate setting. High key lighting, clean background, modern business attire. Shot in a bright, modern light-mode aesthetic, matching a precise and systematic B2B logistics UI. Subtle depth of field." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXHCRAj_HNGssNQrDg-BUhWZlgZxLJUaibHTDZ63-zncsFHSyTwDo8XmOYsI1CWq9XxqvQ4JF3RLsJRBTIY2ad341H23nKFSzn2YRGRDjkZMMi7TBMZj80cxS7OWCM5OQXxD0QNhisphM0_vnWXi0Y89jSJscIQa_mGACMROvKb1TnneaDvYNnt3UHM0ZaxYyToOaTo9fx9Ho6Q7vzymyVWTDGZUz3al3SyT5TgeZNBRVGlQUnDYWBsjGxMt3_l0fc1ySr1c-WhQU">
+</div>
+</div>
+</nav>
+<!-- SideNavBar -->
+<aside class="bg-primary-container dark:bg-primary-container font-body-md text-body-md w-sidenav-width h-screen fixed left-0 top-0 border-r border-outline-variant flex flex-col h-full z-50">
+<!-- Brand Header -->
+<div class="h-topbar-height flex items-center px-md border-b border-outline-variant/30">
+<div class="w-[32px] h-[32px] rounded-sm bg-primary-fixed flex items-center justify-center mr-sm">
+<span class="material-symbols-outlined text-on-primary-fixed" data-icon="hub" data-weight="fill" style="font-variation-settings: 'FILL' 1;">hub</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-on-primary-fixed leading-tight">Logística CD</h1>
+<p class="font-body-sm text-body-sm text-primary-fixed-dim leading-tight">Administrador Principal</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 overflow-y-auto py-md flex flex-col gap-xs px-sm">
+<a class="flex items-center gap-sm px-md py-sm rounded-r-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-r-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span>Despesas</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-r-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Contratos</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-r-lg border-l-4 border-secondary bg-surface-container-low text-on-surface transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span class="font-medium">Fornecedores</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-r-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span>Produtos</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-r-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span>Requisições</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-r-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="build">build</span>
+<span>Manutenção</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-r-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span>Tarefas</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-r-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Usuários</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-r-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Relatórios</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-r-lg text-on-primary-container hover:text-on-primary hover:bg-primary transition-colors duration-150 scale-98 active:opacity-80 mt-auto mb-sm" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Configurações</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-sidenav-width mt-topbar-height p-lg max-w-[1600px] mx-auto">
+<!-- Header Section -->
+<header class="mb-lg flex justify-between items-start">
+<div class="flex gap-md items-start">
+<div class="w-[64px] h-[64px] bg-surface-container border border-outline-variant rounded flex items-center justify-center shrink-0 mt-xs">
+<span class="material-symbols-outlined text-[32px] text-on-surface-variant" data-icon="factory">factory</span>
+</div>
+<div>
+<div class="flex items-center gap-sm mb-xs">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">TechLog Equipamentos S.A.</h2>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-body-sm font-medium bg-secondary-fixed text-on-secondary-fixed">
+<span class="w-[6px] h-[6px] rounded-full bg-secondary mr-1.5"></span>
+                            Ativo
+                        </span>
+</div>
+<div class="flex items-center gap-md text-on-surface-variant font-body-sm">
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]" data-icon="badge">badge</span> CNPJ: 12.345.678/0001-90</span>
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]" data-icon="location_on">location_on</span> São Paulo, SP</span>
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]" data-icon="calendar_today">calendar_today</span> Desde: 15/03/2021</span>
+</div>
+</div>
+</div>
+<div class="flex gap-sm">
+<button class="px-md py-sm border border-outline-variant text-on-surface font-medium rounded hover:bg-surface-container transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]" data-icon="edit">edit</span> Editar
+                </button>
+<button class="px-md py-sm bg-primary text-on-primary font-medium rounded hover:bg-primary/90 transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]" data-icon="add_shopping_cart">add_shopping_cart</span> Nova Ordem
+                </button>
+</div>
+</header>
+<!-- Tabs Navigation -->
+<div class="border-b border-outline-variant mb-lg flex gap-lg">
+<button class="pb-sm font-medium text-primary border-b-2 border-primary transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]" data-icon="info">info</span> Dados Cadastrais
+            </button>
+<button class="pb-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]" data-icon="contacts">contacts</span> Contatos
+            </button>
+<button class="pb-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]" data-icon="description">description</span> Contratos
+            </button>
+<button class="pb-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]" data-icon="inventory_2">inventory_2</span> Produtos Vinculados
+            </button>
+<button class="pb-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]" data-icon="history">history</span> Histórico
+            </button>
+</div>
+<!-- Content Grid Layout -->
+<div class="grid grid-cols-12 gap-lg">
+<!-- Main Details Panel (Bento Style) -->
+<div class="col-span-8 flex flex-col gap-lg">
+<!-- KPI Section -->
+<div class="grid grid-cols-3 gap-md">
+<div class="bg-surface p-md border border-outline-variant rounded-lg flex flex-col justify-between h-[120px]">
+<div class="text-on-surface-variant font-body-sm flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]" data-icon="shopping_bag">shopping_bag</span> Pedidos Ativos</div>
+<div class="flex items-end justify-between">
+<span class="font-headline-lg text-headline-lg text-on-surface">14</span>
+<span class="text-body-sm text-secondary flex items-center"><span class="material-symbols-outlined text-[14px]" data-icon="trending_up">trending_up</span> +2</span>
+</div>
+</div>
+<div class="bg-surface p-md border border-outline-variant rounded-lg flex flex-col justify-between h-[120px]">
+<div class="text-on-surface-variant font-body-sm flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]" data-icon="payments">payments</span> Faturamento (YTD)</div>
+<div class="flex items-end justify-between">
+<span class="font-headline-md text-headline-md text-on-surface">R$ 1.2M</span>
+<span class="text-body-sm text-error flex items-center"><span class="material-symbols-outlined text-[14px]" data-icon="trending_down">trending_down</span> -5%</span>
+</div>
+</div>
+<div class="bg-surface p-md border border-outline-variant rounded-lg flex flex-col justify-between h-[120px]">
+<div class="text-on-surface-variant font-body-sm flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]" data-icon="speed">speed</span> Tempo Médio de Entrega</div>
+<div class="flex items-end justify-between">
+<span class="font-headline-lg text-headline-lg text-on-surface">3.2 <span class="font-body-md text-body-md text-on-surface-variant">dias</span></span>
+<span class="text-body-sm text-on-surface-variant">Meta: 4.0</span>
+</div>
+</div>
+</div>
+<!-- Registration Details -->
+<div class="bg-surface border border-outline-variant rounded-lg">
+<div class="px-md py-sm border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md text-on-surface">Informações Fiscais e Endereço</h3>
+</div>
+<div class="p-md grid grid-cols-2 gap-y-md gap-x-xl">
+<div>
+<span class="block text-body-sm text-on-surface-variant mb-xs">Razão Social</span>
+<span class="font-medium text-on-surface">TechLog Comércio e Manutenção de Equipamentos S.A.</span>
+</div>
+<div>
+<span class="block text-body-sm text-on-surface-variant mb-xs">Inscrição Estadual</span>
+<span class="font-code-md text-code-md text-on-surface">112.334.556.778</span>
+</div>
+<div>
+<span class="block text-body-sm text-on-surface-variant mb-xs">Regime Tributário</span>
+<span class="font-medium text-on-surface">Lucro Real</span>
+</div>
+<div>
+<span class="block text-body-sm text-on-surface-variant mb-xs">CNAE Principal</span>
+<span class="font-medium text-on-surface">46.69-9-99 - Comércio atacadista de máquinas</span>
+</div>
+<div class="col-span-2 border-t border-outline-variant pt-md mt-xs"></div>
+<div class="col-span-2">
+<span class="block text-body-sm text-on-surface-variant mb-xs">Endereço Principal</span>
+<div class="flex items-start gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant mt-0.5" data-icon="map">map</span>
+<div>
+<span class="block font-medium text-on-surface">Av. das Nações Unidas, 14401 - Conjunto 120</span>
+<span class="block text-on-surface-variant text-body-sm">Vila Gertrudes, São Paulo - SP, 04794-000</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Timeline Sidebar -->
+<div class="col-span-4 bg-surface border border-outline-variant rounded-lg h-full flex flex-col">
+<div class="px-md py-sm border-b border-outline-variant flex justify-between items-center bg-surface-container-low rounded-t-lg">
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-xs"><span class="material-symbols-outlined" data-icon="pending_actions">pending_actions</span> Atividade Recente</h3>
+<button class="text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined" data-icon="filter_list">filter_list</span></button>
+</div>
+<div class="p-md flex-1 overflow-y-auto">
+<div class="relative pl-6 border-l border-outline-variant ml-2 space-y-lg pb-md">
+<!-- Timeline Item 1 -->
+<div class="relative">
+<div class="absolute -left-[31px] bg-secondary-fixed border border-surface w-4 h-4 rounded-full flex items-center justify-center">
+<span class="w-1.5 h-1.5 bg-secondary rounded-full"></span>
+</div>
+<div class="text-body-sm text-on-surface-variant mb-1">Hoje, 10:45</div>
+<div class="bg-surface-container-highest p-sm rounded border border-outline-variant">
+<div class="font-medium text-on-surface flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]" data-icon="receipt_long">receipt_long</span> Nota Fiscal Recebida</div>
+<div class="text-body-sm text-on-surface-variant mt-1">NF-e 004562 referente à Ordem de Compra #8849 aprovada.</div>
+</div>
+</div>
+<!-- Timeline Item 2 -->
+<div class="relative">
+<div class="absolute -left-[31px] bg-surface border border-outline-variant w-4 h-4 rounded-full"></div>
+<div class="text-body-sm text-on-surface-variant mb-1">Ontem, 16:20</div>
+<div>
+<div class="font-medium text-on-surface">Avaliação de Qualidade Realizada</div>
+<div class="text-body-sm text-on-surface-variant mt-1">Inspeção no lote recebido concluída com status: <span class="text-secondary font-medium">Aprovado</span>.</div>
+</div>
+</div>
+<!-- Timeline Item 3 -->
+<div class="relative">
+<div class="absolute -left-[31px] bg-surface border border-outline-variant w-4 h-4 rounded-full"></div>
+<div class="text-body-sm text-on-surface-variant mb-1">12 Nov, 09:15</div>
+<div>
+<div class="font-medium text-on-surface">Ordem de Compra Emitida</div>
+<div class="text-body-sm text-on-surface-variant mt-1">OC #8849 criada para 50x Motores Industriais M-200.</div>
+<div class="mt-xs">
+<span class="inline-block px-2 py-0.5 border border-outline-variant text-on-surface-variant text-body-sm rounded-full font-code-sm">R$ 145.000,00</span>
+</div>
+</div>
+</div>
+<!-- Timeline Item 4 -->
+<div class="relative">
+<div class="absolute -left-[31px] bg-error-container border border-surface w-4 h-4 rounded-full flex items-center justify-center">
+<span class="w-1.5 h-1.5 bg-error rounded-full"></span>
+</div>
+<div class="text-body-sm text-on-surface-variant mb-1">05 Nov, 14:00</div>
+<div class="border-l-2 border-error pl-sm">
+<div class="font-medium text-on-error-container">Atraso na Entrega Notificado</div>
+<div class="text-body-sm text-on-surface-variant mt-1">Remessa da OC #8710 atrasada em 2 dias. Justificativa registrada.</div>
+</div>
+</div>
+<!-- Timeline Item 5 -->
+<div class="relative">
+<div class="absolute -left-[31px] bg-surface border border-outline-variant w-4 h-4 rounded-full"></div>
+<div class="text-body-sm text-on-surface-variant mb-1">20 Out, 11:30</div>
+<div>
+<div class="font-medium text-on-surface">Contrato Renovado</div>
+<div class="text-body-sm text-on-surface-variant mt-1">Contrato de fornecimento padrão renovado por 12 meses.</div>
+</div>
+</div>
+</div>
+<button class="w-full text-center py-sm text-primary font-medium hover:bg-surface-container rounded transition-colors text-body-sm">
+                        Ver histórico completo
+                    </button>
+</div>
+</div>
+</div>
+</main>
+</body></html>
