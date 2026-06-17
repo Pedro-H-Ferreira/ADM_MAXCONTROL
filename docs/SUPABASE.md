@@ -12,7 +12,7 @@ Projeto usado:
 Observacao operacional:
 
 - O projeto novo `ADM MaxControl` (`iyhvzaduwwbhzrlfangx`) foi criado por engano e nao deve ser usado.
-- A tentativa de pausar pelo conector Supabase falhou porque o projeto nao esta em free-tier; ele precisa ser excluido ou rebaixado manualmente no dashboard Supabase.
+- O Supabase informou status `REMOVED` para esse projeto, e ele nao aparece mais na lista de projetos ativos.
 
 ## Variaveis
 
@@ -57,6 +57,7 @@ Seguranca:
 Status aplicado no Supabase:
 
 - Migracoes aplicadas com sucesso no projeto `PORTAL ADM CD`.
+- Projeto `PORTAL ADM CD` confirmado como `ACTIVE_HEALTHY`.
 - Advisor de seguranca sem alertas de RLS permissivo; permanece apenas aviso global de leaked password protection desabilitado no Auth.
 - Advisor de performance mostra indices ainda nao usados porque as tabelas Fluig estao vazias.
 
