@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DatabaseZap, ExternalLink, FileText, RefreshCcw, Send, Workflow, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,25 +25,30 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const [pendingAction, setPendingAction] = useState<FluigAdmSyncAction | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const rows = useMemo(() => syncData?.rows ?? integration?.syncRows ?? [], [integration?.syncRows, syncData?.rows]);
-  const examples = useMemo(
-    () => syncData?.examples ?? integration?.examples ?? [],
-    [integration?.examples, syncData?.examples],
-  );
-  const supplierMatches = useMemo(
-    () => syncData?.supplierMatches ?? integration?.supplierMatches ?? [],
-    [integration?.supplierMatches, syncData?.supplierMatches],
-  );
-
-  if (!integration) {
-    return null;
-  }
+  const rows = useMemo(() => syncData?.rows ?? [], [syncData?.rows]);
+  const examples = useMemo(() => syncData?.examples ?? [], [syncData?.examples]);
+  const supplierMatches = useMemo(() => syncData?.supplierMatches ?? [], [syncData?.supplierMatches]);
+  const integrationSlug = integration?.slug;
 
   async function runSync(action: FluigAdmSyncAction) {
+    if (!integration) {
+      return;
+    }
+
     setPendingAction(action);
     setError(null);
 
     try {
+      if (action === "sync") {
+        await fluigAdmApi.post(fluigAdmApi.historyPath, {
+          module: integration.slug,
+          days: 90,
+          pageSize: 50,
+          maxPages: 3,
+          persist: true,
+        });
+      }
+
       const data = await fluigAdmApi.sync({ module: integration.slug as FluigModuleSlug, action });
       setSyncData(data);
     } catch (syncError) {
@@ -51,6 +56,30 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     } finally {
       setPendingAction(null);
     }
+  }
+
+  useEffect(() => {
+    if (!integrationSlug) {
+      return;
+    }
+
+    let active = true;
+    void fluigAdmApi
+      .sync({ module: integrationSlug as FluigModuleSlug, action: "sync" })
+      .then((data) => {
+        if (active) setSyncData(data);
+      })
+      .catch((syncError) => {
+        if (active) setError(syncError instanceof Error ? syncError.message : "Falha ao sincronizar Fluig");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [integrationSlug, moduleSlug]);
+
+  if (!integration) {
+    return null;
   }
 
   const visibleFields = compact ? integration.mappedFields.slice(0, 5) : integration.mappedFields;
@@ -100,7 +129,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             disabled={Boolean(pendingAction)}
           >
             <FileText className="size-4" />
-            Usar modelo anterior
+            Consultar modelos reais
           </Button>
           <Button type="button" variant="outline" className="stitch-soft-button" asChild>
             <a href={integration.openUrl} target="_blank" rel="noreferrer">
@@ -116,7 +145,12 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
         {syncData ? (
           <p className="text-xs text-muted-foreground">
             Ultima sincronizacao: {new Date(syncData.generatedAt).toLocaleString("pt-BR")} - Fonte:{" "}
-            {syncData.externalApiConfigured ? "API Fluig configurada" : "contrato local mapeado"}
+            {syncData.persistence?.configured ? "Supabase / Fluig real" : "banco ainda sem service role local"}
+          </p>
+        ) : null}
+        {syncData?.persistence?.errors.length ? (
+          <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+            {syncData.persistence.errors.join(" | ")}
           </p>
         ) : null}
         {error ? <p className="text-xs font-medium text-destructive">{error}</p> : null}
@@ -148,23 +182,37 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleRows.map((row) => (
-                    <tr key={row.id} className="border-t">
-                      <td className="p-3 font-medium">{row.admReference}</td>
-                      <td className="p-3 text-muted-foreground">{row.fluigNumber}</td>
-                      <td className="p-3">
-                        <div className="font-medium">{row.supplier}</div>
-                        <div className="text-xs text-muted-foreground">{row.cnpj}</div>
-                      </td>
-                      <td className="p-3">
-                        <div>{row.currentTask}</div>
-                        <div className="text-xs text-muted-foreground">{row.taskOwner}</div>
-                      </td>
-                      <td className="p-3">
-                        <StatusBadge status={row.fluigStatus} />
+                  {pendingAction === "sync" && !syncData ? (
+                    <tr className="border-t">
+                      <td colSpan={5} className="p-6 text-center text-sm text-muted-foreground">
+                        Consultando Supabase...
                       </td>
                     </tr>
-                  ))}
+                  ) : visibleRows.length > 0 ? (
+                    visibleRows.map((row) => (
+                      <tr key={row.id} className="border-t">
+                        <td className="p-3 font-medium">{row.admReference}</td>
+                        <td className="p-3 text-muted-foreground">{row.fluigNumber}</td>
+                        <td className="p-3">
+                          <div className="font-medium">{row.supplier}</div>
+                          <div className="text-xs text-muted-foreground">{row.cnpj}</div>
+                        </td>
+                        <td className="p-3">
+                          <div>{row.currentTask}</div>
+                          <div className="text-xs text-muted-foreground">{row.taskOwner}</div>
+                        </td>
+                        <td className="p-3">
+                          <StatusBadge status={row.fluigStatus} />
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr className="border-t">
+                      <td colSpan={5} className="p-6 text-center text-sm text-muted-foreground">
+                        Nenhum dado real sincronizado para este modulo.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -176,26 +224,32 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
               Base para preenchimento automatico sem importar o fluxo antigo de lancamentos.
             </p>
             <div className="mt-3 space-y-3">
-              {visibleExamples.map((example) => (
-                <div key={example.id} className="rounded-md border bg-background p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold">{example.title}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{example.id}</p>
-                    </div>
-                    <StatusBadge status={example.status} />
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">{example.notes}</p>
-                  <div className="mt-3 grid gap-2 text-xs">
-                    {Object.entries(example.payloadPreview).map(([key, value]) => (
-                      <div key={key} className="flex min-w-0 items-center justify-between gap-3 rounded bg-muted/40 px-2 py-1">
-                        <span className="text-muted-foreground">{key}</span>
-                        <span className="truncate font-medium">{value}</span>
+              {visibleExamples.length > 0 ? (
+                visibleExamples.map((example) => (
+                  <div key={example.id} className="rounded-md border bg-background p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold">{example.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{example.id}</p>
                       </div>
-                    ))}
+                      <StatusBadge status={example.status} />
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">{example.notes}</p>
+                    <div className="mt-3 grid gap-2 text-xs">
+                      {Object.entries(example.payloadPreview).map(([key, value]) => (
+                        <div key={key} className="flex min-w-0 items-center justify-between gap-3 rounded bg-muted/40 px-2 py-1">
+                          <span className="text-muted-foreground">{key}</span>
+                          <span className="truncate font-medium">{value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="rounded-md border border-dashed bg-background p-3 text-xs text-muted-foreground">
+                  Sincronize o historico Fluig para criar modelos reais de preenchimento.
                 </div>
-              ))}
+              )}
             </div>
           </section>
         </div>

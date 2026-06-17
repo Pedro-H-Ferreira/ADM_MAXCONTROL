@@ -41,6 +41,12 @@ type MaintenanceOrderFlowPanelProps = {
 };
 
 export function MaintenanceOrderFlowPanel({ mode, compact = false }: MaintenanceOrderFlowPanelProps) {
+  const queue = useMemo(() => getMaintenanceQueue(), []);
+  const openCount = queue.filter((order) => order.status !== "FINALIZADA").length;
+  const startedCount = queue.filter((order) => order.status === "INICIADA").length;
+  const waitingMaterialCount = queue.filter((order) => order.status === "AGUARDANDO_MATERIAL").length;
+  const photoCount = queue.filter((order) => order.photos > 0).length;
+
   if (mode === "form") {
     return <MaintenanceNewOrderSelector />;
   }
@@ -73,12 +79,12 @@ export function MaintenanceOrderFlowPanel({ mode, compact = false }: Maintenance
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-4">
-          <SummaryTile icon={Clock} label="Abertas" value="24" />
-          <SummaryTile icon={Hammer} label="Iniciadas" value="8" />
-          <SummaryTile icon={PackageOpen} label="Aguardando material" value="5" />
-          <SummaryTile icon={Camera} label="Com fotos" value="16" />
+          <SummaryTile icon={Clock} label="Abertas" value={String(openCount)} />
+          <SummaryTile icon={Hammer} label="Iniciadas" value={String(startedCount)} />
+          <SummaryTile icon={PackageOpen} label="Aguardando material" value={String(waitingMaterialCount)} />
+          <SummaryTile icon={Camera} label="Com fotos" value={String(photoCount)} />
         </div>
-        {compact ? <CompactMaintenanceQueue /> : <FullMaintenanceQueue />}
+        {compact ? <CompactMaintenanceQueue queue={queue} /> : <FullMaintenanceQueue queue={queue} />}
       </CardContent>
     </Card>
   );
@@ -181,32 +187,36 @@ function MaintenanceFieldsGrid({ fields }: { fields: MaintenanceFormField[] }) {
   );
 }
 
-function FullMaintenanceQueue() {
-  const queue = useMemo(() => getMaintenanceQueue(), []);
-
+function FullMaintenanceQueue({ queue }: { queue: ReturnType<typeof getMaintenanceQueue> }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
       <section className="rounded-md border bg-muted/20 p-3">
         <h3 className="text-sm font-semibold">Fila mobile do manutentor</h3>
         <p className="mt-1 text-xs text-muted-foreground">Ordenada por prioridade e status operacional.</p>
         <div className="mt-3 space-y-2">
-          {queue.map((order) => (
-            <div key={order.id} className="rounded-md border bg-background p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground">{order.id}</span>
-                    <PriorityBadge priority={order.priority} />
-                    <StatusBadge status={order.status} />
+          {queue.length > 0 ? (
+            queue.map((order) => (
+              <div key={order.id} className="rounded-md border bg-background p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs text-muted-foreground">{order.id}</span>
+                      <PriorityBadge priority={order.priority} />
+                      <StatusBadge status={order.status} />
+                    </div>
+                    <p className="mt-2 text-sm font-semibold">{order.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{order.area} - {order.technician}</p>
                   </div>
-                  <p className="mt-2 text-sm font-semibold">{order.title}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{order.area} - {order.technician}</p>
+                  <span className="shrink-0 rounded-md border px-2 py-1 text-xs text-muted-foreground">{order.dueAt}</span>
                 </div>
-                <span className="shrink-0 rounded-md border px-2 py-1 text-xs text-muted-foreground">{order.dueAt}</span>
+                <p className="mt-3 text-xs text-muted-foreground">{order.lastUpdate}</p>
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">{order.lastUpdate}</p>
+            ))
+          ) : (
+            <div className="rounded-md border border-dashed bg-background p-6 text-center text-sm text-muted-foreground">
+              Nenhuma OS real cadastrada ou sincronizada ainda.
             </div>
-          ))}
+          )}
         </div>
       </section>
 
@@ -216,45 +226,56 @@ function FullMaintenanceQueue() {
           <p className="text-xs text-muted-foreground">Campos que o manutentor deve responder pelo celular.</p>
         </header>
         <div className="grid gap-3 p-3 md:grid-cols-2">
-          {queue.slice(0, 3).map((order) => (
-            <div key={`${order.id}-execution`} className="rounded-md border bg-background p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold">{order.id}</p>
-                  <p className="text-xs text-muted-foreground">{order.materialSummary}</p>
+          {queue.length > 0 ? (
+            queue.slice(0, 3).map((order) => (
+              <div key={`${order.id}-execution`} className="rounded-md border bg-background p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">{order.id}</p>
+                    <p className="text-xs text-muted-foreground">{order.materialSummary}</p>
+                  </div>
+                  <StatusBadge status={order.status} />
                 </div>
-                <StatusBadge status={order.status} />
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <Metric label="Valor gasto" value={order.materialCost} />
+                  <Metric label="Fotos" value={String(order.photos)} />
+                  <Metric label="Inicio" value={order.startedAt ?? "Nao iniciado"} />
+                  <Metric label="Origem" value={order.source === "manual" ? "Ferramenta" : "Fluig"} />
+                </div>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <Metric label="Valor gasto" value={order.materialCost} />
-                <Metric label="Fotos" value={String(order.photos)} />
-                <Metric label="Inicio" value={order.startedAt ?? "Nao iniciado"} />
-                <Metric label="Origem" value={order.source === "manual" ? "Ferramenta" : "Fluig"} />
-              </div>
+            ))
+          ) : (
+            <div className="rounded-md border border-dashed bg-background p-6 text-center text-sm text-muted-foreground md:col-span-2">
+              Os campos de execucao aparecerao depois que uma OS real for criada.
             </div>
-          ))}
+          )}
         </div>
       </section>
     </div>
   );
 }
 
-function CompactMaintenanceQueue() {
-  const queue = useMemo(() => getMaintenanceQueue().slice(0, 3), []);
-
+function CompactMaintenanceQueue({ queue }: { queue: ReturnType<typeof getMaintenanceQueue> }) {
+  const visibleQueue = queue.slice(0, 3);
   return (
     <div className="space-y-2">
-      {queue.map((order) => (
-        <div key={order.id} className="rounded-md border bg-muted/20 p-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{order.id} - {order.title}</p>
-              <p className="text-xs text-muted-foreground">{order.materialCost} em materiais - {order.photos} fotos</p>
+      {visibleQueue.length > 0 ? (
+        visibleQueue.map((order) => (
+          <div key={order.id} className="rounded-md border bg-muted/20 p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{order.id} - {order.title}</p>
+                <p className="text-xs text-muted-foreground">{order.materialCost} em materiais - {order.photos} fotos</p>
+              </div>
+              <StatusBadge status={order.status} />
             </div>
-            <StatusBadge status={order.status} />
           </div>
+        ))
+      ) : (
+        <div className="rounded-md border border-dashed bg-muted/20 p-3 text-sm text-muted-foreground">
+          Nenhuma OS real vinculada.
         </div>
-      ))}
+      )}
     </div>
   );
 }

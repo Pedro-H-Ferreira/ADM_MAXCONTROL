@@ -73,13 +73,17 @@ export type FluigIntegrationModule = {
 export type FluigAdmSyncResponse = {
   success: boolean;
   generatedAt: string;
-  sourceMode: "local_contract" | "external_api_proxy" | "direct_runner" | "disabled";
+  sourceMode: "supabase_snapshot" | "external_api_proxy" | "direct_runner" | "disabled";
   externalApiConfigured: boolean;
   module: FluigModuleSlug;
   integration: FluigIntegrationModule;
   rows: FluigSyncRow[];
   examples: FluigExampleRequest[];
   supplierMatches: FluigSupplierMatch[];
+  persistence?: {
+    configured: boolean;
+    errors: string[];
+  };
 };
 
 const fluigHost = "https://nossaempresa.fluig.cloudtotvs.com.br";
@@ -320,274 +324,6 @@ const supplierFields: FluigMappedField[] = [
   },
 ];
 
-const paymentExamples: FluigExampleRequest[] = [
-  {
-    id: "1103651",
-    title: "Pagamento anterior - Transportes Planalto",
-    processId: "Atendimento Central de Lancamento - CONSINCO",
-    source: "Historico comparado no FLUIG_WEB_AUTOMATION_NEXUS",
-    openedBy: "Usuario administrativo analisado anteriormente",
-    status: "MODELO_VALIDO",
-    notes: "Exemplo usado para reaproveitar defaults e trocar apenas fornecedor, filial, nota, datas e valor.",
-    stableDefaults: [
-      "formaPagamento = PIX",
-      "definirNF = fornecedor",
-      "codigonaturezaC = 4010210 - FRETE TRANSFERENCIA DE PRODUTOS - DANFE",
-      "radioParcelasNF = nao",
-      "radiorateioNF = nao",
-      "radioAntecipacao = nao",
-    ],
-    variableFields: [
-      "centroCusto",
-      "codCentroCusto",
-      "coFilial",
-      "codCNPJ",
-      "fornecedorC",
-      "descricaoDemandaEnvio",
-      "nNotaFiscal",
-      "dataEmissaoNF",
-      "unidadeFilial",
-      "valorNF",
-    ],
-    payloadPreview: {
-      fornecedorC: "TRANSPORTES PLANALTO LTDA",
-      codCNPJ: "12488410000192",
-      unidadeFilial: "1007 - 1007-SIA",
-      formaPagamento: "PIX",
-    },
-  },
-  {
-    id: "1103369",
-    title: "Pagamento anterior - Rapido Centro-Oeste",
-    processId: "Atendimento Central de Lancamento - CONSINCO",
-    source: "Historico comparado no FLUIG_WEB_AUTOMATION_NEXUS",
-    openedBy: "Usuario administrativo analisado anteriormente",
-    status: "MODELO_VALIDO",
-    notes: "Segundo exemplo confirmado para validar quais campos mudam entre fornecedores e filiais.",
-    stableDefaults: [
-      "formaPagamento = PIX",
-      "definirNF = fornecedor",
-      "radioPagamentoRealizado = sim",
-      "radioLancaInputNF = sim",
-    ],
-    variableFields: [
-      "codCNPJ",
-      "fornecedor",
-      "fornecedorC",
-      "nomeColaborador",
-      "nNotaFiscal",
-      "unidadeFilial",
-      "valorNF",
-      "valorTotalExibicao",
-    ],
-    payloadPreview: {
-      fornecedorC: "RAPIDO CENTRO OESTE TRANSPORTES",
-      codCNPJ: "05901662000110",
-      unidadeFilial: "1062 - 1062-LUZIANIA 2",
-      formaPagamento: "PIX",
-    },
-  },
-];
-
-const purchaseExamples: FluigExampleRequest[] = [
-  {
-    id: "WKNumProces=0 / taskUserId=00130",
-    title: "Pagina aberta pelo usuario - Pedido de Compra Administrativa",
-    processId: "Solicitacao de Compra Administrativa",
-    source: "FLUIG-EXPORT/Pedido de Compra Administrativa.html",
-    openedBy: "Administrativo CD",
-    status: "FORMULARIO_ABERTO",
-    notes: "A exportacao indica abertura de nova solicitacao; sera usada como base visual e contrato de campos, nao como modelo de lancamento antigo.",
-    stableDefaults: [
-      "responsavelPedido vem do usuario Fluig",
-      "numeroSolicitacao e somente leitura ate o envio",
-      "as aprovacoes ficam no proprio processo Fluig",
-    ],
-    variableFields: [
-      "dataPedido",
-      "centroCusto",
-      "contaCentroCusto",
-      "codFilialPedido",
-      "itens",
-      "quantidades",
-      "observacoes",
-    ],
-    payloadPreview: {
-      responsavelPedido: "Administrativo CD",
-      processID: "Solicitacao de Compra Administrativa",
-      WKVersDef: "23",
-      taskUserId: "00130",
-    },
-  },
-];
-
-const maintenanceExamples: FluigExampleRequest[] = [
-  {
-    id: "WKNumProces=0 / taskUserId=00130",
-    title: "Pagina aberta pelo usuario - Ativo fixo",
-    processId: "Solicitar_transferencia_baixas_ativo_fixo",
-    source: "FLUIG-EXPORT/Solicitaremissaodenotafiscal.html",
-    openedBy: "Administrativo CD",
-    status: "FORMULARIO_ABERTO",
-    notes: "Base para OS com manutencao, transferencia, baixa ou ajuste de ativo dentro da pagina de manutencao.",
-    stableDefaults: [
-      "grupoSolicitante = EasyAtivos",
-      "numeroSolicitacao e somente leitura",
-      "WKVersDef = 14",
-    ],
-    variableFields: [
-      "codPatrimonio",
-      "tipoTransacao",
-      "filial",
-      "tipoBaixa",
-      "filialDestino",
-      "dataPrevSaida",
-      "zoomDemandaPara",
-      "obsFiscal",
-    ],
-    payloadPreview: {
-      processID: "Solicitar_transferencia_baixas_ativo_fixo",
-      taskUserId: "00130",
-      grupoSolicitante: "EasyAtivos",
-      WKVersDef: "14",
-    },
-  },
-];
-
-const supplierMatches: FluigSupplierMatch[] = [
-  {
-    supplier: "Transportes Planalto",
-    cnpj: "12.488.410/0001-92",
-    fluigName: "TRANSPORTES PLANALTO LTDA",
-    previousRequest: "1103651",
-    confidence: "98%",
-    status: "MAPEADO",
-  },
-  {
-    supplier: "Rapido Centro-Oeste",
-    cnpj: "05.901.662/0001-10",
-    fluigName: "RAPIDO CENTRO OESTE TRANSPORTES",
-    previousRequest: "1103369",
-    confidence: "96%",
-    status: "MAPEADO",
-  },
-  {
-    supplier: "TopFrio Climatizacao",
-    cnpj: "18.204.730/0001-31",
-    fluigName: "Nao localizado",
-    previousRequest: "-",
-    confidence: "42%",
-    status: "NAO_MAPEADO",
-  },
-];
-
-const sharedPaymentRows: FluigSyncRow[] = [
-  {
-    id: "FLG-PAG-88291",
-    module: "pagamentos",
-    admReference: "PAG-88291",
-    fluigNumber: "1103651",
-    supplier: "Transportes Planalto",
-    cnpj: "12.488.410/0001-92",
-    amount: "R$ 4.880,45",
-    currentTask: "Analise pagamento",
-    taskOwner: "Financeiro DD",
-    fluigStatus: "SINCRONIZADO",
-    actionRequired: "Conferir retorno fiscal",
-    updatedAt: "17/06/2026 11:20",
-  },
-  {
-    id: "FLG-PAG-88277",
-    module: "pagamentos",
-    admReference: "PAG-88277",
-    fluigNumber: "1103369",
-    supplier: "Rapido Centro-Oeste",
-    cnpj: "05.901.662/0001-10",
-    amount: "R$ 2.430,00",
-    currentTask: "Pagamento realizado",
-    taskOwner: "Financeiro DD",
-    fluigStatus: "LANCADO",
-    actionRequired: "Espelhar baixa no ADM",
-    updatedAt: "17/06/2026 11:18",
-  },
-  {
-    id: "FLG-PAG-1309",
-    module: "pagamentos",
-    admReference: "PAG-1309",
-    fluigNumber: "Pendente",
-    supplier: "TopFrio Climatizacao",
-    cnpj: "18.204.730/0001-31",
-    amount: "R$ 8.750,00",
-    currentTask: "Aguardando fornecedor Fluig",
-    taskOwner: "ADM MaxControl",
-    fluigStatus: "DIVERGENTE",
-    actionRequired: "Mapear fornecedor antes do envio",
-    updatedAt: "17/06/2026 11:12",
-  },
-];
-
-const purchaseRows: FluigSyncRow[] = [
-  {
-    id: "FLG-CMP-1042",
-    module: "compras",
-    admReference: "REQ-1042",
-    fluigNumber: "A abrir",
-    supplier: "EPI Total",
-    cnpj: "09.120.884/0001-77",
-    amount: "R$ 9.840,00",
-    currentTask: "Nova compra administrativa",
-    taskOwner: "Compras ADM",
-    fluigStatus: "AGUARDANDO_ENVIO",
-    actionRequired: "Enviar requisicao pelo formulario de compras",
-    updatedAt: "17/06/2026 11:10",
-  },
-  {
-    id: "FLG-CMP-1038",
-    module: "compras",
-    admReference: "REQ-1038",
-    fluigNumber: "Em consulta",
-    supplier: "HidraParts",
-    cnpj: "31.410.220/0001-40",
-    amount: "R$ 18.600,00",
-    currentTask: "Aprovacao imediata",
-    taskOwner: "Gerente CD",
-    fluigStatus: "PENDENTE",
-    actionRequired: "Sincronizar responsavel e SLA",
-    updatedAt: "17/06/2026 11:08",
-  },
-];
-
-const maintenanceRows: FluigSyncRow[] = [
-  {
-    id: "FLG-MAN-1309",
-    module: "manutencao",
-    admReference: "OS-1309",
-    fluigNumber: "A abrir",
-    supplier: "TopFrio Climatizacao",
-    cnpj: "18.204.730/0001-31",
-    amount: "R$ 8.750,00",
-    currentTask: "Solicitar manutencao",
-    taskOwner: "Facilities",
-    fluigStatus: "AGUARDANDO_ENVIO",
-    actionRequired: "Enviar OS para processo de ativo/manutencao",
-    updatedAt: "17/06/2026 11:05",
-  },
-  {
-    id: "FLG-MAN-1288",
-    module: "manutencao",
-    admReference: "OS-1288",
-    fluigNumber: "Em consulta",
-    supplier: "Moura Equipamentos",
-    cnpj: "08.112.001/0001-77",
-    amount: "R$ 6.800,00",
-    currentTask: "Ajuste administrativo",
-    taskOwner: "EasyAtivos",
-    fluigStatus: "PROCESSANDO",
-    actionRequired: "Trazer NumLancW quando preenchido",
-    updatedAt: "17/06/2026 11:03",
-  },
-];
-
 export const fluigAdmApiContract = [
   {
     method: "POST",
@@ -644,9 +380,9 @@ export const fluigIntegrationModules: Record<FluigModuleSlug, FluigIntegrationMo
     syncAction: "Sincronizar pagamentos",
     status: "MAPEADO",
     mappedFields: paymentFields,
-    examples: paymentExamples,
-    syncRows: sharedPaymentRows,
-    supplierMatches,
+    examples: [],
+    syncRows: [],
+    supplierMatches: [],
   },
   compras: {
     slug: "compras",
@@ -676,9 +412,9 @@ export const fluigIntegrationModules: Record<FluigModuleSlug, FluigIntegrationMo
     syncAction: "Sincronizar compras",
     status: "MAPEADO",
     mappedFields: purchaseFields,
-    examples: purchaseExamples,
-    syncRows: purchaseRows,
-    supplierMatches: supplierMatches.slice(0, 2),
+    examples: [],
+    syncRows: [],
+    supplierMatches: [],
   },
   manutencao: {
     slug: "manutencao",
@@ -708,9 +444,9 @@ export const fluigIntegrationModules: Record<FluigModuleSlug, FluigIntegrationMo
     syncAction: "Sincronizar OS",
     status: "EM_ANALISE",
     mappedFields: maintenanceFields,
-    examples: maintenanceExamples,
-    syncRows: maintenanceRows,
-    supplierMatches: supplierMatches.slice(1),
+    examples: [],
+    syncRows: [],
+    supplierMatches: [],
   },
   fornecedores: {
     slug: "fornecedores",
@@ -742,9 +478,9 @@ export const fluigIntegrationModules: Record<FluigModuleSlug, FluigIntegrationMo
     syncAction: "Sincronizar fornecedores",
     status: "MAPEADO",
     mappedFields: supplierFields,
-    examples: paymentExamples,
-    syncRows: sharedPaymentRows,
-    supplierMatches,
+    examples: [],
+    syncRows: [],
+    supplierMatches: [],
   },
 };
 
@@ -766,12 +502,12 @@ export function buildFluigAdmSyncResponse(slug: string, generatedAt: string): Fl
   return {
     success: true,
     generatedAt,
-    sourceMode: "local_contract",
+    sourceMode: "disabled",
     externalApiConfigured: Boolean(process.env.FLUIG_API_BASE_URL || process.env.NEXT_PUBLIC_FLUIG_API_BASE_URL),
     module: integration.slug,
     integration,
-    rows: integration.syncRows,
-    examples: integration.examples,
-    supplierMatches: integration.supplierMatches,
+    rows: [],
+    examples: [],
+    supplierMatches: [],
   };
 }

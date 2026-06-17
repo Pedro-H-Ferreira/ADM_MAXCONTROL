@@ -65,80 +65,96 @@ export function DashboardOverview() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {chartRows.map((row, index) => (
-                <div
-                  key={row.label}
-                  className="stitch-animate-in-fast grid gap-2"
-                  style={{ animationDelay: `${index * 100 + 250}ms` }}
-                >
-                  <div className="flex justify-between text-sm">
-                    <span>{row.label}</span>
-                    <span className="font-mono text-muted-foreground">{row.value}%</span>
+            {chartRows.length > 0 ? (
+              <div className="space-y-4">
+                {chartRows.map((row, index) => (
+                  <div
+                    key={row.label}
+                    className="stitch-animate-in-fast grid gap-2"
+                    style={{ animationDelay: `${index * 100 + 250}ms` }}
+                  >
+                    <div className="flex justify-between text-sm">
+                      <span>{row.label}</span>
+                      <span className="font-mono text-muted-foreground">{row.value}%</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="stitch-bar-grow-x h-2 rounded-full bg-primary"
+                        style={{ width: `${row.value}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="stitch-bar-grow-x h-2 rounded-full bg-primary"
-                      style={{ width: `${row.value}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyDashboardMessage text="Sem despesas reais sincronizadas para montar o grafico." />
+            )}
           </CardContent>
         </Card>
 
         <DashboardCard title="Alertas críticos" className="stitch-delay-250">
           <div className="space-y-3">
-            {dashboardAlerts.map((alert, index) => (
-              <Alert
-                key={alert.title}
-                variant={alert.tone === "danger" ? "destructive" : "default"}
-                className="stitch-pop-in"
-                style={{ animationDelay: `${index * 120 + 300}ms` }}
-              >
-                <AlertTitle>{alert.title}</AlertTitle>
-                <AlertDescription>{alert.detail}</AlertDescription>
-              </Alert>
-            ))}
+            {dashboardAlerts.length > 0 ? (
+              dashboardAlerts.map((alert, index) => (
+                <Alert
+                  key={alert.title}
+                  variant={alert.tone === "danger" ? "destructive" : "default"}
+                  className="stitch-pop-in"
+                  style={{ animationDelay: `${index * 120 + 300}ms` }}
+                >
+                  <AlertTitle>{alert.title}</AlertTitle>
+                  <AlertDescription>{alert.detail}</AlertDescription>
+                </Alert>
+              ))
+            ) : (
+              <EmptyDashboardMessage text="Nenhum alerta real gerado ainda." />
+            )}
           </div>
         </DashboardCard>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <DashboardCard title="Próximas contas" className="stitch-delay-300">
+        <DashboardCard title="Proximas contas" className="stitch-delay-300">
           <div className="space-y-3">
-            {upcomingPayments.map(([date, supplier, value, status], index) => (
-              <div
-                key={`${date}-${supplier}`}
-                className="stitch-animate-in-fast flex items-center justify-between gap-3"
-                style={{ animationDelay: `${index * 90 + 350}ms` }}
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{supplier}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {date} · {value}
-                  </p>
+            {upcomingPayments.length > 0 ? (
+              upcomingPayments.map(([date, supplier, value, status], index) => (
+                <div
+                  key={`${date}-${supplier}`}
+                  className="stitch-animate-in-fast flex items-center justify-between gap-3"
+                  style={{ animationDelay: `${index * 90 + 350}ms` }}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{supplier}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {date} - {value}
+                    </p>
+                  </div>
+                  <StatusBadge status={status.replaceAll(" ", "_")} />
                 </div>
-                <StatusBadge status={status.replaceAll(" ", "_")} />
-              </div>
-            ))}
+              ))
+            ) : (
+              <EmptyDashboardMessage text="Nenhuma conta real sincronizada ainda." />
+            )}
           </div>
         </DashboardCard>
 
-        <DashboardCard title="Últimas atividades" className="stitch-delay-400">
+        <DashboardCard title="Ultimas atividades" className="stitch-delay-400">
           <div className="space-y-3">
-            {recentActivities.map((activity, index) => (
-              <div
-                key={activity}
-                className="stitch-animate-in-fast"
-                style={{ animationDelay: `${index * 90 + 450}ms` }}
-              >
-                <p className="text-sm">{activity}</p>
-                <p className="text-xs text-muted-foreground">há {index + 1}h</p>
-                {index < recentActivities.length - 1 ? <Separator className="mt-3" /> : null}
-              </div>
-            ))}
+            {recentActivities.length > 0 ? (
+              recentActivities.map((activity, index) => (
+                <div
+                  key={activity}
+                  className="stitch-animate-in-fast"
+                  style={{ animationDelay: `${index * 90 + 450}ms` }}
+                >
+                  <p className="text-sm">{activity}</p>
+                  <p className="text-xs text-muted-foreground">ha {index + 1}h</p>
+                  {index < recentActivities.length - 1 ? <Separator className="mt-3" /> : null}
+                </div>
+              ))
+            ) : (
+              <EmptyDashboardMessage text="Nenhuma atividade real registrada ainda." />
+            )}
           </div>
         </DashboardCard>
 
@@ -161,6 +177,14 @@ export function DashboardOverview() {
           </div>
         </DashboardCard>
       </div>
+    </div>
+  );
+}
+
+function EmptyDashboardMessage({ text }: { text: string }) {
+  return (
+    <div className="rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+      {text}
     </div>
   );
 }

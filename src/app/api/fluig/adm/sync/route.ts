@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { buildFluigAdmSyncResponse } from "@/lib/fluig-data";
+import { readFluigSyncSnapshot } from "@/lib/db/fluig-repository";
+import { getFluigIntegrationForModule, type FluigModuleSlug } from "@/lib/fluig-data";
 import { getFluigRuntimeConfig } from "@/lib/fluig/server-client";
 
 type SyncBody = {
@@ -11,20 +12,43 @@ function jsonError(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
 }
 
-function responseForModule(moduleSlug: string | null) {
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+async function responseForModule(moduleSlug: string | null) {
   if (!moduleSlug) {
     return jsonError("Modulo Fluig nao informado.");
   }
 
-  const payload = buildFluigAdmSyncResponse(moduleSlug, new Date().toISOString());
+  const integration = getFluigIntegrationForModule(moduleSlug);
 
-  if (!payload) {
+  if (!integration) {
     return jsonError(`Modulo sem integracao Fluig: ${moduleSlug}`, 404);
   }
 
+  const runtimeConfig = getFluigRuntimeConfig();
+  const snapshot = await readFluigSyncSnapshot(integration.slug as FluigModuleSlug);
+
   return NextResponse.json({
-    ...payload,
-    runtime: getFluigRuntimeConfig(),
+    success: true,
+    generatedAt: new Date().toISOString(),
+    sourceMode: snapshot.persistence.configured ? "supabase_snapshot" : runtimeConfig.mode,
+    externalApiConfigured: runtimeConfig.configured,
+    module: integration.slug,
+    integration: {
+      ...integration,
+      syncRows: snapshot.rows,
+      examples: snapshot.examples,
+      supplierMatches: snapshot.supplierMatches,
+    },
+    rows: snapshot.rows,
+    examples: snapshot.examples,
+    supplierMatches: snapshot.supplierMatches,
+    runtime: runtimeConfig,
+    persistence: {
+      configured: snapshot.persistence.configured,
+      errors: snapshot.persistence.errors,
+    },
   });
 }
 
