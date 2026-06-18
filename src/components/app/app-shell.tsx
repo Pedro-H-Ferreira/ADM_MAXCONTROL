@@ -4,7 +4,14 @@ import { useState } from "react";
 import { AppSidebar } from "@/components/app/sidebar";
 import { Topbar } from "@/components/app/topbar";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export type AppShellUser = {
+  name: string;
+  email: string | null;
+  role: string;
+  cd: string;
+};
+
+export function AppShell({ children, user }: { children: React.ReactNode; user: AppShellUser }) {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   return (
@@ -27,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <AppSidebar collapsed={!sidebarExpanded} />
       </div>
       <div className="transition-[padding] duration-300 ease-in-out lg:pl-[76px]">
-        <Topbar />
+        <Topbar user={user} />
         <main className="mx-auto w-full max-w-[1600px] p-4 md:p-6">{children}</main>
       </div>
     </div>

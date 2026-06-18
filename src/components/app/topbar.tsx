@@ -6,8 +6,9 @@ import { MobileDrawer } from "@/components/app/mobile-drawer";
 import { NotificationBell } from "@/components/app/notification-bell";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { UserMenu } from "@/components/app/user-menu";
+import type { AppShellUser } from "@/components/app/app-shell";
 
-export function Topbar() {
+export function Topbar({ user }: { user: AppShellUser }) {
   return (
     <header className="stitch-slide-down sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur md:px-6">
       <MobileDrawer />
@@ -21,7 +22,7 @@ export function Topbar() {
       <div className="ml-auto flex items-center gap-2">
         <NotificationBell />
         <ThemeToggle />
-        <UserMenu />
+        <UserMenu user={user} />
       </div>
     </header>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Save, ShieldCheck, UserRound } from "lucide-react";
+import { Clock3, Save, ShieldCheck, UserCheck, UserRound, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,10 +34,19 @@ type UserProfile = {
   fluigUserId: string | null;
   homeBranchId: string | null;
   active: boolean;
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
   branches: UserBranch[];
 };
 
 const roles = ["ADMIN_MASTER", "ADMIN", "GERENTE_CD", "FINANCEIRO", "COMPRAS", "MANUTENCAO", "LEITURA"];
+const approvalLabels = {
+  PENDING: "PENDENTE",
+  APPROVED: "APROVADO",
+  REJECTED: "BLOQUEADO",
+} as const;
 
 export function UserBranchAccessPanel() {
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -117,6 +126,8 @@ export function UserBranchAccessPanel() {
           fluigUserId: draft.fluigUserId,
           homeBranchId: draft.homeBranchId,
           branchIds: draft.branchIds,
+          active: draft.active,
+          approvalStatus: draft.approvalStatus,
         }),
       });
       const data = (await response.json()) as { success?: boolean; error?: string };
@@ -171,13 +182,72 @@ export function UserBranchAccessPanel() {
                       <span className="block truncate font-medium">{user.displayName}</span>
                       <span className="block truncate text-xs text-muted-foreground">{user.email || user.fluigUsername || "Sem e-mail"}</span>
                     </span>
-                    <StatusBadge status={user.role} />
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      <StatusBadge status={user.role} />
+                      <StatusBadge status={user.approvalStatus} />
+                    </span>
                   </button>
                 ))}
               </div>
             </section>
 
             <section className="space-y-4 rounded-md border bg-muted/20 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3">
+                <div>
+                  <p className="text-sm font-semibold">Liberacao do acesso</p>
+                  <p className="text-xs text-muted-foreground">
+                    Status atual: {draft.approvalStatus ? approvalLabels[draft.approvalStatus] : "PENDENTE"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant={draft.approvalStatus === "APPROVED" ? "default" : "outline"}
+                    onClick={() =>
+                      setDraft((current) => ({
+                        ...current,
+                        active: true,
+                        approvalStatus: "APPROVED",
+                        rejectionReason: null,
+                      }))
+                    }
+                  >
+                    <UserCheck className="size-4" />
+                    Aprovar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={draft.approvalStatus === "PENDING" ? "secondary" : "outline"}
+                    onClick={() =>
+                      setDraft((current) => ({
+                        ...current,
+                        active: false,
+                        approvalStatus: "PENDING",
+                        rejectionReason: null,
+                      }))
+                    }
+                  >
+                    <Clock3 className="size-4" />
+                    Pendente
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={draft.approvalStatus === "REJECTED" ? "destructive" : "outline"}
+                    onClick={() =>
+                      setDraft((current) => ({
+                        ...current,
+                        active: false,
+                        approvalStatus: "REJECTED",
+                        rejectionReason: "Acesso bloqueado pelo administrador.",
+                      }))
+                    }
+                  >
+                    <UserX className="size-4" />
+                    Bloquear
+                  </Button>
+                </div>
+              </div>
+
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="displayName">Nome</Label>

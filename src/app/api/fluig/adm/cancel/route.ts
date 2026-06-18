@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { appAuthErrorResponse } from "@/lib/auth-response";
+import { resolveCurrentAppUser } from "@/lib/db/app-repository";
 import { persistStatusItems, recordFluigOperationRun } from "@/lib/db/fluig-repository";
 import {
   getProcessMapForRequest,
@@ -23,6 +25,14 @@ type CancelBody = {
 export async function POST(request: Request) {
   const body = await readJsonBody<CancelBody>(request, {});
   const runtimeConfig = getFluigRuntimeConfig();
+
+  try {
+    await resolveCurrentAppUser();
+  } catch (error) {
+    const authResponse = appAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    return jsonError(error instanceof Error ? error.message : "Falha ao validar usuario.", 500);
+  }
 
   try {
     const processMap = getProcessMapForRequest(body.module || "pagamentos");

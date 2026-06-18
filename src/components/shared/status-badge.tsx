@@ -10,7 +10,9 @@ const statusStyles: Record<string, string> = {
   APROVADA: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   CONCLUIDO: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   OK: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  APPROVED: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   PENDENTE: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  PENDING: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   ABERTO: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   ABERTA: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   AGUARDANDO_ENVIO: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
@@ -36,6 +38,7 @@ const statusStyles: Record<string, string> = {
   DIVERGENTE: "border-red-500/25 bg-red-500/10 text-red-700 dark:text-red-300",
   FALHA: "border-red-500/25 bg-red-500/10 text-red-700 dark:text-red-300",
   CANCELADO: "border-zinc-500/25 bg-zinc-500/10 text-zinc-700 dark:text-zinc-300",
+  REJECTED: "border-zinc-500/25 bg-zinc-500/10 text-zinc-700 dark:text-zinc-300",
 };
 
 const urgentStatuses = new Set(["VENCIDO", "ATRASADA", "CRITICO", "DIVERGENTE", "FALHA"]);

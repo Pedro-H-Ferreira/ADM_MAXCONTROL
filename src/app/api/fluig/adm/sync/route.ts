@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { appAuthErrorResponse } from "@/lib/auth-response";
 import { resolveCurrentAppUser } from "@/lib/db/app-repository";
 import { readFluigSyncSnapshot } from "@/lib/db/fluig-repository";
 import { getFluigIntegrationForModule, type FluigModuleSlug } from "@/lib/fluig-data";
@@ -63,7 +64,13 @@ async function responseForModule(moduleSlug: string | null) {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  return responseForModule(url.searchParams.get("module"));
+  try {
+    return await responseForModule(url.searchParams.get("module"));
+  } catch (error) {
+    const authResponse = appAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    return jsonError(error instanceof Error ? error.message : "Falha ao sincronizar modulo.", 500);
+  }
 }
 
 export async function POST(request: Request) {
@@ -75,5 +82,11 @@ export async function POST(request: Request) {
     body = {};
   }
 
-  return responseForModule(body.module ?? null);
+  try {
+    return await responseForModule(body.module ?? null);
+  } catch (error) {
+    const authResponse = appAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    return jsonError(error instanceof Error ? error.message : "Falha ao sincronizar modulo.", 500);
+  }
 }

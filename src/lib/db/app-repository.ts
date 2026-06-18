@@ -7,6 +7,7 @@ import type { FluigModuleSlug } from "@/lib/fluig-data";
 type JsonRecord = Record<string, unknown>;
 
 export type AppRole = "ADMIN_MASTER" | "ADMIN" | "GERENTE_CD" | "FINANCEIRO" | "COMPRAS" | "MANUTENCAO" | "LEITURA";
+export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export type AppBranch = {
   id: string;
@@ -26,6 +27,10 @@ export type AppUserProfile = {
   fluigUserId: string | null;
   homeBranchId: string | null;
   active: boolean;
+  approvalStatus: ApprovalStatus;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
 };
 
 export type AppActor = AppUserProfile & {
@@ -89,6 +94,10 @@ type DbProfileRow = {
   fluig_user_id: string | null;
   home_branch_id: string | null;
   active: boolean;
+  approval_status: ApprovalStatus;
+  approved_at: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
 };
 
 type DbJobRow = {
@@ -113,6 +122,22 @@ type DbJobRow = {
 
 const adminRoles = new Set<AppRole>(["ADMIN_MASTER", "ADMIN"]);
 const fallbackAdminEmail = "admin@adm.local";
+
+export class AppAuthError extends Error {
+  status: number;
+  code: string;
+
+  constructor(message: string, status: number, code: string) {
+    super(message);
+    this.name = "AppAuthError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+export function isAppAuthError(error: unknown): error is AppAuthError {
+  return error instanceof AppAuthError;
+}
 
 function assertServiceClient(): SupabaseClient {
   const client = getSupabaseServiceClient();
@@ -144,6 +169,10 @@ function mapProfile(row: DbProfileRow): AppUserProfile {
     fluigUserId: row.fluig_user_id,
     homeBranchId: row.home_branch_id,
     active: row.active,
+    approvalStatus: row.approval_status || (row.active ? "APPROVED" : "PENDING"),
+    approvedAt: row.approved_at,
+    rejectedAt: row.rejected_at,
+    rejectionReason: row.rejection_reason,
   };
 }
 
@@ -196,12 +225,26 @@ async function getAuthUser(): Promise<User | null> {
   }
 }
 
-async function countProfiles(client: SupabaseClient) {
+async function countApprovedAuthAdmins(client: SupabaseClient) {
   const { count, error } = await client
     .from("app_user_profiles")
-    .select("id", { count: "exact", head: true });
+    .select("id", { count: "exact", head: true })
+    .not("auth_user_id", "is", null)
+    .in("role", ["ADMIN_MASTER", "ADMIN"])
+    .eq("active", true)
+    .eq("approval_status", "APPROVED");
   if (error) throw error;
   return count || 0;
+}
+
+function displayNameFromEmail(email: string) {
+  const localPart = email.split("@")[0] || "usuario";
+  return localPart
+    .replace(/[._-]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || localPart;
 }
 
 async function ensureProfileForAuthUser(client: SupabaseClient, user: User) {
@@ -236,7 +279,8 @@ async function ensureProfileForAuthUser(client: SupabaseClient, user: User) {
     }
   }
 
-  const role: AppRole = (await countProfiles(client)) === 0 ? "ADMIN_MASTER" : "LEITURA";
+  const role: AppRole = (await countApprovedAuthAdmins(client)) === 0 ? "ADMIN_MASTER" : "LEITURA";
+  const approved = role === "ADMIN_MASTER";
   const { data, error } = await client
     .from("app_user_profiles")
     .insert({
@@ -244,6 +288,9 @@ async function ensureProfileForAuthUser(client: SupabaseClient, user: User) {
       email,
       display_name: displayName,
       role,
+      active: approved,
+      approval_status: approved ? "APPROVED" : "PENDING",
+      approved_at: approved ? new Date().toISOString() : null,
       last_seen_at: new Date().toISOString(),
     })
     .select("*")
@@ -269,6 +316,8 @@ async function ensureFallbackAdminProfile(client: SupabaseClient) {
       role: "ADMIN_MASTER",
       fluig_username: "Administrativo CD",
       active: true,
+      approval_status: "APPROVED",
+      approved_at: new Date().toISOString(),
       last_seen_at: new Date().toISOString(),
     })
     .select("*")
@@ -307,10 +356,24 @@ async function listActorBranches(client: SupabaseClient, profile: AppUserProfile
     .map((branch) => mapBranch(branch as DbBranchRow));
 }
 
-export async function resolveCurrentAppUser(): Promise<AppActor> {
+export async function resolveCurrentAppUser(options: { allowFallback?: boolean; requireApproved?: boolean } = {}): Promise<AppActor> {
   const client = assertServiceClient();
   const authUser = await getAuthUser();
-  const profile = authUser ? await ensureProfileForAuthUser(client, authUser) : await ensureFallbackAdminProfile(client);
+  const requireApproved = options.requireApproved !== false;
+  const profile = authUser
+    ? await ensureProfileForAuthUser(client, authUser)
+    : options.allowFallback
+      ? await ensureFallbackAdminProfile(client)
+      : null;
+
+  if (!profile) {
+    throw new AppAuthError("Sessao nao encontrada.", 401, "UNAUTHENTICATED");
+  }
+
+  if (requireApproved && (!profile.active || profile.approvalStatus !== "APPROVED")) {
+    throw new AppAuthError("Usuario aguardando liberacao do administrador.", 403, profile.approvalStatus);
+  }
+
   const branches = await listActorBranches(client, profile);
 
   return {
@@ -361,8 +424,15 @@ export async function upsertAppUser(input: {
   fluigUserId?: string | null;
   homeBranchId?: string | null;
   branchIds?: string[];
+  active?: boolean;
+  approvalStatus?: ApprovalStatus;
+  approvedByUserId?: string | null;
+  rejectionReason?: string | null;
 }) {
   const client = assertServiceClient();
+  const active = input.active ?? (input.approvalStatus ? input.approvalStatus === "APPROVED" : true);
+  const approvalStatus = input.approvalStatus || (active ? "APPROVED" : "PENDING");
+  const now = new Date().toISOString();
   const payload = {
     email: normalizeEmail(input.email),
     display_name: input.displayName.trim() || "Usuario ADM",
@@ -370,8 +440,13 @@ export async function upsertAppUser(input: {
     fluig_username: input.fluigUsername?.trim() || null,
     fluig_user_id: input.fluigUserId?.trim() || null,
     home_branch_id: input.homeBranchId || input.branchIds?.[0] || null,
-    active: true,
-    updated_at: new Date().toISOString(),
+    active,
+    approval_status: approvalStatus,
+    approved_at: approvalStatus === "APPROVED" ? now : null,
+    approved_by_user_id: approvalStatus === "APPROVED" ? input.approvedByUserId || null : null,
+    rejected_at: approvalStatus === "REJECTED" ? now : null,
+    rejection_reason: approvalStatus === "REJECTED" ? input.rejectionReason || "Acesso bloqueado pelo administrador." : null,
+    updated_at: now,
   };
 
   const query = input.id
@@ -400,6 +475,64 @@ export async function upsertAppUser(input: {
   }
 
   return profile;
+}
+
+export async function createSignupUser(input: { email: string; password: string }) {
+  const client = assertServiceClient();
+  const email = normalizeEmail(input.email);
+  if (!email) {
+    throw new Error("E-mail invalido.");
+  }
+  if (input.password.length < 6) {
+    throw new Error("A senha precisa ter pelo menos 6 caracteres.");
+  }
+
+  const displayName = displayNameFromEmail(email);
+  const hasApprovedAdmin = (await countApprovedAuthAdmins(client)) > 0;
+  const role: AppRole = hasApprovedAdmin ? "LEITURA" : "ADMIN_MASTER";
+  const approved = !hasApprovedAdmin;
+
+  const { data: authData, error: authError } = await client.auth.admin.createUser({
+    email,
+    password: input.password,
+    email_confirm: true,
+    user_metadata: {
+      name: displayName,
+      full_name: displayName,
+    },
+  });
+  if (authError) throw authError;
+
+  const authUserId = authData.user?.id;
+  if (!authUserId) {
+    throw new Error("Supabase nao retornou o usuario criado.");
+  }
+
+  const now = new Date().toISOString();
+  const { data, error } = await client
+    .from("app_user_profiles")
+    .upsert(
+      {
+        auth_user_id: authUserId,
+        email,
+        display_name: displayName,
+        role,
+        active: approved,
+        approval_status: approved ? "APPROVED" : "PENDING",
+        approved_at: approved ? now : null,
+        last_seen_at: null,
+        updated_at: now,
+      },
+      { onConflict: "auth_user_id" }
+    )
+    .select("*")
+    .single();
+  if (error) throw error;
+
+  return {
+    profile: mapProfile(data as DbProfileRow),
+    autoApproved: approved,
+  };
 }
 
 export async function createAgentPairing(input: { actor: AppActor; displayName?: string; machineName?: string }) {

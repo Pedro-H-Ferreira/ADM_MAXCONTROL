@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { appAuthErrorResponse } from "@/lib/auth-response";
 import { resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
 import {
   buildSupplierCandidates,
@@ -106,7 +107,15 @@ export async function POST(request: Request) {
   const body = await readJsonBody<HistoryBody>(request, {});
   const moduleSlug = body.module || "pagamentos";
   const runtimeConfig = getFluigRuntimeConfig();
-  const actor = await resolveCurrentAppUser();
+  let actor: AppActor;
+
+  try {
+    actor = await resolveCurrentAppUser();
+  } catch (error) {
+    const authResponse = appAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    return jsonError(error instanceof Error ? error.message : "Falha ao validar usuario.", 500);
+  }
 
   if (!runtimeConfig.configured) {
     const operationPersistence = await recordFluigOperationRun({
