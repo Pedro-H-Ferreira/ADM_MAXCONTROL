@@ -106,6 +106,33 @@ export async function POST(request: Request) {
   const moduleSlug = body.module || "pagamentos";
   const runtimeConfig = getFluigRuntimeConfig();
 
+  if (!runtimeConfig.configured) {
+    const operationPersistence = await recordFluigOperationRun({
+      module: moduleSlug === "fornecedores" ? "fornecedores" : (moduleSlug as FluigModuleSlug),
+      operation: "history",
+      status: "dry_run",
+      sourceMode: runtimeConfig.mode,
+      requestPayload: body as Record<string, unknown>,
+      responsePayload: {
+        skipped: true,
+        reason: "Fluig runtime unavailable in this environment",
+        missing: runtimeConfig.missing,
+      },
+      errorMessage: runtimeConfig.missing.join(", ") || "Fluig runtime unavailable",
+    });
+
+    return NextResponse.json({
+      success: true,
+      skipped: true,
+      generatedAt: new Date().toISOString(),
+      runtime: runtimeConfig,
+      results: [],
+      supplierCandidates: [],
+      persistence: operationPersistence,
+      message: "Runtime Fluig indisponivel neste ambiente; exibindo o snapshot salvo no Supabase.",
+    });
+  }
+
   try {
     const payload = await executeHistory({
       module: moduleSlug,
