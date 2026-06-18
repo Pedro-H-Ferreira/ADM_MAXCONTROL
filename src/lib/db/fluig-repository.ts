@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { filterRowsForActor, type AppActor } from "@/lib/db/app-repository";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 import type {
@@ -21,6 +22,11 @@ type FluigRequestDbRow = {
   current_task: string | null;
   task_owner: string | null;
   requester: string | null;
+  branch_code: string | null;
+  branch_label: string | null;
+  created_by_user_id: string | null;
+  fluig_requester_login: string | null;
+  fluig_requester_code: string | null;
   supplier_name: string | null;
   supplier_cnpj: string | null;
   amount_cents: number | null;
@@ -144,6 +150,18 @@ function suggestedDefaultString(value: unknown, label: string) {
   return raw ? `${label} = ${raw}` : null;
 }
 
+function extractBranchLabel(fields: Record<string, string>) {
+  return String(fields.unidadeFilial || fields.filial || fields.filialOrigem || fields.filialDestino || "").trim();
+}
+
+function extractBranchCode(fields: Record<string, string>) {
+  const label = extractBranchLabel(fields);
+  const explicitCode = String(fields.codigoFilial || fields.codFilial || fields.branchCode || "").trim();
+  if (explicitCode) return explicitCode;
+  const firstChunk = label.split(/\s+-\s+|\s+/)[0]?.trim();
+  return firstChunk || null;
+}
+
 function mapRequestRowToSyncRow(row: FluigRequestDbRow): FluigSyncRow {
   const fields = formFieldsFromPayload(row.raw_payload || {});
   const fluigStatus = normalizeStatus(row.status);
@@ -153,6 +171,8 @@ function mapRequestRowToSyncRow(row: FluigRequestDbRow): FluigSyncRow {
     module: row.module_slug,
     admReference: row.adm_reference || fields.numeroSolicitacao || fields.codigoPedido || "-",
     fluigNumber: row.fluig_request_id || "-",
+    branch: row.branch_label || fields.unidadeFilial || row.branch_code || "-",
+    branchCode: row.branch_code || undefined,
     supplier: row.supplier_name || fields.fornecedorC || fields.fornecedor || "Fornecedor nao identificado",
     cnpj: formatCnpj(row.supplier_cnpj || fields.codCNPJ || fields.cnpj),
     amount: formatMoneyFromCents(row.amount_cents),
@@ -244,12 +264,14 @@ function supplierFromFields(fields: Record<string, string>) {
   };
 }
 
-function mapHistoryToRequest(module: FluigModuleSlug, item: FluigHistoryItem) {
+function mapHistoryToRequest(module: FluigModuleSlug, item: FluigHistoryItem, actor?: Pick<AppActor, "id"> | null) {
   const fields = item.formFields || {};
   const supplier = supplierFromFields(fields);
   const amount =
     parseMoneyToCents(fields.valorNF || fields.valorNFT || fields.valorTotalExibicao || fields.valorPedido || fields.valorTotal) ??
     null;
+  const branchLabel = extractBranchLabel(fields);
+  const branchCode = extractBranchCode(fields);
 
   return {
     module_slug: module,
@@ -261,6 +283,11 @@ function mapHistoryToRequest(module: FluigModuleSlug, item: FluigHistoryItem) {
     current_task: null,
     task_owner: null,
     requester: item.requesterName || item.requesterId || null,
+    branch_code: branchCode,
+    branch_label: branchLabel || null,
+    created_by_user_id: actor?.id || null,
+    fluig_requester_login: item.requesterName || null,
+    fluig_requester_code: item.requesterId || null,
     supplier_name: supplier.name || null,
     supplier_cnpj: supplier.cnpj,
     amount_cents: amount,
@@ -335,10 +362,31 @@ export async function persistProcessMaps(processMaps: FluigProcessMap[]) {
   });
 }
 
-export async function persistHistoryItems(module: FluigModuleSlug, items: FluigHistoryItem[]) {
+export async function persistHistoryItems(module: FluigModuleSlug, items: FluigHistoryItem[], actor?: Pick<AppActor, "id"> | null) {
   return runWithDb(async (client) => {
-    const rows = items.map((item) => mapHistoryToRequest(module, item)).filter((item) => item.fluig_request_id);
+    const rows = items.map((item) => mapHistoryToRequest(module, item, actor)).filter((item) => item.fluig_request_id);
     if (!rows.length) return 0;
+
+    const branches = Array.from(
+      new Map(
+        rows
+          .filter((row) => row.branch_code)
+          .map((row) => [
+            row.branch_code,
+            {
+              code: row.branch_code,
+              name: row.branch_label || row.branch_code,
+              fluig_label: row.branch_label || row.branch_code,
+              metadata: { source: "fluig_history" },
+            },
+          ])
+      ).values()
+    );
+    if (branches.length) {
+      const { error: branchError } = await client.from("app_branches").upsert(branches, { onConflict: "code" });
+      if (branchError) throw branchError;
+    }
+
     const { error } = await client.from("fluig_requests").upsert(rows, { onConflict: "module_slug,fluig_request_id" });
     if (error) throw error;
     return rows.length;
@@ -467,7 +515,7 @@ export async function persistSupplierCandidates(candidates: FluigSupplierCandida
   });
 }
 
-export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50) {
+export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50, actor?: AppActor | null) {
   return runWithDb(async (client) => {
     const requestModules =
       module === "fornecedores"
@@ -487,6 +535,11 @@ export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50)
           "current_task",
           "task_owner",
           "requester",
+          "branch_code",
+          "branch_label",
+          "created_by_user_id",
+          "fluig_requester_login",
+          "fluig_requester_code",
           "supplier_name",
           "supplier_cnpj",
           "amount_cents",
@@ -499,7 +552,7 @@ export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50)
       )
       .in("module_slug", requestModules)
       .order("last_synced_at", { ascending: false, nullsFirst: false })
-      .limit(limit);
+      .limit(actor?.isAdmin === false ? Math.max(limit * 5, 100) : limit);
 
     const suppliersQuery = client
       .from("fluig_supplier_candidates")
@@ -513,7 +566,7 @@ export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50)
     if (requestsError) throw requestsError;
     if (suppliersError) throw suppliersError;
 
-    const typedRequestRows = (requestRows || []) as unknown as FluigRequestDbRow[];
+    const typedRequestRows = filterRowsForActor(actor, (requestRows || []) as unknown as FluigRequestDbRow[]).slice(0, limit);
     const typedSupplierRows = (supplierRows || []) as unknown as FluigSupplierCandidateDbRow[];
     const rows = typedRequestRows.map(mapRequestRowToSyncRow);
     const examples = typedRequestRows

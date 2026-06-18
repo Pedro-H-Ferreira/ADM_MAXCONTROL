@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DatabaseZap, ExternalLink, FileText, RefreshCcw, Send, Workflow, type LucideIcon } from "lucide-react";
+import {
+  DatabaseZap,
+  ExternalLink,
+  FileText,
+  KeyRound,
+  Laptop,
+  RefreshCcw,
+  Send,
+  Workflow,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +34,15 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const [syncData, setSyncData] = useState<FluigAdmSyncResponse | null>(null);
   const [pendingAction, setPendingAction] = useState<FluigAdmSyncAction | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [agents, setAgents] = useState<Array<{ id: string; display_name: string; machine_name: string | null; status: string; last_heartbeat_at: string | null }>>([]);
+  const [activeJob, setActiveJob] = useState<{
+    id: string;
+    status: string;
+    progressStage: string | null;
+    progressLabel: string | null;
+    events: Array<{ id: string; event_type: string; stage: string | null; label: string | null; created_at: string }>;
+  } | null>(null);
+  const [pairToken, setPairToken] = useState<string | null>(null);
 
   const rows = useMemo(() => syncData?.rows ?? [], [syncData?.rows]);
   const examples = useMemo(() => syncData?.examples ?? [], [syncData?.examples]);
@@ -39,14 +58,20 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     setError(null);
 
     try {
-      if (action === "sync") {
-        await fluigAdmApi.post(fluigAdmApi.historyPath, {
-          module: integration.slug,
-          days: 90,
-          pageSize: 50,
-          maxPages: 3,
-          persist: true,
+      if (action === "sync" || action === "examples") {
+        const created = await fluigAdmApi.createJob({
+          module: integration.slug as FluigModuleSlug,
+          operation: "sync_history",
+          payload: {
+            action,
+            module: integration.slug,
+            days: 90,
+            pageSize: 50,
+            maxPages: 3,
+            persist: true,
+          },
         });
+        await pollJobUntilDone(created.job.id);
       }
 
       const data = await fluigAdmApi.sync({ module: integration.slug as FluigModuleSlug, action });
@@ -55,6 +80,48 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
       setError(syncError instanceof Error ? syncError.message : "Falha ao sincronizar Fluig");
     } finally {
       setPendingAction(null);
+    }
+  }
+
+  async function pollJobUntilDone(jobId: string) {
+    const terminal = new Set(["success", "error", "cancelled", "expired"]);
+
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const data = await fluigAdmApi.getJob(jobId);
+      setActiveJob({
+        id: data.job.id,
+        status: data.job.status,
+        progressStage: data.job.progressStage,
+        progressLabel: data.job.progressLabel,
+        events: data.events || [],
+      });
+
+      if (terminal.has(data.job.status)) {
+        if (data.job.status !== "success") {
+          throw new Error(data.job.errorMessage || `Job Fluig finalizado com status ${data.job.status}`);
+        }
+        return;
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 2000));
+    }
+
+    throw new Error("Tempo limite aguardando o agente local executar a tarefa Fluig.");
+  }
+
+  async function pairAgent() {
+    setError(null);
+    setPairToken(null);
+
+    try {
+      const data = await fluigAdmApi.pairAgent({
+        displayName: "Agente Fluig desta maquina",
+      });
+      setPairToken(data.token);
+      const nextAgents = await fluigAdmApi.listAgents();
+      setAgents(nextAgents);
+    } catch (pairError) {
+      setError(pairError instanceof Error ? pairError.message : "Falha ao parear agente Fluig");
     }
   }
 
@@ -73,6 +140,15 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
         if (active) setError(syncError instanceof Error ? syncError.message : "Falha ao sincronizar Fluig");
       });
 
+    void fluigAdmApi
+      .listAgents()
+      .then((data) => {
+        if (active) setAgents(data);
+      })
+      .catch(() => {
+        if (active) setAgents([]);
+      });
+
     return () => {
       active = false;
     };
@@ -85,6 +161,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const visibleFields = compact ? integration.mappedFields.slice(0, 5) : integration.mappedFields;
   const visibleRows = compact ? rows.slice(0, 2) : rows;
   const visibleExamples = compact ? examples.slice(0, 1) : examples;
+  const onlineAgent = agents.find((agent) => agent.status === "online");
 
   return (
     <Card className="stitch-animate-in stitch-hover-lift rounded-lg shadow-none">
@@ -141,7 +218,62 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             <Send className="size-4" />
             {integration.primaryAction}
           </Button>
+          <Button type="button" variant="outline" className="stitch-soft-button" onClick={pairAgent}>
+            <KeyRound className="size-4" />
+            Parear agente
+          </Button>
         </div>
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+          <div className="rounded-md border bg-muted/20 p-3 text-xs">
+            <div className="flex items-center gap-2 font-medium">
+              <Laptop className="size-4" />
+              Agente local
+              <StatusBadge status={onlineAgent ? "ONLINE" : agents.length ? "OFFLINE" : "NAO_PAREADO"} />
+            </div>
+            <p className="mt-2 text-muted-foreground">
+              {onlineAgent
+                ? `${onlineAgent.display_name} ativo${onlineAgent.machine_name ? ` em ${onlineAgent.machine_name}` : ""}.`
+                : agents.length
+                  ? "Existe agente pareado, mas ele nao enviou heartbeat recente."
+                  : "Nenhum agente local pareado para este usuario."}
+            </p>
+          </div>
+          {activeJob ? (
+            <div className="rounded-md border bg-muted/20 p-3 text-xs">
+              <div className="flex flex-wrap items-center gap-2 font-medium">
+                Execucao Fluig
+                <StatusBadge status={activeJob.status.toUpperCase()} />
+                <span className="font-mono text-muted-foreground">{activeJob.id.slice(0, 8)}</span>
+              </div>
+              <p className="mt-2 text-muted-foreground">{activeJob.progressLabel || "Aguardando agente local assumir a tarefa."}</p>
+              {activeJob.events.length ? (
+                <div className="mt-2 max-h-24 space-y-1 overflow-auto">
+                  {activeJob.events.slice(-4).map((event) => (
+                    <div key={event.id} className="flex justify-between gap-3 rounded bg-background px-2 py-1">
+                      <span className="truncate">{event.label || event.stage || event.event_type}</span>
+                      <span className="shrink-0 text-muted-foreground">
+                        {new Date(event.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground">
+              As proximas consultas e lancamentos serao executados pelo agente local do usuario.
+            </div>
+          )}
+        </div>
+        {pairToken ? (
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="font-semibold">Token gerado uma unica vez</p>
+            <p className="mt-1 break-all font-mono">{pairToken}</p>
+            <p className="mt-2">
+              Use no instalador em <span className="font-mono">agent/fluig-agent/scripts/install-windows-agent.ps1</span>.
+            </p>
+          </div>
+        ) : null}
         {syncData ? (
           <p className="text-xs text-muted-foreground">
             Ultima sincronizacao: {new Date(syncData.generatedAt).toLocaleString("pt-BR")} - Fonte:{" "}
@@ -176,6 +308,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
                   <tr>
                     <th className="p-3 text-left">ADM</th>
                     <th className="p-3 text-left">Fluig</th>
+                    <th className="p-3 text-left">Filial</th>
                     <th className="p-3 text-left">Fornecedor</th>
                     <th className="p-3 text-left">Etapa</th>
                     <th className="p-3 text-left">Status</th>
@@ -184,7 +317,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
                 <tbody>
                   {pendingAction === "sync" && !syncData ? (
                     <tr className="border-t">
-                      <td colSpan={5} className="p-6 text-center text-sm text-muted-foreground">
+                      <td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
                         Consultando Supabase...
                       </td>
                     </tr>
@@ -193,6 +326,10 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
                       <tr key={row.id} className="border-t">
                         <td className="p-3 font-medium">{row.admReference}</td>
                         <td className="p-3 text-muted-foreground">{row.fluigNumber}</td>
+                        <td className="p-3">
+                          <div className="font-medium">{row.branch || "-"}</div>
+                          {row.branchCode ? <div className="text-xs text-muted-foreground">{row.branchCode}</div> : null}
+                        </td>
                         <td className="p-3">
                           <div className="font-medium">{row.supplier}</div>
                           <div className="text-xs text-muted-foreground">{row.cnpj}</div>
@@ -208,7 +345,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
                     ))
                   ) : (
                     <tr className="border-t">
-                      <td colSpan={5} className="p-6 text-center text-sm text-muted-foreground">
+                      <td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
                         Nenhum dado real sincronizado para este modulo.
                       </td>
                     </tr>

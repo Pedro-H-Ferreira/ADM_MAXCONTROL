@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
 import {
   buildSupplierCandidates,
   persistHistoryItems,
@@ -31,7 +32,7 @@ function mapsForModule(moduleSlug: string): FluigProcessMap[] {
   return [getProcessMapForRequest(moduleSlug)];
 }
 
-async function executeHistory(input: Required<Pick<HistoryBody, "module">> & Omit<HistoryBody, "module">) {
+async function executeHistory(input: Required<Pick<HistoryBody, "module">> & Omit<HistoryBody, "module">, actor?: AppActor | null) {
   const persist = input.persist !== false;
   const maps = mapsForModule(input.module);
   const results: Array<{
@@ -63,7 +64,7 @@ async function executeHistory(input: Required<Pick<HistoryBody, "module">> & Omi
     });
 
     if (persist) {
-      persistenceResults.push(await persistHistoryItems(map.module, items));
+      persistenceResults.push(await persistHistoryItems(map.module, items, actor));
     }
   }
 
@@ -105,6 +106,7 @@ export async function POST(request: Request) {
   const body = await readJsonBody<HistoryBody>(request, {});
   const moduleSlug = body.module || "pagamentos";
   const runtimeConfig = getFluigRuntimeConfig();
+  const actor = await resolveCurrentAppUser();
 
   if (!runtimeConfig.configured) {
     const operationPersistence = await recordFluigOperationRun({
@@ -142,7 +144,7 @@ export async function POST(request: Request) {
       pageSize: body.pageSize ?? 100,
       maxPages: body.maxPages ?? 5,
       persist: body.persist ?? true,
-    });
+    }, actor);
 
     const operationPersistence = await recordFluigOperationRun({
       module: moduleSlug === "fornecedores" ? "fornecedores" : (moduleSlug as FluigModuleSlug),
@@ -151,6 +153,8 @@ export async function POST(request: Request) {
       sourceMode: runtimeConfig.mode,
       requestPayload: body as Record<string, unknown>,
       responsePayload: {
+        userId: actor.id,
+        branchCodes: actor.branchCodes,
         modules: payload.results.map((item) => item.module),
         totalItems: payload.results.reduce((sum, item) => sum + item.items.length, 0),
         supplierCandidates: payload.supplierCandidates.length,

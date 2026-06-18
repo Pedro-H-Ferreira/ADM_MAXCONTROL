@@ -138,6 +138,9 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:3000/api/fluig/adm/open' -Method Post -
 
 ## Proximas etapas tecnicas
 
+- Operar a automacao real por usuario via `ADM Fluig Agent` local. Instalacao e fluxo em `docs/FLUIG_LOCAL_AGENT.md`.
+- Usar `fluig_jobs` e `fluig_job_events` como fila e trilha de progresso das execucoes em background.
+- Controlar visibilidade por filial com `app_branches` e `app_user_branch_access`; admin ve todas.
 - Implementar chamadas reais de abertura por modulo: pagamento, compra e manutencao.
 - Persistir numero Fluig, etapa atual, responsavel, SLA, valor fiscal e `NumLancW` nas tabelas do ADM.
 - Salvar mapa de fornecedor no cadastro local para evitar erro nos zooms `fornecedorC` e `codCNPJ`.

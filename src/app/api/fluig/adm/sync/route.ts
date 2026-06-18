@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveCurrentAppUser } from "@/lib/db/app-repository";
 import { readFluigSyncSnapshot } from "@/lib/db/fluig-repository";
 import { getFluigIntegrationForModule, type FluigModuleSlug } from "@/lib/fluig-data";
 import { getFluigRuntimeConfig } from "@/lib/fluig/server-client";
@@ -27,7 +28,8 @@ async function responseForModule(moduleSlug: string | null) {
   }
 
   const runtimeConfig = getFluigRuntimeConfig();
-  const snapshot = await readFluigSyncSnapshot(integration.slug as FluigModuleSlug);
+  const actor = await resolveCurrentAppUser();
+  const snapshot = await readFluigSyncSnapshot(integration.slug as FluigModuleSlug, 50, actor);
 
   return NextResponse.json({
     success: true,
@@ -45,6 +47,13 @@ async function responseForModule(moduleSlug: string | null) {
     examples: snapshot.examples,
     supplierMatches: snapshot.supplierMatches,
     runtime: runtimeConfig,
+    access: {
+      userId: actor.id,
+      role: actor.role,
+      isAdmin: actor.isAdmin,
+      branchCodes: actor.branchCodes,
+      fluigUsername: actor.fluigUsername,
+    },
     persistence: {
       configured: snapshot.persistence.configured,
       errors: snapshot.persistence.errors,

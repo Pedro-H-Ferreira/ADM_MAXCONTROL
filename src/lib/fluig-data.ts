@@ -26,6 +26,8 @@ export type FluigSyncRow = {
   module: FluigModuleSlug;
   admReference: string;
   fluigNumber: string;
+  branch?: string;
+  branchCode?: string;
   supplier: string;
   cnpj: string;
   amount: string;
