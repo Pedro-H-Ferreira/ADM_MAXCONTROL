@@ -28,7 +28,6 @@ export function getServerEnv() {
     appUrl: process.env.NEXT_PUBLIC_APP_URL,
     fluigIntegrationMode: process.env.FLUIG_INTEGRATION_MODE,
     fluigApiBaseUrl: process.env.FLUIG_API_BASE_URL || process.env.NEXT_PUBLIC_FLUIG_API_BASE_URL,
-    fluigDirectRunnerRoot: process.env.FLUIG_DIRECT_RUNNER_ROOT,
     fluigOperationConfirmationRequired: process.env.FLUIG_OPERATION_CONFIRMATION_REQUIRED,
     fluigTaskUserId: process.env.FLUIG_TASK_USER_ID,
   };

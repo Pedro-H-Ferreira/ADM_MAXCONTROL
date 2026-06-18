@@ -7,19 +7,19 @@ import type { FluigProcessMap } from "@/lib/fluig/process-map";
 
 const execFileAsync = promisify(execFile);
 
-export type FluigIntegrationMode = "disabled" | "external_api" | "direct_runner";
+export type FluigIntegrationMode = "disabled" | "external_api" | "internal_runner";
 
 export type FluigRuntimeConfig = {
   mode: FluigIntegrationMode;
   configured: boolean;
   apiBaseUrl: string | null;
-  directRunnerRoot: string | null;
+  internalRunnerRoot: string | null;
   missing: string[];
 };
 
 export type DirectScriptResult<T = unknown> = {
   success: boolean;
-  sourceMode: "direct_runner";
+  sourceMode: "internal_runner";
   stdout: string;
   stderr: string;
   outputPath: string | null;
@@ -98,53 +98,70 @@ export type FluigCancelOutput = {
   items: Array<Record<string, unknown>>;
 };
 
-function existingDefaultRunnerRoot() {
-  const candidate = "D:\\PROJETOS\\FLUIG_WEB_AUTOMATION_NEXUS";
-  return fs.existsSync(path.join(candidate, "scripts", "fluig", "api", "session.js")) ? candidate : null;
+const internalRunnerRoot = process.cwd();
+const internalRunnerMarker = path.join(internalRunnerRoot, "scripts", "fluig", "api", "session.js");
+const requiredInternalRunnerEnv = [
+  "FLUIG_BASE_URL",
+  "FLUIG_LOGIN_PATH",
+  "FLUIG_LANCAMENTO_PATH",
+  "FLUIG_USERNAME",
+  "FLUIG_PASSWORD",
+  "LOGIN_USER_SELECTOR",
+  "LOGIN_PASSWORD_SELECTOR",
+  "LOGIN_SUBMIT_SELECTOR",
+  "POST_LOGIN_READY_SELECTOR",
+  "LANCAMENTO_FORM_READY_SELECTOR",
+  "LANCAMENTO_SUBMIT_SELECTOR",
+];
+
+function missingInternalRunnerEnv() {
+  return requiredInternalRunnerEnv.filter((key) => !String(process.env[key] || "").trim());
 }
 
 export function getFluigRuntimeConfig(): FluigRuntimeConfig {
   const env = getServerEnv();
   const explicitMode = String(env.fluigIntegrationMode || "").trim().toLowerCase();
   const apiBaseUrl = env.fluigApiBaseUrl?.trim() || null;
-  const directRunnerRoot = env.fluigDirectRunnerRoot?.trim() || existingDefaultRunnerRoot();
+  const internalRunnerAvailable = fs.existsSync(internalRunnerMarker);
   const mode: FluigIntegrationMode =
-    explicitMode === "external_api" || explicitMode === "direct_runner" || explicitMode === "disabled"
+    explicitMode === "external_api" || explicitMode === "internal_runner" || explicitMode === "disabled"
       ? explicitMode
       : apiBaseUrl
         ? "external_api"
-        : directRunnerRoot
-          ? "direct_runner"
+        : internalRunnerAvailable
+          ? "internal_runner"
           : "disabled";
 
   const missing: string[] = [];
   if (mode === "external_api" && !apiBaseUrl) missing.push("FLUIG_API_BASE_URL");
-  if (mode === "direct_runner" && !directRunnerRoot) missing.push("FLUIG_DIRECT_RUNNER_ROOT");
-  if (mode === "direct_runner" && directRunnerRoot && !fs.existsSync(path.join(directRunnerRoot, "scripts", "fluig"))) {
-    missing.push("scripts/fluig no FLUIG_DIRECT_RUNNER_ROOT");
+  if (mode === "internal_runner" && !internalRunnerAvailable) {
+    missing.push("scripts/fluig/api/session.js no ADM_MAXCONTROL");
+  }
+  if (mode === "internal_runner") {
+    missing.push(...missingInternalRunnerEnv());
   }
 
   return {
     mode,
     configured: mode !== "disabled" && missing.length === 0,
     apiBaseUrl,
-    directRunnerRoot,
+    internalRunnerRoot: mode === "internal_runner" ? internalRunnerRoot : null,
     missing,
   };
 }
 
-function ensureDirectRunner() {
+function ensureInternalRunner() {
   const config = getFluigRuntimeConfig();
 
-  if (config.mode !== "direct_runner" || !config.configured || !config.directRunnerRoot) {
+  if (config.mode !== "internal_runner" || !config.configured || !config.internalRunnerRoot) {
     throw new Error(
-      `Runner direto do Fluig nao configurado. Configure FLUIG_INTEGRATION_MODE=direct_runner e FLUIG_DIRECT_RUNNER_ROOT. Faltando: ${
-        config.missing.join(", ") || "modo direct_runner"
+      `Runner interno do Fluig nao configurado. Configure FLUIG_INTEGRATION_MODE=internal_runner e as credenciais Fluig no ADM. Faltando: ${
+        config.missing.join(", ") || "modo internal_runner"
       }`
     );
   }
 
-  return config.directRunnerRoot;
+  return config.internalRunnerRoot;
 }
 
 function resolveAdmScript(scriptName: string) {
@@ -199,11 +216,7 @@ async function runNodeScript<T>({
 }) {
   const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args], {
     cwd: runnerRoot,
-    env: {
-      ...process.env,
-      FLUIG_DIRECT_RUNNER_ROOT: runnerRoot,
-      FLUIG_RUNNER_ROOT: runnerRoot,
-    },
+    env: process.env,
     timeout: timeoutMs,
     windowsHide: true,
     maxBuffer: 20 * 1024 * 1024,
@@ -212,7 +225,7 @@ async function runNodeScript<T>({
 
   return {
     success: true,
-    sourceMode: "direct_runner" as const,
+    sourceMode: "internal_runner" as const,
     stdout: String(stdout || ""),
     stderr: String(stderr || ""),
     outputPath: parsed.outputPath,
@@ -230,7 +243,7 @@ export async function queryFluigHistory(
     maxPages?: number;
   } = {}
 ): Promise<DirectScriptResult<FluigHistoryOutput>> {
-  const runnerRoot = ensureDirectRunner();
+  const runnerRoot = ensureInternalRunner();
   const args = [
     `--runner-root=${runnerRoot}`,
     `--process-id=${processMap.processId}`,
@@ -255,7 +268,7 @@ export async function syncFluigStatus(
   requestIds: string[],
   input: { taskUserId?: string } = {}
 ): Promise<DirectScriptResult<FluigStatusOutput>> {
-  const runnerRoot = ensureDirectRunner();
+  const runnerRoot = ensureInternalRunner();
   const args = [...requestIds];
 
   if (input.taskUserId) {
@@ -281,7 +294,7 @@ export async function openFluigFromSource(input: {
   cancelAfter?: boolean;
   keepOpen?: boolean;
 }): Promise<DirectScriptResult<FluigOpenOutput>> {
-  const runnerRoot = ensureDirectRunner();
+  const runnerRoot = ensureInternalRunner();
   const args = [
     `--runner-root=${runnerRoot}`,
     `--source-request-id=${input.sourceRequestId}`,
@@ -314,7 +327,7 @@ export async function cancelFluigRequests(input: {
   requestIds: string[];
   comment?: string;
 }): Promise<DirectScriptResult<FluigCancelOutput>> {
-  const runnerRoot = ensureDirectRunner();
+  const runnerRoot = ensureInternalRunner();
   const args = [...input.requestIds];
 
   if (input.comment) {

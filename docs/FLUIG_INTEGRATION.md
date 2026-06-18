@@ -2,7 +2,7 @@
 
 ## Decisao de produto
 
-A integracao Fluig nao sera uma aba operacional separada. O ADM usa a API e os mapas tecnicos do projeto `D:\PROJETOS\FLUIG_WEB_AUTOMATION_NEXUS`, mas cada fluxo fica dentro da pagina natural do ERP:
+A integracao Fluig nao sera uma aba operacional separada. O ADM possui seu proprio runner/API server-side para autenticar, consultar e operar o Fluig; cada fluxo fica dentro da pagina natural do ERP:
 
 - `/pagamentos`: abre e acompanha a Central de Lancamento Fluig para pagamentos.
 - `/compras`: abre e acompanha Pedido de Compra Administrativa no Fluig.
@@ -52,11 +52,20 @@ Pasta: `D:\PROJETOS\ADM_MAXCONTROL\FLUIG-EXPORT`
   - Evidencia: `taskUserId=00130`, grupo `EasyAtivos`, `WKVersDef=14`.
   - Campos chave: `codPatrimonio`, `tipoTransacao`, `filial`, `tipoBaixa`, `filialDestino`, `dataPrevSaida`, `dataPrevRetorno`, `zoomDemandaPara`, `obsFiscal`, `NumLancW`.
 
-## API reaproveitada
+## Runner Fluig do ADM
 
-O projeto `FLUIG_WEB_AUTOMATION_NEXUS` continua sendo referencia para autenticacao, endpoints e contratos tecnicos. O ADM nao importa a fila antiga nem o modelo antigo de lancamentos.
+O ADM nao depende de runner externo em runtime. Os modulos necessarios de autenticacao e API do Fluig ficam dentro de `scripts/fluig` neste repositorio.
 
-Endpoints tecnicos de referencia:
+O ADM nao importa a fila antiga nem o modelo antigo de lancamentos. Ele usa os contratos tecnicos internos apenas para:
+
+- consultar historico e status;
+- abrir solicitacao a partir de modelo real;
+- cancelar solicitacoes confirmadas;
+- mapear fornecedores ja usados.
+
+## API operacional
+
+Endpoints tecnicos internos:
 
 - `GET /fluig/suppliers`
 - `GET /fluig/logs`
@@ -67,16 +76,16 @@ Endpoint interno ja criado no ADM:
 
 - `GET|POST /api/fluig/adm/sync?module=pagamentos|compras|manutencao|fornecedores`
 
-Esse endpoint hoje retorna o contrato local mapeado. Quando o backend Fluig estiver conectado por `FLUIG_API_BASE_URL`, ele pode virar proxy/controlador real mantendo a mesma interface das paginas.
+Esse endpoint le o snapshot persistido no Supabase e mostra os dados nas paginas do ADM.
 
 ## Backend operacional implementado
 
-O ADM agora possui um adaptador server-side para consultar o Fluig real usando o runner do projeto `FLUIG_WEB_AUTOMATION_NEXUS`.
+O ADM agora possui um adaptador server-side para consultar o Fluig real usando seu runner interno em `scripts/fluig`.
 
 Configuracao local:
 
-- `FLUIG_INTEGRATION_MODE=direct_runner`
-- `FLUIG_DIRECT_RUNNER_ROOT=D:\PROJETOS\FLUIG_WEB_AUTOMATION_NEXUS`
+- `FLUIG_INTEGRATION_MODE=internal_runner`
+- `FLUIG_BASE_URL`, `FLUIG_USERNAME`, `FLUIG_PASSWORD` e seletores de login/formulario no `.env.local`.
 - `FLUIG_TASK_USER_ID=00130`
 - `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` para persistir no banco.
 
@@ -89,14 +98,17 @@ Rotas novas:
 - `POST /api/fluig/adm/cancel`: cancela solicitacoes informadas. Sem `confirm=true`, executa apenas dry-run.
 - `POST /api/fluig/adm/suppliers/preload`: varre historico e cria pre-cadastro de fornecedores por CNPJ/nome normalizado.
 
-Scripts locais usados pelo adaptador:
+Scripts locais usados pelo adaptador dentro deste repositorio:
 
 - `scripts/fluig-adm-query-history.cjs`: consulta generica de historico por `processId` e versoes.
 - `scripts/fluig-adm-open-from-source.cjs`: abre nova solicitacao clonando uma solicitacao modelo e sobrescrevendo campos.
+- `scripts/fluig/syncFluigStatus.js`: consulta status, etapa, responsavel e SLA.
+- `scripts/fluig/cancelViaApi.js`: cancela solicitacoes quando confirmado.
+- `scripts/fluig/api/session.js` e `scripts/fluig/api/workflowViewApi.js`: autenticacao e chamadas autenticadas ao Fluig.
 
 Validacoes executadas em 17/06/2026:
 
-- `GET /api/fluig/adm/map`: runner detectado em modo `direct_runner`.
+- `GET /api/fluig/adm/map`: runner detectado em modo `internal_runner`.
 - `POST /api/fluig/adm/status` para `1103651` e `1103369`: consulta real funcionou, retornando etapa `Realizar Pagamento`, responsavel `Administrativo CD`, vencimento `18/03/2026`, processo finalizado e nao cancelavel.
 - `POST /api/fluig/adm/history` com `module=pagamentos`, `pageSize=10`, `maxPages=1`: consultou 10 solicitacoes reais recentes.
 - `POST /api/fluig/adm/suppliers/preload` com `module=pagamentos`, `pageSize=5`, `maxPages=1`: encontrou 1 candidato de fornecedor.

@@ -73,7 +73,7 @@ export type FluigIntegrationModule = {
 export type FluigAdmSyncResponse = {
   success: boolean;
   generatedAt: string;
-  sourceMode: "supabase_snapshot" | "external_api_proxy" | "direct_runner" | "disabled";
+  sourceMode: "supabase_snapshot" | "external_api_proxy" | "internal_runner" | "disabled";
   externalApiConfigured: boolean;
   module: FluigModuleSlug;
   integration: FluigIntegrationModule;
@@ -338,7 +338,7 @@ export const fluigAdmApiContract = [
   {
     method: "GET",
     path: "/fluig/logs",
-    purpose: "Consulta tecnica de logs quando o backend FLUIG_WEB_AUTOMATION_NEXUS estiver ativo.",
+    purpose: "Consulta tecnica de logs quando o runner interno Fluig do ADM estiver ativo.",
   },
   {
     method: "POST",

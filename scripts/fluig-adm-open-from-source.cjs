@@ -13,9 +13,9 @@ function parseBooleanFlag(flag) {
 }
 
 function requireRunnerRoot() {
-  const runnerRoot = parseArg("runner-root", process.env.FLUIG_RUNNER_ROOT || process.env.FLUIG_DIRECT_RUNNER_ROOT || "");
+  const runnerRoot = parseArg("runner-root", path.resolve(__dirname, ".."));
   if (!runnerRoot) {
-    throw new Error("Informe FLUIG_DIRECT_RUNNER_ROOT ou --runner-root.");
+    throw new Error("Informe --runner-root ou execute pelo projeto ADM_MAXCONTROL.");
   }
 
   const resolved = path.resolve(runnerRoot);
