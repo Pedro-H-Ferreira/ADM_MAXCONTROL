@@ -35,6 +35,25 @@ function Resolve-CommandPath([string]$CommandName) {
   return $Command.Source
 }
 
+function Normalize-OriginUrl([string]$Value) {
+  $Trimmed = $Value.Trim().TrimEnd("/")
+  try {
+    $Uri = [Uri]$Trimmed
+    if (-not $Uri.Scheme -or -not $Uri.Authority) {
+      throw "URL invalida"
+    }
+
+    return "$($Uri.Scheme)://$($Uri.Authority)"
+  } catch {
+    throw "URL base do Fluig invalida: $Value"
+  }
+}
+
+function Write-Utf8NoBom([string]$Path, [string]$Content) {
+  $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllText($Path, $Content, $Utf8NoBom)
+}
+
 Write-Host "ADM MaxControl - Instalador do Agente Fluig" -ForegroundColor Green
 Write-Host "Este instalador configura o agente somente para o usuario Windows atual."
 
@@ -60,6 +79,11 @@ if (-not $FluigBaseUrl) {
 
 if (-not $FluigBaseUrl.Trim()) {
   throw "URL base do Fluig nao informada."
+}
+
+$FluigBaseUrl = Normalize-OriginUrl $FluigBaseUrl
+if (-not $FluigProcessUrl.Trim()) {
+  $FluigProcessUrl = "$FluigBaseUrl$FluigLancamentoPath"
 }
 
 $NodePath = Resolve-CommandPath "node.exe"
@@ -103,7 +127,7 @@ $Config = [ordered]@{
 }
 
 Write-Step "Gravando configuracao local"
-$Config | ConvertTo-Json | Set-Content -LiteralPath $ConfigFile -Encoding UTF8
+Write-Utf8NoBom -Path $ConfigFile -Content ($Config | ConvertTo-Json)
 
 Write-Step "Salvando usuario e senha do Fluig com DPAPI do Windows"
 if ($FluigUsername) {
@@ -137,7 +161,9 @@ $RunScript = @"
 cd /d "$ProjectRoot"
 echo [%date% %time%] Iniciando ADM Fluig Agent >> "$AgentLog"
 "$NodePath" "$AgentScript" >> "$AgentLog" 2>&1
-echo [%date% %time%] ADM Fluig Agent finalizado com codigo %ERRORLEVEL% >> "$AgentLog"
+set "AGENT_EXIT=%ERRORLEVEL%"
+echo [%date% %time%] ADM Fluig Agent finalizado com codigo %AGENT_EXIT% >> "$AgentLog"
+exit /b %AGENT_EXIT%
 "@
 
 $RunScript | Set-Content -LiteralPath $RunFile -Encoding ASCII
@@ -150,7 +176,7 @@ if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
 
 $Action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$RunFile`""
 $Trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
-$Principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel LeastPrivilege
+$Principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
 $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
 
 Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Principal $Principal -Settings $Settings -Force | Out-Null

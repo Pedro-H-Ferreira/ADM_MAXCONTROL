@@ -11,7 +11,7 @@ function readJson(filePath) {
     return {};
   }
 
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
 }
 
 function optional(config, key, fallback = "") {

@@ -63,6 +63,9 @@ type FluigCatalogDbRow = {
   metadata: JsonRecord | null;
 };
 
+const fluigCatalogSelect =
+  "id,catalog_type,module_slug,code,label,value,occurrence_count,last_seen_at,source_request_id,metadata";
+
 type FluigCatalogCandidate = {
   catalogKey: string;
   catalogType: FluigCatalogType;
@@ -305,11 +308,94 @@ function mapCatalogRow(row: FluigCatalogDbRow): FluigCatalogItem {
   };
 }
 
+function metadataString(metadata: JsonRecord | null | undefined, key: string) {
+  const value = metadata?.[key];
+  return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
+}
+
+function catalogDedupeKey(item: FluigCatalogItem) {
+  const metadataCnpj = digitsOnly(metadataString(item.metadata, "cnpj"));
+  const labelTaxId = extractSupplierTaxId(item.label || item.value);
+  const code = String(item.code || "").trim();
+
+  if (item.catalogType === "supplier") {
+    const supplierTaxId = metadataCnpj || labelTaxId || (digitsOnly(code).length >= 11 ? digitsOnly(code) : "");
+    if (supplierTaxId) return `supplier:${supplierTaxId}`;
+  }
+
+  if (item.catalogType === "branch" && code) {
+    return `branch:${code}`;
+  }
+
+  if (code) {
+    return `${item.catalogType}:${item.moduleSlug || "*"}:${code}`;
+  }
+
+  return `${item.catalogType}:${item.moduleSlug || "*"}:${normalizeName(item.value || item.label)}`;
+}
+
+function latestTimestamp(left: string | null | undefined, right: string | null | undefined) {
+  const leftTime = left ? new Date(left).getTime() : 0;
+  const rightTime = right ? new Date(right).getTime() : 0;
+  return Math.max(Number.isNaN(leftTime) ? 0 : leftTime, Number.isNaN(rightTime) ? 0 : rightTime);
+}
+
+function mergeCatalogItem(current: FluigCatalogItem, incoming: FluigCatalogItem): FluigCatalogItem {
+  const incomingIsNewer = latestTimestamp(incoming.lastSeenAt, null) >= latestTimestamp(current.lastSeenAt, null);
+  const preferred = incoming.occurrenceCount > current.occurrenceCount || incomingIsNewer ? incoming : current;
+
+  return {
+    ...preferred,
+    occurrenceCount: current.occurrenceCount + incoming.occurrenceCount,
+    lastSeenAt: new Date(latestTimestamp(current.lastSeenAt, incoming.lastSeenAt)).toISOString(),
+    sourceRequestId: incomingIsNewer ? incoming.sourceRequestId : current.sourceRequestId,
+    metadata: {
+      ...current.metadata,
+      ...incoming.metadata,
+    },
+  };
+}
+
+function dedupeCatalogRows(rows: FluigCatalogItem[]) {
+  const grouped = new Map<string, FluigCatalogItem>();
+
+  for (const item of rows) {
+    const key = catalogDedupeKey(item);
+    const current = grouped.get(key);
+    grouped.set(key, current ? mergeCatalogItem(current, item) : item);
+  }
+
+  return Array.from(grouped.values()).sort((a, b) => {
+    if (b.occurrenceCount !== a.occurrenceCount) return b.occurrenceCount - a.occurrenceCount;
+    return a.label.localeCompare(b.label);
+  });
+}
+
 function groupCatalogItems(rows: FluigCatalogItem[]) {
-  return rows.reduce<Partial<Record<FluigCatalogType, FluigCatalogItem[]>>>((acc, item) => {
+  return dedupeCatalogRows(rows).reduce<Partial<Record<FluigCatalogType, FluigCatalogItem[]>>>((acc, item) => {
     acc[item.catalogType] = [...(acc[item.catalogType] || []), item];
     return acc;
   }, {});
+}
+
+function supplierMatchDedupeKey(item: FluigSupplierMatch) {
+  const cnpj = digitsOnly(item.cnpj);
+  if (cnpj && cnpj !== "-") return cnpj;
+  return normalizeName(item.fluigName || item.supplier);
+}
+
+function dedupeSupplierMatches(rows: FluigSupplierMatch[]) {
+  const grouped = new Map<string, FluigSupplierMatch>();
+
+  for (const item of rows) {
+    const key = supplierMatchDedupeKey(item);
+    const current = grouped.get(key);
+    if (!current || Number.parseInt(item.confidence, 10) > Number.parseInt(current.confidence, 10)) {
+      grouped.set(key, item);
+    }
+  }
+
+  return Array.from(grouped.values()).sort((a, b) => a.supplier.localeCompare(b.supplier));
 }
 
 function extractSupplierCode(rawSupplier: unknown) {
@@ -915,6 +1001,53 @@ function catalogRowsForActor(actor: AppActor | null | undefined, rows: FluigCata
   });
 }
 
+async function fetchAllCatalogRows(client: SupabaseClient, module: FluigModuleSlug) {
+  const rows: FluigCatalogDbRow[] = [];
+  const pageSize = 1000;
+
+  for (let offset = 0; ; offset += pageSize) {
+    let catalogQuery = client.from("fluig_catalog_items").select(fluigCatalogSelect);
+
+    if (module !== "fornecedores") {
+      catalogQuery = catalogQuery.or(`module_slug.eq.${module},module_slug.is.null`);
+    }
+
+    const { data, error } = await catalogQuery
+      .order("occurrence_count", { ascending: false })
+      .order("last_seen_at", { ascending: false, nullsFirst: false })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) throw error;
+
+    const page = (data || []) as unknown as FluigCatalogDbRow[];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+
+  return rows;
+}
+
+async function fetchAllSupplierCandidateRows(client: SupabaseClient) {
+  const rows: FluigSupplierCandidateDbRow[] = [];
+  const pageSize = 1000;
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await client
+      .from("fluig_supplier_candidates")
+      .select("supplier_name,cnpj,fluig_name,confidence,source_request_ids,suggested_defaults,status")
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) throw error;
+
+    const page = (data || []) as unknown as FluigSupplierCandidateDbRow[];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+
+  return rows;
+}
+
 export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50, actor?: AppActor | null) {
   return runWithDb(async (client) => {
     const requestModules =
@@ -954,43 +1087,23 @@ export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50,
       .order("last_synced_at", { ascending: false, nullsFirst: false })
       .limit(actor?.isAdmin === false ? Math.max(limit * 5, 100) : limit);
 
-    const suppliersQuery = client
-      .from("fluig_supplier_candidates")
-      .select("supplier_name,cnpj,fluig_name,confidence,source_request_ids,suggested_defaults,status")
-      .order("updated_at", { ascending: false, nullsFirst: false })
-      .limit(module === "fornecedores" ? limit : 10);
-    let catalogQuery = client
-      .from("fluig_catalog_items")
-      .select("id,catalog_type,module_slug,code,label,value,occurrence_count,last_seen_at,source_request_id,metadata");
-
-    if (module !== "fornecedores") {
-      catalogQuery = catalogQuery.or(`module_slug.eq.${module},module_slug.is.null`);
-    }
-
-    catalogQuery = catalogQuery
-      .order("occurrence_count", { ascending: false })
-      .order("last_seen_at", { ascending: false, nullsFirst: false })
-      .limit(240);
-
     const [
       { data: requestRows, error: requestsError },
-      { data: supplierRows, error: suppliersError },
-      { data: catalogRows, error: catalogError },
-    ] = await Promise.all([requestsQuery, suppliersQuery, catalogQuery]);
+      supplierRows,
+      catalogRows,
+    ] = await Promise.all([requestsQuery, fetchAllSupplierCandidateRows(client), fetchAllCatalogRows(client, module)]);
 
     if (requestsError) throw requestsError;
-    if (suppliersError) throw suppliersError;
-    if (catalogError) throw catalogError;
 
     const typedRequestRows = filterRowsForActor(actor, (requestRows || []) as unknown as FluigRequestDbRow[]).slice(0, limit);
-    const typedSupplierRows = (supplierRows || []) as unknown as FluigSupplierCandidateDbRow[];
-    const typedCatalogRows = catalogRowsForActor(actor, (catalogRows || []) as unknown as FluigCatalogDbRow[]);
+    const typedSupplierRows = supplierRows;
+    const typedCatalogRows = catalogRowsForActor(actor, catalogRows);
     const rows = typedRequestRows.map(mapRequestRowToSyncRow);
     const examples = typedRequestRows
       .filter((row) => row.fluig_request_id)
       .slice(0, module === "fornecedores" ? 6 : 3)
       .map(mapRequestRowToExample);
-    const supplierMatches = typedSupplierRows.map(mapSupplierCandidateToMatch);
+    const supplierMatches = dedupeSupplierMatches(typedSupplierRows.map(mapSupplierCandidateToMatch));
     const catalogs = groupCatalogItems(typedCatalogRows.map(mapCatalogRow));
     const launchTemplates = buildFluigLaunchTemplatesFromRequests(typedRequestRows);
 
