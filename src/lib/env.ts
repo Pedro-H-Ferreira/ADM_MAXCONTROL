@@ -1,15 +1,14 @@
-const requiredClientEnv = [
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-] as const;
-
 export function getPublicEnv() {
   const values = {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   };
 
-  const missing = requiredClientEnv.filter((key) => !process.env[key]);
+  const missing = [
+    values.supabaseUrl ? null : "NEXT_PUBLIC_SUPABASE_URL",
+    values.supabaseAnonKey ? null : "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  ].filter(Boolean);
+
   if (missing.length > 0) {
     throw new Error(`Missing public environment variables: ${missing.join(", ")}`);
   }
