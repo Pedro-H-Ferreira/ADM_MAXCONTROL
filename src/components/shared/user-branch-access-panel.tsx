@@ -25,6 +25,22 @@ type UserBranch = {
   isHome: boolean;
 };
 
+type PageOption = {
+  slug: string;
+  title: string;
+  section: string;
+  href: string;
+  required?: boolean;
+};
+
+type UserPageAccess = {
+  pageSlug: string;
+  canView: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canApprove: boolean;
+};
+
 type UserProfile = {
   id: string;
   email: string | null;
@@ -39,9 +55,10 @@ type UserProfile = {
   rejectedAt: string | null;
   rejectionReason: string | null;
   branches: UserBranch[];
+  pageAccess: UserPageAccess[];
 };
 
-const roles = ["ADMIN_MASTER", "ADMIN", "GERENTE_CD", "FINANCEIRO", "COMPRAS", "MANUTENCAO", "LEITURA"];
+const roles = ["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO", "GERENTE_CD", "FINANCEIRO", "COMPRAS", "MANUTENCAO", "LEITURA"];
 const approvalLabels = {
   PENDING: "PENDENTE",
   APPROVED: "APROVADO",
@@ -50,9 +67,13 @@ const approvalLabels = {
 
 export function UserBranchAccessPanel() {
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [pages, setPages] = useState<PageOption[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [draft, setDraft] = useState<Partial<UserProfile> & { branchIds: string[] }>({ branchIds: [] });
+  const [draft, setDraft] = useState<Partial<UserProfile> & { branchIds: string[]; pageSlugs: string[] }>({
+    branchIds: [],
+    pageSlugs: ["dashboard", "perfil"],
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,12 +88,14 @@ export function UserBranchAccessPanel() {
         success?: boolean;
         error?: string;
         branches?: Branch[];
+        pages?: PageOption[];
         users?: UserProfile[];
       };
       if (!response.ok || data.success === false) {
         throw new Error(data.error || "Falha ao carregar usuarios");
       }
       setBranches(data.branches || []);
+      setPages(data.pages || []);
       setUsers(data.users || []);
       const firstUser = data.users?.[0] || null;
       if (!selectedUserId && firstUser) {
@@ -90,6 +113,9 @@ export function UserBranchAccessPanel() {
     setDraft({
       ...user,
       branchIds: user.branches.filter((branch) => branch.canView).map((branch) => branch.branchId),
+      pageSlugs: Array.from(
+        new Set(["dashboard", "perfil", ...(user.pageAccess || []).filter((page) => page.canView).map((page) => page.pageSlug)])
+      ),
     });
   }
 
@@ -105,6 +131,27 @@ export function UserBranchAccessPanel() {
         ...current,
         branchIds: Array.from(branchIds),
         homeBranchId: checked ? current.homeBranchId || branchId : current.homeBranchId === branchId ? null : current.homeBranchId,
+      };
+    });
+  }
+
+  function togglePage(pageSlug: string, checked: boolean) {
+    if (pageSlug === "dashboard" || pageSlug === "perfil") {
+      return;
+    }
+
+    setDraft((current) => {
+      const pageSlugs = new Set(current.pageSlugs || ["dashboard", "perfil"]);
+      if (checked) {
+        pageSlugs.add(pageSlug);
+      } else {
+        pageSlugs.delete(pageSlug);
+      }
+      pageSlugs.add("dashboard");
+      pageSlugs.add("perfil");
+      return {
+        ...current,
+        pageSlugs: Array.from(pageSlugs),
       };
     });
   }
@@ -126,6 +173,7 @@ export function UserBranchAccessPanel() {
           fluigUserId: draft.fluigUserId,
           homeBranchId: draft.homeBranchId,
           branchIds: draft.branchIds,
+          pageSlugs: draft.pageSlugs,
           active: draft.active,
           approvalStatus: draft.approvalStatus,
         }),
@@ -310,6 +358,34 @@ export function UserBranchAccessPanel() {
                             {branch.code} - {branch.name}
                           </span>
                           <span className="block truncate text-xs text-muted-foreground">{branch.fluigLabel || "Sem label Fluig"}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-md border bg-background">
+                <header className="flex items-center gap-2 border-b p-3 text-sm font-semibold">
+                  <ShieldCheck className="size-4" />
+                  Permissoes do painel
+                </header>
+                <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-3">
+                  {pages.map((page) => {
+                    const checked = Boolean(draft.pageSlugs?.includes(page.slug));
+                    const required = page.required || page.slug === "dashboard";
+                    return (
+                      <label key={page.slug} className="flex items-start gap-3 rounded-md border bg-muted/20 p-3 text-sm">
+                        <Checkbox
+                          checked={checked}
+                          disabled={required}
+                          onCheckedChange={(value) => togglePage(page.slug, Boolean(value))}
+                        />
+                        <span className="min-w-0">
+                          <span className="block font-medium">{page.title}</span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {page.section} - {required ? "obrigatorio" : page.href}
+                          </span>
                         </span>
                       </label>
                     );

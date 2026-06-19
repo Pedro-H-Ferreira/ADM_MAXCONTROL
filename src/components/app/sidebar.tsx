@@ -28,7 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { navigationSections } from "@/lib/navigation";
+import { navigationSections, type NavigationSection } from "@/lib/navigation";
 
 const icons: Record<string, LucideIcon> = {
   BadgeCheck,
@@ -52,9 +52,11 @@ const icons: Record<string, LucideIcon> = {
 export function AppSidebar({
   collapsed,
   mobile = false,
+  sections = navigationSections,
 }: {
   collapsed: boolean;
   mobile?: boolean;
+  sections?: NavigationSection[];
 }) {
   const pathname = usePathname();
   const showLabels = !collapsed || mobile;
@@ -90,7 +92,7 @@ export function AppSidebar({
       </div>
       <Separator className="bg-sidebar-border" />
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        {navigationSections.map((section) => (
+        {sections.map((section) => (
           <div key={section.title} className="mb-5">
             <p
               className={cn(

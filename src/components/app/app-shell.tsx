@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AppSidebar } from "@/components/app/sidebar";
 import { Topbar } from "@/components/app/topbar";
+import type { NavigationSection } from "@/lib/navigation";
 
 export type AppShellUser = {
   name: string;
@@ -11,7 +12,15 @@ export type AppShellUser = {
   cd: string;
 };
 
-export function AppShell({ children, user }: { children: React.ReactNode; user: AppShellUser }) {
+export function AppShell({
+  children,
+  user,
+  navigationSections,
+}: {
+  children: React.ReactNode;
+  user: AppShellUser;
+  navigationSections: NavigationSection[];
+}) {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   return (
@@ -31,10 +40,10 @@ export function AppShell({ children, user }: { children: React.ReactNode; user: 
           setSidebarExpanded(false);
         }}
       >
-        <AppSidebar collapsed={!sidebarExpanded} />
+        <AppSidebar collapsed={!sidebarExpanded} sections={navigationSections} />
       </div>
       <div className="transition-[padding] duration-300 ease-in-out lg:pl-[76px]">
-        <Topbar user={user} />
+        <Topbar user={user} navigationSections={navigationSections} />
         <main className="mx-auto w-full max-w-[1600px] p-4 md:p-6">{children}</main>
       </div>
     </div>

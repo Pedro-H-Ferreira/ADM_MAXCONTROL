@@ -3,10 +3,24 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
+import {
+  allNavigationPageSlugs,
+  getDefaultPageSlugsForRole,
+  isKnownNavigationPage,
+  navigationPageOptions,
+} from "@/lib/navigation";
 
 type JsonRecord = Record<string, unknown>;
 
-export type AppRole = "ADMIN_MASTER" | "ADMIN" | "GERENTE_CD" | "FINANCEIRO" | "COMPRAS" | "MANUTENCAO" | "LEITURA";
+export type AppRole =
+  | "ADMIN_MASTER"
+  | "ADMIN"
+  | "ADMINISTRATIVO"
+  | "GERENTE_CD"
+  | "FINANCEIRO"
+  | "COMPRAS"
+  | "MANUTENCAO"
+  | "LEITURA";
 export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export type AppBranch = {
@@ -37,6 +51,15 @@ export type AppActor = AppUserProfile & {
   isAdmin: boolean;
   branches: AppBranch[];
   branchCodes: string[];
+  pageSlugs: string[];
+};
+
+export type AppUserPageAccess = {
+  pageSlug: string;
+  canView: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canApprove: boolean;
 };
 
 export type FluigJobStatus =
@@ -120,6 +143,15 @@ type DbJobRow = {
   finished_at: string | null;
 };
 
+type DbPageAccessRow = {
+  user_id: string;
+  page_slug: string;
+  can_view: boolean;
+  can_create: boolean;
+  can_update: boolean;
+  can_approve: boolean;
+};
+
 const adminRoles = new Set<AppRole>(["ADMIN_MASTER", "ADMIN"]);
 const fallbackAdminEmail = "admin@adm.local";
 
@@ -200,6 +232,30 @@ function mapJob(row: DbJobRow): FluigJobRecord {
 
 export function isAdminRole(role: AppRole) {
   return adminRoles.has(role);
+}
+
+export function canActorAccessPage(actor: Pick<AppActor, "isAdmin" | "pageSlugs">, pageSlug: string) {
+  return actor.isAdmin || actor.pageSlugs.includes(pageSlug);
+}
+
+function normalizePageSlugs(pageSlugs: string[] | null | undefined) {
+  return Array.from(
+    new Set(
+      ["dashboard", "perfil", ...(pageSlugs || [])]
+        .map((pageSlug) => String(pageSlug || "").trim())
+        .filter((pageSlug) => pageSlug && isKnownNavigationPage(pageSlug))
+    )
+  );
+}
+
+function defaultPageAccessForRole(role: AppRole): AppUserPageAccess[] {
+  return normalizePageSlugs(getDefaultPageSlugsForRole(role)).map((pageSlug) => ({
+    pageSlug,
+    canView: true,
+    canCreate: false,
+    canUpdate: false,
+    canApprove: false,
+  }));
 }
 
 function normalizeEmail(value: unknown) {
@@ -356,6 +412,22 @@ async function listActorBranches(client: SupabaseClient, profile: AppUserProfile
     .map((branch) => mapBranch(branch as DbBranchRow));
 }
 
+async function listActorPageSlugs(client: SupabaseClient, profile: AppUserProfile) {
+  if (isAdminRole(profile.role)) {
+    return allNavigationPageSlugs;
+  }
+
+  const { data, error } = await client
+    .from("app_user_page_access")
+    .select("page_slug")
+    .eq("user_id", profile.id)
+    .eq("can_view", true);
+  if (error) throw error;
+
+  const explicitPages = (data || []).map((row) => String((row as { page_slug?: string }).page_slug || ""));
+  return normalizePageSlugs(explicitPages.length ? explicitPages : getDefaultPageSlugsForRole(profile.role));
+}
+
 export async function resolveCurrentAppUser(options: { allowFallback?: boolean; requireApproved?: boolean } = {}): Promise<AppActor> {
   const client = assertServiceClient();
   const authUser = await getAuthUser();
@@ -375,25 +447,29 @@ export async function resolveCurrentAppUser(options: { allowFallback?: boolean; 
   }
 
   const branches = await listActorBranches(client, profile);
+  const pageSlugs = await listActorPageSlugs(client, profile);
 
   return {
     ...profile,
     isAdmin: isAdminRole(profile.role),
     branches,
     branchCodes: branches.map((branch) => branch.code),
+    pageSlugs,
   };
 }
 
 export async function listUsersWithBranches() {
   const client = assertServiceClient();
-  const [branches, profilesResult, accessResult] = await Promise.all([
+  const [branches, profilesResult, accessResult, pageAccessResult] = await Promise.all([
     listBranches(client),
     client.from("app_user_profiles").select("*").order("display_name", { ascending: true }),
     client.from("app_user_branch_access").select("user_id,branch_id,can_view,can_create,is_home"),
+    client.from("app_user_page_access").select("user_id,page_slug,can_view,can_create,can_update,can_approve"),
   ]);
 
   if (profilesResult.error) throw profilesResult.error;
   if (accessResult.error) throw accessResult.error;
+  if (pageAccessResult.error) throw pageAccessResult.error;
 
   const accessByUser = new Map<string, Array<Record<string, unknown>>>();
   for (const row of accessResult.data || []) {
@@ -401,8 +477,15 @@ export async function listUsersWithBranches() {
     accessByUser.set(userId, [...(accessByUser.get(userId) || []), row as Record<string, unknown>]);
   }
 
+  const pageAccessByUser = new Map<string, DbPageAccessRow[]>();
+  for (const row of pageAccessResult.data || []) {
+    const pageAccess = row as DbPageAccessRow;
+    pageAccessByUser.set(pageAccess.user_id, [...(pageAccessByUser.get(pageAccess.user_id) || []), pageAccess]);
+  }
+
   return {
     branches,
+    pages: navigationPageOptionsForAdmin(),
     users: ((profilesResult.data || []) as DbProfileRow[]).map((row) => ({
       ...mapProfile(row),
       branches: (accessByUser.get(row.id) || []).map((access) => ({
@@ -411,8 +494,31 @@ export async function listUsersWithBranches() {
         canCreate: Boolean(access.can_create),
         isHome: Boolean(access.is_home),
       })),
+      pageAccess: pageAccessRowsOrDefaults(pageAccessByUser.get(row.id), row.role),
     })),
   };
+}
+
+function navigationPageOptionsForAdmin() {
+  return navigationPageOptions.map((page) => ({
+    ...page,
+    required: page.slug === "dashboard" || page.slug === "perfil",
+  }));
+}
+
+function pageAccessRowsOrDefaults(rows: DbPageAccessRow[] | undefined, role: AppRole): AppUserPageAccess[] {
+  if (!rows?.length) return defaultPageAccessForRole(role);
+
+  return normalizePageSlugs(rows.filter((row) => row.can_view).map((row) => row.page_slug)).map((pageSlug) => {
+    const row = rows.find((item) => item.page_slug === pageSlug);
+    return {
+      pageSlug,
+      canView: true,
+      canCreate: Boolean(row?.can_create),
+      canUpdate: Boolean(row?.can_update),
+      canApprove: Boolean(row?.can_approve),
+    };
+  });
 }
 
 export async function upsertAppUser(input: {
@@ -424,6 +530,7 @@ export async function upsertAppUser(input: {
   fluigUserId?: string | null;
   homeBranchId?: string | null;
   branchIds?: string[];
+  pageSlugs?: string[];
   active?: boolean;
   approvalStatus?: ApprovalStatus;
   approvedByUserId?: string | null;
@@ -470,6 +577,25 @@ export async function upsertAppUser(input: {
         is_home: branchId === profile.homeBranchId,
       }));
       const { error: insertError } = await client.from("app_user_branch_access").insert(rows);
+      if (insertError) throw insertError;
+    }
+  }
+
+  if (input.pageSlugs) {
+    const pageSlugs = normalizePageSlugs(input.pageSlugs);
+    const { error: deleteError } = await client.from("app_user_page_access").delete().eq("user_id", profile.id);
+    if (deleteError) throw deleteError;
+
+    if (pageSlugs.length) {
+      const rows = pageSlugs.map((pageSlug) => ({
+        user_id: profile.id,
+        page_slug: pageSlug,
+        can_view: true,
+        can_create: false,
+        can_update: false,
+        can_approve: false,
+      }));
+      const { error: insertError } = await client.from("app_user_page_access").insert(rows);
       if (insertError) throw insertError;
     }
   }

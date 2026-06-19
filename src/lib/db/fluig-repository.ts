@@ -3,6 +3,8 @@ import { filterRowsForActor, type AppActor } from "@/lib/db/app-repository";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 import type {
+  FluigCatalogItem,
+  FluigCatalogType,
   FluigExampleRequest,
   FluigModuleSlug,
   FluigSupplierMatch,
@@ -45,6 +47,32 @@ type FluigSupplierCandidateDbRow = {
   source_request_ids: string[] | null;
   suggested_defaults: JsonRecord;
   status: string | null;
+};
+
+type FluigCatalogDbRow = {
+  id: string;
+  catalog_type: FluigCatalogType;
+  module_slug: FluigModuleSlug | null;
+  code: string | null;
+  label: string;
+  value: string;
+  occurrence_count: number | null;
+  last_seen_at: string | null;
+  source_request_id: string | null;
+  metadata: JsonRecord | null;
+};
+
+type FluigCatalogCandidate = {
+  catalogKey: string;
+  catalogType: FluigCatalogType;
+  moduleSlug: FluigModuleSlug | null;
+  code: string | null;
+  label: string;
+  value: string;
+  normalizedLabel: string;
+  occurrenceCount: number;
+  sourceRequestId: string | null;
+  metadata: JsonRecord;
 };
 
 export type PersistenceResult = {
@@ -150,6 +178,23 @@ function suggestedDefaultString(value: unknown, label: string) {
   return raw ? `${label} = ${raw}` : null;
 }
 
+function cleanCatalogLabel(value: unknown) {
+  const raw = String(value ?? "").trim().replace(/\s+/g, " ");
+  if (!raw || raw === "-" || /^\[object/i.test(raw)) return "";
+  return raw;
+}
+
+function extractLeadingCode(value: unknown) {
+  const label = cleanCatalogLabel(value);
+  if (!label) return null;
+  const match = label.match(/^([A-Za-z0-9._-]+)\s*(?:-|\/|\s)/);
+  return match?.[1]?.trim() || null;
+}
+
+function catalogKey(input: Pick<FluigCatalogCandidate, "catalogType" | "moduleSlug" | "code" | "normalizedLabel">) {
+  return [input.catalogType, input.moduleSlug || "*", input.code || "*", input.normalizedLabel].join(":");
+}
+
 function extractBranchLabel(fields: Record<string, string>) {
   return String(fields.unidadeFilial || fields.filial || fields.filialOrigem || fields.filialDestino || "").trim();
 }
@@ -231,6 +276,28 @@ function mapSupplierCandidateToMatch(row: FluigSupplierCandidateDbRow): FluigSup
   };
 }
 
+function mapCatalogRow(row: FluigCatalogDbRow): FluigCatalogItem {
+  return {
+    id: row.id,
+    catalogType: row.catalog_type,
+    moduleSlug: row.module_slug,
+    code: row.code,
+    label: row.label,
+    value: row.value,
+    occurrenceCount: Number(row.occurrence_count || 0),
+    lastSeenAt: row.last_seen_at || new Date().toISOString(),
+    sourceRequestId: row.source_request_id,
+    metadata: row.metadata || {},
+  };
+}
+
+function groupCatalogItems(rows: FluigCatalogItem[]) {
+  return rows.reduce<Partial<Record<FluigCatalogType, FluigCatalogItem[]>>>((acc, item) => {
+    acc[item.catalogType] = [...(acc[item.catalogType] || []), item];
+    return acc;
+  }, {});
+}
+
 function extractSupplierCode(rawSupplier: unknown) {
   const first = String(rawSupplier ?? "").trim().split(" - ")[0] || "";
   return digitsOnly(first) || null;
@@ -262,6 +329,126 @@ function supplierFromFields(fields: Record<string, string>) {
     code: extractSupplierCode(raw),
     cnpj: cnpj || null,
   };
+}
+
+function addCatalogCandidate(
+  grouped: Map<string, FluigCatalogCandidate>,
+  input: {
+    catalogType: FluigCatalogType;
+    moduleSlug: FluigModuleSlug | null;
+    label: unknown;
+    code?: unknown;
+    value?: unknown;
+    sourceRequestId?: string | null;
+    metadata?: JsonRecord;
+  }
+) {
+  const label = cleanCatalogLabel(input.label);
+  if (!label) return;
+
+  const normalizedLabel = normalizeName(label);
+  if (!normalizedLabel) return;
+
+  const code = cleanCatalogLabel(input.code) || extractLeadingCode(label);
+  const item: FluigCatalogCandidate = {
+    catalogKey: catalogKey({
+      catalogType: input.catalogType,
+      moduleSlug: input.moduleSlug,
+      code,
+      normalizedLabel,
+    }),
+    catalogType: input.catalogType,
+    moduleSlug: input.moduleSlug,
+    code,
+    label,
+    value: cleanCatalogLabel(input.value) || label,
+    normalizedLabel,
+    occurrenceCount: 1,
+    sourceRequestId: input.sourceRequestId || null,
+    metadata: input.metadata || {},
+  };
+
+  const current = grouped.get(item.catalogKey);
+  grouped.set(item.catalogKey, current ? { ...current, occurrenceCount: current.occurrenceCount + 1 } : item);
+}
+
+export function buildFluigCatalogItems(module: FluigModuleSlug, items: FluigHistoryItem[]): FluigCatalogCandidate[] {
+  const grouped = new Map<string, FluigCatalogCandidate>();
+
+  for (const item of items) {
+    const fields = item.formFields || {};
+    const supplier = supplierFromFields(fields);
+    const branchLabel = extractBranchLabel(fields);
+    const branchCode = extractBranchCode(fields);
+    const metadata: JsonRecord = {
+      branchCode,
+      processId: item.processId,
+      processVersion: item.processVersion,
+      latestRequest: item.processInstanceId,
+    };
+
+    if (supplier.name) {
+      addCatalogCandidate(grouped, {
+        catalogType: "supplier",
+        moduleSlug: null,
+        label: supplier.name,
+        code: supplier.code,
+        value: supplier.raw || supplier.name,
+        sourceRequestId: item.processInstanceId,
+        metadata: {
+          ...metadata,
+          cnpj: supplier.cnpj,
+          fluigName: supplier.raw,
+        },
+      });
+    }
+
+    addCatalogCandidate(grouped, {
+      catalogType: "branch",
+      moduleSlug: null,
+      label: branchLabel,
+      code: branchCode,
+      sourceRequestId: item.processInstanceId,
+      metadata,
+    });
+
+    addCatalogCandidate(grouped, {
+      catalogType: "natureza",
+      moduleSlug: module,
+      label: fields.codigonaturezaC || fields.naturezaSalva || fields.natureza || fields.codNatureza,
+      sourceRequestId: item.processInstanceId,
+      metadata,
+    });
+
+    addCatalogCandidate(grouped, {
+      catalogType: "cost_center",
+      moduleSlug: module,
+      label: fields.centroCusto || fields.codCentroCusto || fields.centroDeCusto,
+      sourceRequestId: item.processInstanceId,
+      metadata,
+    });
+
+    addCatalogCandidate(grouped, {
+      catalogType: "payment_method",
+      moduleSlug: module,
+      label: fields.formaPagamento,
+      sourceRequestId: item.processInstanceId,
+      metadata,
+    });
+
+    addCatalogCandidate(grouped, {
+      catalogType: "account",
+      moduleSlug: module,
+      label: fields.contaCentroCusto || fields.contaContabil,
+      sourceRequestId: item.processInstanceId,
+      metadata,
+    });
+  }
+
+  return Array.from(grouped.values()).sort((a, b) => {
+    if (b.occurrenceCount !== a.occurrenceCount) return b.occurrenceCount - a.occurrenceCount;
+    return a.label.localeCompare(b.label);
+  });
 }
 
 function mapHistoryToRequest(module: FluigModuleSlug, item: FluigHistoryItem, actor?: Pick<AppActor, "id"> | null) {
@@ -515,6 +702,47 @@ export async function persistSupplierCandidates(candidates: FluigSupplierCandida
   });
 }
 
+export async function persistFluigCatalogItems(candidates: FluigCatalogCandidate[]) {
+  return runWithDb(async (client) => {
+    if (!candidates.length) return 0;
+    const rows = candidates.map((candidate) => ({
+      catalog_key: candidate.catalogKey,
+      catalog_type: candidate.catalogType,
+      module_slug: candidate.moduleSlug,
+      code: candidate.code,
+      label: candidate.label,
+      value: candidate.value,
+      normalized_label: candidate.normalizedLabel,
+      occurrence_count: candidate.occurrenceCount,
+      source_request_id: candidate.sourceRequestId,
+      metadata: candidate.metadata,
+      last_seen_at: new Date().toISOString(),
+    }));
+    const { error } = await client.from("fluig_catalog_items").upsert(rows, { onConflict: "catalog_key" });
+    if (error) throw error;
+    return rows.length;
+  }).then(({ result, persistence }) => {
+    if (result !== null) persistence.saved.catalogItems = result;
+    return persistence;
+  });
+}
+
+function catalogRowsForActor(actor: AppActor | null | undefined, rows: FluigCatalogDbRow[]) {
+  if (!actor || actor.isAdmin) return rows;
+
+  const branchCodes = new Set(actor.branchCodes);
+  return rows.filter((row) => {
+    const metadata = row.metadata || {};
+    const metadataBranchCode = String(metadata.branchCode || metadata.branch_code || "").trim();
+
+    if (row.catalog_type === "branch") {
+      return !row.code || branchCodes.has(row.code);
+    }
+
+    return !metadataBranchCode || branchCodes.has(metadataBranchCode);
+  });
+}
+
 export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50, actor?: AppActor | null) {
   return runWithDb(async (client) => {
     const requestModules =
@@ -559,31 +787,51 @@ export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50,
       .select("supplier_name,cnpj,fluig_name,confidence,source_request_ids,suggested_defaults,status")
       .order("updated_at", { ascending: false, nullsFirst: false })
       .limit(module === "fornecedores" ? limit : 10);
+    let catalogQuery = client
+      .from("fluig_catalog_items")
+      .select("id,catalog_type,module_slug,code,label,value,occurrence_count,last_seen_at,source_request_id,metadata");
 
-    const [{ data: requestRows, error: requestsError }, { data: supplierRows, error: suppliersError }] =
-      await Promise.all([requestsQuery, suppliersQuery]);
+    if (module !== "fornecedores") {
+      catalogQuery = catalogQuery.or(`module_slug.eq.${module},module_slug.is.null`);
+    }
+
+    catalogQuery = catalogQuery
+      .order("occurrence_count", { ascending: false })
+      .order("last_seen_at", { ascending: false, nullsFirst: false })
+      .limit(240);
+
+    const [
+      { data: requestRows, error: requestsError },
+      { data: supplierRows, error: suppliersError },
+      { data: catalogRows, error: catalogError },
+    ] = await Promise.all([requestsQuery, suppliersQuery, catalogQuery]);
 
     if (requestsError) throw requestsError;
     if (suppliersError) throw suppliersError;
+    if (catalogError) throw catalogError;
 
     const typedRequestRows = filterRowsForActor(actor, (requestRows || []) as unknown as FluigRequestDbRow[]).slice(0, limit);
     const typedSupplierRows = (supplierRows || []) as unknown as FluigSupplierCandidateDbRow[];
+    const typedCatalogRows = catalogRowsForActor(actor, (catalogRows || []) as unknown as FluigCatalogDbRow[]);
     const rows = typedRequestRows.map(mapRequestRowToSyncRow);
     const examples = typedRequestRows
       .filter((row) => row.fluig_request_id)
       .slice(0, module === "fornecedores" ? 6 : 3)
       .map(mapRequestRowToExample);
     const supplierMatches = typedSupplierRows.map(mapSupplierCandidateToMatch);
+    const catalogs = groupCatalogItems(typedCatalogRows.map(mapCatalogRow));
 
     return {
       rows,
       examples,
       supplierMatches,
+      catalogs,
     };
   }).then(({ result, persistence }) => ({
     rows: result?.rows || [],
     examples: result?.examples || [],
     supplierMatches: result?.supplierMatches || [],
+    catalogs: result?.catalogs || {},
     persistence,
   }));
 }

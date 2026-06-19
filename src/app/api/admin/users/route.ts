@@ -20,6 +20,7 @@ type UserAccessBody = {
   fluigUserId?: string | null;
   homeBranchId?: string | null;
   branchIds?: string[];
+  pageSlugs?: string[];
   active?: boolean;
   approvalStatus?: ApprovalStatus;
   rejectionReason?: string | null;
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
       fluigUserId: body.fluigUserId,
       homeBranchId: body.homeBranchId,
       branchIds: body.branchIds || [],
+      pageSlugs: body.pageSlugs || [],
       active: body.active,
       approvalStatus: body.approvalStatus,
       approvedByUserId: actor.id,

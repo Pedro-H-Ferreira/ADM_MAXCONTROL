@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
 import {
+  buildFluigCatalogItems,
   buildSupplierCandidates,
+  persistFluigCatalogItems,
   persistHistoryItems,
   persistSupplierCandidates,
   recordFluigOperationRun,
@@ -66,6 +68,7 @@ async function executeHistory(input: Required<Pick<HistoryBody, "module">> & Omi
 
     if (persist) {
       persistenceResults.push(await persistHistoryItems(map.module, items, actor));
+      persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItems(map.module, items)));
     }
   }
 

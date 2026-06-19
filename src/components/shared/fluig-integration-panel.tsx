@@ -18,8 +18,11 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { fluigAdmApi, type FluigAdmSyncAction } from "@/lib/fluig-api";
 import {
+  fluigCatalogLabels,
+  getFluigFieldLabel,
   getFluigIntegrationForModule,
   type FluigAdmSyncResponse,
+  type FluigCatalogType,
   type FluigModuleSlug,
 } from "@/lib/fluig-data";
 import { cn } from "@/lib/utils";
@@ -47,6 +50,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const rows = useMemo(() => syncData?.rows ?? [], [syncData?.rows]);
   const examples = useMemo(() => syncData?.examples ?? [], [syncData?.examples]);
   const supplierMatches = useMemo(() => syncData?.supplierMatches ?? [], [syncData?.supplierMatches]);
+  const catalogs = useMemo(() => syncData?.catalogs ?? {}, [syncData?.catalogs]);
   const integrationSlug = integration?.slug;
 
   async function runSync(action: FluigAdmSyncAction) {
@@ -162,6 +166,12 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const visibleRows = compact ? rows.slice(0, 2) : rows;
   const visibleExamples = compact ? examples.slice(0, 1) : examples;
   const onlineAgent = agents.find((agent) => agent.status === "online");
+  const catalogOrder: FluigCatalogType[] = ["supplier", "branch", "natureza", "cost_center", "payment_method", "account"];
+  const visibleCatalogs = catalogOrder
+    .map((catalogType) => ({ catalogType, items: catalogs[catalogType] || [] }))
+    .filter((group) => group.items.length > 0)
+    .slice(0, compact ? 3 : 6);
+  const catalogItemCount = catalogOrder.reduce((sum, catalogType) => sum + (catalogs[catalogType]?.length || 0), 0);
 
   return (
     <Card className="stitch-animate-in stitch-hover-lift rounded-lg shadow-none">
@@ -288,9 +298,10 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
         {error ? <p className="text-xs font-medium text-destructive">{error}</p> : null}
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-4">
           <InfoTile icon={DatabaseZap} label="Processo" value={integration.processLabel} />
-          <InfoTile icon={FileText} label="Campos mapeados" value={String(integration.mappedFields.length)} />
+          <InfoTile icon={FileText} label="Regras de lancamento" value={String(integration.mappedFields.length)} />
+          <InfoTile icon={FileText} label="Listas mapeadas" value={String(catalogItemCount)} />
           <InfoTile icon={Workflow} label="Registros sincronizados" value={String(rows.length)} />
         </div>
 
@@ -375,7 +386,9 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
                     <div className="mt-3 grid gap-2 text-xs">
                       {Object.entries(example.payloadPreview).map(([key, value]) => (
                         <div key={key} className="flex min-w-0 items-center justify-between gap-3 rounded bg-muted/40 px-2 py-1">
-                          <span className="text-muted-foreground">{key}</span>
+                          <span className="text-muted-foreground">
+                            {getFluigFieldLabel({ fluigField: key, admField: key })}
+                          </span>
                           <span className="truncate font-medium">{value}</span>
                         </div>
                       ))}
@@ -393,15 +406,55 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
 
         <section className="rounded-md border bg-muted/20">
           <header className="border-b p-3">
-            <h3 className="text-sm font-semibold">Campos do formulario Fluig nesta pagina</h3>
-            <p className="text-xs text-muted-foreground">Mapa usado para preencher, validar e espelhar retorno.</p>
+            <h3 className="text-sm font-semibold">Listas para preenchimento</h3>
+            <p className="text-xs text-muted-foreground">
+              Opcoes reais mapeadas do historico Fluig para preencher os lancamentos desta pagina.
+            </p>
+          </header>
+          <div className="grid gap-2 p-3 md:grid-cols-2 xl:grid-cols-3">
+            {visibleCatalogs.length > 0 ? (
+              visibleCatalogs.map((group) => (
+                <div key={group.catalogType} className="rounded-md border bg-background p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold">{fluigCatalogLabels[group.catalogType]}</p>
+                    <span className="rounded border bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+                      {group.items.length} opcoes
+                    </span>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {group.items.slice(0, 4).map((item) => (
+                      <div key={item.id} className="rounded bg-muted/40 px-2 py-1 text-xs">
+                        <div className="truncate font-medium">{item.label}</div>
+                        <div className="truncate text-muted-foreground">
+                          {item.code ? `${item.code} - ` : ""}
+                          Modelo {item.sourceRequestId || "historico"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-md border border-dashed bg-background p-3 text-xs text-muted-foreground md:col-span-2 xl:col-span-3">
+                Sincronize o historico Fluig para preencher fornecedores, filiais, naturezas e centros de custo.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-md border bg-muted/20">
+          <header className="border-b p-3">
+            <h3 className="text-sm font-semibold">Mapeamento para lancamento</h3>
+            <p className="text-xs text-muted-foreground">
+              Campos exibidos com nomes normalizados do Fluig. Os codigos tecnicos ficam apenas na automacao.
+            </p>
           </header>
           <div className="grid gap-2 p-3 md:grid-cols-2">
             {visibleFields.map((field) => (
               <div key={`${field.fluigField}-${field.admField}`} className="rounded-md border bg-background p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">{field.fluigField}</p>
+                    <p className="text-sm font-semibold">{getFluigFieldLabel(field)}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{field.admField}</p>
                   </div>
                   <span className="rounded border bg-muted px-2 py-1 text-[11px] text-muted-foreground">
@@ -409,6 +462,11 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">{field.rule}</p>
+                {field.catalogType ? (
+                  <div className="mt-3 rounded bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
+                    Select: {fluigCatalogLabels[field.catalogType]} ({catalogs[field.catalogType]?.length || 0} opcoes)
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

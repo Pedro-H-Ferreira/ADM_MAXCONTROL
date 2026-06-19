@@ -1,4 +1,5 @@
 export type FluigModuleSlug = "pagamentos" | "compras" | "manutencao" | "fornecedores";
+export type FluigCatalogType = "supplier" | "branch" | "natureza" | "cost_center" | "payment_method" | "account";
 
 export type FluigMappedField = {
   fluigField: string;
@@ -6,6 +7,20 @@ export type FluigMappedField = {
   rule: string;
   source: "adm_page" | "fixed_default" | "fluig_zoom" | "supplier_map" | "attachment" | "user_context";
   required: boolean;
+  catalogType?: FluigCatalogType;
+};
+
+export type FluigCatalogItem = {
+  id: string;
+  catalogType: FluigCatalogType;
+  moduleSlug: FluigModuleSlug | null;
+  code: string | null;
+  label: string;
+  value: string;
+  occurrenceCount: number;
+  lastSeenAt: string;
+  sourceRequestId: string | null;
+  metadata: Record<string, unknown>;
 };
 
 export type FluigExampleRequest = {
@@ -82,6 +97,7 @@ export type FluigAdmSyncResponse = {
   rows: FluigSyncRow[];
   examples: FluigExampleRequest[];
   supplierMatches: FluigSupplierMatch[];
+  catalogs?: Partial<Record<FluigCatalogType, FluigCatalogItem[]>>;
   persistence?: {
     configured: boolean;
     errors: string[];
@@ -97,6 +113,7 @@ const paymentFields: FluigMappedField[] = [
     rule: "Usar zoom Fluig; default CD Logistica quando a despesa nao informar outro centro.",
     source: "fluig_zoom",
     required: true,
+    catalogType: "cost_center",
   },
   {
     fluigField: "codigonaturezaC",
@@ -104,6 +121,7 @@ const paymentFields: FluigMappedField[] = [
     rule: "Default validado nos exemplos: 4010210 - FRETE TRANSFERENCIA DE PRODUTOS - DANFE.",
     source: "fixed_default",
     required: true,
+    catalogType: "natureza",
   },
   {
     fluigField: "formaPagamento",
@@ -111,6 +129,7 @@ const paymentFields: FluigMappedField[] = [
     rule: "Mapear PIX, BOLETO ou TRANSFERENCIA a partir do pagamento do ADM.",
     source: "adm_page",
     required: true,
+    catalogType: "payment_method",
   },
   {
     fluigField: "fornecedorC",
@@ -118,6 +137,7 @@ const paymentFields: FluigMappedField[] = [
     rule: "Resolver pelo mapa fornecedor ERP -> fornecedor Fluig antes de abrir solicitacao.",
     source: "supplier_map",
     required: true,
+    catalogType: "supplier",
   },
   {
     fluigField: "codCNPJ",
@@ -160,6 +180,7 @@ const paymentFields: FluigMappedField[] = [
     rule: "Enviar label exata do dataset dsConsultaFilialDDRestCONSINCO.",
     source: "fluig_zoom",
     required: true,
+    catalogType: "branch",
   },
   {
     fluigField: "valorNF",
@@ -205,6 +226,7 @@ const purchaseFields: FluigMappedField[] = [
     rule: "Obrigatorio para abrir compra administrativa e para aprovacoes.",
     source: "fluig_zoom",
     required: true,
+    catalogType: "cost_center",
   },
   {
     fluigField: "contaCentroCusto",
@@ -212,6 +234,7 @@ const purchaseFields: FluigMappedField[] = [
     rule: "Derivar pela categoria do item ou selecionar por catalogo Fluig.",
     source: "fluig_zoom",
     required: true,
+    catalogType: "account",
   },
   {
     fluigField: "codFilialPedido",
@@ -219,6 +242,7 @@ const purchaseFields: FluigMappedField[] = [
     rule: "Usar codigo de filial do ADM e label de zoom do Fluig.",
     source: "adm_page",
     required: true,
+    catalogType: "branch",
   },
   {
     fluigField: "produto / descricaoProduto",
@@ -257,6 +281,7 @@ const maintenanceFields: FluigMappedField[] = [
     rule: "Usar a filial do equipamento/area da OS.",
     source: "adm_page",
     required: true,
+    catalogType: "branch",
   },
   {
     fluigField: "filialDestino",
@@ -264,6 +289,7 @@ const maintenanceFields: FluigMappedField[] = [
     rule: "Usar somente quando houver transferencia ou nota de remessa.",
     source: "fluig_zoom",
     required: false,
+    catalogType: "branch",
   },
   {
     fluigField: "dataPrevSaida",
@@ -302,6 +328,7 @@ const supplierFields: FluigMappedField[] = [
     rule: "Chave principal para localizar fornecedor ja usado no Fluig.",
     source: "supplier_map",
     required: true,
+    catalogType: "supplier",
   },
   {
     fluigField: "codCNPJ",
@@ -488,6 +515,54 @@ export const fluigIntegrationModules: Record<FluigModuleSlug, FluigIntegrationMo
 
 export function getFluigIntegrationForModule(slug: string) {
   return fluigIntegrationModules[slug as FluigModuleSlug] ?? null;
+}
+
+const fluigFieldLabels: Record<string, string> = {
+  centroCusto: "Centro de custo",
+  codCentroCusto: "Centro de custo",
+  contaCentroCusto: "Conta do centro de custo",
+  codigonaturezaC: "Natureza financeira",
+  naturezaSalva: "Natureza financeira",
+  formaPagamento: "Forma de pagamento",
+  fornecedorC: "Fornecedor",
+  codCNPJ: "CNPJ",
+  descricaoDemandaEnvio: "Descricao da demanda",
+  nNotaFiscal: "Numero da nota fiscal",
+  dataEmissaoNF: "Data de emissao da nota",
+  vencPagNota: "Vencimento do pagamento",
+  unidadeFilial: "Filial",
+  valorNF: "Valor da nota",
+  valorNFT: "Valor total da nota",
+  valorTotalExibicao: "Valor total",
+  "fileUpload / files[]": "Anexos fiscais",
+  anexos: "Anexos",
+  responsavelPedido: "Responsavel pelo pedido",
+  dataPedido: "Data do pedido",
+  numeroSolicitacao: "Numero da solicitacao",
+  codFilialPedido: "Filial do pedido",
+  "produto / descricaoProduto": "Itens da requisicao",
+  codPatrimonio: "Patrimonio ou ativo",
+  tipoTransacao: "Tipo de transacao",
+  filial: "Filial de origem",
+  filialDestino: "Filial de destino",
+  dataPrevSaida: "Data prevista",
+  zoomDemandaPara: "Responsavel Fluig",
+  obsFiscal: "Descricao tecnica",
+  NumLancW: "Lancamento Consinco",
+  sourceRequestId: "Solicitacao modelo",
+};
+
+export const fluigCatalogLabels: Record<FluigCatalogType, string> = {
+  supplier: "Fornecedores",
+  branch: "Filiais",
+  natureza: "Naturezas",
+  cost_center: "Centros de custo",
+  payment_method: "Formas de pagamento",
+  account: "Contas contabeis",
+};
+
+export function getFluigFieldLabel(field: Pick<FluigMappedField, "fluigField" | "admField">) {
+  return fluigFieldLabels[field.fluigField] || field.admField || field.fluigField;
 }
 
 export function hasFluigIntegration(slug: string) {

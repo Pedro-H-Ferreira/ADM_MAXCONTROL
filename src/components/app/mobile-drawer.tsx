@@ -9,8 +9,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { AppSidebar } from "@/components/app/sidebar";
+import type { NavigationSection } from "@/lib/navigation";
 
-export function MobileDrawer() {
+export function MobileDrawer({ navigationSections }: { navigationSections: NavigationSection[] }) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -20,7 +21,7 @@ export function MobileDrawer() {
       </SheetTrigger>
       <SheetContent side="left" className="w-[290px] p-0">
         <SheetTitle className="sr-only">Navegação</SheetTitle>
-        <AppSidebar collapsed={false} mobile />
+        <AppSidebar collapsed={false} mobile sections={navigationSections} />
       </SheetContent>
     </Sheet>
   );

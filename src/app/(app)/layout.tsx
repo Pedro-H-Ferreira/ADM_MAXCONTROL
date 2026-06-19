@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app/app-shell";
 import { isAppAuthError, resolveCurrentAppUser } from "@/lib/db/app-repository";
+import { filterNavigationSectionsForAccess } from "@/lib/navigation";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   let redirectPath: string | null = null;
@@ -26,6 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <AppShell
+      navigationSections={filterNavigationSectionsForAccess(actor.pageSlugs)}
       user={{
         name: actor.displayName,
         email: actor.email,
