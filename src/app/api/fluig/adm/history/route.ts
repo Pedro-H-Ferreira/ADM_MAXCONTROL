@@ -5,7 +5,7 @@ import {
   buildFluigCatalogItems,
   buildSupplierCandidates,
   persistFluigCatalogItems,
-  persistHistoryItems,
+  persistHistoryItemsInChunks,
   persistSupplierCandidates,
   recordFluigOperationRun,
 } from "@/lib/db/fluig-repository";
@@ -67,7 +67,7 @@ async function executeHistory(input: Required<Pick<HistoryBody, "module">> & Omi
     });
 
     if (persist) {
-      persistenceResults.push(await persistHistoryItems(map.module, items, actor));
+      persistenceResults.push(await persistHistoryItemsInChunks(map.module, items, actor));
       persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItems(map.module, items)));
     }
   }
@@ -91,7 +91,7 @@ export async function GET(request: Request) {
     module: moduleSlug,
     days: parseNumber(url.searchParams.get("days"), 90),
     pageSize: parseNumber(url.searchParams.get("pageSize"), 100),
-    maxPages: parseNumber(url.searchParams.get("maxPages"), 5),
+    maxPages: parseNumber(url.searchParams.get("maxPages"), 100),
     start: url.searchParams.get("start") || undefined,
     end: url.searchParams.get("end") || undefined,
     persist: parseBoolean(url.searchParams.get("persist"), true),
@@ -154,7 +154,7 @@ export async function POST(request: Request) {
       start: body.start,
       end: body.end,
       pageSize: body.pageSize ?? 100,
-      maxPages: body.maxPages ?? 5,
+      maxPages: body.maxPages ?? 100,
       persist: body.persist ?? true,
     }, actor);
 

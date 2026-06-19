@@ -153,17 +153,21 @@ async function executeJob(config, job, emitProgress) {
   if (job.operation === "sync_history") {
     emitProgress({ stage: "authenticating", label: "Autenticando no Fluig." });
     const scriptPath = path.join(root, "scripts", "fluig-adm-query-history.cjs");
+    const historyArgs = [
+      `--runner-root=${root}`,
+      `--process-id=${processMap.processId}`,
+      `--process-version=${processVersionsFromJob(job)}`,
+      `--days=${payload.days || 90}`,
+      `--page-size=${payload.pageSize || 100}`,
+      `--max-pages=${payload.maxPages || 100}`,
+    ];
+    if (payload.start) historyArgs.push(`--start=${payload.start}`);
+    if (payload.end) historyArgs.push(`--end=${payload.end}`);
+
     const { stdout } = await runNodeScript(
       config,
       scriptPath,
-      [
-        `--runner-root=${root}`,
-        `--process-id=${processMap.processId}`,
-        `--process-version=${processVersionsFromJob(job)}`,
-        `--days=${payload.days || 90}`,
-        `--page-size=${payload.pageSize || 50}`,
-        `--max-pages=${payload.maxPages || 3}`,
-      ],
+      historyArgs,
       { onLine }
     );
     const outputPath = parseTaggedPath(stdout, "ADM_FLUIG_HISTORY_RESULT");

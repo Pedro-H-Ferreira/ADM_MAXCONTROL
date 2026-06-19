@@ -717,6 +717,44 @@ export async function persistHistoryItems(module: FluigModuleSlug, items: FluigH
   });
 }
 
+function mergePersistenceResults(...items: PersistenceResult[]): PersistenceResult {
+  return {
+    configured: items.some((item) => item.configured),
+    saved: items.reduce<Record<string, number>>((acc, item) => {
+      for (const [key, value] of Object.entries(item.saved)) {
+        acc[key] = (acc[key] || 0) + value;
+      }
+      return acc;
+    }, {}),
+    errors: items.flatMap((item) => item.errors),
+  };
+}
+
+export async function persistHistoryItemsInChunks(
+  module: FluigModuleSlug,
+  items: FluigHistoryItem[],
+  actor?: Pick<AppActor, "id"> | null,
+  chunkSize = 200
+) {
+  if (!items.length) {
+    return persistHistoryItems(module, items, actor);
+  }
+
+  const results: PersistenceResult[] = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    const chunk = items.slice(index, index + chunkSize);
+    const result = await persistHistoryItems(module, chunk, actor);
+
+    if (result.errors.length && chunkSize > 20 && chunk.length > 20) {
+      results.push(await persistHistoryItemsInChunks(module, chunk, actor, 20));
+    } else {
+      results.push(result);
+    }
+  }
+
+  return mergePersistenceResults(...results);
+}
+
 export async function persistStatusItems(module: FluigModuleSlug, items: FluigStatusItem[]) {
   return runWithDb(async (client) => {
     const rows = items

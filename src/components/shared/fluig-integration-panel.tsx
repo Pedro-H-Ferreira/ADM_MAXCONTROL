@@ -32,6 +32,89 @@ type FluigIntegrationPanelProps = {
   compact?: boolean;
 };
 
+type HistoryJobPlan = {
+  module: FluigModuleSlug;
+  payload: Record<string, unknown>;
+};
+
+function padDatePart(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function formatFluigDateTime(date: Date, endOfDay = false) {
+  return [
+    date.getFullYear(),
+    padDatePart(date.getMonth() + 1),
+    padDatePart(date.getDate()),
+  ].join("-") + (endOfDay ? "T23:59:59-0300" : "T00:00:00-0300");
+}
+
+function addMonths(date: Date, months: number) {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months, 1);
+  return next;
+}
+
+function endOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+function buildMonthlyWindows(days: number) {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - days);
+
+  const windows: Array<{ start: string; end: string }> = [];
+  let cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+
+  while (cursor <= end) {
+    const windowStart = cursor.getFullYear() === start.getFullYear() && cursor.getMonth() === start.getMonth()
+      ? start
+      : new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+    const monthEnd = endOfMonth(cursor);
+    const windowEnd = monthEnd > end ? end : monthEnd;
+
+    windows.push({
+      start: formatFluigDateTime(windowStart),
+      end: formatFluigDateTime(windowEnd, true),
+    });
+    cursor = addMonths(cursor, 1);
+  }
+
+  return windows;
+}
+
+function buildHistoryJobPlans(module: FluigModuleSlug, action: FluigAdmSyncAction): HistoryJobPlan[] {
+  const basePayload = {
+    action,
+    module,
+    pageSize: 100,
+    maxPages: 100,
+    persist: true,
+    catalogRefresh: true,
+  };
+
+  if (module === "pagamentos") {
+    return buildMonthlyWindows(730).map((window) => ({
+      module,
+      payload: {
+        ...basePayload,
+        ...window,
+      },
+    }));
+  }
+
+  return [
+    {
+      module,
+      payload: {
+        ...basePayload,
+        days: 730,
+      },
+    },
+  ];
+}
+
 export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigIntegrationPanelProps) {
   const integration = getFluigIntegrationForModule(moduleSlug);
   const [syncData, setSyncData] = useState<FluigAdmSyncResponse | null>(null);
@@ -68,19 +151,13 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             ? ["pagamentos", "compras", "manutencao"]
             : [integration.slug as FluigModuleSlug];
 
-        for (const moduleToSync of modulesToSync) {
+        const plans = modulesToSync.flatMap((moduleToSync) => buildHistoryJobPlans(moduleToSync, action));
+
+        for (const plan of plans) {
           const created = await fluigAdmApi.createJob({
-            module: moduleToSync,
+            module: plan.module,
             operation: "sync_history",
-            payload: {
-              action,
-              module: moduleToSync,
-              days: 730,
-              pageSize: 100,
-              maxPages: 25,
-              persist: true,
-              catalogRefresh: true,
-            },
+            payload: plan.payload,
           });
           await pollJobUntilDone(created.job.id);
         }

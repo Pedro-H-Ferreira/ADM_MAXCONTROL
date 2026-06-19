@@ -10,7 +10,7 @@ import {
   buildSupplierCandidates,
   persistFluigCatalogItems,
   type PersistenceResult,
-  persistHistoryItems,
+  persistHistoryItemsInChunks,
   persistStatusItems,
   persistSupplierCandidates,
 } from "@/lib/db/fluig-repository";
@@ -77,7 +77,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (status === "success" && job.operation === "sync_history") {
     const historyItems = extractHistoryItems(resultPayload);
-    persistenceResults.push(await persistHistoryItems(job.module, historyItems, { id: job.requestedByUserId }));
+    persistenceResults.push(await persistHistoryItemsInChunks(job.module, historyItems, { id: job.requestedByUserId }));
     persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItems(job.module, historyItems)));
     persistenceResults.push(await persistSupplierCandidates(buildSupplierCandidates(historyItems)));
   }
