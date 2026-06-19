@@ -22,6 +22,7 @@ type HistoryBody = {
   days?: number;
   start?: string;
   end?: string;
+  windows?: Array<{ start: string; end: string }>;
   pageSize?: number;
   maxPages?: number;
   persist?: boolean;
@@ -53,6 +54,7 @@ async function executeHistory(input: Required<Pick<HistoryBody, "module">> & Omi
       days: input.days,
       start: input.start,
       end: input.end,
+      windows: input.windows,
       pageSize: input.pageSize,
       maxPages: input.maxPages,
     });
@@ -153,6 +155,7 @@ export async function POST(request: Request) {
       days: body.days ?? 90,
       start: body.start,
       end: body.end,
+      windows: body.windows,
       pageSize: body.pageSize ?? 100,
       maxPages: body.maxPages ?? 100,
       persist: body.persist ?? true,

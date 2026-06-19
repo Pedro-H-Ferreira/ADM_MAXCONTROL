@@ -33,6 +33,50 @@ function formatWindowDate(value, fallback) {
   return raw;
 }
 
+function parseWindowsJsonArg() {
+  const raw = parseArg("windows-json");
+  if (!raw) return null;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`--windows-json invalido: ${error && error.message ? error.message : String(error)}`);
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error("--windows-json deve ser uma lista de janelas.");
+  }
+
+  const windows = parsed
+    .map((window) => ({
+      initialStartDate: formatWindowDate(window && window.start, ""),
+      finalStartDate: formatWindowDate(window && window.end, ""),
+    }))
+    .filter((window) => window.initialStartDate && window.finalStartDate);
+
+  if (windows.length === 0) {
+    throw new Error("--windows-json nao possui janelas validas.");
+  }
+
+  return windows;
+}
+
+function buildQueryWindows(days) {
+  const windows = parseWindowsJsonArg();
+  if (windows) return windows;
+
+  const start = new Date();
+  start.setDate(start.getDate() - (Number.isFinite(days) && days > 0 ? days : 90));
+
+  return [
+    {
+      initialStartDate: formatWindowDate(parseArg("start"), start.toISOString().slice(0, 10)),
+      finalStartDate: formatWindowDate(parseArg("end"), new Date().toISOString().replace("Z", "-0300")),
+    },
+  ];
+}
+
 function buildFieldsMap(formFields = []) {
   return Object.fromEntries(
     formFields.map((item) => [String(item.field || item.name || "").trim(), item.value == null ? "" : String(item.value)])
@@ -105,54 +149,89 @@ async function main() {
   const maxPages = Number(parseArg("max-pages", "5"));
   const timeoutMs = Number(parseArg("timeout-ms", "30000"));
   const days = Number(parseArg("days", "90"));
-  const start = new Date();
-  start.setDate(start.getDate() - (Number.isFinite(days) && days > 0 ? days : 90));
-  const initialStartDate = formatWindowDate(parseArg("start"), start.toISOString().slice(0, 10));
-  const finalStartDate = formatWindowDate(parseArg("end"), new Date().toISOString().replace("Z", "-0300"));
+  const windows = buildQueryWindows(days);
+  const initialStartDate = windows[0].initialStartDate;
+  const finalStartDate = windows[windows.length - 1].finalStartDate;
 
-  emitProgress({ stage: "login", processId, processVersions });
+  emitProgress({
+    stage: "login",
+    label: `Login no Fluig para ${windows.length} janela${windows.length === 1 ? "" : "s"}.`,
+    processId,
+    processVersions,
+    windowCount: windows.length,
+  });
   const session = await loginWithBrowser({ headless: true });
   const items = [];
   const inspected = [];
 
   try {
-    for (const processVersion of processVersions) {
-      for (let pageNumber = 1; pageNumber <= maxPages; pageNumber += 1) {
-        const params = new URLSearchParams();
-        params.append("initialStartDate", initialStartDate);
-        params.append("finalStartDate", finalStartDate);
-        params.append("page", String(pageNumber));
-        params.append("pageSize", String(pageSize));
-        params.append("order", "-processInstanceId");
-        params.append("expand", "formFields");
+    for (const [windowIndex, queryWindow] of windows.entries()) {
+      const windowPosition = windowIndex + 1;
+      emitProgress({
+        stage: "window",
+        windowIndex: windowPosition,
+        windowCount: windows.length,
+        initialStartDate: queryWindow.initialStartDate,
+        finalStartDate: queryWindow.finalStartDate,
+        label: `Consultando janela ${windowPosition}/${windows.length}.`,
+      });
 
-        const endpoint = `/process-management/api/v2/processes/${encodeURIComponent(processId)}/process-versions/${encodeURIComponent(
-          processVersion
-        )}/requests?${params.toString()}`;
-        emitProgress({ stage: "request", processVersion, page: pageNumber });
-        const response = assertResponse(await fetchJson(session.page, endpoint, timeoutMs), endpoint);
-        const requests = Array.isArray(response.items) ? response.items : [];
-        inspected.push({ processVersion, page: pageNumber, count: requests.length, hasNext: Boolean(response.hasNext) });
+      for (const processVersion of processVersions) {
+        for (let pageNumber = 1; pageNumber <= maxPages; pageNumber += 1) {
+          const params = new URLSearchParams();
+          params.append("initialStartDate", queryWindow.initialStartDate);
+          params.append("finalStartDate", queryWindow.finalStartDate);
+          params.append("page", String(pageNumber));
+          params.append("pageSize", String(pageSize));
+          params.append("order", "-processInstanceId");
+          params.append("expand", "formFields");
 
-        for (const request of requests) {
-          const formFields = Array.isArray(request.formFields) ? request.formFields : [];
-          items.push({
-            processInstanceId: String(request.processInstanceId || ""),
-            processId: String(request.processId || processId),
-            processVersion: String(request.processVersion || processVersion),
-            status: String(request.status || ""),
-            startDate: request.startDate || null,
-            requesterId: request.requesterId || request.requesterCode || null,
-            requesterName: request.requesterName || request.requester || null,
-            formFields: buildFieldsMap(formFields),
-            raw: request,
-            sourceUrl: `${config.urls.base.replace(/\/$/, "")}/portal/p/1/pageworkflowview?app_ecm_workflowview_detailsProcessInstanceID=${
-              request.processInstanceId || ""
-            }`,
+          const endpoint = `/process-management/api/v2/processes/${encodeURIComponent(processId)}/process-versions/${encodeURIComponent(
+            processVersion
+          )}/requests?${params.toString()}`;
+          emitProgress({
+            stage: "request",
+            processVersion,
+            page: pageNumber,
+            windowIndex: windowPosition,
+            windowCount: windows.length,
+            initialStartDate: queryWindow.initialStartDate,
+            finalStartDate: queryWindow.finalStartDate,
+            label: `Lendo pagina ${pageNumber} da janela ${windowPosition}/${windows.length}.`,
           });
-        }
+          const response = assertResponse(await fetchJson(session.page, endpoint, timeoutMs), endpoint);
+          const requests = Array.isArray(response.items) ? response.items : [];
+          inspected.push({
+            processVersion,
+            page: pageNumber,
+            count: requests.length,
+            hasNext: Boolean(response.hasNext),
+            windowIndex: windowPosition,
+            windowCount: windows.length,
+            initialStartDate: queryWindow.initialStartDate,
+            finalStartDate: queryWindow.finalStartDate,
+          });
 
-        if (!response.hasNext || requests.length === 0) break;
+          for (const request of requests) {
+            const formFields = Array.isArray(request.formFields) ? request.formFields : [];
+            items.push({
+              processInstanceId: String(request.processInstanceId || ""),
+              processId: String(request.processId || processId),
+              processVersion: String(request.processVersion || processVersion),
+              status: String(request.status || ""),
+              startDate: request.startDate || null,
+              requesterId: request.requesterId || request.requesterCode || null,
+              requesterName: request.requesterName || request.requester || null,
+              formFields: buildFieldsMap(formFields),
+              raw: request,
+              sourceUrl: `${config.urls.base.replace(/\/$/, "")}/portal/p/1/pageworkflowview?app_ecm_workflowview_detailsProcessInstanceID=${
+                request.processInstanceId || ""
+              }`,
+            });
+          }
+
+          if (!response.hasNext || requests.length === 0) break;
+        }
       }
     }
   } finally {
@@ -161,7 +240,7 @@ async function main() {
 
   const output = {
     generatedAt: new Date().toISOString(),
-    query: { processId, processVersions, initialStartDate, finalStartDate, pageSize, maxPages },
+    query: { processId, processVersions, initialStartDate, finalStartDate, windows, pageSize, maxPages },
     inspected,
     totalItems: items.length,
     items,

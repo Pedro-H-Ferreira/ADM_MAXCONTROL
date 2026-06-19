@@ -95,6 +95,17 @@ function processVersionsFromJob(job) {
   return Array.isArray(versions) ? versions.join(",") : String(versions || "");
 }
 
+function historyWindowsFromPayload(payload) {
+  if (!Array.isArray(payload.windows)) return [];
+
+  return payload.windows
+    .map((window) => ({
+      start: String(window?.start || "").trim(),
+      end: String(window?.end || "").trim(),
+    }))
+    .filter((window) => window.start && window.end);
+}
+
 function safeFileName(value) {
   const baseName = path.basename(String(value || "anexo.pdf")).replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
   return baseName || "anexo.pdf";
@@ -161,8 +172,13 @@ async function executeJob(config, job, emitProgress) {
       `--page-size=${payload.pageSize || 100}`,
       `--max-pages=${payload.maxPages || 100}`,
     ];
-    if (payload.start) historyArgs.push(`--start=${payload.start}`);
-    if (payload.end) historyArgs.push(`--end=${payload.end}`);
+    const windows = historyWindowsFromPayload(payload);
+    if (windows.length > 0) {
+      historyArgs.push(`--windows-json=${JSON.stringify(windows)}`);
+    } else {
+      if (payload.start) historyArgs.push(`--start=${payload.start}`);
+      if (payload.end) historyArgs.push(`--end=${payload.end}`);
+    }
 
     const { stdout } = await runNodeScript(
       config,

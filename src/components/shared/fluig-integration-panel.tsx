@@ -95,13 +95,16 @@ function buildHistoryJobPlans(module: FluigModuleSlug, action: FluigAdmSyncActio
   };
 
   if (module === "pagamentos") {
-    return buildMonthlyWindows(730).map((window) => ({
-      module,
-      payload: {
-        ...basePayload,
-        ...window,
+    return [
+      {
+        module,
+        payload: {
+          ...basePayload,
+          days: 730,
+          windows: buildMonthlyWindows(730),
+        },
       },
-    }));
+    ];
   }
 
   return [

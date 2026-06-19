@@ -239,6 +239,7 @@ export async function queryFluigHistory(
     days?: number;
     start?: string;
     end?: string;
+    windows?: Array<{ start: string; end: string }>;
     pageSize?: number;
     maxPages?: number;
   } = {}
@@ -253,8 +254,21 @@ export async function queryFluigHistory(
     `--max-pages=${input.maxPages ?? 5}`,
   ];
 
-  if (input.start) args.push(`--start=${input.start}`);
-  if (input.end) args.push(`--end=${input.end}`);
+  const windows = Array.isArray(input.windows)
+    ? input.windows
+        .map((window) => ({
+          start: String(window?.start || "").trim(),
+          end: String(window?.end || "").trim(),
+        }))
+        .filter((window) => window.start && window.end)
+    : [];
+
+  if (windows.length > 0) {
+    args.push(`--windows-json=${JSON.stringify(windows)}`);
+  } else {
+    if (input.start) args.push(`--start=${input.start}`);
+    if (input.end) args.push(`--end=${input.end}`);
+  }
 
   return runNodeScript<FluigHistoryOutput>({
     runnerRoot,
