@@ -24,7 +24,15 @@ O portal ADM roda na Vercel, mas a automacao do Fluig roda na maquina Windows de
 1. No ADM, abrir `Usuarios e Perfis` e conferir o usuario/filiais.
 2. Em qualquer painel Fluig, clicar em `Parear agente`.
 3. Copiar o token exibido uma unica vez.
-4. Na maquina do usuario, executar:
+4. Na maquina do usuario, executar com duplo clique:
+
+```text
+INSTALAR-AGENTE-FLUIG.bat
+```
+
+O instalador vai pedir o token, a URL base do Fluig, usuario e senha.
+
+Alternativa tecnica, se precisar passar parametros manualmente:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\agent\fluig-agent\scripts\install-windows-agent.ps1 `
@@ -49,7 +57,21 @@ Invoke-RestMethod http://127.0.0.1:4777/health
 
 Na tela do ADM, o agente deve aparecer como `ONLINE` depois do primeiro heartbeat.
 
+Tambem e possivel conferir pelo duplo clique:
+
+```text
+VERIFICAR-AGENTE-FLUIG.bat
+```
+
 ## Remover
+
+Com duplo clique:
+
+```text
+REMOVER-AGENTE-FLUIG.bat
+```
+
+Ou via PowerShell:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\agent\fluig-agent\scripts\uninstall-windows-agent.ps1

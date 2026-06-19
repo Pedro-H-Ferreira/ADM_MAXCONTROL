@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       agent: pairing.agent,
       token: pairing.token,
       installHint:
-        "Use este token no instalador do ADM Fluig Agent nesta maquina. Ele nao sera exibido novamente.",
+        "Execute INSTALAR-AGENTE-FLUIG.bat nesta maquina e cole este token quando solicitado. Ele nao sera exibido novamente.",
     });
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);

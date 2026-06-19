@@ -270,7 +270,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             <p className="font-semibold">Token gerado uma unica vez</p>
             <p className="mt-1 break-all font-mono">{pairToken}</p>
             <p className="mt-2">
-              Use no instalador em <span className="font-mono">agent/fluig-agent/scripts/install-windows-agent.ps1</span>.
+              Execute <span className="font-mono">INSTALAR-AGENTE-FLUIG.bat</span> e cole este token quando solicitado.
             </p>
           </div>
         ) : null}
