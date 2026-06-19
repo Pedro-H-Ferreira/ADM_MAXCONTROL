@@ -5,6 +5,7 @@ const { buildConfig } = require("./config");
 const { executeJob } = require("./runner");
 
 const config = buildConfig();
+const historyChunkSize = 50;
 let currentJob = null;
 let lastError = null;
 let stopping = false;
@@ -90,6 +91,68 @@ async function sendResult(job, input) {
   });
 }
 
+async function sendHistoryChunk(job, input) {
+  return apiFetch(`/api/agent/jobs/${job.id}/chunk`, {
+    chunkIndex: input.chunkIndex,
+    totalChunks: input.totalChunks,
+    totalItems: input.totalItems,
+    resultPayload: {
+      data: {
+        items: input.items,
+      },
+    },
+  });
+}
+
+function historyItemsFromResult(result) {
+  const dataItems = result && result.data && Array.isArray(result.data.items) ? result.data.items : null;
+  return dataItems || (Array.isArray(result && result.items) ? result.items : []);
+}
+
+function compactHistoryResult(result, input) {
+  const data = result && result.data && typeof result.data === "object" ? result.data : {};
+  const { items: _items, ...compactData } = data;
+
+  return {
+    ...result,
+    data: {
+      ...compactData,
+      itemsChunked: true,
+      itemCount: input.itemCount,
+      chunkCount: input.chunkCount,
+    },
+    itemsChunked: true,
+    itemCount: input.itemCount,
+    chunkCount: input.chunkCount,
+  };
+}
+
+async function sendChunkedHistoryResult(job, result) {
+  const items = historyItemsFromResult(result);
+  if (!items.length) {
+    return compactHistoryResult(result, { itemCount: 0, chunkCount: 0 });
+  }
+
+  const totalChunks = Math.ceil(items.length / historyChunkSize);
+
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
+    const chunk = items.slice(chunkIndex * historyChunkSize, (chunkIndex + 1) * historyChunkSize);
+    currentJob = {
+      ...currentJob,
+      status: "syncing_result",
+      label: `Gravando lote ${chunkIndex + 1}/${totalChunks} no ADM.`,
+    };
+    await sendHistoryChunk(job, {
+      chunkIndex,
+      totalChunks,
+      totalItems: items.length,
+      items: chunk,
+    });
+  }
+
+  return compactHistoryResult(result, { itemCount: items.length, chunkCount: totalChunks });
+}
+
 async function processJob(job) {
   currentJob = {
     id: job.id,
@@ -108,7 +171,7 @@ async function processJob(job) {
       label: "Agente local assumiu a tarefa.",
     });
 
-    const result = await executeJob(config, job, async (event) => {
+    let result = await executeJob(config, job, async (event) => {
       const status = normalizeJobStatus(event.stage);
       currentJob = {
         ...currentJob,
@@ -135,6 +198,11 @@ async function processJob(job) {
       status: "syncing_result",
       label: "Enviando resultado para o ADM.",
     });
+
+    if (job.operation === "sync_history") {
+      result = await sendChunkedHistoryResult(job, result);
+    }
+
     await sendResult(job, {
       status: "success",
       resultPayload: result,
