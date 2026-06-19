@@ -44,11 +44,13 @@ async function responseForModule(moduleSlug: string | null) {
       examples: snapshot.examples,
       supplierMatches: snapshot.supplierMatches,
       catalogs: snapshot.catalogs,
+      launchTemplates: snapshot.launchTemplates,
     },
     rows: snapshot.rows,
     examples: snapshot.examples,
     supplierMatches: snapshot.supplierMatches,
     catalogs: snapshot.catalogs,
+    launchTemplates: snapshot.launchTemplates,
     runtime: runtimeConfig,
     access: {
       userId: actor.id,

@@ -5,7 +5,15 @@ import {
   recordFluigJobEvent,
   type FluigJobStatus,
 } from "@/lib/db/app-repository";
-import { type PersistenceResult, persistHistoryItems, persistStatusItems } from "@/lib/db/fluig-repository";
+import {
+  buildFluigCatalogItems,
+  buildSupplierCandidates,
+  persistFluigCatalogItems,
+  type PersistenceResult,
+  persistHistoryItems,
+  persistStatusItems,
+  persistSupplierCandidates,
+} from "@/lib/db/fluig-repository";
 import { mergePersistence } from "@/lib/fluig/route-utils";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 import { requireAgent } from "@/app/api/agent/_utils";
@@ -39,6 +47,19 @@ function extractStatusItems(payload: Record<string, unknown>) {
   return (Array.isArray(dataItems) ? dataItems : Array.isArray(directItems) ? directItems : []) as FluigStatusItem[];
 }
 
+function extractGeneratedRequest(payload: Record<string, unknown>) {
+  const data = payload.data as Record<string, unknown> | undefined;
+  const requestId =
+    data?.generatedRequestId ||
+    data?.requestId ||
+    data?.numeroSolicitacao ||
+    data?.processInstanceId ||
+    payload.generatedRequestId ||
+    payload.requestId;
+
+  return requestId ? String(requestId) : "";
+}
+
 export async function POST(request: Request, context: RouteContext) {
   const { agent, error } = await requireAgent(request);
   if (!agent) return error;
@@ -55,13 +76,31 @@ export async function POST(request: Request, context: RouteContext) {
   const persistenceResults: PersistenceResult[] = [];
 
   if (status === "success" && job.operation === "sync_history") {
-    persistenceResults.push(
-      await persistHistoryItems(job.module, extractHistoryItems(resultPayload), { id: job.requestedByUserId })
-    );
+    const historyItems = extractHistoryItems(resultPayload);
+    persistenceResults.push(await persistHistoryItems(job.module, historyItems, { id: job.requestedByUserId }));
+    persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItems(job.module, historyItems)));
+    persistenceResults.push(await persistSupplierCandidates(buildSupplierCandidates(historyItems)));
   }
 
   if (status === "success" && job.operation === "sync_status") {
     persistenceResults.push(await persistStatusItems(job.module, extractStatusItems(resultPayload)));
+  }
+
+  if (status === "success" && job.operation === "open_from_source") {
+    const generatedRequestId = extractGeneratedRequest(resultPayload);
+    if (generatedRequestId) {
+      persistenceResults.push(
+        await persistStatusItems(job.module, [
+          {
+            numeroFluig: generatedRequestId,
+            statusProcesso: "aberto",
+            etapaAtual: "Solicitacao aberta pelo ADM",
+            active: true,
+            dataUltimaConsulta: new Date().toISOString(),
+          },
+        ])
+      );
+    }
   }
 
   const persistence = persistenceResults.length ? mergePersistence(...persistenceResults) : undefined;

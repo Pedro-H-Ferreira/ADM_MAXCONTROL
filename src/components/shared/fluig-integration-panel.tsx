@@ -8,13 +8,13 @@ import {
   KeyRound,
   Laptop,
   RefreshCcw,
-  Send,
   Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { FluigLaunchForm } from "@/components/shared/fluig-launch-form";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { fluigAdmApi, type FluigAdmSyncAction } from "@/lib/fluig-api";
 import {
@@ -63,19 +63,27 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
 
     try {
       if (action === "sync" || action === "examples") {
-        const created = await fluigAdmApi.createJob({
-          module: integration.slug as FluigModuleSlug,
-          operation: "sync_history",
-          payload: {
-            action,
-            module: integration.slug,
-            days: 90,
-            pageSize: 50,
-            maxPages: 3,
-            persist: true,
-          },
-        });
-        await pollJobUntilDone(created.job.id);
+        const modulesToSync: FluigModuleSlug[] =
+          integration.slug === "fornecedores"
+            ? ["pagamentos", "compras", "manutencao"]
+            : [integration.slug as FluigModuleSlug];
+
+        for (const moduleToSync of modulesToSync) {
+          const created = await fluigAdmApi.createJob({
+            module: moduleToSync,
+            operation: "sync_history",
+            payload: {
+              action,
+              module: moduleToSync,
+              days: 730,
+              pageSize: 100,
+              maxPages: 25,
+              persist: true,
+              catalogRefresh: true,
+            },
+          });
+          await pollJobUntilDone(created.job.id);
+        }
       }
 
       const data = await fluigAdmApi.sync({ module: integration.slug as FluigModuleSlug, action });
@@ -162,7 +170,6 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     return null;
   }
 
-  const visibleFields = compact ? integration.mappedFields.slice(0, 5) : integration.mappedFields;
   const visibleRows = compact ? rows.slice(0, 2) : rows;
   const visibleExamples = compact ? examples.slice(0, 1) : examples;
   const onlineAgent = agents.find((agent) => agent.status === "online");
@@ -172,6 +179,10 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     .filter((group) => group.items.length > 0)
     .slice(0, compact ? 3 : 6);
   const catalogItemCount = catalogOrder.reduce((sum, catalogType) => sum + (catalogs[catalogType]?.length || 0), 0);
+  const launchTemplateCount = syncData?.launchTemplates?.filter((template) => template.module === integration.slug).length || 0;
+  const monthlyTemplateCount =
+    syncData?.launchTemplates?.filter((template) => template.module === integration.slug && template.recurrence === "monthly")
+      .length || 0;
 
   return (
     <Card className="stitch-animate-in stitch-hover-lift rounded-lg shadow-none">
@@ -192,7 +203,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
           </div>
           {!compact ? (
             <div className="grid gap-2 rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground lg:w-72">
-              <span className="font-medium text-foreground">Origem mapeada</span>
+              <span className="font-medium text-foreground">Origem Fluig</span>
               <span>{integration.stitch.screenTitle}</span>
               <span>Processo: {integration.processId}</span>
             </div>
@@ -223,10 +234,6 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
               <ExternalLink className="size-4" />
               Abrir formulario Fluig
             </a>
-          </Button>
-          <Button type="button" variant="outline" className="stitch-soft-button">
-            <Send className="size-4" />
-            {integration.primaryAction}
           </Button>
           <Button type="button" variant="outline" className="stitch-soft-button" onClick={pairAgent}>
             <KeyRound className="size-4" />
@@ -298,12 +305,20 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
         {error ? <p className="text-xs font-medium text-destructive">{error}</p> : null}
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <InfoTile icon={DatabaseZap} label="Processo" value={integration.processLabel} />
-          <InfoTile icon={FileText} label="Regras de lancamento" value={String(integration.mappedFields.length)} />
-          <InfoTile icon={FileText} label="Listas mapeadas" value={String(catalogItemCount)} />
+          <InfoTile icon={FileText} label="Modelos de lancamento" value={String(launchTemplateCount)} />
+          <InfoTile icon={FileText} label="Contas mensais" value={String(monthlyTemplateCount)} />
+          <InfoTile icon={FileText} label="Listas Fluig" value={String(catalogItemCount)} />
           <InfoTile icon={Workflow} label="Registros sincronizados" value={String(rows.length)} />
         </div>
+
+        <FluigLaunchForm
+          moduleSlug={integration.slug}
+          integration={integration}
+          syncData={syncData}
+          onSynced={setSyncData}
+        />
 
         <div className={cn("grid gap-4", compact ? "" : "xl:grid-cols-[1.15fr_0.85fr]")}>
           <section className="rounded-md border bg-muted/20">
@@ -408,7 +423,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
           <header className="border-b p-3">
             <h3 className="text-sm font-semibold">Listas para preenchimento</h3>
             <p className="text-xs text-muted-foreground">
-              Opcoes reais mapeadas do historico Fluig para preencher os lancamentos desta pagina.
+              Opcoes reais do historico Fluig para preencher os lancamentos desta pagina.
             </p>
           </header>
           <div className="grid gap-2 p-3 md:grid-cols-2 xl:grid-cols-3">
@@ -442,41 +457,11 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
           </div>
         </section>
 
-        <section className="rounded-md border bg-muted/20">
-          <header className="border-b p-3">
-            <h3 className="text-sm font-semibold">Mapeamento para lancamento</h3>
-            <p className="text-xs text-muted-foreground">
-              Campos exibidos com nomes normalizados do Fluig. Os codigos tecnicos ficam apenas na automacao.
-            </p>
-          </header>
-          <div className="grid gap-2 p-3 md:grid-cols-2">
-            {visibleFields.map((field) => (
-              <div key={`${field.fluigField}-${field.admField}`} className="rounded-md border bg-background p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">{getFluigFieldLabel(field)}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{field.admField}</p>
-                  </div>
-                  <span className="rounded border bg-muted px-2 py-1 text-[11px] text-muted-foreground">
-                    {field.required ? "obrigatorio" : "opcional"}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">{field.rule}</p>
-                {field.catalogType ? (
-                  <div className="mt-3 rounded bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
-                    Select: {fluigCatalogLabels[field.catalogType]} ({catalogs[field.catalogType]?.length || 0} opcoes)
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </section>
-
         {supplierMatches.length > 0 ? (
           <>
             <Separator />
             <section className="space-y-2">
-              <h3 className="text-sm font-semibold">Fornecedores mapeados do historico Fluig</h3>
+              <h3 className="text-sm font-semibold">Fornecedores do historico Fluig</h3>
               <div className="grid gap-2 md:grid-cols-3">
                 {supplierMatches.slice(0, compact ? 2 : 3).map((match) => (
                   <div key={`${match.supplier}-${match.cnpj}`} className="rounded-md border bg-muted/20 p-3">

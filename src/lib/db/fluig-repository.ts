@@ -6,6 +6,7 @@ import type {
   FluigCatalogItem,
   FluigCatalogType,
   FluigExampleRequest,
+  FluigLaunchTemplate,
   FluigModuleSlug,
   FluigSupplierMatch,
   FluigSyncRow,
@@ -171,6 +172,19 @@ function formFieldsFromPayload(payload: JsonRecord) {
   return formFields && typeof formFields === "object" && !Array.isArray(formFields)
     ? (formFields as Record<string, string>)
     : {};
+}
+
+function stringField(fields: Record<string, string>, fieldName: string) {
+  return String(fields[fieldName] ?? "").trim();
+}
+
+function firstStringField(fields: Record<string, string>, fieldNames: string[]) {
+  for (const fieldName of fieldNames) {
+    const value = stringField(fields, fieldName);
+    if (value) return value;
+  }
+
+  return "";
 }
 
 function suggestedDefaultString(value: unknown, label: string) {
@@ -372,6 +386,65 @@ function addCatalogCandidate(
   grouped.set(item.catalogKey, current ? { ...current, occurrenceCount: current.occurrenceCount + 1 } : item);
 }
 
+const catalogFieldMap: Record<
+  FluigCatalogType,
+  {
+    moduleScoped: boolean;
+    fields: string[];
+  }
+> = {
+  supplier: {
+    moduleScoped: false,
+    fields: ["fornecedorC", "fornecedor", "nomeFornecedor", "razaoSocial", "prestador", "fornecedorBruto"],
+  },
+  branch: {
+    moduleScoped: false,
+    fields: ["unidadeFilial", "filial", "filialOrigem", "filialDestino", "codFilialPedido", "codigoFilial", "codFilial"],
+  },
+  natureza: {
+    moduleScoped: true,
+    fields: ["codigonaturezaC", "naturezaSalva", "natureza", "codNatureza", "categoriaFinanceira", "categoria"],
+  },
+  cost_center: {
+    moduleScoped: true,
+    fields: ["centroCusto", "codCentroCusto", "centroDeCusto", "ccusto", "codCCusto"],
+  },
+  payment_method: {
+    moduleScoped: true,
+    fields: ["formaPagamento", "tipoPagamento", "meioPagamento"],
+  },
+  account: {
+    moduleScoped: true,
+    fields: ["contaCentroCusto", "contaContabil", "conta", "planoConta", "tipoTransacao", "tipoSolicitacao"],
+  },
+};
+
+function addMappedCatalogs(
+  grouped: Map<string, FluigCatalogCandidate>,
+  module: FluigModuleSlug,
+  item: FluigHistoryItem,
+  metadata: JsonRecord
+) {
+  const fields = item.formFields || {};
+
+  for (const [catalogType, config] of Object.entries(catalogFieldMap) as Array<
+    [FluigCatalogType, (typeof catalogFieldMap)[FluigCatalogType]]
+  >) {
+    for (const fieldName of config.fields) {
+      addCatalogCandidate(grouped, {
+        catalogType,
+        moduleSlug: config.moduleScoped ? module : null,
+        label: fields[fieldName],
+        sourceRequestId: item.processInstanceId,
+        metadata: {
+          ...metadata,
+          fieldName,
+        },
+      });
+    }
+  }
+}
+
 export function buildFluigCatalogItems(module: FluigModuleSlug, items: FluigHistoryItem[]): FluigCatalogCandidate[] {
   const grouped = new Map<string, FluigCatalogCandidate>();
 
@@ -403,52 +476,113 @@ export function buildFluigCatalogItems(module: FluigModuleSlug, items: FluigHist
       });
     }
 
-    addCatalogCandidate(grouped, {
-      catalogType: "branch",
-      moduleSlug: null,
-      label: branchLabel,
-      code: branchCode,
-      sourceRequestId: item.processInstanceId,
-      metadata,
-    });
+    if (branchLabel) {
+      addCatalogCandidate(grouped, {
+        catalogType: "branch",
+        moduleSlug: null,
+        label: branchLabel,
+        code: branchCode,
+        sourceRequestId: item.processInstanceId,
+        metadata,
+      });
+    }
 
-    addCatalogCandidate(grouped, {
-      catalogType: "natureza",
-      moduleSlug: module,
-      label: fields.codigonaturezaC || fields.naturezaSalva || fields.natureza || fields.codNatureza,
-      sourceRequestId: item.processInstanceId,
-      metadata,
-    });
-
-    addCatalogCandidate(grouped, {
-      catalogType: "cost_center",
-      moduleSlug: module,
-      label: fields.centroCusto || fields.codCentroCusto || fields.centroDeCusto,
-      sourceRequestId: item.processInstanceId,
-      metadata,
-    });
-
-    addCatalogCandidate(grouped, {
-      catalogType: "payment_method",
-      moduleSlug: module,
-      label: fields.formaPagamento,
-      sourceRequestId: item.processInstanceId,
-      metadata,
-    });
-
-    addCatalogCandidate(grouped, {
-      catalogType: "account",
-      moduleSlug: module,
-      label: fields.contaCentroCusto || fields.contaContabil,
-      sourceRequestId: item.processInstanceId,
-      metadata,
-    });
+    addMappedCatalogs(grouped, module, item, metadata);
   }
 
   return Array.from(grouped.values()).sort((a, b) => {
     if (b.occurrenceCount !== a.occurrenceCount) return b.occurrenceCount - a.occurrenceCount;
     return a.label.localeCompare(b.label);
   });
+}
+
+function monthKey(value: string | null | undefined) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function templateDefaultFields(fields: Record<string, string>) {
+  const keep = [
+    "fornecedorC",
+    "codCNPJ",
+    "unidadeFilial",
+    "centroCusto",
+    "codCentroCusto",
+    "codigonaturezaC",
+    "naturezaSalva",
+    "formaPagamento",
+    "contaCentroCusto",
+    "codFilialPedido",
+    "responsavelPedido",
+    "tipoTransacao",
+    "filial",
+    "filialDestino",
+    "zoomDemandaPara",
+    "obsFiscal",
+    "descricaoDemandaEnvio",
+  ];
+
+  return Object.fromEntries(keep.map((fieldName) => [fieldName, fields[fieldName] || ""]).filter(([, value]) => value));
+}
+
+export function buildFluigLaunchTemplatesFromRequests(rows: FluigRequestDbRow[]): FluigLaunchTemplate[] {
+  const grouped = new Map<
+    string,
+    {
+      rows: FluigRequestDbRow[];
+      months: Set<string>;
+    }
+  >();
+
+  for (const row of rows) {
+    const fields = formFieldsFromPayload(row.raw_payload || {});
+    const supplier = supplierFromFields(fields);
+    const supplierKey = row.supplier_cnpj || supplier.cnpj || normalizeName(row.supplier_name || supplier.name);
+    if (!supplierKey || !row.fluig_request_id) continue;
+
+    const key = [row.module_slug, supplierKey].join(":");
+    const current = grouped.get(key) || { rows: [], months: new Set<string>() };
+    current.rows.push(row);
+    const itemMonth = monthKey(row.opened_at || row.last_synced_at);
+    if (itemMonth) current.months.add(itemMonth);
+    grouped.set(key, current);
+  }
+
+  return Array.from(grouped.entries())
+    .map(([key, group]) => {
+      const latest = [...group.rows].sort((a, b) => {
+        const left = new Date(a.last_synced_at || a.opened_at || 0).getTime();
+        const right = new Date(b.last_synced_at || b.opened_at || 0).getTime();
+        return right - left;
+      })[0];
+      const fields = formFieldsFromPayload(latest.raw_payload || {});
+      const supplier = supplierFromFields(fields);
+      const supplierName = latest.supplier_name || supplier.name || firstStringField(fields, catalogFieldMap.supplier.fields) || null;
+      const sourceRequestId = latest.fluig_request_id || latest.id;
+
+      return {
+        id: key,
+        module: latest.module_slug,
+        title: supplierName ? `Padrao ${supplierName}` : `Modelo ${sourceRequestId}`,
+        recurrence: group.months.size >= 2 ? "monthly" : "model",
+        sourceRequestId,
+        supplierName,
+        supplierCnpj: latest.supplier_cnpj || supplier.cnpj,
+        branchCode: latest.branch_code || extractBranchCode(fields),
+        branchLabel: latest.branch_label || extractBranchLabel(fields) || null,
+        defaultFields: templateDefaultFields(fields),
+        occurrenceCount: group.rows.length,
+        monthCount: group.months.size,
+        lastSeenAt: latest.last_synced_at || latest.opened_at,
+      } satisfies FluigLaunchTemplate;
+    })
+    .sort((a, b) => {
+      if (a.recurrence !== b.recurrence) return a.recurrence === "monthly" ? -1 : 1;
+      if (b.occurrenceCount !== a.occurrenceCount) return b.occurrenceCount - a.occurrenceCount;
+      return a.title.localeCompare(b.title);
+    });
 }
 
 function mapHistoryToRequest(module: FluigModuleSlug, item: FluigHistoryItem, actor?: Pick<AppActor, "id"> | null) {
@@ -820,18 +954,21 @@ export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50,
       .map(mapRequestRowToExample);
     const supplierMatches = typedSupplierRows.map(mapSupplierCandidateToMatch);
     const catalogs = groupCatalogItems(typedCatalogRows.map(mapCatalogRow));
+    const launchTemplates = buildFluigLaunchTemplatesFromRequests(typedRequestRows);
 
     return {
       rows,
       examples,
       supplierMatches,
       catalogs,
+      launchTemplates,
     };
   }).then(({ result, persistence }) => ({
     rows: result?.rows || [],
     examples: result?.examples || [],
     supplierMatches: result?.supplierMatches || [],
     catalogs: result?.catalogs || {},
+    launchTemplates: result?.launchTemplates || [],
     persistence,
   }));
 }

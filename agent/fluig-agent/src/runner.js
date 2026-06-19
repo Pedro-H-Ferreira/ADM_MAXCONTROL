@@ -95,6 +95,43 @@ function processVersionsFromJob(job) {
   return Array.isArray(versions) ? versions.join(",") : String(versions || "");
 }
 
+function safeFileName(value) {
+  const baseName = path.basename(String(value || "anexo.pdf")).replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
+  return baseName || "anexo.pdf";
+}
+
+function writePayloadAttachments(config, job, attachments) {
+  if (!Array.isArray(attachments) || !attachments.length) return [];
+
+  const attachmentRoot = path.join(config.projectRoot, ".adm-fluig-agent", "attachments", job.id);
+  fs.mkdirSync(attachmentRoot, { recursive: true });
+
+  return attachments
+    .map((attachment, index) => {
+      const name = safeFileName(attachment?.name || `anexo-${index + 1}.pdf`);
+
+      if (attachment?.path) {
+        return {
+          path: String(attachment.path),
+          name,
+        };
+      }
+
+      if (!attachment?.dataBase64) {
+        return null;
+      }
+
+      const filePath = path.join(attachmentRoot, `${String(index + 1).padStart(2, "0")}-${name}`);
+      fs.writeFileSync(filePath, Buffer.from(String(attachment.dataBase64), "base64"));
+
+      return {
+        path: filePath,
+        name,
+      };
+    })
+    .filter(Boolean);
+}
+
 async function executeJob(config, job, emitProgress) {
   const root = config.projectRoot;
   const payload = job.requestPayload || {};
@@ -179,8 +216,13 @@ async function executeJob(config, job, emitProgress) {
     if (!sourceRequestId) {
       throw new Error("Modelo Fluig de origem nao informado.");
     }
+    const attachments = writePayloadAttachments(config, job, payload.attachments);
     const fieldOverrides = Object.entries(payload.fieldOverrides || {}).flatMap(([field, value]) => [
       `--set=${field}=${value == null ? "" : String(value)}`,
+    ]);
+    const attachmentArgs = attachments.flatMap((attachment) => [
+      `--attachment-path=${attachment.path}`,
+      `--attachment-name=${attachment.name}`,
     ]);
     const scriptPath = path.join(root, "scripts", "fluig-adm-open-from-source.cjs");
     const { stdout } = await runNodeScript(
@@ -191,6 +233,7 @@ async function executeJob(config, job, emitProgress) {
         `--source-request-id=${sourceRequestId}`,
         `--task-user-id=${payload.taskUserId || processMap.defaultTaskUserId || config.fluig.taskUserId}`,
         ...fieldOverrides,
+        ...attachmentArgs,
       ],
       { onLine }
     );

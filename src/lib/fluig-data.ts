@@ -23,6 +23,22 @@ export type FluigCatalogItem = {
   metadata: Record<string, unknown>;
 };
 
+export type FluigLaunchTemplate = {
+  id: string;
+  module: FluigModuleSlug;
+  title: string;
+  recurrence: "monthly" | "model";
+  sourceRequestId: string;
+  supplierName: string | null;
+  supplierCnpj: string | null;
+  branchCode: string | null;
+  branchLabel: string | null;
+  defaultFields: Record<string, string>;
+  occurrenceCount: number;
+  monthCount: number;
+  lastSeenAt: string | null;
+};
+
 export type FluigExampleRequest = {
   id: string;
   title: string;
@@ -98,6 +114,7 @@ export type FluigAdmSyncResponse = {
   examples: FluigExampleRequest[];
   supplierMatches: FluigSupplierMatch[];
   catalogs?: Partial<Record<FluigCatalogType, FluigCatalogItem[]>>;
+  launchTemplates?: FluigLaunchTemplate[];
   persistence?: {
     configured: boolean;
     errors: string[];
@@ -561,8 +578,21 @@ export const fluigCatalogLabels: Record<FluigCatalogType, string> = {
   account: "Contas contabeis",
 };
 
+function humanizeFluigFieldName(value: string) {
+  const label = value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_./-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
+  return label ? label.charAt(0).toUpperCase() + label.slice(1) : "Campo Fluig";
+}
+
 export function getFluigFieldLabel(field: Pick<FluigMappedField, "fluigField" | "admField">) {
-  return fluigFieldLabels[field.fluigField] || field.admField || field.fluigField;
+  if (fluigFieldLabels[field.fluigField]) return fluigFieldLabels[field.fluigField];
+  if (field.admField && field.admField !== field.fluigField) return field.admField;
+  return humanizeFluigFieldName(field.fluigField || field.admField);
 }
 
 export function hasFluigIntegration(slug: string) {
