@@ -174,7 +174,8 @@ if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
   Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
 }
 
-$Action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$RunFile`""
+$ActionArgument = '/d /c "' + $RunFile + '"'
+$Action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument $ActionArgument
 $Trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 $Principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
 $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
