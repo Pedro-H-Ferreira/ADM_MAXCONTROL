@@ -18,6 +18,81 @@ export type FluigAdmSyncRequest = {
   action?: FluigAdmSyncAction;
 };
 
+export type FluigAdmAgent = {
+  id: string;
+  display_name: string;
+  machine_name: string | null;
+  status: string;
+  last_heartbeat_at: string | null;
+};
+
+export type FluigAdmJobSummary = {
+  id: string;
+  module: FluigModuleSlug;
+  operation: FluigJobOperation;
+  status: string;
+  progressStage: string | null;
+  progressLabel: string | null;
+  errorMessage?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  finishedAt?: string | null;
+};
+
+export type FluigOpenRequestRecord = {
+  id: string;
+  module: FluigModuleSlug;
+  fluigRequestId: string;
+  admReference: string | null;
+  status: string | null;
+  normalizedStatus: string | null;
+  isOpen: boolean | null;
+  currentTask: string | null;
+  taskOwner: string | null;
+  requester: string | null;
+  branchCode: string | null;
+  branchLabel: string | null;
+  supplierName: string | null;
+  supplierCnpj: string | null;
+  openedAt: string | null;
+  lastSyncedAt: string | null;
+  lastStatusCheckAt: string | null;
+  lastSeenInUserOpenListAt: string | null;
+  syncOwnerUserId: string | null;
+  syncSource: string | null;
+};
+
+export type FluigUserSyncStateRecord = {
+  id: string;
+  userId: string;
+  fluigUsername: string | null;
+  fluigUserId: string | null;
+  module: FluigModuleSlug;
+  syncType: "historical" | "open_tasks" | "my_requests" | "status_check" | "supplier_lookup";
+  lastSyncAt: string | null;
+  lastSuccessAt: string | null;
+  lastErrorAt: string | null;
+  lastErrorMessage: string | null;
+  cursor: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FluigUserSyncResponse = {
+  success: true;
+  openTasks?: {
+    jobs: FluigAdmJobSummary[];
+    skipped: Array<{ module: FluigModuleSlug; reason: string }>;
+  };
+  myRequests?: {
+    jobs: FluigAdmJobSummary[];
+    skipped: Array<{ module: FluigModuleSlug; reason: string }>;
+  };
+  jobs: FluigAdmJobSummary[];
+  skipped: Array<{ module: FluigModuleSlug; reason: string }>;
+};
+
 type FluigJobStatusResponse = {
   success: true;
   job: {
@@ -47,6 +122,7 @@ export const fluigAdmApi = {
   agentPairPath: "/api/fluig/adm/agent/pair",
   jobsPath: "/api/fluig/adm/jobs",
   syncUserPath: "/api/fluig/adm/sync/user",
+  syncStatePath: "/api/fluig/adm/sync/state",
   syncOpenTasksPath: "/api/fluig/adm/sync/open-tasks",
   syncMyRequestsPath: "/api/fluig/adm/sync/my-requests",
   myTasksPath: "/api/fluig/adm/tasks/my",
@@ -76,6 +152,16 @@ export const fluigAdmApi = {
 
     if (!response.ok || data.success === false) {
       throw new Error(data.error || "Falha ao executar operacao Fluig");
+    }
+
+    return data;
+  },
+  async get<TResponse>(path: string) {
+    const response = await fetch(path, { cache: "no-store" });
+    const data = (await response.json()) as TResponse & { success?: boolean; error?: string };
+
+    if (!response.ok || data.success === false) {
+      throw new Error(data.error || "Falha ao consultar Fluig");
     }
 
     return data;
@@ -112,13 +198,7 @@ export const fluigAdmApi = {
     const data = (await response.json()) as {
       success?: boolean;
       error?: string;
-      agents?: Array<{
-        id: string;
-        display_name: string;
-        machine_name: string | null;
-        status: string;
-        last_heartbeat_at: string | null;
-      }>;
+      agents?: FluigAdmAgent[];
     };
 
     if (!response.ok || data.success === false) {
@@ -126,6 +206,50 @@ export const fluigAdmApi = {
     }
 
     return data.agents || [];
+  },
+  async syncUser(payload: { module?: FluigModuleSlug | "all" | "auto"; limit?: number }) {
+    return this.post<FluigUserSyncResponse>(this.syncUserPath, payload);
+  },
+  async syncOpenTasks(payload: { module?: FluigModuleSlug | "all" | "auto"; requestIds?: string[] | string; limit?: number }) {
+    return this.post<{
+      success: true;
+      jobs: FluigAdmJobSummary[];
+      skipped: Array<{ module: FluigModuleSlug; reason: string }>;
+    }>(this.syncOpenTasksPath, payload);
+  },
+  async syncMyRequests(payload: { module?: FluigModuleSlug | "all" | "auto"; requestIds?: string[] | string; limit?: number }) {
+    return this.post<{
+      success: true;
+      jobs: FluigAdmJobSummary[];
+      skipped: Array<{ module: FluigModuleSlug; reason: string }>;
+    }>(this.syncMyRequestsPath, payload);
+  },
+  async listMyTasks(limit = 20, module?: FluigModuleSlug) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (module) params.set("module", module);
+    return this.get<{
+      success: true;
+      tasks: FluigOpenRequestRecord[];
+      persistence?: unknown;
+    }>(`${this.myTasksPath}?${params.toString()}`);
+  },
+  async listMyOpenRequests(limit = 20, module?: FluigModuleSlug) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (module) params.set("module", module);
+    return this.get<{
+      success: true;
+      requests: FluigOpenRequestRecord[];
+      persistence?: unknown;
+    }>(`${this.myOpenRequestsPath}?${params.toString()}`);
+  },
+  async listSyncState(module?: FluigModuleSlug) {
+    const params = new URLSearchParams();
+    if (module) params.set("module", module);
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    return this.get<{
+      success: true;
+      states: FluigUserSyncStateRecord[];
+    }>(`${this.syncStatePath}${suffix}`);
   },
   async pairAgent(payload: { displayName?: string; machineName?: string }) {
     return this.post<{

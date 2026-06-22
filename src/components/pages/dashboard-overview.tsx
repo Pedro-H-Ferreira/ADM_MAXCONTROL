@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DashboardCard } from "@/components/shared/dashboard-card";
+import { DashboardFluigOperations } from "@/components/shared/dashboard-fluig-operations";
 import { PageHeader } from "@/components/shared/page-header";
 import { PeriodFilter } from "@/components/shared/period-filter";
 import { StatCard } from "@/components/shared/stat-card";
@@ -52,6 +53,8 @@ export function DashboardOverview() {
           <StatCard key={item.title} item={item} className={stitchDelays[index]} />
         ))}
       </div>
+
+      <DashboardFluigOperations />
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
         <Card className="stitch-animate-in stitch-hover-lift stitch-delay-200 rounded-lg shadow-none">

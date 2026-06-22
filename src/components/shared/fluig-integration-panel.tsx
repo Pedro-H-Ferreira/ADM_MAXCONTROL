@@ -22,6 +22,7 @@ import {
   getFluigFieldLabel,
   getFluigIntegrationForModule,
   type FluigAdmSyncResponse,
+  type FluigCatalogItem,
   type FluigCatalogType,
   type FluigModuleSlug,
 } from "@/lib/fluig-data";
@@ -36,6 +37,8 @@ type HistoryJobPlan = {
   module: FluigModuleSlug;
   payload: Record<string, unknown>;
 };
+
+const catalogOrder: FluigCatalogType[] = ["supplier", "branch", "natureza", "cost_center", "payment_method", "account"];
 
 function padDatePart(value: number) {
   return String(value).padStart(2, "0");
@@ -118,12 +121,48 @@ function buildHistoryJobPlans(module: FluigModuleSlug, action: FluigAdmSyncActio
   ];
 }
 
+function normalizeCatalogValue(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\D+/g, "")
+    .trim();
+}
+
+function catalogMetadataText(item: FluigCatalogItem, key: string) {
+  const value = item.metadata?.[key];
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+}
+
+function catalogDedupeKey(item: FluigCatalogItem) {
+  const cnpj = normalizeCatalogValue(catalogMetadataText(item, "cnpj"));
+  const code = normalizeCatalogValue(item.code || "");
+  const label = (item.label || item.value || "").trim().toLowerCase();
+  return `${item.catalogType}:${cnpj || code || label}`;
+}
+
+function dedupeCatalogItems(items: FluigCatalogItem[]) {
+  const byKey = new Map<string, FluigCatalogItem>();
+
+  for (const item of items) {
+    const key = catalogDedupeKey(item);
+    const current = byKey.get(key);
+    if (!current || item.occurrenceCount > current.occurrenceCount || item.lastSeenAt > current.lastSeenAt) {
+      byKey.set(key, item);
+    }
+  }
+
+  return Array.from(byKey.values()).sort((a, b) => b.occurrenceCount - a.occurrenceCount || a.label.localeCompare(b.label));
+}
+
 export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigIntegrationPanelProps) {
   const integration = getFluigIntegrationForModule(moduleSlug);
   const [syncData, setSyncData] = useState<FluigAdmSyncResponse | null>(null);
   const [pendingAction, setPendingAction] = useState<FluigAdmSyncAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [agents, setAgents] = useState<Array<{ id: string; display_name: string; machine_name: string | null; status: string; last_heartbeat_at: string | null }>>([]);
+  const [pendingUserSync, setPendingUserSync] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [activeJob, setActiveJob] = useState<{
     id: string;
     status: string;
@@ -136,7 +175,19 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const rows = useMemo(() => syncData?.rows ?? [], [syncData?.rows]);
   const examples = useMemo(() => syncData?.examples ?? [], [syncData?.examples]);
   const supplierMatches = useMemo(() => syncData?.supplierMatches ?? [], [syncData?.supplierMatches]);
-  const catalogs = useMemo(() => syncData?.catalogs ?? {}, [syncData?.catalogs]);
+  const catalogs = useMemo(() => {
+    const next: Partial<Record<FluigCatalogType, FluigCatalogItem[]>> = {};
+
+    for (const catalogType of catalogOrder) {
+      next[catalogType] = dedupeCatalogItems(syncData?.catalogs?.[catalogType] || []);
+    }
+
+    return next;
+  }, [syncData?.catalogs]);
+  const displaySyncData = useMemo(
+    () => (syncData ? { ...syncData, catalogs } : null),
+    [catalogs, syncData]
+  );
   const integrationSlug = integration?.slug;
 
   async function runSync(action: FluigAdmSyncAction) {
@@ -146,6 +197,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
 
     setPendingAction(action);
     setError(null);
+    setNotice(null);
 
     try {
       if (action === "sync" || action === "examples") {
@@ -172,6 +224,40 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
       setError(syncError instanceof Error ? syncError.message : "Falha ao sincronizar Fluig");
     } finally {
       setPendingAction(null);
+    }
+  }
+
+  async function runUserIncrementalSync() {
+    if (!integration) {
+      return;
+    }
+
+    setPendingUserSync(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const data = await fluigAdmApi.syncUser({
+        module: integration.slug === "fornecedores" ? "all" : integration.slug,
+        limit: 80,
+      });
+
+      for (const job of data.jobs) {
+        await pollJobUntilDone(job.id);
+      }
+
+      if (!data.jobs.length && data.skipped.length) {
+        setNotice("Nao havia solicitacoes abertas conhecidas para atualizar neste momento.");
+      } else {
+        setNotice("Sincronizacao incremental concluida.");
+      }
+
+      const refreshed = await fluigAdmApi.sync({ module: integration.slug as FluigModuleSlug, action: "sync" });
+      setSyncData(refreshed);
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : "Falha ao sincronizar pendencias Fluig");
+    } finally {
+      setPendingUserSync(false);
     }
   }
 
@@ -203,6 +289,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
 
   async function pairAgent() {
     setError(null);
+    setNotice(null);
     setPairToken(null);
 
     try {
@@ -253,7 +340,6 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const visibleRows = compact ? rows.slice(0, 2) : rows;
   const visibleExamples = compact ? examples.slice(0, 1) : examples;
   const onlineAgent = agents.find((agent) => agent.status === "online");
-  const catalogOrder: FluigCatalogType[] = ["supplier", "branch", "natureza", "cost_center", "payment_method", "account"];
   const visibleCatalogs = catalogOrder
     .map((catalogType) => ({ catalogType, items: catalogs[catalogType] || [] }))
     .filter((group) => group.items.length > 0)
@@ -283,9 +369,9 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
           </div>
           {!compact ? (
             <div className="grid gap-2 rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground lg:w-72">
-              <span className="font-medium text-foreground">Origem Fluig</span>
-              <span>{integration.stitch.screenTitle}</span>
-              <span>Processo: {integration.processId}</span>
+              <span className="font-medium text-foreground">Fluxo operacional</span>
+              <span>{integration.processLabel}</span>
+              <span>Execucao pelo agente local do usuario.</span>
             </div>
           ) : null}
         </div>
@@ -293,10 +379,10 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
           <Button
             type="button"
             className="stitch-soft-button"
-            onClick={() => runSync("sync")}
-            disabled={Boolean(pendingAction)}
+            onClick={() => runUserIncrementalSync()}
+            disabled={Boolean(pendingAction) || pendingUserSync}
           >
-            <RefreshCcw className={cn("size-4", pendingAction === "sync" ? "animate-spin" : "")} />
+            <RefreshCcw className={cn("size-4", pendingUserSync ? "animate-spin" : "")} />
             {integration.syncAction}
           </Button>
           <Button
@@ -304,7 +390,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             variant="outline"
             className="stitch-soft-button"
             onClick={() => runSync("examples")}
-            disabled={Boolean(pendingAction)}
+            disabled={Boolean(pendingAction) || pendingUserSync}
           >
             <FileText className="size-4" />
             Consultar modelos reais
@@ -382,6 +468,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             {syncData.persistence.errors.join(" | ")}
           </p>
         ) : null}
+        {notice ? <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{notice}</p> : null}
         {error ? <p className="text-xs font-medium text-destructive">{error}</p> : null}
       </CardHeader>
       <CardContent className="space-y-4">
@@ -396,7 +483,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
         <FluigLaunchForm
           moduleSlug={integration.slug}
           integration={integration}
-          syncData={syncData}
+          syncData={displaySyncData}
           onSynced={setSyncData}
         />
 
