@@ -16,6 +16,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { UploadField } from "@/components/shared/upload-field";
 import { UserBranchAccessPanel } from "@/components/shared/user-branch-access-panel";
+import { SuppliersPage } from "@/components/pages/suppliers-page";
 import type { ModuleConfig } from "@/lib/admin-data";
 
 const stitchDelays = [
@@ -34,6 +35,10 @@ export function ModulePage({
   config: ModuleConfig;
   mode: "list" | "new" | "detail";
 }) {
+  if (config.slug === "fornecedores") {
+    return <SuppliersPage config={config} initialOpenForm={mode === "new"} />;
+  }
+
   if (mode === "new") {
     return <ModuleFormPage config={config} />;
   }

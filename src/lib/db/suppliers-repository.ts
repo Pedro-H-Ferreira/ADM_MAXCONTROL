@@ -487,13 +487,17 @@ export async function deleteSupplier(actor: AppActor, id: string) {
 
 function suggestionFromCandidate(row: Record<string, unknown>) {
   const defaults = (row.suggested_defaults || {}) as JsonRecord;
+  const sourceRequestIds = Array.isArray(row.source_request_ids) ? row.source_request_ids : [];
   return {
+    candidateId: row.id,
     razaoSocial: row.supplier_name,
     cnpj: row.cnpj,
     fluigName: row.fluig_name,
     fluigCode: row.fluig_code,
-    defaultSourceRequestId: defaults.sourceRequestId || null,
+    defaultSourceRequestId: defaults.sourceRequestId || sourceRequestIds[0] || null,
     defaultPayload: defaults,
+    confidence: row.confidence,
+    sourceRequestIds,
   };
 }
 
