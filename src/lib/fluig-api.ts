@@ -10,6 +10,7 @@ export type FluigJobOperation =
   | "sync_initial_history"
   | "sync_user_open_tasks"
   | "sync_user_open_requests"
+  | "sync_user_incremental_batch"
   | "sync_request_by_number"
   | "supplier_lookup_by_cnpj";
 
@@ -79,18 +80,30 @@ export type FluigUserSyncStateRecord = {
   updatedAt: string;
 };
 
+export type FluigUserSyncSkipped = {
+  module: FluigModuleSlug;
+  syncType?: "open_tasks" | "my_requests";
+  reason: string;
+};
+
 export type FluigUserSyncResponse = {
   success: true;
   openTasks?: {
     jobs: FluigAdmJobSummary[];
-    skipped: Array<{ module: FluigModuleSlug; reason: string }>;
+    skipped: FluigUserSyncSkipped[];
   };
   myRequests?: {
     jobs: FluigAdmJobSummary[];
-    skipped: Array<{ module: FluigModuleSlug; reason: string }>;
+    skipped: FluigUserSyncSkipped[];
   };
   jobs: FluigAdmJobSummary[];
-  skipped: Array<{ module: FluigModuleSlug; reason: string }>;
+  skipped: FluigUserSyncSkipped[];
+  batches?: Array<{
+    module: FluigModuleSlug;
+    operation: Extract<FluigJobOperation, "sync_user_open_tasks" | "sync_user_open_requests">;
+    syncType: "open_tasks" | "my_requests";
+    requestIds: string[];
+  }>;
 };
 
 type FluigJobStatusResponse = {

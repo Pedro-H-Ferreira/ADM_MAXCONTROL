@@ -94,7 +94,7 @@ Rotas novas:
 - `GET /api/fluig/adm/map`: retorna o mapa completo por aba e, com `?persist=true`, grava em `fluig_process_mappings`.
 - `POST /api/fluig/adm/history`: consulta historico real por modulo, gera candidatos de fornecedor e grava em `fluig_requests`/`fluig_supplier_candidates` quando Supabase estiver configurado.
 - `POST /api/fluig/adm/sync/historical`: cria jobs de carga historica inicial pelo agente local. Para `fornecedores`, agenda pagamentos, compras e manutencao.
-- `POST /api/fluig/adm/sync/user`: cria jobs incrementais do usuario logado para tarefas e solicitacoes abertas conhecidas, sem varrer historico completo.
+- `POST /api/fluig/adm/sync/user`: cria um job incremental em lote (`sync_user_incremental_batch`) para o usuario logado, agrupando tarefas e solicitacoes abertas conhecidas em uma unica execucao do agente, sem varrer historico completo.
 - `POST /api/fluig/adm/sync/open-tasks`: cria job incremental `sync_user_open_tasks` para consultar status Fluig somente de solicitacoes abertas conhecidas.
 - `POST /api/fluig/adm/sync/my-requests`: cria job incremental `sync_user_open_requests` para consultar status Fluig somente de solicitacoes abertas conhecidas.
 - `GET /api/fluig/adm/sync/state`: retorna `lastSync`, `lastSuccess` e `lastError` por usuario, modulo e tipo de sync.
@@ -123,6 +123,15 @@ Scripts locais usados pelo adaptador dentro deste repositorio:
 - `scripts/fluig/syncFluigStatus.js`: consulta status, etapa, responsavel e SLA.
 - `scripts/fluig/cancelViaApi.js`: cancela solicitacoes quando confirmado.
 - `scripts/fluig/api/session.js` e `scripts/fluig/api/workflowViewApi.js`: autenticacao e chamadas autenticadas ao Fluig.
+
+Sincronizacao por usuario:
+
+- O dashboard chama `/api/fluig/adm/sync/user`.
+- A API le as solicitacoes abertas conhecidas por modulo e monta lotes internos para `open_tasks` e `my_requests`.
+- A API cria um unico job `sync_user_incremental_batch` em `fluig_jobs`.
+- O agente executa `scripts/fluig/syncFluigStatus.js` uma unica vez com todos os numeros Fluig deduplicados.
+- O resultado volta com `moduleSlug` e tipos de sync para que a API salve cada solicitacao no modulo correto e atualize `fluig_user_sync_state` por usuario/modulo/tipo.
+- Os endpoints `/sync/open-tasks` e `/sync/my-requests` permanecem para execucoes isoladas e diagnostico.
 
 Validacoes executadas em 17/06/2026:
 

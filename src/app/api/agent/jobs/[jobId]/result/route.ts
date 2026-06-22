@@ -18,6 +18,7 @@ import {
 } from "@/lib/db/fluig-repository";
 import { mergePersistence } from "@/lib/fluig/route-utils";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
+import type { FluigModuleSlug } from "@/lib/fluig-data";
 import { requireAgent } from "@/app/api/agent/_utils";
 
 export const runtime = "nodejs";
@@ -71,6 +72,37 @@ function syncTypeForJob(operation: string): FluigUserSyncType | null {
   return null;
 }
 
+function isFluigModuleSlug(value: string): value is FluigModuleSlug {
+  return value === "pagamentos" || value === "compras" || value === "manutencao" || value === "fornecedores";
+}
+
+function moduleFromStatusItem(item: FluigStatusItem, fallback: FluigModuleSlug) {
+  const moduleSlug = String((item as FluigStatusItem & { moduleSlug?: unknown }).moduleSlug || "");
+  return isFluigModuleSlug(moduleSlug) ? moduleSlug : fallback;
+}
+
+function batchDefinitions(payload: Record<string, unknown>) {
+  const batches = Array.isArray(payload.batches) ? payload.batches : [];
+
+  return batches
+    .map((batch) => ({
+      module: String((batch as Record<string, unknown>)?.module || ""),
+      syncType: String((batch as Record<string, unknown>)?.syncType || ""),
+      operation: String((batch as Record<string, unknown>)?.operation || ""),
+      requestIds: Array.isArray((batch as Record<string, unknown>)?.requestIds)
+        ? ((batch as Record<string, unknown>).requestIds as unknown[]).map(String)
+        : [],
+    }))
+    .filter(
+      (batch): batch is {
+        module: FluigModuleSlug;
+        syncType: Extract<FluigUserSyncType, "open_tasks" | "my_requests">;
+        operation: string;
+        requestIds: string[];
+      } => isFluigModuleSlug(batch.module) && (batch.syncType === "open_tasks" || batch.syncType === "my_requests")
+    );
+}
+
 export async function POST(request: Request, context: RouteContext) {
   const { agent, error } = await requireAgent(request);
   if (!agent) return error;
@@ -112,6 +144,25 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
+  if (status === "success" && job.operation === "sync_user_incremental_batch") {
+    const itemsByModule = new Map<FluigModuleSlug, FluigStatusItem[]>();
+
+    for (const item of extractStatusItems(resultPayload)) {
+      const moduleSlug = moduleFromStatusItem(item, job.module);
+      itemsByModule.set(moduleSlug, [...(itemsByModule.get(moduleSlug) || []), item]);
+    }
+
+    for (const [moduleSlug, items] of itemsByModule.entries()) {
+      persistenceResults.push(
+        await persistStatusItems(moduleSlug, items, {
+          ownerUserId: job.requestedByUserId,
+          syncSource: job.operation,
+          markSeenOpen: true,
+        })
+      );
+    }
+  }
+
   if (status === "success" && job.operation === "open_from_source") {
     const generatedRequestId = extractGeneratedRequest(resultPayload);
     if (generatedRequestId) {
@@ -132,6 +183,7 @@ export async function POST(request: Request, context: RouteContext) {
   const persistence = persistenceResults.length ? mergePersistence(...persistenceResults) : undefined;
   const finalPayload = persistence ? { ...resultPayload, persistence } : resultPayload;
   const syncType = syncTypeForJob(job.operation);
+  const batchSyncStates = job.operation === "sync_user_incremental_batch" ? batchDefinitions(job.requestPayload) : [];
 
   await completeFluigJob({
     jobId,
@@ -149,6 +201,22 @@ export async function POST(request: Request, context: RouteContext) {
       errorMessage: body.errorMessage,
       metadata: {
         persistence,
+      },
+    });
+  }
+
+  for (const batch of batchSyncStates) {
+    await completeFluigUserSyncStateForJob({
+      job,
+      module: batch.module,
+      syncType: batch.syncType,
+      status: status === "success" ? "success" : "error",
+      errorMessage: body.errorMessage,
+      metadata: {
+        persistence,
+        batched: true,
+        operation: batch.operation,
+        requestCount: batch.requestIds.length,
       },
     });
   }

@@ -131,6 +131,62 @@ function historyWindowsFromPayload(payload) {
     .filter((window) => window.start && window.end);
 }
 
+function syncBatchesFromPayload(payload) {
+  if (!Array.isArray(payload.batches)) return [];
+
+  return payload.batches
+    .map((batch) => ({
+      module: String(batch?.module || "").trim(),
+      operation: String(batch?.operation || "").trim(),
+      syncType: String(batch?.syncType || "").trim(),
+      taskUserId: String(batch?.taskUserId || payload.taskUserId || "").trim(),
+      requestIds: Array.isArray(batch?.requestIds) ? batch.requestIds.map((item) => String(item || "").trim()).filter(Boolean) : [],
+    }))
+    .filter((batch) => batch.module && batch.syncType && batch.requestIds.length);
+}
+
+function requestIndexFromBatches(batches) {
+  const byRequestId = new Map();
+
+  for (const batch of batches) {
+    for (const requestId of batch.requestIds) {
+      const current = byRequestId.get(requestId) || {
+        module: batch.module,
+        operations: new Set(),
+        syncTypes: new Set(),
+      };
+      current.operations.add(batch.operation);
+      current.syncTypes.add(batch.syncType);
+      byRequestId.set(requestId, current);
+    }
+  }
+
+  return byRequestId;
+}
+
+function annotateBatchStatusItems(result, batches) {
+  const byRequestId = requestIndexFromBatches(batches);
+  const items = Array.isArray(result.items) ? result.items : [];
+
+  return {
+    ...result,
+    batchCount: batches.length,
+    batched: true,
+    items: items.map((item) => {
+      const requestId = String(item?.numeroFluig || item?.requestId || "").trim();
+      const metadata = byRequestId.get(requestId);
+
+      return {
+        ...item,
+        moduleSlug: metadata?.module || null,
+        syncTypes: metadata ? Array.from(metadata.syncTypes) : [],
+        syncOperations: metadata ? Array.from(metadata.operations) : [],
+        syncSource: "sync_user_incremental_batch",
+      };
+    }),
+  };
+}
+
 function safeFileName(value) {
   const baseName = path.basename(String(value || "anexo.pdf")).replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
   return baseName || "anexo.pdf";
@@ -247,6 +303,28 @@ async function executeJob(config, job, emitProgress) {
     return {
       outputPath,
       data: readOutputJson(outputPath),
+    };
+  }
+
+  if (job.operation === "sync_user_incremental_batch") {
+    const batches = syncBatchesFromPayload(payload);
+    const requestIds = Array.from(new Set(batches.flatMap((batch) => batch.requestIds)));
+    if (!requestIds.length) {
+      throw new Error("Nenhum numero Fluig aberto conhecido para consulta incremental em lote.");
+    }
+
+    const scriptPath = path.join(root, "scripts", "fluig", "syncFluigStatus.js");
+    const taskUserId = payload.taskUserId || batches.find((batch) => batch.taskUserId)?.taskUserId || config.fluig.taskUserId;
+    const { stdout } = await runNodeScript(
+      config,
+      scriptPath,
+      [...requestIds, `--task-user-id=${taskUserId}`],
+      { onLine }
+    );
+    const outputPath = parseTaggedPath(stdout, "SYNC_FLUIG_STATUS_RESULT");
+    return {
+      outputPath,
+      data: annotateBatchStatusItems(readOutputJson(outputPath), batches),
     };
   }
 

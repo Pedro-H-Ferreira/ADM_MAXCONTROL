@@ -86,6 +86,7 @@ export type FluigJobOperation =
   | "sync_initial_history"
   | "sync_user_open_tasks"
   | "sync_user_open_requests"
+  | "sync_user_incremental_batch"
   | "sync_request_by_number"
   | "supplier_lookup_by_cnpj";
 
@@ -731,6 +732,7 @@ export async function createAgentPairing(input: { actor: AppActor; displayName?:
         "sync_initial_history",
         "sync_user_open_tasks",
         "sync_user_open_requests",
+        "sync_user_incremental_batch",
         "sync_request_by_number",
         "supplier_lookup_by_cnpj",
       ],
@@ -883,6 +885,7 @@ export async function upsertFluigUserSyncState(input: {
 
 export async function completeFluigUserSyncStateForJob(input: {
   job: FluigJobRecord;
+  module?: FluigModuleSlug;
   syncType: FluigUserSyncType;
   status: "success" | "error";
   errorMessage?: string | null;
@@ -894,7 +897,7 @@ export async function completeFluigUserSyncStateForJob(input: {
     user_id: input.job.requestedByUserId,
     fluig_username: input.job.fluigUsername,
     fluig_user_id: null,
-    module_slug: input.job.module,
+    module_slug: input.module || input.job.module,
     sync_type: input.syncType,
     last_sync_at: now,
     last_success_at: input.status === "success" ? now : undefined,
