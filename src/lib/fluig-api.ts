@@ -264,6 +264,34 @@ export const fluigAdmApi = {
       job: FluigAdmJobSummary;
     }>(this.requestLookupPath, payload);
   },
+  async openDryRun(payload: {
+    module: FluigModuleSlug;
+    sourceRequestId: string;
+    fieldOverrides: Record<string, string>;
+    attachments?: Array<{ name: string; mimeType?: string; size?: number }>;
+    mode?: "test" | "production";
+  }) {
+    return this.post<{
+      success: true;
+      generatedAt: string;
+      dryRun: {
+        module: FluigModuleSlug;
+        processId: string;
+        sourceRequestId: string;
+        mode: "test" | "production";
+        requiredConfirmation: boolean;
+        fieldOverrides: Record<string, string>;
+      };
+    }>(this.openPath, {
+      module: payload.module,
+      sourceRequestId: payload.sourceRequestId,
+      fieldOverrides: payload.fieldOverrides,
+      attachments: payload.attachments || [],
+      mode: payload.mode || "production",
+      confirm: false,
+      persist: false,
+    });
+  },
   async listMyTasks(limit = 20, module?: FluigModuleSlug) {
     const params = new URLSearchParams({ limit: String(limit) });
     if (module) params.set("module", module);
