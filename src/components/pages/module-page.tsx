@@ -16,6 +16,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { UploadField } from "@/components/shared/upload-field";
 import { UserBranchAccessPanel } from "@/components/shared/user-branch-access-panel";
+import { BranchesPage } from "@/components/pages/branches-page";
 import { SuppliersPage } from "@/components/pages/suppliers-page";
 import type { ModuleConfig } from "@/lib/admin-data";
 
@@ -37,6 +38,10 @@ export function ModulePage({
 }) {
   if (config.slug === "fornecedores") {
     return <SuppliersPage config={config} initialOpenForm={mode === "new"} />;
+  }
+
+  if (config.slug === "configuracoes") {
+    return <BranchesPage config={config} initialOpenForm={mode === "new"} />;
   }
 
   if (mode === "new") {
