@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 type HistoricalBody = {
   module?: FluigModuleSlug | "fornecedores";
+  action?: "sync" | "examples";
   days?: number;
   pageSize?: number;
   maxPages?: number;
@@ -108,6 +109,7 @@ export async function POST(request: Request) {
     const days = parseNumber(body.days, 730);
     const pageSize = parseNumber(body.pageSize, 100);
     const maxPages = parseNumber(body.maxPages, 100);
+    const action = body.action === "examples" ? "examples" : "sync";
     const jobs = [];
 
     if (moduleSlug === "fornecedores") {
@@ -116,7 +118,7 @@ export async function POST(request: Request) {
       );
       const supplierMap = requireFluigProcessMap("fornecedores");
       const payload = {
-        action: "sync",
+        action,
         module: "fornecedores",
         days,
         pageSize,
@@ -156,7 +158,7 @@ export async function POST(request: Request) {
     for (const moduleToSync of modulesForHistorical(moduleSlug)) {
       const map = requireFluigProcessMap(moduleToSync);
       const payload = {
-        action: "sync",
+        action,
         module: moduleToSync,
         days,
         pageSize,
