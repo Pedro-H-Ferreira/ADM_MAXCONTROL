@@ -19,10 +19,12 @@ function jsonError(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const actor = await resolveCurrentAppUser();
-    const jobs = await listJobsForActor(actor);
+    const url = new URL(request.url);
+    const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 20), 1), 100);
+    const jobs = await listJobsForActor(actor, limit);
 
     return NextResponse.json({
       success: true,

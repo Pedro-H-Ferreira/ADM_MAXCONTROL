@@ -208,6 +208,13 @@ export const fluigAdmApi = {
 
     return { success: true, job: data.job, events: data.events || [] } as FluigJobStatusResponse;
   },
+  async listJobs(limit = 20) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    return this.get<{
+      success: true;
+      jobs: FluigAdmJobSummary[];
+    }>(`${this.jobsPath}?${params.toString()}`);
+  },
   async listAgents() {
     const response = await fetch(this.agentPairPath, { cache: "no-store" });
     const data = (await response.json()) as {

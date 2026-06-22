@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ClipboardList, Laptop, Loader2, RefreshCcw, RotateCw, Workflow } from "lucide-react";
+import { AlertTriangle, ClipboardCheck, ClipboardList, Laptop, Loader2, RefreshCcw, RotateCw, UserCheck, Workflow } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -34,6 +34,9 @@ const syncTypeLabels: Record<FluigUserSyncStateRecord["syncType"], string> = {
 };
 
 type DashboardJob = Pick<FluigAdmJobSummary, "id" | "module" | "operation" | "status" | "progressLabel" | "errorMessage">;
+type SupplierReviewSummary = {
+  total: number;
+};
 
 function normalizeStatus(value: string | null | undefined, fallback = "ABERTO") {
   const normalized = (value || fallback)
@@ -67,12 +70,29 @@ function describeAgent(agent: FluigAdmAgent | null) {
   return `${agent.display_name}${agent.machine_name ? ` em ${agent.machine_name}` : ""}`;
 }
 
+async function loadSupplierReviewSummary(): Promise<SupplierReviewSummary> {
+  const params = new URLSearchParams({
+    syncStatus: "PENDENTE_REVISAO",
+    page: "1",
+    pageSize: "1",
+  });
+  const response = await fetch(`/api/fornecedores?${params.toString()}`, { cache: "no-store" });
+  const data = (await response.json()) as { success?: boolean; total?: number; error?: string };
+
+  if (!response.ok || data.success === false) {
+    throw new Error(data.error || "Falha ao consultar fornecedores pendentes de revisao.");
+  }
+
+  return { total: Number(data.total || 0) };
+}
+
 export function DashboardFluigOperations() {
   const [agents, setAgents] = useState<FluigAdmAgent[]>([]);
   const [tasks, setTasks] = useState<FluigOpenRequestRecord[]>([]);
   const [requests, setRequests] = useState<FluigOpenRequestRecord[]>([]);
   const [states, setStates] = useState<FluigUserSyncStateRecord[]>([]);
   const [jobs, setJobs] = useState<DashboardJob[]>([]);
+  const [supplierReviewSummary, setSupplierReviewSummary] = useState<SupplierReviewSummary>({ total: 0 });
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +103,9 @@ export function DashboardFluigOperations() {
   const visibleTasks = tasks.slice(0, 5);
   const visibleRequests = sortedRequests.slice(0, 5);
   const pendingJobs = jobs.filter((job) => !terminalJobStatuses.has(job.status));
+  const failedJobs = jobs.filter((job) => job.status === "error" || job.status === "expired");
+  const syncStatesWithErrors = states.filter((state) => state.lastErrorAt || state.lastErrorMessage);
+  const syncErrorCount = failedJobs.length + syncStatesWithErrors.length;
 
   const latestState = useMemo(() => {
     return [...states].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0] || null;
@@ -93,17 +116,21 @@ export function DashboardFluigOperations() {
     setError(null);
 
     try {
-      const [nextAgents, taskData, requestData, syncStateData] = await Promise.all([
+      const [nextAgents, taskData, requestData, syncStateData, jobData, nextSupplierReviewSummary] = await Promise.all([
         fluigAdmApi.listAgents(),
         fluigAdmApi.listMyTasks(20),
         fluigAdmApi.listMyOpenRequests(20),
         fluigAdmApi.listSyncState(),
+        fluigAdmApi.listJobs(20),
+        loadSupplierReviewSummary(),
       ]);
 
       setAgents(nextAgents);
       setTasks(taskData.tasks || []);
       setRequests(requestData.requests || []);
       setStates(syncStateData.states || []);
+      setJobs(jobData.jobs || []);
+      setSupplierReviewSummary(nextSupplierReviewSummary);
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : "Falha ao carregar dados do Fluig.");
     } finally {
@@ -216,10 +243,13 @@ export function DashboardFluigOperations() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
           <MetricTile icon={Laptop} label="Agente local" value={onlineAgent ? "Online" : "Pendente"} detail={describeAgent(onlineAgent)} />
           <MetricTile icon={ClipboardList} label="Minhas tarefas" value={String(tasks.length)} detail="Pendencias sob responsabilidade do usuario" />
           <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requests.length)} detail="Pagamentos, compras e manutencoes" />
+          <MetricTile icon={ClipboardCheck} label="Aguardando acao" value={String(tasks.length)} detail="Itens do Fluig que dependem do usuario logado" />
+          <MetricTile icon={UserCheck} label="Fornecedores em revisao" value={String(supplierReviewSummary.total)} detail="Pre-cadastros Fluig pendentes de validacao" />
+          <MetricTile icon={AlertTriangle} label="Erros de sync" value={String(syncErrorCount)} detail="Jobs e estados de sincronizacao com falha" tone={syncErrorCount ? "danger" : "default"} />
           <MetricTile
             icon={RefreshCcw}
             label="Ultima sync"
@@ -242,6 +272,35 @@ export function DashboardFluigOperations() {
                     <StatusBadge status={normalizeStatus(job.status, "PROCESSANDO")} />
                   </div>
                   <p className="mt-1 text-muted-foreground">{job.progressLabel || "Aguardando agente local."}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {failedJobs.length || syncStatesWithErrors.length ? (
+          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-900">
+            <div className="flex items-center gap-2 font-medium">
+              <AlertTriangle className="size-4" />
+              Erros recentes de sincronizacao
+            </div>
+            <div className="mt-2 grid gap-2 md:grid-cols-2">
+              {failedJobs.slice(0, 4).map((job) => (
+                <div key={job.id} className="rounded bg-background px-2 py-2 text-foreground">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>{moduleLabels[job.module]}</span>
+                    <StatusBadge status="FALHA" />
+                  </div>
+                  <p className="mt-1 text-muted-foreground">{job.errorMessage || job.progressLabel || "Job Fluig finalizado com erro."}</p>
+                </div>
+              ))}
+              {syncStatesWithErrors.slice(0, 4).map((state) => (
+                <div key={state.id} className="rounded bg-background px-2 py-2 text-foreground">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>{moduleLabels[state.module]} - {syncTypeLabels[state.syncType]}</span>
+                    <StatusBadge status="FALHA" />
+                  </div>
+                  <p className="mt-1 text-muted-foreground">{state.lastErrorMessage || "Estado de sincronizacao com falha registrada."}</p>
                 </div>
               ))}
             </div>
@@ -273,14 +332,16 @@ function MetricTile({
   label,
   value,
   detail,
+  tone = "default",
 }: {
   icon: typeof Laptop;
   label: string;
   value: string;
   detail: string;
+  tone?: "default" | "danger";
 }) {
   return (
-    <div className="rounded-md border bg-muted/20 p-3">
+    <div className={cn("rounded-md border bg-muted/20 p-3", tone === "danger" ? "border-red-200 bg-red-50/70" : "")}>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Icon className="size-4" />
         {label}
