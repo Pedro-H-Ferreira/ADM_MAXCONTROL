@@ -100,7 +100,7 @@ O instalador:
 Invoke-RestMethod http://127.0.0.1:4777/health
 ```
 
-Na tela do ADM, o agente deve aparecer como `ONLINE` depois do primeiro heartbeat.
+Na tela do ADM, o agente deve aparecer como `ONLINE` depois do primeiro heartbeat. O `/health` tambem mostra `agentVersion`, `lastHeartbeatAt`, `lastPollAt`, `lastSuccessfulApiAt` e `lastError` para diagnosticar agente antigo, falha de rede ou erro de polling.
 
 Tambem e possivel conferir pelo duplo clique:
 

@@ -11,6 +11,9 @@ const historyFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_FIELD_MAX
 const historyAggressiveFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_AGGRESSIVE_FIELD_MAX_CHARS, 1000);
 let currentJob = null;
 let lastError = null;
+let lastHeartbeatAt = null;
+let lastPollAt = null;
+let lastSuccessfulApiAt = null;
 let stopping = false;
 
 const allowedStatuses = new Set([
@@ -69,6 +72,7 @@ async function apiFetch(path, payload = {}) {
     throw new Error(data.error || `Falha HTTP ${response.status} em ${path}`);
   }
 
+  lastSuccessfulApiAt = new Date().toISOString();
   return data;
 }
 
@@ -340,6 +344,7 @@ async function processJob(job) {
 }
 
 async function pollOnce() {
+  lastPollAt = new Date().toISOString();
   const data = await apiFetch("/api/agent/jobs/poll", heartbeatPayload());
   if (data.job && !currentJob) {
     await processJob(data.job);
@@ -382,8 +387,13 @@ function startLocalServer() {
           online: true,
           apiUrl: config.apiUrl,
           machineName: config.machineName,
+          agentVersion: config.agentVersion,
+          pollIntervalMs: config.pollIntervalMs,
           currentJob,
           lastError,
+          lastHeartbeatAt,
+          lastPollAt,
+          lastSuccessfulApiAt,
           checkedAt: new Date().toISOString(),
         })
       );
@@ -406,6 +416,9 @@ async function main() {
   startLocalServer();
   await apiFetch("/api/agent/heartbeat", heartbeatPayload()).catch((error) => {
     lastError = error.message;
+    return null;
+  }).then((data) => {
+    if (data) lastHeartbeatAt = new Date().toISOString();
   });
   await pollLoop();
 }
