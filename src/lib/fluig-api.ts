@@ -138,6 +138,7 @@ export const fluigAdmApi = {
   syncStatePath: "/api/fluig/adm/sync/state",
   syncOpenTasksPath: "/api/fluig/adm/sync/open-tasks",
   syncMyRequestsPath: "/api/fluig/adm/sync/my-requests",
+  requestLookupPath: "/api/fluig/adm/request/lookup",
   myTasksPath: "/api/fluig/adm/tasks/my",
   myOpenRequestsPath: "/api/fluig/adm/requests/my-open",
   async sync(payload: FluigAdmSyncRequest) {
@@ -236,6 +237,12 @@ export const fluigAdmApi = {
       jobs: FluigAdmJobSummary[];
       skipped: Array<{ module: FluigModuleSlug; reason: string }>;
     }>(this.syncMyRequestsPath, payload);
+  },
+  async lookupRequest(payload: { module?: FluigModuleSlug | "auto"; fluigRequestId: string; persist?: boolean }) {
+    return this.post<{
+      success: true;
+      job: FluigAdmJobSummary;
+    }>(this.requestLookupPath, payload);
   },
   async listMyTasks(limit = 20, module?: FluigModuleSlug) {
     const params = new URLSearchParams({ limit: String(limit) });

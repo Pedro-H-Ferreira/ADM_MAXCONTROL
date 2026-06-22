@@ -8,11 +8,15 @@ import {
   KeyRound,
   Laptop,
   RefreshCcw,
+  Search,
   Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { FluigLaunchForm } from "@/components/shared/fluig-launch-form";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -25,6 +29,7 @@ import {
   type FluigCatalogItem,
   type FluigCatalogType,
   type FluigModuleSlug,
+  type FluigSyncRow,
 } from "@/lib/fluig-data";
 import { cn } from "@/lib/utils";
 
@@ -155,6 +160,10 @@ function dedupeCatalogItems(items: FluigCatalogItem[]) {
   return Array.from(byKey.values()).sort((a, b) => b.occurrenceCount - a.occurrenceCount || a.label.localeCompare(b.label));
 }
 
+function normalizeFluigRequestNumber(value: string) {
+  return value.replace(/\D+/g, "").trim();
+}
+
 export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigIntegrationPanelProps) {
   const integration = getFluigIntegrationForModule(moduleSlug);
   const [syncData, setSyncData] = useState<FluigAdmSyncResponse | null>(null);
@@ -163,6 +172,11 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const [agents, setAgents] = useState<Array<{ id: string; display_name: string; machine_name: string | null; status: string; last_heartbeat_at: string | null }>>([]);
   const [pendingUserSync, setPendingUserSync] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [lookupRequestId, setLookupRequestId] = useState("");
+  const [lookupPersist, setLookupPersist] = useState(true);
+  const [lookupPending, setLookupPending] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [lookupResult, setLookupResult] = useState<FluigSyncRow | null>(null);
   const [activeJob, setActiveJob] = useState<{
     id: string;
     status: string;
@@ -261,6 +275,52 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     }
   }
 
+  async function runRequestLookup() {
+    if (!integration) {
+      return;
+    }
+
+    const fluigRequestId = lookupRequestId.trim();
+    if (!fluigRequestId) {
+      setLookupError("Informe o numero da solicitacao Fluig.");
+      return;
+    }
+
+    setLookupPending(true);
+    setLookupError(null);
+    setLookupResult(null);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const created = await fluigAdmApi.lookupRequest({
+        module: integration.slug,
+        fluigRequestId,
+        persist: lookupPersist,
+      });
+
+      await pollJobUntilDone(created.job.id);
+
+      const refreshed = await fluigAdmApi.sync({ module: integration.slug as FluigModuleSlug, action: "sync" });
+      setSyncData(refreshed);
+
+      const requestedNumber = normalizeFluigRequestNumber(fluigRequestId);
+      const matchedRow =
+        refreshed.rows.find((row) => normalizeFluigRequestNumber(row.fluigNumber) === requestedNumber) || null;
+
+      setLookupResult(matchedRow);
+      setNotice(
+        matchedRow
+          ? "Consulta por numero Fluig atualizada."
+          : "Consulta executada. O retorno sera exibido na tabela quando o Fluig enviar dados persistidos para este modulo."
+      );
+    } catch (lookupErrorValue) {
+      setLookupError(lookupErrorValue instanceof Error ? lookupErrorValue.message : "Falha ao consultar numero Fluig");
+    } finally {
+      setLookupPending(false);
+    }
+  }
+
   async function pollJobUntilDone(jobId: string) {
     const terminal = new Set(["success", "error", "cancelled", "expired"]);
 
@@ -349,6 +409,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const monthlyTemplateCount =
     syncData?.launchTemplates?.filter((template) => template.module === integration.slug && template.recurrence === "monthly")
       .length || 0;
+  const fluigBusy = Boolean(pendingAction) || pendingUserSync || lookupPending;
 
   return (
     <Card className="stitch-animate-in stitch-hover-lift rounded-lg shadow-none">
@@ -380,7 +441,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             type="button"
             className="stitch-soft-button"
             onClick={() => runUserIncrementalSync()}
-            disabled={Boolean(pendingAction) || pendingUserSync}
+            disabled={fluigBusy}
           >
             <RefreshCcw className={cn("size-4", pendingUserSync ? "animate-spin" : "")} />
             {integration.syncAction}
@@ -390,7 +451,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             variant="outline"
             className="stitch-soft-button"
             onClick={() => runSync("examples")}
-            disabled={Boolean(pendingAction) || pendingUserSync}
+            disabled={fluigBusy}
           >
             <FileText className="size-4" />
             Consultar modelos reais
@@ -401,7 +462,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
               Abrir formulario Fluig
             </a>
           </Button>
-          <Button type="button" variant="outline" className="stitch-soft-button" onClick={pairAgent}>
+          <Button type="button" variant="outline" className="stitch-soft-button" onClick={pairAgent} disabled={fluigBusy}>
             <KeyRound className="size-4" />
             Parear agente
           </Button>
@@ -448,6 +509,78 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             </div>
           )}
         </div>
+        {!compact ? (
+          <form
+            className="grid gap-3 rounded-md border bg-muted/20 p-3 text-xs lg:grid-cols-[minmax(0,1fr)_auto]"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void runRequestLookup();
+            }}
+          >
+            <div className="min-w-0 space-y-2">
+              <div className="flex items-center gap-2 font-medium">
+                <Search className="size-4" />
+                Consultar solicitacao por numero
+              </div>
+              <div className="grid gap-2 md:grid-cols-[minmax(0,0.9fr)_minmax(220px,0.45fr)]">
+                <Input
+                  value={lookupRequestId}
+                  onChange={(event) => setLookupRequestId(event.target.value)}
+                  inputMode="numeric"
+                  placeholder="Ex.: 1163476"
+                  disabled={fluigBusy}
+                  aria-label="Numero da solicitacao Fluig"
+                />
+                <Label className="h-8 rounded-md border bg-background px-3 text-xs text-muted-foreground">
+                  <Checkbox
+                    checked={lookupPersist}
+                    onCheckedChange={(checked) => setLookupPersist(checked === true)}
+                    disabled={fluigBusy}
+                  />
+                  Salvar no ADM
+                </Label>
+              </div>
+              {lookupResult ? (
+                <div className="grid gap-2 rounded-md border bg-background p-3 md:grid-cols-4">
+                  <div>
+                    <p className="text-muted-foreground">Fluig</p>
+                    <p className="font-semibold">{lookupResult.fluigNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Etapa</p>
+                    <p className="font-semibold">{lookupResult.currentTask || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Responsavel</p>
+                    <p className="font-semibold">{lookupResult.taskOwner || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Status</p>
+                    <StatusBadge status={lookupResult.fluigStatus} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-muted-foreground">Fornecedor</p>
+                    <p className="font-semibold">{lookupResult.supplier || "-"}</p>
+                    <p className="text-muted-foreground">{lookupResult.cnpj || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Filial</p>
+                    <p className="font-semibold">{lookupResult.branch || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Referencia ADM</p>
+                    <p className="font-semibold">{lookupResult.admReference || "-"}</p>
+                  </div>
+                </div>
+              ) : null}
+              {lookupError ? <p className="font-medium text-destructive">{lookupError}</p> : null}
+            </div>
+            <Button type="submit" className="stitch-soft-button self-start" disabled={fluigBusy}>
+              <Search className={cn("size-4", lookupPending ? "animate-pulse" : "")} />
+              {lookupPending ? "Consultando" : "Consultar numero"}
+            </Button>
+          </form>
+        ) : null}
         {pairToken ? (
           <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
             <p className="font-semibold">Token gerado uma unica vez</p>
