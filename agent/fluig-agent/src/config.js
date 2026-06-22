@@ -11,11 +11,23 @@ function readJson(filePath) {
     return {};
   }
 
-  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "").replace(/^ï»¿/, ""));
 }
 
 function optional(config, key, fallback = "") {
   return String(process.env[key] || config[key] || fallback).trim();
+}
+
+function normalizeOriginUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  try {
+    const url = new URL(raw);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return raw.replace(/\/$/, "");
+  }
 }
 
 function buildConfig() {
@@ -25,6 +37,7 @@ function buildConfig() {
     "ADM_PROJECT_ROOT",
     path.resolve(__dirname, "..", "..", "..")
   );
+  const fluigBaseUrl = normalizeOriginUrl(optional(fileConfig, "FLUIG_BASE_URL"));
 
   return {
     configDir,
@@ -38,7 +51,7 @@ function buildConfig() {
     machineName: optional(fileConfig, "MACHINE_NAME", os.hostname()),
     machineId: optional(fileConfig, "MACHINE_ID", `${os.hostname()}-${os.userInfo().username}`),
     fluig: {
-      baseUrl: optional(fileConfig, "FLUIG_BASE_URL"),
+      baseUrl: fluigBaseUrl,
       loginPath: optional(fileConfig, "FLUIG_LOGIN_PATH"),
       lancamentoPath: optional(fileConfig, "FLUIG_LANCAMENTO_PATH"),
       processUrl: optional(fileConfig, "FLUIG_PROCESS_URL"),

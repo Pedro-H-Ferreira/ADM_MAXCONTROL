@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { readJobForAgent, recordFluigJobEvent } from "@/lib/db/app-repository";
 import {
-  buildFluigCatalogItems,
+  buildFluigCatalogItemsByModule,
   buildSupplierCandidates,
   persistFluigCatalogItems,
   type PersistenceResult,
-  persistHistoryItemsInChunks,
+  persistHistoryItemsInChunksByModule,
   persistSupplierCandidates,
 } from "@/lib/db/fluig-repository";
 import { mergePersistence } from "@/lib/fluig/route-utils";
@@ -50,8 +50,8 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ success: false, error: "Job nao pertence a este agente." }, { status: 404 });
   }
 
-  if (job.operation !== "sync_history") {
-    return NextResponse.json({ success: false, error: "Chunks sao suportados somente para sync_history." }, { status: 400 });
+  if (job.operation !== "sync_history" && job.operation !== "sync_initial_history") {
+    return NextResponse.json({ success: false, error: "Chunks sao suportados somente para sincronizacao historica." }, { status: 400 });
   }
 
   const body = (await request.json().catch(() => ({}))) as ChunkBody;
@@ -61,8 +61,8 @@ export async function POST(request: Request, context: RouteContext) {
   const totalChunks = Number.isFinite(Number(body.totalChunks)) ? Number(body.totalChunks) : 1;
   const persistenceResults: PersistenceResult[] = [];
 
-  persistenceResults.push(await persistHistoryItemsInChunks(job.module, historyItems, { id: job.requestedByUserId }));
-  persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItems(job.module, historyItems)));
+  persistenceResults.push(await persistHistoryItemsInChunksByModule(job.module, historyItems, { id: job.requestedByUserId }));
+  persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItemsByModule(job.module, historyItems)));
   persistenceResults.push(await persistSupplierCandidates(buildSupplierCandidates(historyItems)));
 
   const persistence = mergePersistence(...persistenceResults);

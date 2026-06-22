@@ -199,7 +199,7 @@ async function processJob(job) {
       label: "Enviando resultado para o ADM.",
     });
 
-    if (job.operation === "sync_history") {
+    if (job.operation === "sync_history" || job.operation === "sync_initial_history") {
       result = await sendChunkedHistoryResult(job, result);
     }
 

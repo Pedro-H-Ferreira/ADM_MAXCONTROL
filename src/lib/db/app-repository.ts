@@ -77,7 +77,19 @@ export type FluigJobStatus =
   | "cancelled"
   | "expired";
 
-export type FluigJobOperation = "sync_history" | "sync_status" | "open_from_source" | "cancel_request" | "health_check";
+export type FluigJobOperation =
+  | "sync_history"
+  | "sync_status"
+  | "open_from_source"
+  | "cancel_request"
+  | "health_check"
+  | "sync_initial_history"
+  | "sync_user_open_tasks"
+  | "sync_user_open_requests"
+  | "sync_request_by_number"
+  | "supplier_lookup_by_cnpj";
+
+export type FluigUserSyncType = "historical" | "open_tasks" | "my_requests" | "status_check" | "supplier_lookup";
 
 export type FluigJobRecord = {
   id: string;
@@ -141,6 +153,23 @@ type DbJobRow = {
   created_at: string;
   updated_at: string;
   finished_at: string | null;
+};
+
+type DbSyncStateRow = {
+  id: string;
+  user_id: string;
+  fluig_username: string | null;
+  fluig_user_id: string | null;
+  module_slug: FluigModuleSlug;
+  sync_type: FluigUserSyncType;
+  last_sync_at: string | null;
+  last_success_at: string | null;
+  last_error_at: string | null;
+  last_error_message: string | null;
+  cursor: JsonRecord;
+  metadata: JsonRecord;
+  created_at: string;
+  updated_at: string;
 };
 
 type DbPageAccessRow = {
@@ -227,6 +256,25 @@ function mapJob(row: DbJobRow): FluigJobRecord {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     finishedAt: row.finished_at,
+  };
+}
+
+function mapSyncState(row: DbSyncStateRow) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    fluigUsername: row.fluig_username,
+    fluigUserId: row.fluig_user_id,
+    module: row.module_slug,
+    syncType: row.sync_type,
+    lastSyncAt: row.last_sync_at,
+    lastSuccessAt: row.last_success_at,
+    lastErrorAt: row.last_error_at,
+    lastErrorMessage: row.last_error_message,
+    cursor: row.cursor || {},
+    metadata: row.metadata || {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -675,7 +723,17 @@ export async function createAgentPairing(input: { actor: AppActor; displayName?:
       token_hash: tokenHash,
       token_prefix: tokenPrefix,
       status: "offline",
-      capabilities: ["sync_history", "sync_status", "open_from_source", "cancel_request"],
+      capabilities: [
+        "sync_history",
+        "sync_status",
+        "open_from_source",
+        "cancel_request",
+        "sync_initial_history",
+        "sync_user_open_tasks",
+        "sync_user_open_requests",
+        "sync_request_by_number",
+        "supplier_lookup_by_cnpj",
+      ],
     })
     .select("id,display_name,machine_name,token_prefix,status,paired_at,last_heartbeat_at")
     .single();
@@ -788,6 +846,92 @@ export async function createFluigJob(input: {
     .single();
   if (error) throw error;
   return mapJob(data as DbJobRow);
+}
+
+export async function upsertFluigUserSyncState(input: {
+  actor: AppActor;
+  module: FluigModuleSlug;
+  syncType: FluigUserSyncType;
+  status: "started" | "success" | "error";
+  errorMessage?: string | null;
+  cursor?: JsonRecord;
+  metadata?: JsonRecord;
+}) {
+  const client = assertServiceClient();
+  const now = new Date().toISOString();
+  const payload = {
+    user_id: input.actor.id,
+    fluig_username: input.actor.fluigUsername,
+    fluig_user_id: input.actor.fluigUserId,
+    module_slug: input.module,
+    sync_type: input.syncType,
+    last_sync_at: now,
+    last_success_at: input.status === "success" ? now : undefined,
+    last_error_at: input.status === "error" ? now : undefined,
+    last_error_message: input.status === "error" ? input.errorMessage || "Falha na sincronizacao." : null,
+    cursor: input.cursor || {},
+    metadata: input.metadata || {},
+  };
+  const { data, error } = await client
+    .from("fluig_user_sync_state")
+    .upsert(payload, { onConflict: "user_id,module_slug,sync_type" })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return mapSyncState(data as DbSyncStateRow);
+}
+
+export async function completeFluigUserSyncStateForJob(input: {
+  job: FluigJobRecord;
+  syncType: FluigUserSyncType;
+  status: "success" | "error";
+  errorMessage?: string | null;
+  metadata?: JsonRecord;
+}) {
+  const client = assertServiceClient();
+  const now = new Date().toISOString();
+  const payload = {
+    user_id: input.job.requestedByUserId,
+    fluig_username: input.job.fluigUsername,
+    fluig_user_id: null,
+    module_slug: input.job.module,
+    sync_type: input.syncType,
+    last_sync_at: now,
+    last_success_at: input.status === "success" ? now : undefined,
+    last_error_at: input.status === "error" ? now : undefined,
+    last_error_message: input.status === "error" ? input.errorMessage || "Falha na sincronizacao." : null,
+    cursor: {},
+    metadata: {
+      ...(input.metadata || {}),
+      jobId: input.job.id,
+      operation: input.job.operation,
+    },
+  };
+  const { data, error } = await client
+    .from("fluig_user_sync_state")
+    .upsert(payload, { onConflict: "user_id,module_slug,sync_type" })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return mapSyncState(data as DbSyncStateRow);
+}
+
+export async function listFluigUserSyncState(actor: AppActor, input: { userId?: string | null; module?: FluigModuleSlug | null } = {}) {
+  const client = assertServiceClient();
+  const targetUserId = actor.isAdmin && input.userId ? input.userId : actor.id;
+  let query = client
+    .from("fluig_user_sync_state")
+    .select("*")
+    .eq("user_id", targetUserId)
+    .order("updated_at", { ascending: false });
+
+  if (input.module) {
+    query = query.eq("module_slug", input.module);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return ((data || []) as DbSyncStateRow[]).map(mapSyncState);
 }
 
 export async function listJobsForActor(actor: AppActor, limit = 20) {

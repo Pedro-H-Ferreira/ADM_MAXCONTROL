@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import {
+  completeFluigUserSyncStateForJob,
   completeFluigJob,
   readJobForAgent,
   recordFluigJobEvent,
+  type FluigUserSyncType,
   type FluigJobStatus,
 } from "@/lib/db/app-repository";
 import {
-  buildFluigCatalogItems,
+  buildFluigCatalogItemsByModule,
   buildSupplierCandidates,
   persistFluigCatalogItems,
   type PersistenceResult,
-  persistHistoryItemsInChunks,
+  persistHistoryItemsInChunksByModule,
   persistStatusItems,
   persistSupplierCandidates,
 } from "@/lib/db/fluig-repository";
@@ -60,6 +62,15 @@ function extractGeneratedRequest(payload: Record<string, unknown>) {
   return requestId ? String(requestId) : "";
 }
 
+function syncTypeForJob(operation: string): FluigUserSyncType | null {
+  if (operation === "sync_initial_history" || operation === "sync_history") return "historical";
+  if (operation === "sync_request_by_number" || operation === "sync_status") return "status_check";
+  if (operation === "supplier_lookup_by_cnpj") return "supplier_lookup";
+  if (operation === "sync_user_open_tasks") return "open_tasks";
+  if (operation === "sync_user_open_requests") return "my_requests";
+  return null;
+}
+
 export async function POST(request: Request, context: RouteContext) {
   const { agent, error } = await requireAgent(request);
   if (!agent) return error;
@@ -75,14 +86,14 @@ export async function POST(request: Request, context: RouteContext) {
   const resultPayload = body.resultPayload || {};
   const persistenceResults: PersistenceResult[] = [];
 
-  if (status === "success" && job.operation === "sync_history") {
+  if (status === "success" && (job.operation === "sync_history" || job.operation === "sync_initial_history")) {
     const historyItems = extractHistoryItems(resultPayload);
-    persistenceResults.push(await persistHistoryItemsInChunks(job.module, historyItems, { id: job.requestedByUserId }));
-    persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItems(job.module, historyItems)));
+    persistenceResults.push(await persistHistoryItemsInChunksByModule(job.module, historyItems, { id: job.requestedByUserId }));
+    persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItemsByModule(job.module, historyItems)));
     persistenceResults.push(await persistSupplierCandidates(buildSupplierCandidates(historyItems)));
   }
 
-  if (status === "success" && job.operation === "sync_status") {
+  if (status === "success" && (job.operation === "sync_status" || job.operation === "sync_request_by_number")) {
     persistenceResults.push(await persistStatusItems(job.module, extractStatusItems(resultPayload)));
   }
 
@@ -105,6 +116,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const persistence = persistenceResults.length ? mergePersistence(...persistenceResults) : undefined;
   const finalPayload = persistence ? { ...resultPayload, persistence } : resultPayload;
+  const syncType = syncTypeForJob(job.operation);
 
   await completeFluigJob({
     jobId,
@@ -113,6 +125,18 @@ export async function POST(request: Request, context: RouteContext) {
     resultPayload: finalPayload,
     errorMessage: body.errorMessage,
   });
+
+  if (syncType) {
+    await completeFluigUserSyncStateForJob({
+      job,
+      syncType,
+      status: status === "success" ? "success" : "error",
+      errorMessage: body.errorMessage,
+      metadata: {
+        persistence,
+      },
+    });
+  }
 
   if (persistence?.errors.length) {
     await recordFluigJobEvent({

@@ -841,6 +841,46 @@ export async function persistHistoryItemsInChunks(
   return mergePersistenceResults(...results);
 }
 
+function isKnownHistoryModule(value: unknown): value is FluigModuleSlug {
+  return value === "pagamentos" || value === "compras" || value === "manutencao" || value === "fornecedores";
+}
+
+function historyItemModule(fallback: FluigModuleSlug, item: FluigHistoryItem) {
+  const explicit = (item as FluigHistoryItem & { module?: unknown }).moduleSlug || (item as FluigHistoryItem & { module?: unknown }).module;
+  return isKnownHistoryModule(explicit) ? explicit : fallback;
+}
+
+export function groupHistoryItemsByModule(fallback: FluigModuleSlug, items: FluigHistoryItem[]) {
+  const grouped = new Map<FluigModuleSlug, FluigHistoryItem[]>();
+
+  for (const item of items) {
+    const moduleSlug = historyItemModule(fallback, item);
+    grouped.set(moduleSlug, [...(grouped.get(moduleSlug) || []), item]);
+  }
+
+  return grouped;
+}
+
+export async function persistHistoryItemsInChunksByModule(
+  fallback: FluigModuleSlug,
+  items: FluigHistoryItem[],
+  actor?: Pick<AppActor, "id"> | null
+) {
+  const results: PersistenceResult[] = [];
+
+  for (const [moduleSlug, moduleItems] of groupHistoryItemsByModule(fallback, items)) {
+    results.push(await persistHistoryItemsInChunks(moduleSlug, moduleItems, actor));
+  }
+
+  return results.length ? mergePersistenceResults(...results) : emptyResult();
+}
+
+export function buildFluigCatalogItemsByModule(fallback: FluigModuleSlug, items: FluigHistoryItem[]) {
+  return Array.from(groupHistoryItemsByModule(fallback, items)).flatMap(([moduleSlug, moduleItems]) =>
+    buildFluigCatalogItems(moduleSlug, moduleItems)
+  );
+}
+
 export async function persistStatusItems(module: FluigModuleSlug, items: FluigStatusItem[]) {
   return runWithDb(async (client) => {
     const rows = items

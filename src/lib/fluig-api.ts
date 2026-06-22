@@ -1,7 +1,17 @@
 import type { FluigAdmSyncResponse, FluigModuleSlug } from "@/lib/fluig-data";
 
 export type FluigAdmSyncAction = "sync" | "examples" | "suppliers" | "tasks";
-export type FluigJobOperation = "sync_history" | "sync_status" | "open_from_source" | "cancel_request" | "health_check";
+export type FluigJobOperation =
+  | "sync_history"
+  | "sync_status"
+  | "open_from_source"
+  | "cancel_request"
+  | "health_check"
+  | "sync_initial_history"
+  | "sync_user_open_tasks"
+  | "sync_user_open_requests"
+  | "sync_request_by_number"
+  | "supplier_lookup_by_cnpj";
 
 export type FluigAdmSyncRequest = {
   module: FluigModuleSlug;

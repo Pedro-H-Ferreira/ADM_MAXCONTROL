@@ -4,6 +4,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { getServerEnv } from "@/lib/env";
 import type { FluigProcessMap } from "@/lib/fluig/process-map";
+import type { FluigModuleSlug } from "@/lib/fluig-data";
 
 const execFileAsync = promisify(execFile);
 
@@ -35,6 +36,7 @@ export type FluigHistoryOutput = {
 };
 
 export type FluigHistoryItem = {
+  moduleSlug?: FluigModuleSlug | null;
   processInstanceId: string;
   processId: string;
   processVersion: string;

@@ -93,10 +93,23 @@ Rotas novas:
 
 - `GET /api/fluig/adm/map`: retorna o mapa completo por aba e, com `?persist=true`, grava em `fluig_process_mappings`.
 - `POST /api/fluig/adm/history`: consulta historico real por modulo, gera candidatos de fornecedor e grava em `fluig_requests`/`fluig_supplier_candidates` quando Supabase estiver configurado.
+- `POST /api/fluig/adm/sync/historical`: cria jobs de carga historica inicial pelo agente local. Para `fornecedores`, agenda pagamentos, compras e manutencao.
+- `GET /api/fluig/adm/sync/state`: retorna `lastSync`, `lastSuccess` e `lastError` por usuario, modulo e tipo de sync.
+- `POST /api/fluig/adm/request/lookup`: cria job de consulta sob demanda por numero Fluig, persistindo o status quando o agente retorna.
 - `POST /api/fluig/adm/status`: consulta etapa, responsavel, SLA, vencimento e cancelabilidade por numero Fluig.
 - `POST /api/fluig/adm/open`: abre solicitacao a partir de `sourceRequestId`. Sem `confirm=true`, executa apenas dry-run. Em `mode=test`, abre e cancela em seguida; em `mode=production`, mantem aberta.
 - `POST /api/fluig/adm/cancel`: cancela solicitacoes informadas. Sem `confirm=true`, executa apenas dry-run.
 - `POST /api/fluig/adm/suppliers/preload`: varre historico e cria pre-cadastro de fornecedores por CNPJ/nome normalizado.
+
+Rotas de cadastro operacional adicionadas:
+
+- `GET|POST /api/fornecedores`: lista fornecedores reais com paginacao/filtros e cria fornecedor oficial.
+- `GET|PATCH|DELETE /api/fornecedores/[id]`: consulta, edita e exclui fornecedor. Quando houver vinculos Fluig, a exclusao vira inativacao logica.
+- `GET /api/fornecedores/lookup?cnpj=`: valida CNPJ, consulta cadastro local e depois candidatos/catalogos/solicitacoes Fluig.
+- `POST /api/fornecedores/candidates/[id]/approve`: converte candidato Fluig em fornecedor oficial e cria link Fluig.
+- `POST /api/fornecedores/candidates/[id]/ignore`: ignora candidato Fluig.
+- `GET|POST /api/admin/branches`: lista e cria filiais administrativas.
+- `GET|PATCH|DELETE /api/admin/branches/[id]`: consulta, edita e exclui filial. Quando houver vinculos, a exclusao vira inativacao logica.
 
 Scripts locais usados pelo adaptador dentro deste repositorio:
 
@@ -118,6 +131,9 @@ Persistencia:
 - Migracao: `supabase/migrations/20260617123000_fluig_operational_mapping.sql`.
 - Tabelas: `fluig_process_mappings`, `fluig_requests`, `fluig_request_events`, `fluig_operation_runs`, `fluig_supplier_candidates`, `fluig_supplier_links`.
 - RLS ativo em todas as tabelas e grants explicitos para `authenticated`.
+- Migracao incremental: `supabase/migrations/20260622191847_suppliers_branches_user_sync.sql`.
+- Novas tabelas: `app_suppliers`, `app_supplier_contacts`, `app_supplier_branch_links`, `app_supplier_audit_events`, `fluig_user_sync_state`.
+- Evolucoes: `app_branches` recebeu campos administrativos; `fluig_requests` recebeu vinculo com fornecedor oficial, status normalizado, flags de aberto/finalizado e dono de sync; `fluig_jobs` passou a aceitar operacoes de sync inicial, consulta por numero e sync por usuario.
 
 Comandos seguros de teste:
 

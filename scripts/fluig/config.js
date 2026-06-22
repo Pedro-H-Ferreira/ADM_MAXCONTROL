@@ -72,6 +72,12 @@ function buildUrl(baseUrl, route) {
   return new URL(route, baseUrl).toString();
 }
 
+function normalizeOriginUrl(value) {
+  const raw = String(value || "").trim();
+  const url = new URL(raw);
+  return `${url.protocol}//${url.host}`;
+}
+
 function optionalUrl(name, fallback = "") {
   const value = optional(name, fallback);
 
@@ -85,12 +91,13 @@ function optionalUrl(name, fallback = "") {
 const projectRoot = path.resolve(__dirname, "..", "..");
 loadEnvFile(path.join(projectRoot, ".env.local"));
 loadEnvFile(path.join(projectRoot, ".env"));
-const storageDir = path.join(projectRoot, "storage");
-const authDir = path.join(storageDir, ".auth");
-const logsDir = path.join(projectRoot, "logs");
+const storageDir = path.resolve(optional("FLUIG_STORAGE_DIR", path.join(projectRoot, "storage")));
+const authDir = path.resolve(optional("FLUIG_AUTH_DIR", path.join(storageDir, ".auth")));
+const logsDir = path.resolve(optional("FLUIG_LOGS_DIR", path.join(projectRoot, "logs")));
 const dataDir = path.join(__dirname, "data");
 const dataFile = path.resolve(projectRoot, optional("LANCAMENTOS_FILE", "src/data/lancamentos.json"));
 const authFile = path.join(authDir, "fluig.json");
+const fluigBaseUrl = normalizeOriginUrl(required("FLUIG_BASE_URL"));
 
 for (const dir of [storageDir, authDir, logsDir, dataDir]) {
   if (!fs.existsSync(dir)) {
@@ -108,9 +115,9 @@ module.exports = {
     slowMo: optionalNumber("SLOW_MO", 0)
   },
   urls: {
-    base: required("FLUIG_BASE_URL"),
-    login: buildUrl(required("FLUIG_BASE_URL"), required("FLUIG_LOGIN_PATH")),
-    lancamento: buildUrl(required("FLUIG_BASE_URL"), required("FLUIG_LANCAMENTO_PATH")),
+    base: fluigBaseUrl,
+    login: buildUrl(fluigBaseUrl, required("FLUIG_LOGIN_PATH")),
+    lancamento: buildUrl(fluigBaseUrl, required("FLUIG_LANCAMENTO_PATH")),
     launchpad: optionalUrl("FLUIG_LAUNCHPAD_URL"),
     home: optionalUrl("FLUIG_HOME_URL"),
     process: optionalUrl("FLUIG_PROCESS_URL")

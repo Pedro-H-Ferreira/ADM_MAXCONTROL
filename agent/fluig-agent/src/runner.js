@@ -5,9 +5,15 @@ const { readCredentials } = require("./credentials");
 
 function scriptEnv(config) {
   const credentials = readCredentials(config);
+  const authDir = path.join(config.configDir, "auth");
+  const logsDir = path.join(config.configDir, "logs");
 
   return {
     ...process.env,
+    ADM_FLUIG_AGENT_CONFIG_DIR: config.configDir,
+    FLUIG_AUTH_DIR: authDir,
+    FLUIG_LOGS_DIR: logsDir,
+    FLUIG_TRACE_FILE: path.join(logsDir, "session-trace.log"),
     FLUIG_INTEGRATION_MODE: "internal_runner",
     FLUIG_BASE_URL: config.fluig.baseUrl,
     FLUIG_LOGIN_PATH: config.fluig.loginPath,
@@ -95,6 +101,25 @@ function processVersionsFromJob(job) {
   return Array.isArray(versions) ? versions.join(",") : String(versions || "");
 }
 
+function processMapsFromPayload(payload) {
+  if (!Array.isArray(payload.processMaps)) return [];
+
+  return payload.processMaps
+    .map((map) => ({
+      module: String(map?.module || "").trim(),
+      processId: String(map?.processId || "").trim(),
+      processLabel: String(map?.processLabel || "").trim(),
+      processVersions: Array.isArray(map?.processVersions)
+        ? map.processVersions.map((item) => String(item || "").trim()).filter(Boolean)
+        : String(map?.processVersion || "")
+            .split(/[,;\s]+/)
+            .map((item) => item.trim())
+            .filter(Boolean),
+      windows: Array.isArray(map?.windows) ? map.windows : undefined,
+    }))
+    .filter((map) => map.processId && map.processVersions.length);
+}
+
 function historyWindowsFromPayload(payload) {
   if (!Array.isArray(payload.windows)) return [];
 
@@ -161,17 +186,25 @@ async function executeJob(config, job, emitProgress) {
     }
   };
 
-  if (job.operation === "sync_history") {
+  if (job.operation === "sync_history" || job.operation === "sync_initial_history") {
     emitProgress({ stage: "authenticating", label: "Autenticando no Fluig." });
     const scriptPath = path.join(root, "scripts", "fluig-adm-query-history.cjs");
+    const payloadProcessMaps = processMapsFromPayload(payload);
     const historyArgs = [
       `--runner-root=${root}`,
-      `--process-id=${processMap.processId}`,
-      `--process-version=${processVersionsFromJob(job)}`,
       `--days=${payload.days || 90}`,
       `--page-size=${payload.pageSize || 100}`,
       `--max-pages=${payload.maxPages || 100}`,
     ];
+
+    if (payloadProcessMaps.length) {
+      historyArgs.push(`--process-maps-json=${JSON.stringify(payloadProcessMaps)}`);
+    } else {
+      historyArgs.push(`--module=${payload.module || processMap.module || job.module}`);
+      historyArgs.push(`--process-id=${processMap.processId}`);
+      historyArgs.push(`--process-version=${processVersionsFromJob(job)}`);
+    }
+
     const windows = historyWindowsFromPayload(payload);
     if (windows.length > 0) {
       historyArgs.push(`--windows-json=${JSON.stringify(windows)}`);
@@ -193,7 +226,7 @@ async function executeJob(config, job, emitProgress) {
     };
   }
 
-  if (job.operation === "sync_status") {
+  if (job.operation === "sync_status" || job.operation === "sync_request_by_number") {
     const requestIds = Array.isArray(payload.requestIds) ? payload.requestIds.map(String) : [];
     if (!requestIds.length) {
       throw new Error("Nenhum numero Fluig informado para consulta de status.");
