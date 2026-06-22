@@ -35,6 +35,27 @@ O agente nao deve logar novamente para cada pagina ou item dentro do mesmo job. 
 
 Se aparecer login repetido, conferir primeiro o `session-trace.log`. Quando ele mostra `Sessao reutilizada valida: nao`, o Fluig invalidou o cookie ou a URL base/login esta incorreta.
 
+## Envio de resultados grandes
+
+Historicos grandes, principalmente `/fornecedores`, nao sao enviados em um unico POST. O agente `0.1.1` divide o retorno em lotes adaptativos:
+
+- limite padrao de 25 registros por lote;
+- limite padrao de aproximadamente 650 KB por POST;
+- campos `raw` redundantes do Fluig sao compactados antes do envio;
+- valores muito grandes de campos do formulario sao truncados para evitar `HTTP 413`;
+- a API grava cada lote em `/api/agent/jobs/[jobId]/chunk` e o fechamento do job envia apenas um resumo.
+
+Variaveis opcionais para diagnostico fino na maquina do usuario:
+
+```text
+ADM_FLUIG_HISTORY_CHUNK_ITEMS=25
+ADM_FLUIG_HISTORY_CHUNK_BYTES=650000
+ADM_FLUIG_HISTORY_FIELD_MAX_CHARS=6000
+ADM_FLUIG_HISTORY_AGGRESSIVE_FIELD_MAX_CHARS=1000
+```
+
+Se ainda ocorrer `Falha HTTP 413`, confira no `/health` local se `agentVersion` esta em `0.1.1` ou superior. Versoes anteriores podem tentar enviar resultados grandes pelo endpoint final.
+
 ## Seguranca
 
 - A senha do Fluig nao fica na Vercel nem no Supabase.

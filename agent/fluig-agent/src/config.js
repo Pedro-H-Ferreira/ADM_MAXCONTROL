@@ -47,7 +47,7 @@ function buildConfig() {
     token: optional(fileConfig, "ADM_AGENT_TOKEN"),
     localPort: Number(optional(fileConfig, "LOCAL_AGENT_PORT", "4777")),
     pollIntervalMs: Number(optional(fileConfig, "POLL_INTERVAL_MS", "3000")),
-    agentVersion: optional(fileConfig, "AGENT_VERSION", "0.1.0"),
+    agentVersion: optional(fileConfig, "AGENT_VERSION", "0.1.1"),
     machineName: optional(fileConfig, "MACHINE_NAME", os.hostname()),
     machineId: optional(fileConfig, "MACHINE_ID", `${os.hostname()}-${os.userInfo().username}`),
     fluig: {

@@ -5,7 +5,10 @@ const { buildConfig } = require("./config");
 const { executeJob } = require("./runner");
 
 const config = buildConfig();
-const historyChunkSize = 50;
+const historyChunkMaxItems = positiveInt(process.env.ADM_FLUIG_HISTORY_CHUNK_ITEMS, 25);
+const historyChunkMaxBytes = positiveInt(process.env.ADM_FLUIG_HISTORY_CHUNK_BYTES, 650000);
+const historyFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_FIELD_MAX_CHARS, 6000);
+const historyAggressiveFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_AGGRESSIVE_FIELD_MAX_CHARS, 1000);
 let currentJob = null;
 let lastError = null;
 let stopping = false;
@@ -34,6 +37,11 @@ function normalizeJobStatus(stage) {
   }
   if (stage === "erro_item") return "reading_page";
   return "reading_page";
+}
+
+function positiveInt(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
 }
 
 function assertConfig() {
@@ -92,7 +100,60 @@ async function sendResult(job, input) {
 }
 
 async function sendHistoryChunk(job, input) {
-  return apiFetch(`/api/agent/jobs/${job.id}/chunk`, {
+  return apiFetch(`/api/agent/jobs/${job.id}/chunk`, historyChunkPayload(input));
+}
+
+function historyItemsFromResult(result) {
+  const dataItems = result && result.data && Array.isArray(result.data.items) ? result.data.items : null;
+  return dataItems || (Array.isArray(result && result.items) ? result.items : []);
+}
+
+function truncateValue(value, maxChars) {
+  if (value == null) return "";
+  const serialized = typeof value === "string" ? value : JSON.stringify(value);
+  const text = serialized == null ? String(value) : serialized;
+  return text.length > maxChars ? `${text.slice(0, maxChars)}... [truncado]` : text;
+}
+
+function compactFormFields(fields, maxChars) {
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return {};
+
+  return Object.fromEntries(
+    Object.entries(fields).map(([key, value]) => [key, truncateValue(value, maxChars)])
+  );
+}
+
+function compactRawPayload(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw || null;
+
+  const keepKeys = [
+    "processInstanceId",
+    "processId",
+    "processVersion",
+    "status",
+    "startDate",
+    "requesterId",
+    "requesterName",
+    "requesterCode",
+    "active",
+    "stateDescription",
+  ];
+
+  return Object.fromEntries(keepKeys.filter((key) => raw[key] !== undefined).map((key) => [key, raw[key]]));
+}
+
+function compactHistoryItem(item, aggressive = false) {
+  const maxChars = aggressive ? historyAggressiveFieldMaxChars : historyFieldMaxChars;
+
+  return {
+    ...item,
+    formFields: compactFormFields(item && item.formFields, maxChars),
+    raw: aggressive ? null : compactRawPayload(item && item.raw),
+  };
+}
+
+function historyChunkPayload(input) {
+  return {
     chunkIndex: input.chunkIndex,
     totalChunks: input.totalChunks,
     totalItems: input.totalItems,
@@ -101,29 +162,66 @@ async function sendHistoryChunk(job, input) {
         items: input.items,
       },
     },
-  });
+  };
 }
 
-function historyItemsFromResult(result) {
-  const dataItems = result && result.data && Array.isArray(result.data.items) ? result.data.items : null;
-  return dataItems || (Array.isArray(result && result.items) ? result.items : []);
+function payloadBytes(payload) {
+  return Buffer.byteLength(JSON.stringify(payload), "utf8");
+}
+
+function historyChunkBytes(items) {
+  return payloadBytes(historyChunkPayload({ chunkIndex: 0, totalChunks: 999, totalItems: items.length, items }));
+}
+
+function buildHistoryChunks(items) {
+  const chunks = [];
+  let current = [];
+
+  for (const item of items) {
+    let compactItem = compactHistoryItem(item);
+    if (historyChunkBytes([compactItem]) > historyChunkMaxBytes) {
+      compactItem = compactHistoryItem(item, true);
+    }
+
+    const next = [...current, compactItem];
+    const nextTooLarge = historyChunkBytes(next) > historyChunkMaxBytes;
+    const nextTooMany = next.length > historyChunkMaxItems;
+
+    if (current.length && (nextTooLarge || nextTooMany)) {
+      chunks.push(current);
+      current = [compactItem];
+    } else {
+      current = next;
+    }
+  }
+
+  if (current.length) {
+    chunks.push(current);
+  }
+
+  return chunks;
 }
 
 function compactHistoryResult(result, input) {
   const data = result && result.data && typeof result.data === "object" ? result.data : {};
   const { items: _items, ...compactData } = data;
+  const { items: _topItems, ...compactResult } = result || {};
 
   return {
-    ...result,
+    ...compactResult,
     data: {
       ...compactData,
       itemsChunked: true,
       itemCount: input.itemCount,
       chunkCount: input.chunkCount,
+      maxChunkItems: historyChunkMaxItems,
+      maxChunkBytes: historyChunkMaxBytes,
     },
     itemsChunked: true,
     itemCount: input.itemCount,
     chunkCount: input.chunkCount,
+    maxChunkItems: historyChunkMaxItems,
+    maxChunkBytes: historyChunkMaxBytes,
   };
 }
 
@@ -133,14 +231,19 @@ async function sendChunkedHistoryResult(job, result) {
     return compactHistoryResult(result, { itemCount: 0, chunkCount: 0 });
   }
 
-  const totalChunks = Math.ceil(items.length / historyChunkSize);
+  const chunks = buildHistoryChunks(items);
+  const totalChunks = chunks.length;
 
-  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
-    const chunk = items.slice(chunkIndex * historyChunkSize, (chunkIndex + 1) * historyChunkSize);
+  for (const [chunkIndex, chunk] of chunks.entries()) {
     currentJob = {
       ...currentJob,
       status: "syncing_result",
-      label: `Gravando lote ${chunkIndex + 1}/${totalChunks} no ADM.`,
+      label: `Gravando lote ${chunkIndex + 1}/${totalChunks} no ADM (${payloadBytes(historyChunkPayload({
+        chunkIndex,
+        totalChunks,
+        totalItems: items.length,
+        items: chunk,
+      }))} bytes).`,
     };
     await sendHistoryChunk(job, {
       chunkIndex,
@@ -314,7 +417,18 @@ process.on("SIGTERM", () => {
   stopping = true;
 });
 
-main().catch((error) => {
-  console.error(error && error.stack ? error.stack : error);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error && error.stack ? error.stack : error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  __test: {
+    buildHistoryChunks,
+    compactHistoryResult,
+    historyChunkPayload,
+    payloadBytes,
+  },
+};
