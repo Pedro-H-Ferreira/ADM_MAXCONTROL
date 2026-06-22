@@ -46,6 +46,11 @@ export const fluigAdmApi = {
   supplierPreloadPath: "/api/fluig/adm/suppliers/preload",
   agentPairPath: "/api/fluig/adm/agent/pair",
   jobsPath: "/api/fluig/adm/jobs",
+  syncUserPath: "/api/fluig/adm/sync/user",
+  syncOpenTasksPath: "/api/fluig/adm/sync/open-tasks",
+  syncMyRequestsPath: "/api/fluig/adm/sync/my-requests",
+  myTasksPath: "/api/fluig/adm/tasks/my",
+  myOpenRequestsPath: "/api/fluig/adm/requests/my-open",
   async sync(payload: FluigAdmSyncRequest) {
     const response = await fetch(this.syncPath, {
       method: "POST",

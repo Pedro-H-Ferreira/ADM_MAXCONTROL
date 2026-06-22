@@ -94,7 +94,12 @@ Rotas novas:
 - `GET /api/fluig/adm/map`: retorna o mapa completo por aba e, com `?persist=true`, grava em `fluig_process_mappings`.
 - `POST /api/fluig/adm/history`: consulta historico real por modulo, gera candidatos de fornecedor e grava em `fluig_requests`/`fluig_supplier_candidates` quando Supabase estiver configurado.
 - `POST /api/fluig/adm/sync/historical`: cria jobs de carga historica inicial pelo agente local. Para `fornecedores`, agenda pagamentos, compras e manutencao.
+- `POST /api/fluig/adm/sync/user`: cria jobs incrementais do usuario logado para tarefas e solicitacoes abertas conhecidas, sem varrer historico completo.
+- `POST /api/fluig/adm/sync/open-tasks`: cria job incremental `sync_user_open_tasks` para consultar status Fluig somente de solicitacoes abertas conhecidas.
+- `POST /api/fluig/adm/sync/my-requests`: cria job incremental `sync_user_open_requests` para consultar status Fluig somente de solicitacoes abertas conhecidas.
 - `GET /api/fluig/adm/sync/state`: retorna `lastSync`, `lastSuccess` e `lastError` por usuario, modulo e tipo de sync.
+- `GET /api/fluig/adm/tasks/my`: lista tarefas Fluig conhecidas do usuario a partir do snapshot persistido e filtrado por permissao.
+- `GET /api/fluig/adm/requests/my-open`: lista solicitacoes abertas conhecidas do usuario a partir do snapshot persistido e filtrado por permissao.
 - `POST /api/fluig/adm/request/lookup`: cria job de consulta sob demanda por numero Fluig, persistindo o status quando o agente retorna.
 - `POST /api/fluig/adm/status`: consulta etapa, responsavel, SLA, vencimento e cancelabilidade por numero Fluig.
 - `POST /api/fluig/adm/open`: abre solicitacao a partir de `sourceRequestId`. Sem `confirm=true`, executa apenas dry-run. Em `mode=test`, abre e cancela em seguida; em `mode=production`, mantem aberta.
@@ -134,6 +139,13 @@ Persistencia:
 - Migracao incremental: `supabase/migrations/20260622191847_suppliers_branches_user_sync.sql`.
 - Novas tabelas: `app_suppliers`, `app_supplier_contacts`, `app_supplier_branch_links`, `app_supplier_audit_events`, `fluig_user_sync_state`.
 - Evolucoes: `app_branches` recebeu campos administrativos; `fluig_requests` recebeu vinculo com fornecedor oficial, status normalizado, flags de aberto/finalizado e dono de sync; `fluig_jobs` passou a aceitar operacoes de sync inicial, consulta por numero e sync por usuario.
+- Hardening aplicado: `supabase/migrations/20260622200452_harden_supplier_sync_schema.sql`, com `search_path` fixo em `set_updated_at`, indices para FKs usadas pelos fluxos novos e policies explicitas de bloqueio direto para tabelas operadas somente via service role.
+
+Estado verificado em `PORTAL ADM CD` em 22/06/2026:
+
+- Data API retorna `200` para `app_suppliers`, `app_supplier_contacts`, `app_supplier_branch_links`, `app_supplier_audit_events`, `fluig_user_sync_state`, `app_branches` e `fluig_jobs`.
+- Advisor de seguranca restante: `unaccent` em schema `public` e protecao de senha vazada desativada no Supabase Auth.
+- Advisor de performance restante: indices recentes ainda aparecem como `unused_index` porque os fluxos acabaram de ser criados; nao remover sem volume real de uso.
 
 Comandos seguros de teste:
 

@@ -226,10 +226,15 @@ async function executeJob(config, job, emitProgress) {
     };
   }
 
-  if (job.operation === "sync_status" || job.operation === "sync_request_by_number") {
+  if (
+    job.operation === "sync_status" ||
+    job.operation === "sync_request_by_number" ||
+    job.operation === "sync_user_open_tasks" ||
+    job.operation === "sync_user_open_requests"
+  ) {
     const requestIds = Array.isArray(payload.requestIds) ? payload.requestIds.map(String) : [];
     if (!requestIds.length) {
-      throw new Error("Nenhum numero Fluig informado para consulta de status.");
+      throw new Error("Nenhum numero Fluig aberto conhecido para consulta incremental.");
     }
     const scriptPath = path.join(root, "scripts", "fluig", "syncFluigStatus.js");
     const { stdout } = await runNodeScript(

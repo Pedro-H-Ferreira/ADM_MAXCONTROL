@@ -37,6 +37,12 @@ type FluigRequestDbRow = {
   due_date: string | null;
   opened_at: string | null;
   last_synced_at: string | null;
+  is_open?: boolean | null;
+  normalized_status?: string | null;
+  last_status_check_at?: string | null;
+  last_seen_in_user_open_list_at?: string | null;
+  sync_owner_user_id?: string | null;
+  sync_source?: string | null;
   raw_payload: JsonRecord;
 };
 
@@ -711,7 +717,20 @@ function mapHistoryToRequest(module: FluigModuleSlug, item: FluigHistoryItem, ac
   };
 }
 
-function mapStatusToRequest(module: FluigModuleSlug, item: FluigStatusItem) {
+function isStatusOpen(item: FluigStatusItem) {
+  const status = String(item.statusProcesso || "").toLowerCase();
+  if (item.active === false || status.includes("finaliz") || status.includes("cancel")) return false;
+  return true;
+}
+
+function mapStatusToRequest(
+  module: FluigModuleSlug,
+  item: FluigStatusItem,
+  options: { ownerUserId?: string | null; syncSource?: string | null; markSeenOpen?: boolean } = {}
+) {
+  const checkedAt = item.dataUltimaConsulta || new Date().toISOString();
+  const open = isStatusOpen(item);
+
   return {
     module_slug: module,
     fluig_request_id: item.numeroFluig,
@@ -719,7 +738,13 @@ function mapStatusToRequest(module: FluigModuleSlug, item: FluigStatusItem) {
     current_task: item.etapaAtual || null,
     task_owner: item.responsavelAtual || null,
     due_date: item.vencimentoPagamento || null,
-    last_synced_at: item.dataUltimaConsulta || new Date().toISOString(),
+    normalized_status: open ? "em_andamento" : "finalizado",
+    is_open: open,
+    last_status_check_at: checkedAt,
+    last_seen_in_user_open_list_at: options.markSeenOpen && open ? checkedAt : undefined,
+    sync_source: options.syncSource || "status_check",
+    sync_owner_user_id: options.ownerUserId || null,
+    last_synced_at: checkedAt,
     raw_payload: item as unknown as JsonRecord,
   };
 }
@@ -881,11 +906,15 @@ export function buildFluigCatalogItemsByModule(fallback: FluigModuleSlug, items:
   );
 }
 
-export async function persistStatusItems(module: FluigModuleSlug, items: FluigStatusItem[]) {
+export async function persistStatusItems(
+  module: FluigModuleSlug,
+  items: FluigStatusItem[],
+  options: { ownerUserId?: string | null; syncSource?: string | null; markSeenOpen?: boolean } = {}
+) {
   return runWithDb(async (client) => {
     const rows = items
       .filter((item) => item.numeroFluig)
-      .map((item) => mapStatusToRequest(module, item));
+      .map((item) => mapStatusToRequest(module, item, options));
     if (!rows.length) return 0;
     const { error } = await client.from("fluig_requests").upsert(rows, { onConflict: "module_slug,fluig_request_id" });
     if (error) throw error;
@@ -894,6 +923,91 @@ export async function persistStatusItems(module: FluigModuleSlug, items: FluigSt
     if (result !== null) persistence.saved.requests = result;
     return persistence;
   });
+}
+
+export async function readKnownOpenFluigRequestsForActor(input: {
+  actor: AppActor;
+  module?: FluigModuleSlug | null;
+  limit?: number;
+}) {
+  return runWithDb(async (client) => {
+    const modules =
+      input.module && input.module !== "fornecedores"
+        ? ([input.module] satisfies FluigModuleSlug[])
+        : (["pagamentos", "compras", "manutencao"] satisfies FluigModuleSlug[]);
+    const limit = Math.min(Math.max(Number(input.limit || 50), 1), 200);
+    const query = client
+      .from("fluig_requests")
+      .select(
+        [
+          "id",
+          "module_slug",
+          "adm_reference",
+          "process_id",
+          "fluig_request_id",
+          "status",
+          "current_task",
+          "task_owner",
+          "requester",
+          "branch_code",
+          "branch_label",
+          "created_by_user_id",
+          "fluig_requester_login",
+          "fluig_requester_code",
+          "supplier_name",
+          "supplier_cnpj",
+          "amount_cents",
+          "currency",
+          "due_date",
+          "opened_at",
+          "last_synced_at",
+          "is_open",
+          "normalized_status",
+          "last_status_check_at",
+          "last_seen_in_user_open_list_at",
+          "sync_owner_user_id",
+          "sync_source",
+          "raw_payload",
+        ].join(",")
+      )
+      .in("module_slug", modules)
+      .or("is_open.eq.true,is_open.is.null")
+      .not("fluig_request_id", "is", null)
+      .order("last_status_check_at", { ascending: true, nullsFirst: true })
+      .order("last_synced_at", { ascending: false, nullsFirst: false })
+      .limit(input.actor.isAdmin ? limit : Math.max(limit * 5, 100));
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[])
+      .slice(0, limit)
+      .map((row) => ({
+        id: row.id,
+        module: row.module_slug,
+        fluigRequestId: row.fluig_request_id || "",
+        admReference: row.adm_reference,
+        status: row.status,
+        normalizedStatus: row.normalized_status || null,
+        isOpen: row.is_open,
+        currentTask: row.current_task,
+        taskOwner: row.task_owner,
+        requester: row.requester,
+        branchCode: row.branch_code,
+        branchLabel: row.branch_label,
+        supplierName: row.supplier_name,
+        supplierCnpj: row.supplier_cnpj,
+        openedAt: row.opened_at,
+        lastSyncedAt: row.last_synced_at,
+        lastStatusCheckAt: row.last_status_check_at || null,
+        lastSeenInUserOpenListAt: row.last_seen_in_user_open_list_at || null,
+        syncOwnerUserId: row.sync_owner_user_id || null,
+        syncSource: row.sync_source || null,
+      }));
+  }).then(({ result, persistence }) => ({
+    requests: result || [],
+    persistence,
+  }));
 }
 
 export async function recordFluigOperationRun(input: {

@@ -94,7 +94,22 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   if (status === "success" && (job.operation === "sync_status" || job.operation === "sync_request_by_number")) {
-    persistenceResults.push(await persistStatusItems(job.module, extractStatusItems(resultPayload)));
+    persistenceResults.push(
+      await persistStatusItems(job.module, extractStatusItems(resultPayload), {
+        ownerUserId: job.requestedByUserId,
+        syncSource: job.operation,
+      })
+    );
+  }
+
+  if (status === "success" && (job.operation === "sync_user_open_tasks" || job.operation === "sync_user_open_requests")) {
+    persistenceResults.push(
+      await persistStatusItems(job.module, extractStatusItems(resultPayload), {
+        ownerUserId: job.requestedByUserId,
+        syncSource: job.operation,
+        markSeenOpen: true,
+      })
+    );
   }
 
   if (status === "success" && job.operation === "open_from_source") {
