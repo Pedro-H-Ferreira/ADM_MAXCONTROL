@@ -178,7 +178,12 @@ $ActionArgument = '/d /c "' + $RunFile + '"'
 $Action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument $ActionArgument
 $Trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 $Principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
-$Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+$Settings = New-ScheduledTaskSettingsSet `
+  -AllowStartIfOnBatteries `
+  -DontStopIfGoingOnBatteries `
+  -RestartCount 3 `
+  -RestartInterval (New-TimeSpan -Minutes 1) `
+  -ExecutionTimeLimit (New-TimeSpan -Seconds 0)
 
 Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Principal $Principal -Settings $Settings -Force | Out-Null
 
