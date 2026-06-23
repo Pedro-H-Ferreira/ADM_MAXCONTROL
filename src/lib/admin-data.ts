@@ -72,7 +72,13 @@ function awaitingMetric(title: string, icon: LucideIcon): StatItem {
 
 function createModule(seed: ModuleSeed): ModuleConfig {
   return {
-    ...seed,
+    slug: seed.slug,
+    title: seed.title,
+    eyebrow: seed.eyebrow,
+    description: seed.description,
+    primaryAction: seed.primaryAction,
+    statuses: seed.statuses,
+    formSections: seed.formSections,
     metrics: [
       awaitingMetric("Registros reais", seed.icon),
       awaitingMetric("Pendencias reais", AlertTriangle),

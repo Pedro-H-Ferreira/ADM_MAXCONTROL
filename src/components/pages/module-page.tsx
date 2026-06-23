@@ -33,7 +33,10 @@ const stitchDelays = [
 
 function toClientModuleConfig(config: ModuleConfig): ModuleConfig {
   return {
-    ...config,
+    slug: config.slug,
+    title: config.title,
+    eyebrow: config.eyebrow,
+    description: config.description,
     primaryAction: config.primaryAction ? { ...config.primaryAction } : undefined,
     metrics: [],
     table: {
