@@ -20,6 +20,7 @@ import {
   completeMaintenanceOrderFluigOpenJob,
   recordMaintenanceOrderFluigJobFailure,
 } from "@/lib/db/maintenance-repository";
+import { markSupplierFluigSyncResult } from "@/lib/db/suppliers-repository";
 import { mergePersistence } from "@/lib/fluig/route-utils";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
@@ -129,6 +130,13 @@ export async function POST(request: Request, context: RouteContext) {
     persistenceResults.push(await persistSupplierCandidates(buildSupplierCandidates(historyItems)));
   }
 
+  if (status === "success" && job.operation === "supplier_lookup_by_cnpj") {
+    const historyItems = extractHistoryItems(resultPayload);
+    persistenceResults.push(await persistHistoryItemsInChunksByModule(job.module, historyItems, { id: job.requestedByUserId }));
+    persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItemsByModule(job.module, historyItems)));
+    persistenceResults.push(await persistSupplierCandidates(buildSupplierCandidates(historyItems)));
+  }
+
   if (status === "success" && (job.operation === "sync_status" || job.operation === "sync_request_by_number")) {
     persistenceResults.push(
       await persistStatusItems(job.module, extractStatusItems(resultPayload), {
@@ -200,6 +208,18 @@ export async function POST(request: Request, context: RouteContext) {
   const finalPayload = persistence ? { ...resultPayload, persistence } : resultPayload;
   const syncType = syncTypeForJob(job.operation);
   const batchSyncStates = job.operation === "sync_user_incremental_batch" ? batchDefinitions(job.requestPayload) : [];
+
+  if (job.operation === "supplier_lookup_by_cnpj") {
+    await markSupplierFluigSyncResult({
+      supplierId: String(job.requestPayload.supplierId || ""),
+      actorId: job.requestedByUserId,
+      status,
+      historyItems: status === "success" ? extractHistoryItems(resultPayload) : [],
+      resultPayload: finalPayload,
+      errorMessage: body.errorMessage,
+      persistence,
+    });
+  }
 
   await completeFluigJob({
     jobId,

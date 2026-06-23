@@ -310,6 +310,7 @@ export function SuppliersPage({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
+  const [syncingSupplierId, setSyncingSupplierId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(initialOpenForm);
   const [editing, setEditing] = useState<SupplierRecord | null>(null);
@@ -533,6 +534,32 @@ export function SuppliersPage({
     }
   }
 
+  async function syncSupplierWithFluig(supplier: SupplierRecord) {
+    const cnpj = supplier.cnpjNormalizado || supplier.cnpj || "";
+    if (!isValidCnpj(cnpj)) {
+      toast.error("Fornecedor sem CNPJ valido para sincronizar no Fluig.");
+      return;
+    }
+
+    setSyncingSupplierId(supplier.id);
+    try {
+      const data = await parseResponse<{ success: true; job: { id: string; status: string }; supplier?: SupplierRecord | null }>(
+        await fetch(`/api/fornecedores/${supplier.id}/sync-fluig`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ days: 730, pageSize: 100, maxPages: 100 }),
+        }),
+        "Falha ao sincronizar fornecedor no Fluig."
+      );
+      toast.success(`Consulta enviada ao agente Fluig. Job ${data.job.id.slice(0, 8)}.`);
+      await loadSuppliers();
+    } catch (syncError) {
+      toast.error(syncError instanceof Error ? syncError.message : "Falha ao sincronizar fornecedor no Fluig.");
+    } finally {
+      setSyncingSupplierId(null);
+    }
+  }
+
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
   const metrics = useMemo(
     () => [
@@ -729,6 +756,20 @@ export function SuppliersPage({
                           }}
                         >
                           <FileSearch className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          title="Sincronizar fornecedor no Fluig"
+                          disabled={syncingSupplierId === supplier.id || !isValidCnpj(supplier.cnpjNormalizado || supplier.cnpj || "")}
+                          onClick={() => void syncSupplierWithFluig(supplier)}
+                        >
+                          {syncingSupplierId === supplier.id ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <RefreshCcw className="size-4" />
+                          )}
                         </Button>
                         <Button type="button" variant="ghost" size="icon-sm" title="Excluir ou inativar" onClick={() => setDeleteTarget(supplier)}>
                           <Trash2 className="size-4" />

@@ -131,6 +131,51 @@ function historyWindowsFromPayload(payload) {
     .filter((window) => window.start && window.end);
 }
 
+function digitsOnly(value) {
+  return String(value ?? "").replace(/\D/g, "");
+}
+
+function historyItemContainsCnpj(item, cnpj) {
+  const fields = item && typeof item === "object" ? item.formFields || {} : {};
+  const candidates = [
+    fields.codCNPJ,
+    fields.cnpj,
+    fields.supplierCnpj,
+    fields.fornecedorC,
+    fields.fornecedor,
+    fields.nomeFornecedor,
+    fields.razaoSocial,
+    JSON.stringify(fields),
+  ];
+
+  return candidates.some((value) => digitsOnly(value).includes(cnpj));
+}
+
+function compactHistoryItem(item) {
+  const raw = item && typeof item.raw === "object" && item.raw ? item.raw : {};
+  return {
+    moduleSlug: item.moduleSlug || item.module || null,
+    processInstanceId: String(item.processInstanceId || ""),
+    processId: String(item.processId || ""),
+    processVersion: String(item.processVersion || ""),
+    status: String(item.status || ""),
+    startDate: item.startDate || null,
+    requesterId: item.requesterId || null,
+    requesterName: item.requesterName || null,
+    formFields: item.formFields || {},
+    sourceUrl: item.sourceUrl || null,
+    raw: {
+      processInstanceId: raw.processInstanceId || item.processInstanceId || null,
+      processId: raw.processId || item.processId || null,
+      processVersion: raw.processVersion || item.processVersion || null,
+      status: raw.status || item.status || null,
+      startDate: raw.startDate || item.startDate || null,
+      requesterId: raw.requesterId || raw.requesterCode || item.requesterId || null,
+      requesterName: raw.requesterName || raw.requester || item.requesterName || null,
+    },
+  };
+}
+
 function syncBatchesFromPayload(payload) {
   if (!Array.isArray(payload.batches)) return [];
 
@@ -279,6 +324,58 @@ async function executeJob(config, job, emitProgress) {
     return {
       outputPath,
       data: readOutputJson(outputPath),
+    };
+  }
+
+  if (job.operation === "supplier_lookup_by_cnpj") {
+    const cnpj = digitsOnly(payload.cnpj || payload.supplierCnpj || "");
+    if (cnpj.length !== 14) {
+      throw new Error("CNPJ valido nao informado para consulta de fornecedor no Fluig.");
+    }
+
+    emitProgress({ stage: "authenticating", label: "Autenticando no Fluig para consultar fornecedor." });
+    const scriptPath = path.join(root, "scripts", "fluig-adm-query-history.cjs");
+    const payloadProcessMaps = processMapsFromPayload(payload);
+    if (!payloadProcessMaps.length) {
+      throw new Error("Mapeamento dos processos de origem nao informado para consulta de fornecedor.");
+    }
+
+    const historyArgs = [
+      `--runner-root=${root}`,
+      `--days=${payload.days || 730}`,
+      `--page-size=${payload.pageSize || 100}`,
+      `--max-pages=${payload.maxPages || 100}`,
+      `--process-maps-json=${JSON.stringify(payloadProcessMaps)}`,
+    ];
+    emitProgress({ stage: "reading_page", label: "Consultando historico Fluig e filtrando pelo CNPJ do fornecedor." });
+    const { stdout } = await runNodeScript(
+      config,
+      scriptPath,
+      historyArgs,
+      { onLine }
+    );
+    const outputPath = parseTaggedPath(stdout, "ADM_FLUIG_HISTORY_RESULT");
+    const output = readOutputJson(outputPath);
+    const items = Array.isArray(output.items) ? output.items : [];
+    const matchedItems = items.filter((item) => historyItemContainsCnpj(item, cnpj)).map(compactHistoryItem);
+
+    return {
+      outputPath,
+      data: {
+        generatedAt: new Date().toISOString(),
+        query: output.query || {},
+        inspected: output.inspected || [],
+        totalItems: matchedItems.length,
+        lookup: {
+          cnpj,
+          supplierId: payload.supplierId || null,
+          supplierName: payload.supplierName || null,
+          scannedItems: items.length,
+          matchedItems: matchedItems.length,
+          sourceOutputPath: outputPath,
+        },
+        items: matchedItems,
+      },
     };
   }
 

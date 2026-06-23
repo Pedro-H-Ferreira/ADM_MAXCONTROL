@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatCnpj, isValidCnpj, normalizeCnpj, onlyDigits } from "@/lib/cnpj";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { AppActor } from "@/lib/db/app-repository";
+import type { FluigHistoryItem } from "@/lib/fluig/server-client";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -105,8 +106,42 @@ function cleanText(value: unknown) {
   return text || null;
 }
 
+function firstText(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = cleanText(record[key]);
+    if (value) return value;
+  }
+
+  return null;
+}
+
 function upperText(value: unknown) {
   return cleanText(value)?.toUpperCase() || null;
+}
+
+function leadingCode(value: unknown) {
+  const text = cleanText(value);
+  if (!text) return null;
+  const match = text.match(/^([A-Za-z0-9._-]+)\s*(?:-|\/|\s)/);
+  return match?.[1]?.trim() || null;
+}
+
+function supplierDefaultsFromHistory(item: FluigHistoryItem | null, resultPayload?: JsonRecord) {
+  if (!item) return {};
+  const fields = item.formFields || {};
+  return {
+    sourceRequestId: item.processInstanceId || null,
+    processId: item.processId || null,
+    processVersion: item.processVersion || null,
+    centroCusto: fields.centroCusto || null,
+    codCentroCusto: fields.codCentroCusto || null,
+    natureza: fields.codigonaturezaC || fields.naturezaSalva || null,
+    formaPagamento: fields.formaPagamento || null,
+    unidadeFilial: fields.unidadeFilial || null,
+    fornecedorBruto: fields.fornecedorC || fields.fornecedor || null,
+    latestFields: fields,
+    lookup: resultPayload?.lookup || (resultPayload?.data as JsonRecord | undefined)?.lookup || null,
+  };
 }
 
 function normalizeSupplierInput(input: SupplierInput, actor: AppActor) {
@@ -347,7 +382,7 @@ async function recordSupplierAudit(
   client: SupabaseClient,
   input: {
     supplierId: string;
-    actorId: string;
+    actorId: string | null;
     eventType: string;
     beforePayload?: unknown;
     afterPayload?: unknown;
@@ -483,6 +518,100 @@ export async function deleteSupplier(actor: AppActor, id: string) {
   const { error } = await client.from("app_suppliers").delete().eq("id", id);
   if (error) throw error;
   return { deleted: true, softDeleted: false };
+}
+
+export async function markSupplierFluigSyncQueued(actor: AppActor, id: string, metadata: JsonRecord = {}) {
+  const client = assertServiceClient();
+  const now = new Date().toISOString();
+  const { data, error } = await client
+    .from("app_suppliers")
+    .update({
+      sync_status: "PENDENTE_REVISAO",
+      updated_by_user_id: actor.id,
+      updated_at: now,
+    })
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  await recordSupplierAudit(client, {
+    supplierId: id,
+    actorId: actor.id,
+    eventType: "fluig_sync_queued",
+    afterPayload: data,
+    metadata,
+  });
+
+  return readSupplier(actor, id);
+}
+
+export async function markSupplierFluigSyncResult(input: {
+  supplierId?: string | null;
+  actorId?: string | null;
+  status: "success" | "error" | "cancelled";
+  historyItems?: FluigHistoryItem[];
+  resultPayload?: JsonRecord;
+  errorMessage?: string | null;
+  persistence?: unknown;
+}) {
+  const supplierId = cleanText(input.supplierId);
+  if (!supplierId) return null;
+
+  const client = assertServiceClient();
+  const historyItems = Array.isArray(input.historyItems) ? input.historyItems : [];
+  const latest = historyItems[0] || null;
+  const fields = latest?.formFields || {};
+  const supplierLabel = firstText(fields, ["fornecedorC", "fornecedor", "nomeFornecedor", "supplierName"]);
+  const cnpj = normalizeCnpj(firstText(fields, ["codCNPJ", "cnpj", "supplierCnpj"]));
+  const now = new Date().toISOString();
+  const hasMatches = historyItems.length > 0;
+  const updatePayload: Record<string, unknown> = {
+    sync_status: input.status === "success" ? (hasMatches ? "SINCRONIZADO" : "PENDENTE_REVISAO") : "ERRO_SYNC",
+    last_fluig_sync_at: now,
+    updated_by_user_id: input.actorId || null,
+    updated_at: now,
+  };
+
+  if (hasMatches) {
+    updatePayload.source_system = "LOCAL_FLUIG";
+    updatePayload.default_source_request_id = latest.processInstanceId || null;
+    updatePayload.default_payload = supplierDefaultsFromHistory(latest, input.resultPayload);
+    if (supplierLabel) {
+      updatePayload.fluig_name = supplierLabel;
+      updatePayload.fluig_supplier_label = supplierLabel;
+      updatePayload.fluig_code = leadingCode(supplierLabel);
+    }
+    if (cnpj) {
+      updatePayload.cnpj = formatCnpj(cnpj);
+      updatePayload.cnpj_normalizado = cnpj;
+    }
+  }
+
+  const { data, error } = await client
+    .from("app_suppliers")
+    .update(updatePayload)
+    .eq("id", supplierId)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  await recordSupplierAudit(client, {
+    supplierId,
+    actorId: input.actorId || null,
+    eventType: input.status === "success" ? "fluig_sync_completed" : "fluig_sync_failed",
+    afterPayload: data,
+    metadata: {
+      matchedItems: historyItems.length,
+      errorMessage: input.errorMessage || null,
+      persistence: input.persistence || null,
+    },
+  });
+
+  return data;
 }
 
 function suggestionFromCandidate(row: Record<string, unknown>) {
