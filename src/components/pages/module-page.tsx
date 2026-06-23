@@ -10,7 +10,6 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { FluigIntegrationPanel } from "@/components/shared/fluig-integration-panel";
 import { FormSection } from "@/components/shared/form-section";
-import { MaintenanceOrderFlowPanel } from "@/components/shared/maintenance-order-flow-panel";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -19,6 +18,7 @@ import { UserBranchAccessPanel } from "@/components/shared/user-branch-access-pa
 import { BranchesPage } from "@/components/pages/branches-page";
 import { FluigModuleOperationsPage } from "@/components/pages/fluig-module-operations-page";
 import { FluigTasksPage } from "@/components/pages/fluig-tasks-page";
+import { MaintenancePage } from "@/components/pages/maintenance-page";
 import { SuppliersPage } from "@/components/pages/suppliers-page";
 import type { ModuleConfig } from "@/lib/admin-data";
 
@@ -48,6 +48,10 @@ export function ModulePage({
 
   if (config.slug === "tarefas" && mode === "list") {
     return <FluigTasksPage config={config} />;
+  }
+
+  if (config.slug === "manutencao") {
+    return <MaintenancePage config={config} initialOpenForm={mode === "new"} />;
   }
 
   if ((config.slug === "pagamentos" || config.slug === "compras") && mode === "list") {
@@ -81,7 +85,6 @@ function ModuleListPage({ config }: { config: ModuleConfig }) {
       </div>
       <FilterBar placeholder={`Buscar em ${config.title.toLowerCase()}`} />
       {config.slug === "usuarios" ? <UserBranchAccessPanel /> : null}
-      {config.slug === "manutencao" ? <MaintenanceOrderFlowPanel mode="list" /> : null}
       <FluigIntegrationPanel moduleSlug={config.slug} />
       {config.table.rows.length > 0 ? (
         <DataTable columns={config.table.columns} rows={config.table.rows} />
@@ -108,9 +111,7 @@ function ModuleFormPage({ config }: { config: ModuleConfig }) {
       />
       <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
         <div className="space-y-4">
-          {config.slug === "manutencao" ? (
-            <MaintenanceOrderFlowPanel mode="form" />
-          ) : config.formSections.length > 0 ? (
+          {config.formSections.length > 0 ? (
             config.formSections.map((section, index) => (
               <FormSection
                 key={section.title}
@@ -192,7 +193,6 @@ function ModuleDetailPage({ config }: { config: ModuleConfig }) {
           </CardContent>
         </Card>
         <div className="space-y-4">
-          {config.slug === "manutencao" ? <MaintenanceOrderFlowPanel mode="detail" compact /> : null}
           <FluigIntegrationPanel moduleSlug={config.slug} compact />
           <Card className="stitch-animate-in stitch-hover-lift stitch-delay-300 rounded-lg shadow-none">
             <CardHeader>

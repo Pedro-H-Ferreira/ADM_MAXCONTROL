@@ -26,6 +26,7 @@
 /.codex/
 /logs/
 /storage/
+/supabase/.temp/
 
 # debug
 npm-debug.log*
