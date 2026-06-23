@@ -280,6 +280,15 @@ export const fluigAdmApi = {
       job: FluigAdmJobSummary;
     }>(this.requestLookupPath, payload);
   },
+  async getLookupRequest(payload: { module?: FluigModuleSlug | "auto"; fluigRequestId: string }) {
+    const params = new URLSearchParams({ fluigRequestId: payload.fluigRequestId });
+    if (payload.module && payload.module !== "auto") params.set("module", payload.module);
+    return this.get<{
+      success: true;
+      request: FluigOpenRequestRecord | null;
+      persistence?: unknown;
+    }>(`${this.requestLookupPath}?${params.toString()}`);
+  },
   async openDryRun(payload: {
     module: FluigModuleSlug;
     sourceRequestId: string;

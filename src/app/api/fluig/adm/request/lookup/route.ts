@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { createFluigJob, resolveCurrentAppUser, upsertFluigUserSyncState } from "@/lib/db/app-repository";
+import { readFluigRequestByNumberForActor } from "@/lib/db/fluig-repository";
 import { requireFluigProcessMap } from "@/lib/fluig/process-map";
+import { moduleOrNull } from "@/lib/fluig/route-utils";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
 
 export const runtime = "nodejs";
@@ -20,6 +22,31 @@ function jsonError(error: string, status = 400) {
 
 function moduleForLookup(module: string): FluigModuleSlug {
   return module === "auto" || module === "fornecedores" ? "pagamentos" : (module as FluigModuleSlug);
+}
+
+export async function GET(request: Request) {
+  try {
+    const actor = await resolveCurrentAppUser();
+    const url = new URL(request.url);
+    const fluigRequestId = url.searchParams.get("fluigRequestId") || url.searchParams.get("numero") || "";
+    const moduleSlug = moduleOrNull(url.searchParams.get("module") || "");
+
+    if (!fluigRequestId.trim()) {
+      return jsonError("Numero Fluig e obrigatorio.");
+    }
+
+    const result = await readFluigRequestByNumberForActor({
+      actor,
+      fluigRequestId,
+      module: moduleSlug,
+    });
+
+    return NextResponse.json({ success: true, ...result });
+  } catch (error) {
+    const authResponse = appAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    return jsonError(error instanceof Error ? error.message : "Falha ao consultar solicitacao Fluig.", 500);
+  }
 }
 
 export async function POST(request: Request) {

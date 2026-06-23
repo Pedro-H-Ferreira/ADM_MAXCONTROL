@@ -142,6 +142,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   const [jobs, setJobs] = useState<FluigAdmJobSummary[]>([]);
   const [lookupNumber, setLookupNumber] = useState("");
   const [lastLookupNumber, setLastLookupNumber] = useState<string | null>(null);
+  const [lookedUpRequest, setLookedUpRequest] = useState<FluigOpenRequestRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [testingAgent, setTestingAgent] = useState(false);
@@ -159,9 +160,10 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
     [states]
   );
   const lookedUpRecord = useMemo(() => {
+    if (lookedUpRequest) return lookedUpRequest;
     if (!lastLookupNumber) return null;
     return [...tasks, ...requests].find((item) => item.fluigRequestId === lastLookupNumber) || null;
-  }, [lastLookupNumber, requests, tasks]);
+  }, [lastLookupNumber, lookedUpRequest, requests, tasks]);
 
   const refresh = useCallback(
     async (silent = false) => {
@@ -284,10 +286,12 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
     setLookingUp(true);
     setError(null);
     setLastLookupNumber(fluigRequestId);
+    setLookedUpRequest(null);
 
     try {
+      const lookupModule = moduleFilter === "all" ? "auto" : moduleFilter;
       const data = await fluigAdmApi.lookupRequest({
-        module: moduleFilter === "all" ? "auto" : moduleFilter,
+        module: lookupModule,
         fluigRequestId,
         persist: true,
       });
@@ -295,6 +299,11 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
       setJobs((current) => [data.job, ...current.filter((job) => job.id !== data.job.id)]);
       await pollJobsUntilDone([data.job]);
       await refresh(true);
+      const lookupResult = await fluigAdmApi.getLookupRequest({
+        module: lookupModule,
+        fluigRequestId,
+      });
+      setLookedUpRequest(lookupResult.request || null);
       toast.success(`Solicitacao Fluig ${fluigRequestId} consultada e atualizada.`);
     } catch (lookupError) {
       const message = lookupError instanceof Error ? lookupError.message : "Falha ao consultar solicitacao Fluig.";

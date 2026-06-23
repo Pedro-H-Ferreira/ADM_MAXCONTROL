@@ -109,6 +109,37 @@ type SupplierCnpjRow = {
   cnpj_normalizado: string | null;
 };
 
+const fluigRequestSelect = [
+  "id",
+  "module_slug",
+  "adm_reference",
+  "process_id",
+  "fluig_request_id",
+  "status",
+  "current_task",
+  "task_owner",
+  "requester",
+  "branch_code",
+  "branch_label",
+  "created_by_user_id",
+  "fluig_requester_login",
+  "fluig_requester_code",
+  "supplier_name",
+  "supplier_cnpj",
+  "amount_cents",
+  "currency",
+  "due_date",
+  "opened_at",
+  "last_synced_at",
+  "is_open",
+  "normalized_status",
+  "last_status_check_at",
+  "last_seen_in_user_open_list_at",
+  "sync_owner_user_id",
+  "sync_source",
+  "raw_payload",
+].join(",");
+
 function emptyResult(): PersistenceResult {
   return {
     configured: getSupabaseServiceStatus().configured,
@@ -166,6 +197,31 @@ function normalizedCnpjList(values: unknown[]) {
         .filter((value) => value.length === 14)
     )
   );
+}
+
+function mapFluigRequestRecord(row: FluigRequestDbRow) {
+  return {
+    id: row.id,
+    module: row.module_slug,
+    fluigRequestId: row.fluig_request_id || "",
+    admReference: row.adm_reference,
+    status: row.status,
+    normalizedStatus: row.normalized_status || null,
+    isOpen: row.is_open,
+    currentTask: row.current_task,
+    taskOwner: row.task_owner,
+    requester: row.requester,
+    branchCode: row.branch_code,
+    branchLabel: row.branch_label,
+    supplierName: row.supplier_name,
+    supplierCnpj: row.supplier_cnpj,
+    openedAt: row.opened_at,
+    lastSyncedAt: row.last_synced_at,
+    lastStatusCheckAt: row.last_status_check_at || null,
+    lastSeenInUserOpenListAt: row.last_seen_in_user_open_list_at || null,
+    syncOwnerUserId: row.sync_owner_user_id || null,
+    syncSource: row.sync_source || null,
+  };
 }
 
 async function linkFluigRequestsToKnownSuppliersForCnpjs(client: SupabaseClient, cnpjs: unknown[]) {
@@ -988,38 +1044,7 @@ export async function readKnownOpenFluigRequestsForActor(input: {
     const limit = Math.min(Math.max(Number(input.limit || 50), 1), 200);
     const query = client
       .from("fluig_requests")
-      .select(
-        [
-          "id",
-          "module_slug",
-          "adm_reference",
-          "process_id",
-          "fluig_request_id",
-          "status",
-          "current_task",
-          "task_owner",
-          "requester",
-          "branch_code",
-          "branch_label",
-          "created_by_user_id",
-          "fluig_requester_login",
-          "fluig_requester_code",
-          "supplier_name",
-          "supplier_cnpj",
-          "amount_cents",
-          "currency",
-          "due_date",
-          "opened_at",
-          "last_synced_at",
-          "is_open",
-          "normalized_status",
-          "last_status_check_at",
-          "last_seen_in_user_open_list_at",
-          "sync_owner_user_id",
-          "sync_source",
-          "raw_payload",
-        ].join(",")
-      )
+      .select(fluigRequestSelect)
       .in("module_slug", modules)
       .or("is_open.eq.true,is_open.is.null")
       .not("fluig_request_id", "is", null)
@@ -1032,30 +1057,40 @@ export async function readKnownOpenFluigRequestsForActor(input: {
 
     return filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[])
       .slice(0, limit)
-      .map((row) => ({
-        id: row.id,
-        module: row.module_slug,
-        fluigRequestId: row.fluig_request_id || "",
-        admReference: row.adm_reference,
-        status: row.status,
-        normalizedStatus: row.normalized_status || null,
-        isOpen: row.is_open,
-        currentTask: row.current_task,
-        taskOwner: row.task_owner,
-        requester: row.requester,
-        branchCode: row.branch_code,
-        branchLabel: row.branch_label,
-        supplierName: row.supplier_name,
-        supplierCnpj: row.supplier_cnpj,
-        openedAt: row.opened_at,
-        lastSyncedAt: row.last_synced_at,
-        lastStatusCheckAt: row.last_status_check_at || null,
-        lastSeenInUserOpenListAt: row.last_seen_in_user_open_list_at || null,
-        syncOwnerUserId: row.sync_owner_user_id || null,
-        syncSource: row.sync_source || null,
-      }));
+      .map(mapFluigRequestRecord);
   }).then(({ result, persistence }) => ({
     requests: result || [],
+    persistence,
+  }));
+}
+
+export async function readFluigRequestByNumberForActor(input: {
+  actor: AppActor;
+  fluigRequestId: string;
+  module?: FluigModuleSlug | null;
+}) {
+  const fluigRequestId = digitsOnly(input.fluigRequestId);
+
+  return runWithDb(async (client) => {
+    if (!fluigRequestId) return null;
+
+    const modules =
+      input.module && input.module !== "fornecedores"
+        ? ([input.module] satisfies FluigModuleSlug[])
+        : (["pagamentos", "compras", "manutencao", "fornecedores"] satisfies FluigModuleSlug[]);
+    const { data, error } = await client
+      .from("fluig_requests")
+      .select(fluigRequestSelect)
+      .eq("fluig_request_id", fluigRequestId)
+      .in("module_slug", modules)
+      .order("last_status_check_at", { ascending: false, nullsFirst: false })
+      .order("last_synced_at", { ascending: false, nullsFirst: false });
+    if (error) throw error;
+
+    const row = filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[])[0];
+    return row ? mapFluigRequestRecord(row) : null;
+  }).then(({ result, persistence }) => ({
+    request: result,
     persistence,
   }));
 }
