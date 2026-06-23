@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { ArrowRight, Plus } from "lucide-react";
+import {
+  ArrowRight,
+  Banknote,
+  Building2,
+  ListTodo,
+  Plus,
+  ReceiptText,
+  Workflow,
+  Wrench,
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,13 +19,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PeriodFilter } from "@/components/shared/period-filter";
 import { StatCard } from "@/components/shared/stat-card";
 import { StatusBadge } from "@/components/shared/status-badge";
-import {
-  chartRows,
-  dashboardAlerts,
-  dashboardStats,
-  recentActivities,
-  upcomingPayments,
-} from "@/lib/admin-data";
+import { getDashboardOverviewData, type DashboardOverviewData } from "@/lib/db/dashboard-repository";
+import type { AppActor } from "@/lib/db/app-repository";
+import type { StatItem, Tone } from "@/lib/admin-data";
 
 const quickActions = [
   { label: "Nova despesa", href: "/despesas/nova" },
@@ -36,7 +41,99 @@ const stitchDelays = [
   "stitch-delay-600",
 ];
 
-export function DashboardOverview() {
+function countText(value: number) {
+  return new Intl.NumberFormat("pt-BR").format(value);
+}
+
+function buildDashboardStats(data: DashboardOverviewData): StatItem[] {
+  return [
+    {
+      title: "Pagamentos do mes",
+      value: countText(data.paymentsThisMonth),
+      helper: "Solicitacoes de pagamento sincronizadas no mes atual",
+      change: `${countText(data.paymentsOverdue)} vencidas`,
+      tone: data.paymentsOverdue ? "warning" : "info",
+      icon: ReceiptText,
+    },
+    {
+      title: "Pagamentos pendentes",
+      value: countText(data.paymentsOpen),
+      helper: "Pagamentos Fluig ainda abertos",
+      change: `${countText(data.paymentsOverdue)} exigem atencao`,
+      tone: data.paymentsOverdue ? "danger" : "info",
+      icon: Banknote,
+    },
+    {
+      title: "Solicitacoes Fluig",
+      value: countText(data.openFluigRequests),
+      helper: "Solicitacoes abertas no escopo do usuario",
+      change: "Atualizado pelo historico e sync incremental",
+      tone: "info",
+      icon: Workflow,
+    },
+    {
+      title: "OS abertas",
+      value: countText(data.maintenanceOpen),
+      helper: "Manutencoes manuais e Fluig ainda abertas",
+      change: `${countText(data.maintenanceOverdue)} atrasadas`,
+      tone: data.maintenanceOverdue ? "warning" : "info",
+      icon: Wrench,
+    },
+    {
+      title: "Tarefas atrasadas",
+      value: countText(data.tasksOverdue),
+      helper: "Itens Fluig abertos com vencimento anterior a hoje",
+      change: data.tasksOverdue ? "Priorizar acompanhamento" : "Sem atraso identificado",
+      tone: data.tasksOverdue ? "danger" : "success",
+      icon: ListTodo,
+    },
+    {
+      title: "Fornecedores ativos",
+      value: countText(data.activeSuppliers),
+      helper: "Cadastro oficial ativo no ADM",
+      change: `${countText(data.suppliersPendingReview)} pendentes de revisao`,
+      tone: data.suppliersPendingReview ? "warning" : "info",
+      icon: Building2,
+    },
+  ];
+}
+
+function buildDashboardAlerts(data: DashboardOverviewData): { title: string; detail: string; tone: Tone }[] {
+  return [
+    ...data.warnings.map((warning) => ({
+      title: "Configuracao pendente",
+      detail: warning,
+      tone: "danger" as Tone,
+    })),
+    data.paymentsOverdue
+      ? {
+          title: "Pagamentos vencidos",
+          detail: `${countText(data.paymentsOverdue)} pagamentos sincronizados estao vencidos.`,
+          tone: "danger" as Tone,
+        }
+      : null,
+    data.maintenanceOverdue
+      ? {
+          title: "OS atrasadas",
+          detail: `${countText(data.maintenanceOverdue)} ordens de servico passaram do prazo.`,
+          tone: "warning" as Tone,
+        }
+      : null,
+    data.suppliersPendingReview
+      ? {
+          title: "Fornecedores em revisao",
+          detail: `${countText(data.suppliersPendingReview)} cadastros precisam de validacao administrativa.`,
+          tone: "warning" as Tone,
+        }
+      : null,
+  ].filter(Boolean) as { title: string; detail: string; tone: Tone }[];
+}
+
+export async function DashboardOverview({ actor }: { actor: AppActor }) {
+  const dashboardData = await getDashboardOverviewData(actor);
+  const dashboardStats = buildDashboardStats(dashboardData);
+  const dashboardAlerts = buildDashboardAlerts(dashboardData);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -59,7 +156,7 @@ export function DashboardOverview() {
       <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
         <Card className="stitch-animate-in stitch-hover-lift stitch-delay-200 rounded-lg shadow-none">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Despesas por categoria</CardTitle>
+            <CardTitle className="text-base">Pagamentos por fornecedor</CardTitle>
             <Button variant="ghost" size="sm" asChild className="stitch-soft-button">
               <Link href="/relatorios">
                 Ver relatórios
@@ -68,9 +165,9 @@ export function DashboardOverview() {
             </Button>
           </CardHeader>
           <CardContent>
-            {chartRows.length > 0 ? (
+            {dashboardData.chartRows.length > 0 ? (
               <div className="space-y-4">
-                {chartRows.map((row, index) => (
+                {dashboardData.chartRows.map((row, index) => (
                   <div
                     key={row.label}
                     className="stitch-animate-in-fast grid gap-2"
@@ -90,7 +187,7 @@ export function DashboardOverview() {
                 ))}
               </div>
             ) : (
-              <EmptyDashboardMessage text="Sem despesas reais sincronizadas para montar o grafico." />
+              <EmptyDashboardMessage text="Sem pagamentos reais com valor para montar o grafico." />
             )}
           </CardContent>
         </Card>
@@ -119,8 +216,8 @@ export function DashboardOverview() {
       <div className="grid gap-4 xl:grid-cols-3">
         <DashboardCard title="Proximas contas" className="stitch-delay-300">
           <div className="space-y-3">
-            {upcomingPayments.length > 0 ? (
-              upcomingPayments.map(([date, supplier, value, status], index) => (
+            {dashboardData.upcomingPayments.length > 0 ? (
+              dashboardData.upcomingPayments.map(([date, supplier, value, status], index) => (
                 <div
                   key={`${date}-${supplier}`}
                   className="stitch-animate-in-fast flex items-center justify-between gap-3"
@@ -143,8 +240,8 @@ export function DashboardOverview() {
 
         <DashboardCard title="Ultimas atividades" className="stitch-delay-400">
           <div className="space-y-3">
-            {recentActivities.length > 0 ? (
-              recentActivities.map((activity, index) => (
+            {dashboardData.recentActivities.length > 0 ? (
+              dashboardData.recentActivities.map((activity, index) => (
                 <div
                   key={activity}
                   className="stitch-animate-in-fast"
@@ -152,7 +249,7 @@ export function DashboardOverview() {
                 >
                   <p className="text-sm">{activity}</p>
                   <p className="text-xs text-muted-foreground">ha {index + 1}h</p>
-                  {index < recentActivities.length - 1 ? <Separator className="mt-3" /> : null}
+                  {index < dashboardData.recentActivities.length - 1 ? <Separator className="mt-3" /> : null}
                 </div>
               ))
             ) : (

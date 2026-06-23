@@ -44,7 +44,7 @@ export default async function AdminCatchAllPage({ params }: PageProps) {
   }
 
   if (moduleSlug === "dashboard") {
-    return <DashboardOverview />;
+    return <DashboardOverview actor={actor} />;
   }
 
   const config = getModuleConfig(moduleSlug);
