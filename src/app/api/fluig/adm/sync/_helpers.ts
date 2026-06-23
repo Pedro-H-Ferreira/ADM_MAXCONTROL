@@ -12,6 +12,17 @@ import type { FluigModuleSlug } from "@/lib/fluig-data";
 
 type UserSyncModule = FluigModuleSlug | "all" | "auto";
 type IncrementalSyncType = Extract<FluigUserSyncType, "open_tasks" | "my_requests">;
+type DiscoveryWindow = {
+  days: number;
+  pageSize: number;
+  maxPages: number;
+};
+
+const defaultDiscovery: DiscoveryWindow = {
+  days: 21,
+  pageSize: 50,
+  maxPages: 2,
+};
 
 const incrementalSyncPlans: Array<{
   syncType: IncrementalSyncType;
@@ -103,14 +114,21 @@ export async function createUserIncrementalBatchJob(input: {
   actor: AppActor;
   module?: UserSyncModule | null;
   limit?: number;
+  discovery?: Partial<DiscoveryWindow>;
 }) {
   const modules = modulesForUserSync(input.module);
+  const discovery = {
+    ...defaultDiscovery,
+    ...(input.discovery || {}),
+  };
   const skipped: Array<{ module: FluigModuleSlug; syncType: IncrementalSyncType; reason: string }> = [];
   const batches: Array<{
     module: FluigModuleSlug;
     operation: Extract<FluigJobOperation, "sync_user_open_tasks" | "sync_user_open_requests">;
     syncType: IncrementalSyncType;
     requestIds: string[];
+    discoverRecent: boolean;
+    discovery: DiscoveryWindow;
     taskUserId: string;
     processMap: {
       module: FluigModuleSlug;
@@ -128,31 +146,16 @@ export async function createUserIncrementalBatchJob(input: {
       limit: input.limit,
     });
     const requestIds = Array.from(new Set(snapshot.requests.map((request) => request.fluigRequestId).filter(Boolean)));
+    const map = requireFluigProcessMap(moduleSlug);
 
     for (const plan of incrementalSyncPlans) {
-      if (!requestIds.length) {
-        skipped.push({
-          module: moduleSlug,
-          syncType: plan.syncType,
-          reason: "Nenhuma solicitacao aberta conhecida para consulta incremental.",
-        });
-        await upsertFluigUserSyncState({
-          actor: input.actor,
-          module: moduleSlug,
-          syncType: plan.syncType,
-          status: "success",
-          cursor: { requestCount: 0 },
-          metadata: { skipped: true, reason: "no_known_open_requests", batched: true },
-        });
-        continue;
-      }
-
-      const map = requireFluigProcessMap(moduleSlug);
       batches.push({
         module: moduleSlug,
         operation: plan.operation,
         syncType: plan.syncType,
         requestIds,
+        discoverRecent: true,
+        discovery,
         taskUserId: input.actor.fluigUserId || map.defaultTaskUserId,
         processMap: {
           module: map.module,
@@ -179,6 +182,15 @@ export async function createUserIncrementalBatchJob(input: {
       batches,
       batchCount: batches.length,
       requestCount: Array.from(new Set(batches.flatMap((batch) => batch.requestIds))).length,
+      discovery,
+      userMatch: {
+        userId: input.actor.id,
+        fluigUsername: input.actor.fluigUsername,
+        fluigUserId: input.actor.fluigUserId,
+        email: input.actor.email,
+        displayName: input.actor.displayName,
+        branchCodes: input.actor.branchCodes,
+      },
       taskUserId: batches[0]?.taskUserId,
     },
   });
@@ -194,6 +206,8 @@ export async function createUserIncrementalBatchJob(input: {
         jobId: job.id,
         operation: batch.operation,
         batched: true,
+        discovery,
+        discoverRecent: batch.discoverRecent,
       },
     });
   }

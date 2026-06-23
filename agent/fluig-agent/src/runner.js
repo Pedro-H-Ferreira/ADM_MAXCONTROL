@@ -185,9 +185,12 @@ function syncBatchesFromPayload(payload) {
       operation: String(batch?.operation || "").trim(),
       syncType: String(batch?.syncType || "").trim(),
       taskUserId: String(batch?.taskUserId || payload.taskUserId || "").trim(),
+      discoverRecent: Boolean(batch?.discoverRecent),
+      discovery: batch?.discovery && typeof batch.discovery === "object" ? batch.discovery : payload.discovery || {},
+      processMap: batch?.processMap && typeof batch.processMap === "object" ? batch.processMap : null,
       requestIds: Array.isArray(batch?.requestIds) ? batch.requestIds.map((item) => String(item || "").trim()).filter(Boolean) : [],
     }))
-    .filter((batch) => batch.module && batch.syncType && batch.requestIds.length);
+    .filter((batch) => batch.module && batch.syncType && (batch.requestIds.length || batch.discoverRecent));
 }
 
 function requestIndexFromBatches(batches) {
@@ -405,23 +408,40 @@ async function executeJob(config, job, emitProgress) {
 
   if (job.operation === "sync_user_incremental_batch") {
     const batches = syncBatchesFromPayload(payload);
-    const requestIds = Array.from(new Set(batches.flatMap((batch) => batch.requestIds)));
-    if (!requestIds.length) {
-      throw new Error("Nenhum numero Fluig aberto conhecido para consulta incremental em lote.");
+    if (!batches.length) {
+      throw new Error("Nenhuma sincronizacao incremental valida foi informada para o agente.");
     }
 
-    const scriptPath = path.join(root, "scripts", "fluig", "syncFluigStatus.js");
+    const scriptPath = path.join(root, "scripts", "fluig", "syncUserIncremental.js");
     const taskUserId = payload.taskUserId || batches.find((batch) => batch.taskUserId)?.taskUserId || config.fluig.taskUserId;
+    const payloadDir = path.join(config.configDir, "jobs");
+    fs.mkdirSync(payloadDir, { recursive: true });
+    const payloadPath = path.join(payloadDir, `${job.id}-incremental-payload.json`);
+    fs.writeFileSync(
+      payloadPath,
+      JSON.stringify(
+        {
+          taskUserId,
+          discovery: payload.discovery || {},
+          userMatch: payload.userMatch || {},
+          batches,
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
     const { stdout } = await runNodeScript(
       config,
       scriptPath,
-      [...requestIds, `--task-user-id=${taskUserId}`],
+      [`--payload-file=${payloadPath}`],
       { onLine }
     );
-    const outputPath = parseTaggedPath(stdout, "SYNC_FLUIG_STATUS_RESULT");
+    const outputPath = parseTaggedPath(stdout, "SYNC_USER_INCREMENTAL_RESULT");
     return {
       outputPath,
-      data: annotateBatchStatusItems(readOutputJson(outputPath), batches),
+      data: readOutputJson(outputPath),
     };
   }
 

@@ -86,8 +86,26 @@ function moduleFromStatusItem(item: FluigStatusItem, fallback: FluigModuleSlug) 
   return isFluigModuleSlug(moduleSlug) ? moduleSlug : fallback;
 }
 
-function batchDefinitions(payload: Record<string, unknown>) {
+function batchDiscoveryCounts(resultPayload: Record<string, unknown>) {
+  const output = (resultPayload.data && typeof resultPayload.data === "object"
+    ? resultPayload.data
+    : resultPayload) as Record<string, unknown>;
+  const discovery = output.discovery as Record<string, unknown> | undefined;
+  const modules = Array.isArray(discovery?.modules) ? discovery.modules : [];
+  const counts = new Map<string, number>();
+
+  for (const item of modules) {
+    const row = item as Record<string, unknown>;
+    const key = `${String(row.module || "")}:${String(row.syncType || "")}`;
+    counts.set(key, Number(row.knownRequestIds || 0) + Number(row.discovered || 0));
+  }
+
+  return counts;
+}
+
+function batchDefinitions(payload: Record<string, unknown>, resultPayload: Record<string, unknown> = {}) {
   const batches = Array.isArray(payload.batches) ? payload.batches : [];
+  const discoveryCounts = batchDiscoveryCounts(resultPayload);
 
   return batches
     .map((batch) => ({
@@ -98,12 +116,20 @@ function batchDefinitions(payload: Record<string, unknown>) {
         ? ((batch as Record<string, unknown>).requestIds as unknown[]).map(String)
         : [],
     }))
+    .map((batch) => ({
+      ...batch,
+      requestCount:
+        batch.requestIds.length ||
+        discoveryCounts.get(`${batch.module}:${batch.syncType}`) ||
+        0,
+    }))
     .filter(
       (batch): batch is {
         module: FluigModuleSlug;
         syncType: Extract<FluigUserSyncType, "open_tasks" | "my_requests">;
         operation: string;
         requestIds: string[];
+        requestCount: number;
       } => isFluigModuleSlug(batch.module) && (batch.syncType === "open_tasks" || batch.syncType === "my_requests")
     );
 }
@@ -207,7 +233,7 @@ export async function POST(request: Request, context: RouteContext) {
   const persistence = persistenceResults.length ? mergePersistence(...persistenceResults) : undefined;
   const finalPayload = persistence ? { ...resultPayload, persistence } : resultPayload;
   const syncType = syncTypeForJob(job.operation);
-  const batchSyncStates = job.operation === "sync_user_incremental_batch" ? batchDefinitions(job.requestPayload) : [];
+  const batchSyncStates = job.operation === "sync_user_incremental_batch" ? batchDefinitions(job.requestPayload, resultPayload) : [];
 
   if (job.operation === "supplier_lookup_by_cnpj") {
     await markSupplierFluigSyncResult({
@@ -252,7 +278,7 @@ export async function POST(request: Request, context: RouteContext) {
         persistence,
         batched: true,
         operation: batch.operation,
-        requestCount: batch.requestIds.length,
+        requestCount: batch.requestCount,
       },
     });
   }

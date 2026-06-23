@@ -963,7 +963,7 @@ export async function persistStatusItems(
 ) {
   return runWithDb(async (client) => {
     const rows = items
-      .filter((item) => item.numeroFluig)
+      .filter((item) => item.numeroFluig && !(item as FluigStatusItem & { error?: unknown }).error)
       .map((item) => mapStatusToRequest(module, item, options));
     if (!rows.length) return 0;
     const { error } = await client.from("fluig_requests").upsert(rows, { onConflict: "module_slug,fluig_request_id" });
