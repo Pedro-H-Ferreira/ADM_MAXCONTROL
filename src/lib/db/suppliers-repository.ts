@@ -400,6 +400,101 @@ async function recordSupplierAudit(
   if (error) throw error;
 }
 
+async function ensureSupplierLinkFromLatestRequest(
+  client: SupabaseClient,
+  input: {
+    supplierId: string;
+    cnpj: string;
+    supplierName: string;
+  }
+) {
+  const { data: existing, error: existingError } = await client
+    .from("fluig_supplier_links")
+    .select("id")
+    .eq("app_supplier_id", input.supplierId)
+    .limit(1)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (existing) return 0;
+
+  const variants = Array.from(new Set([input.cnpj, formatCnpj(input.cnpj)]));
+  const { data: latestRequest, error: requestError } = await client
+    .from("fluig_requests")
+    .select("fluig_request_id,supplier_name,supplier_cnpj,raw_payload,last_synced_at")
+    .in("supplier_cnpj", variants)
+    .order("last_synced_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  if (requestError) throw requestError;
+  if (!latestRequest) return 0;
+
+  const { error: insertError } = await client.from("fluig_supplier_links").insert({
+    app_supplier_id: input.supplierId,
+    adm_supplier_id: input.supplierId,
+    supplier_name: String(latestRequest.supplier_name || input.supplierName || "Fornecedor Fluig"),
+    cnpj: input.cnpj,
+    fluig_name: String(latestRequest.supplier_name || input.supplierName || ""),
+    fluig_code: null,
+    default_source_request_id: latestRequest.fluig_request_id || null,
+    default_payload: {
+      source: "auto_link_from_fluig_request_cnpj",
+      latestRequest: latestRequest.fluig_request_id || null,
+      rawPayload: latestRequest.raw_payload || {},
+    },
+    active: true,
+  });
+  if (insertError) throw insertError;
+  return 1;
+}
+
+async function linkSupplierFluigReferences(
+  client: SupabaseClient,
+  input: {
+    supplierId: string;
+    cnpj?: string | null;
+    supplierName: string;
+  }
+) {
+  const cnpj = normalizeCnpj(input.cnpj);
+  if (!cnpj || !isValidCnpj(cnpj)) {
+    return { requests: 0, links: 0, insertedLinks: 0 };
+  }
+
+  const variants = Array.from(new Set([cnpj, formatCnpj(cnpj)]));
+  const { count: requestCount, error: requestError } = await client
+    .from("fluig_requests")
+    .update({ app_supplier_id: input.supplierId }, { count: "exact" })
+    .in("supplier_cnpj", variants)
+    .or(`app_supplier_id.is.null,app_supplier_id.eq.${input.supplierId}`);
+  if (requestError) throw requestError;
+
+  const { count: linkCount, error: linkError } = await client
+    .from("fluig_supplier_links")
+    .update(
+      {
+        app_supplier_id: input.supplierId,
+        adm_supplier_id: input.supplierId,
+        active: true,
+      },
+      { count: "exact" }
+    )
+    .in("cnpj", variants)
+    .or(`app_supplier_id.is.null,app_supplier_id.eq.${input.supplierId}`);
+  if (linkError) throw linkError;
+
+  const insertedLinks = await ensureSupplierLinkFromLatestRequest(client, {
+    supplierId: input.supplierId,
+    cnpj,
+    supplierName: input.supplierName,
+  });
+
+  return {
+    requests: requestCount || 0,
+    links: linkCount || 0,
+    insertedLinks,
+  };
+}
+
 export async function createSupplier(actor: AppActor, input: SupplierInput) {
   const client = assertServiceClient();
   const payload = normalizeSupplierInput(input, actor);
@@ -417,11 +512,17 @@ export async function createSupplier(actor: AppActor, input: SupplierInput) {
 
   const supplier = data as SupplierDbRow;
   await replaceBranchLinks(client, supplier.id, input.branchIds);
+  const fluigLinks = await linkSupplierFluigReferences(client, {
+    supplierId: supplier.id,
+    cnpj: supplier.cnpj_normalizado,
+    supplierName: supplier.razao_social,
+  });
   await recordSupplierAudit(client, {
     supplierId: supplier.id,
     actorId: actor.id,
     eventType: "created",
     afterPayload: supplier,
+    metadata: { fluigLinks },
   });
 
   return readSupplier(actor, supplier.id);
@@ -463,12 +564,19 @@ export async function updateSupplier(actor: AppActor, id: string, input: Partial
   const { data, error } = await client.from("app_suppliers").update(payload).eq("id", id).select("*").single();
   if (error) throw error;
   await replaceBranchLinks(client, id, input.branchIds);
+  const updated = data as SupplierDbRow;
+  const fluigLinks = await linkSupplierFluigReferences(client, {
+    supplierId: id,
+    cnpj: updated.cnpj_normalizado,
+    supplierName: updated.razao_social,
+  });
   await recordSupplierAudit(client, {
     supplierId: id,
     actorId: actor.id,
     eventType: "updated",
     beforePayload: before,
     afterPayload: data,
+    metadata: { fluigLinks },
   });
   return readSupplier(actor, id);
 }
@@ -598,6 +706,12 @@ export async function markSupplierFluigSyncResult(input: {
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
+  const row = data as SupplierDbRow;
+  const fluigLinks = await linkSupplierFluigReferences(client, {
+    supplierId,
+    cnpj: row.cnpj_normalizado,
+    supplierName: row.razao_social,
+  });
 
   await recordSupplierAudit(client, {
     supplierId,
@@ -608,6 +722,7 @@ export async function markSupplierFluigSyncResult(input: {
       matchedItems: historyItems.length,
       errorMessage: input.errorMessage || null,
       persistence: input.persistence || null,
+      fluigLinks,
     },
   });
 

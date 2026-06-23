@@ -104,6 +104,11 @@ export type FluigSupplierCandidate = {
   sourcePayload: JsonRecord;
 };
 
+type SupplierCnpjRow = {
+  id: string;
+  cnpj_normalizado: string | null;
+};
+
 function emptyResult(): PersistenceResult {
   return {
     configured: getSupabaseServiceStatus().configured,
@@ -151,6 +156,44 @@ function formatCnpj(value: unknown) {
   const digits = digitsOnly(value);
   if (digits.length !== 14) return digits || "-";
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+}
+
+function normalizedCnpjList(values: unknown[]) {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => digitsOnly(value))
+        .filter((value) => value.length === 14)
+    )
+  );
+}
+
+async function linkFluigRequestsToKnownSuppliersForCnpjs(client: SupabaseClient, cnpjs: unknown[]) {
+  const normalizedCnpjs = normalizedCnpjList(cnpjs);
+  if (!normalizedCnpjs.length) return 0;
+
+  const { data: suppliers, error: suppliersError } = await client
+    .from("app_suppliers")
+    .select("id,cnpj_normalizado")
+    .in("cnpj_normalizado", normalizedCnpjs)
+    .is("deleted_at", null);
+  if (suppliersError) throw suppliersError;
+
+  let linked = 0;
+  for (const supplier of (suppliers || []) as SupplierCnpjRow[]) {
+    const cnpj = digitsOnly(supplier.cnpj_normalizado);
+    if (cnpj.length !== 14) continue;
+    const variants = Array.from(new Set([cnpj, formatCnpj(cnpj)]));
+    const { count, error } = await client
+      .from("fluig_requests")
+      .update({ app_supplier_id: supplier.id }, { count: "exact" })
+      .in("supplier_cnpj", variants)
+      .or(`app_supplier_id.is.null,app_supplier_id.eq.${supplier.id}`);
+    if (error) throw error;
+    linked += count || 0;
+  }
+
+  return linked;
 }
 
 function formatMoneyFromCents(value: number | null) {
@@ -797,7 +840,7 @@ export async function persistProcessMaps(processMaps: FluigProcessMap[]) {
 export async function persistHistoryItems(module: FluigModuleSlug, items: FluigHistoryItem[], actor?: Pick<AppActor, "id"> | null) {
   return runWithDb(async (client) => {
     const rows = items.map((item) => mapHistoryToRequest(module, item, actor)).filter((item) => item.fluig_request_id);
-    if (!rows.length) return 0;
+    if (!rows.length) return { requests: 0, supplierRequestLinks: 0 };
 
     const branches = Array.from(
       new Map(
@@ -821,9 +864,16 @@ export async function persistHistoryItems(module: FluigModuleSlug, items: FluigH
 
     const { error } = await client.from("fluig_requests").upsert(rows, { onConflict: "module_slug,fluig_request_id" });
     if (error) throw error;
-    return rows.length;
+    const linkedRequests = await linkFluigRequestsToKnownSuppliersForCnpjs(client, rows.map((row) => row.supplier_cnpj));
+    return {
+      requests: rows.length,
+      supplierRequestLinks: linkedRequests,
+    };
   }).then(({ result, persistence }) => {
-    if (result !== null) persistence.saved.requests = result;
+    if (result !== null) {
+      persistence.saved.requests = result.requests;
+      if (result.supplierRequestLinks) persistence.saved.supplierRequestLinks = result.supplierRequestLinks;
+    }
     return persistence;
   });
 }
