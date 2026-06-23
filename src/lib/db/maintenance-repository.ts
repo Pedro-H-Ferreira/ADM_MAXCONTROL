@@ -18,6 +18,11 @@ export type MaintenancePhotoInput = {
   name: string;
   size?: number | null;
   type?: string | null;
+  bucket?: string | null;
+  path?: string | null;
+  uploadedAt?: string | null;
+  uploadedByUserId?: string | null;
+  signedUrl?: string | null;
 };
 
 export type MaintenanceMaterialInput = {
@@ -135,6 +140,10 @@ function sanitizePhotos(photos: MaintenancePhotoInput[] | undefined) {
           name: cleanText(photo.name) || "foto",
           size: photo.size == null ? null : Number(photo.size) || null,
           type: cleanText(photo.type),
+          bucket: cleanText(photo.bucket),
+          path: cleanText(photo.path),
+          uploadedAt: cleanText(photo.uploadedAt),
+          uploadedByUserId: cleanText(photo.uploadedByUserId),
         }))
         .filter((photo) => photo.name)
     : [];
@@ -493,6 +502,57 @@ export async function updateMaintenanceOrder(actor: AppActor, id: string, input:
     },
   });
   return mapOrder(updated);
+}
+
+export async function appendMaintenanceOrderPhotos(actor: AppActor, id: string, photos: MaintenancePhotoInput[]) {
+  const client = assertServiceClient();
+  const { data: currentData, error: currentError } = await client.from("app_maintenance_orders").select("*").eq("id", id).maybeSingle();
+  if (currentError) throw currentError;
+  if (!currentData) return null;
+
+  const current = currentData as MaintenanceOrderDbRow;
+  if (!actorCanMutateOrder(actor, current)) {
+    throw new Error("Usuario sem acesso para anexar fotos nesta OS.");
+  }
+
+  const uploadedAt = new Date().toISOString();
+  const incomingPhotos = sanitizePhotos(
+    photos.map((photo) => ({
+      ...photo,
+      uploadedAt: photo.uploadedAt || uploadedAt,
+      uploadedByUserId: photo.uploadedByUserId || actor.id,
+    }))
+  ).filter((photo) => photo.path);
+  if (!incomingPhotos.length) throw new Error("Nenhuma foto valida para anexar.");
+
+  const nextPhotos = sanitizePhotos([...(current.photos || []), ...incomingPhotos]);
+  const { data, error } = await client
+    .from("app_maintenance_orders")
+    .update({
+      photos: nextPhotos,
+      updated_by_user_id: actor.id,
+    })
+    .eq("id", id)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  await recordOrderEvent(client, {
+    orderId: current.id,
+    actorId: actor.id,
+    type: "photos_uploaded",
+    label: `${incomingPhotos.length} foto(s) anexada(s) a OS.`,
+    statusFrom: current.status,
+    statusTo: current.status,
+    payload: {
+      uploadedCount: incomingPhotos.length,
+      photoCount: nextPhotos.length,
+      paths: incomingPhotos.map((photo) => photo.path).filter(Boolean),
+    },
+  });
+
+  return mapOrder(data as MaintenanceOrderDbRow);
 }
 
 export async function completeMaintenanceOrderFluigOpenJob(input: {

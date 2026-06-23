@@ -1,9 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Clock,
+  Eye,
+  FileImage,
   Hammer,
   Loader2,
   PackageOpen,
@@ -42,6 +45,7 @@ import { PriorityBadge } from "@/components/shared/priority-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import type { ModuleConfig } from "@/lib/admin-data";
 import { fluigAdmApi } from "@/lib/fluig-api";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils";
 
 type MaintenanceOrderSource = "manual" | "fluig";
@@ -60,6 +64,17 @@ type MaintenanceBranch = {
   name: string;
   fluigLabel: string | null;
   active: boolean;
+};
+
+type MaintenancePhotoRecord = {
+  name: string;
+  size?: number | null;
+  type?: string | null;
+  bucket?: string | null;
+  path?: string | null;
+  uploadedAt?: string | null;
+  uploadedByUserId?: string | null;
+  signedUrl?: string | null;
 };
 
 type MaintenanceOrderRecord = {
@@ -83,7 +98,7 @@ type MaintenanceOrderRecord = {
   finishedAt: string | null;
   materialSummary: string | null;
   materialCostCents: number;
-  photos: Array<{ name: string; size?: number | null; type?: string | null }>;
+  photos: MaintenancePhotoRecord[];
   pendingReason: string | null;
   fluig: {
     requestId: string | null;
@@ -131,7 +146,7 @@ type FormState = {
   fluigNumLancW: string;
   fluigCurrentTask: string;
   fluigTaskOwner: string;
-  photos: Array<{ name: string; size?: number | null; type?: string | null }>;
+  photos: MaintenancePhotoRecord[];
 };
 
 const emptyForm: FormState = {
@@ -166,6 +181,8 @@ const statusOptions: MaintenanceOrderStatus[] = [
 ];
 const priorityOptions: MaintenanceOrderPriority[] = ["CRITICA", "ALTA", "MEDIA", "BAIXA"];
 const areaOptions = ["Docas", "Camara fria", "Cobertura", "Empilhadeiras", "Administrativo", "Patio", "Portaria"];
+const photoMimeTypes = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
+const maxPhotoBytes = 10 * 1024 * 1024;
 
 function parseResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
   return response.json().then((data: { success?: boolean; error?: string }) => {
@@ -184,6 +201,12 @@ function centsFromMoney(value: string) {
 
 function moneyFromCents(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((value || 0) / 100);
+}
+
+function formatFileSize(value: number | null | undefined) {
+  if (!value) return "-";
+  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1).replace(".", ",")} MB`;
+  return `${Math.max(Math.round(value / 1024), 1)} KB`;
 }
 
 function formatDate(value: string | null) {
@@ -244,7 +267,6 @@ function buildPayload(form: FormState) {
     dueAt: form.dueAt || null,
     materialSummary: form.materialSummary.trim() || null,
     materialCostCents: centsFromMoney(form.materialCost),
-    photos: form.photos,
     pendingReason: form.pendingReason.trim() || null,
     fluigRequestId: form.source === "fluig" ? form.fluigRequestId.trim() || null : null,
     fluigNumLancW: form.source === "fluig" ? form.fluigNumLancW.trim() || null : null,
@@ -262,6 +284,31 @@ type ActiveFluigJob = {
   id: string;
   status: string;
   progressLabel: string | null;
+};
+
+type PhotoUploadDraft = {
+  file: File;
+  name: string;
+  size: number;
+  type: string;
+};
+
+type SignedPhotoUpload = {
+  bucket: string;
+  path: string;
+  token: string;
+  signedUrl: string;
+  mimeType: string;
+};
+
+type OrderMutationResponse = {
+  success: true;
+  order: MaintenanceOrderRecord;
+};
+
+type PhotoListResponse = {
+  success: true;
+  photos: MaintenancePhotoRecord[];
 };
 
 export function MaintenancePage({
@@ -289,6 +336,9 @@ export function MaintenancePage({
   const [dialogOpen, setDialogOpen] = useState(initialOpenForm);
   const [editing, setEditing] = useState<MaintenanceOrderRecord | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [photoUploads, setPhotoUploads] = useState<PhotoUploadDraft[]>([]);
+  const [photoViewer, setPhotoViewer] = useState<{ order: MaintenanceOrderRecord; photos: MaintenancePhotoRecord[] } | null>(null);
+  const [photoViewerLoading, setPhotoViewerLoading] = useState(false);
   const [activeFluigJob, setActiveFluigJob] = useState<ActiveFluigJob | null>(null);
 
   const visibleMobileOrders = useMemo(
@@ -328,18 +378,107 @@ export function MaintenancePage({
 
   function openCreate(sourceType: MaintenanceOrderSource = "manual") {
     setEditing(null);
+    setPhotoUploads([]);
     setForm({ ...emptyForm, source: sourceType, branchId: branches[0]?.id || "" });
     setDialogOpen(true);
   }
 
   function openEdit(order: MaintenanceOrderRecord) {
     setEditing(order);
+    setPhotoUploads([]);
     setForm(formFromOrder(order));
     setDialogOpen(true);
   }
 
+  function handleDialogOpenChange(open: boolean) {
+    setDialogOpen(open);
+    if (!open) {
+      setEditing(null);
+      setPhotoUploads([]);
+      setForm(emptyForm);
+    }
+  }
+
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function handlePhotoFiles(files: FileList | null) {
+    const selectedFiles = Array.from(files || []);
+    if (!selectedFiles.length) {
+      setPhotoUploads([]);
+      return;
+    }
+
+    const validFiles: PhotoUploadDraft[] = [];
+    for (const file of selectedFiles.slice(0, 12)) {
+      if (!photoMimeTypes.has(file.type)) {
+        toast.error(`${file.name}: use JPG, PNG ou WebP.`);
+        continue;
+      }
+      if (file.size > maxPhotoBytes) {
+        toast.error(`${file.name}: foto maior que 10 MB.`);
+        continue;
+      }
+      validFiles.push({
+        file,
+        name: file.name,
+        size: file.size,
+        type: file.type === "image/jpg" ? "image/jpeg" : file.type,
+      });
+    }
+
+    if (selectedFiles.length > 12) {
+      toast.error("Envie no maximo 12 fotos por vez.");
+    }
+    setPhotoUploads(validFiles);
+  }
+
+  async function uploadSelectedPhotos(orderId: string) {
+    if (!photoUploads.length) return;
+
+    const supabase = getSupabaseBrowserClient();
+    const uploadedPhotos: MaintenancePhotoRecord[] = [];
+    for (const draft of photoUploads) {
+      const uploadResponse = await fetch(`/api/manutencao/${orderId}/photos/upload-url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: draft.name,
+          mimeType: draft.type,
+          size: draft.size,
+        }),
+      });
+      const uploadData = await parseResponse<{ success: true; upload: SignedPhotoUpload }>(
+        uploadResponse,
+        "Falha ao preparar upload da foto."
+      );
+
+      const { error: uploadError } = await supabase.storage
+        .from(uploadData.upload.bucket)
+        .uploadToSignedUrl(uploadData.upload.path, uploadData.upload.token, draft.file, {
+          contentType: uploadData.upload.mimeType,
+          upsert: false,
+        });
+      if (uploadError) throw uploadError;
+
+      uploadedPhotos.push({
+        name: draft.name,
+        size: draft.size,
+        type: uploadData.upload.mimeType,
+        bucket: uploadData.upload.bucket,
+        path: uploadData.upload.path,
+      });
+    }
+
+    await parseResponse<PhotoListResponse>(
+      await fetch(`/api/manutencao/${orderId}/photos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photos: uploadedPhotos }),
+      }),
+      "Falha ao registrar fotos da OS."
+    );
   }
 
   async function submitOrder() {
@@ -355,16 +494,42 @@ export function MaintenancePage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(buildPayload(form)),
       });
-      await parseResponse(response, editing ? "Falha ao atualizar OS." : "Falha ao criar OS.");
-      toast.success(editing ? "OS atualizada." : "OS criada.");
+      const data = await parseResponse<OrderMutationResponse>(response, editing ? "Falha ao atualizar OS." : "Falha ao criar OS.");
+      if (photoUploads.length) {
+        try {
+          await uploadSelectedPhotos(data.order.id);
+        } catch (error) {
+          toast.error(error instanceof Error ? `OS salva, mas as fotos falharam: ${error.message}` : "OS salva, mas as fotos falharam.");
+          await loadOrders();
+          return;
+        }
+      }
+
+      toast.success(photoUploads.length ? "OS salva com fotos anexadas." : editing ? "OS atualizada." : "OS criada.");
       setDialogOpen(false);
       setEditing(null);
       setForm(emptyForm);
+      setPhotoUploads([]);
       await loadOrders();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao salvar OS.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function viewPhotos(order: MaintenanceOrderRecord) {
+    setPhotoViewerLoading(true);
+    try {
+      const data = await parseResponse<PhotoListResponse>(
+        await fetch(`/api/manutencao/${order.id}/photos`, { cache: "no-store" }),
+        "Falha ao carregar fotos da OS."
+      );
+      setPhotoViewer({ order, photos: data.photos || [] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao carregar fotos da OS.");
+    } finally {
+      setPhotoViewerLoading(false);
     }
   }
 
@@ -521,6 +686,7 @@ export function MaintenancePage({
                 order={order}
                 activeFluigJob={activeFluigJob?.orderId === order.id ? activeFluigJob : null}
                 onEdit={() => openEdit(order)}
+                onViewPhotos={() => void viewPhotos(order)}
                 onQuickStatus={(nextStatus) => void quickStatus(order, nextStatus)}
                 onOpenFluig={() => void openOrderInFluig(order)}
               />
@@ -569,13 +735,25 @@ export function MaintenancePage({
 
       <MaintenanceDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={handleDialogOpenChange}
         editing={editing}
         form={form}
         branches={branches}
+        photoUploads={photoUploads}
         saving={saving}
         updateForm={updateForm}
+        onPhotoFilesChange={handlePhotoFiles}
         submitOrder={submitOrder}
+      />
+
+      <PhotoViewerDialog
+        open={Boolean(photoViewer)}
+        loading={photoViewerLoading}
+        order={photoViewer?.order || null}
+        photos={photoViewer?.photos || []}
+        onOpenChange={(open) => {
+          if (!open) setPhotoViewer(null);
+        }}
       />
     </div>
   );
@@ -584,12 +762,14 @@ export function MaintenancePage({
 function MaintenanceOrderCard({
   order,
   onEdit,
+  onViewPhotos,
   onQuickStatus,
   onOpenFluig,
   activeFluigJob,
 }: {
   order: MaintenanceOrderRecord;
   onEdit: () => void;
+  onViewPhotos: () => void;
   onQuickStatus: (status: MaintenanceOrderStatus) => void;
   onOpenFluig: () => void;
   activeFluigJob: ActiveFluigJob | null;
@@ -614,6 +794,12 @@ function MaintenanceOrderCard({
             <p className="mt-1 text-sm text-muted-foreground">{order.description}</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {order.photos.length ? (
+              <Button type="button" variant="outline" className="stitch-soft-button w-fit" onClick={onViewPhotos}>
+                <Eye className="size-4" />
+                Ver fotos
+              </Button>
+            ) : null}
             {canOpenFluig ? (
               <Button
                 type="button"
@@ -698,8 +884,10 @@ function MaintenanceDialog({
   editing,
   form,
   branches,
+  photoUploads,
   saving,
   updateForm,
+  onPhotoFilesChange,
   submitOrder,
 }: {
   open: boolean;
@@ -707,8 +895,10 @@ function MaintenanceDialog({
   editing: MaintenanceOrderRecord | null;
   form: FormState;
   branches: MaintenanceBranch[];
+  photoUploads: PhotoUploadDraft[];
   saving: boolean;
   updateForm: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
+  onPhotoFilesChange: (files: FileList | null) => void;
   submitOrder: () => Promise<void>;
 }) {
   return (
@@ -820,15 +1010,18 @@ function MaintenanceDialog({
             <Input
               type="file"
               multiple
-              accept="image/*"
-              onChange={(event) =>
-                updateForm(
-                  "photos",
-                  Array.from(event.target.files || []).map((file) => ({ name: file.name, size: file.size, type: file.type }))
-                )
-              }
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => onPhotoFilesChange(event.target.files)}
             />
-            {form.photos.length ? <p className="text-xs text-muted-foreground">{form.photos.length} foto(s) selecionada(s)</p> : null}
+            <div className="space-y-1 text-xs text-muted-foreground">
+              {form.photos.length ? <p>{form.photos.length} foto(s) ja anexada(s) nesta OS</p> : null}
+              {photoUploads.length ? (
+                <p>
+                  {photoUploads.length} nova(s) foto(s) pronta(s) para envio -{" "}
+                  {formatFileSize(photoUploads.reduce((total, photo) => total + photo.size, 0))}
+                </p>
+              ) : null}
+            </div>
           </FormField>
           <FormField label="Motivo se nao finalizou" className="md:col-span-2">
             <Textarea value={form.pendingReason} onChange={(event) => updateForm("pendingReason", event.target.value)} />
@@ -865,7 +1058,7 @@ function MaintenanceDialog({
           </Button>
           <Button type="button" onClick={() => void submitOrder()} disabled={saving}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-            {editing ? "Salvar OS" : "Criar OS"}
+            {saving && photoUploads.length ? "Salvando e anexando..." : editing ? "Salvar OS" : "Criar OS"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -884,6 +1077,64 @@ function Metric({ icon: Icon, label, value }: { icon: typeof Clock; label: strin
         <p className="mt-2 text-2xl font-semibold">{value}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function PhotoViewerDialog({
+  open,
+  loading,
+  order,
+  photos,
+  onOpenChange,
+}: {
+  open: boolean;
+  loading: boolean;
+  order: MaintenanceOrderRecord | null;
+  photos: MaintenancePhotoRecord[];
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-5xl">
+        <DialogHeader>
+          <DialogTitle>{order ? `Fotos da ${order.code}` : "Fotos da OS"}</DialogTitle>
+          <DialogDescription>Registros anexados pelo manutentor com acesso temporario seguro.</DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center rounded-md border border-dashed p-8 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 size-4 animate-spin" />
+            Carregando fotos...
+          </div>
+        ) : photos.length ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {photos.map((photo, index) => (
+              <div key={`${photo.path || photo.name}-${index}`} className="overflow-hidden rounded-md border bg-muted/20">
+                {photo.signedUrl ? (
+                  <a href={photo.signedUrl} target="_blank" rel="noreferrer" className="block">
+                    <span className="relative block aspect-video w-full overflow-hidden">
+                      <Image src={photo.signedUrl} alt={photo.name} fill sizes="(max-width: 1024px) 50vw, 33vw" unoptimized className="object-cover" />
+                    </span>
+                  </a>
+                ) : (
+                  <div className="flex aspect-video w-full items-center justify-center bg-muted text-muted-foreground">
+                    <FileImage className="size-8" />
+                  </div>
+                )}
+                <div className="space-y-1 p-3 text-sm">
+                  <p className="truncate font-medium">{photo.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatFileSize(photo.size)} {photo.uploadedAt ? `- ${formatDateTime(photo.uploadedAt)}` : ""}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">Nenhuma foto anexada.</div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
