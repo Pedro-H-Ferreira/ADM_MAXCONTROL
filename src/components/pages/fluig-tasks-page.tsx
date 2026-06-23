@@ -110,6 +110,14 @@ function formatDateTime(value: string | null | undefined) {
   });
 }
 
+function describeHeartbeatAge(seconds: number | null | undefined) {
+  if (seconds == null) return "heartbeat sem registro";
+  if (seconds < 60) return "heartbeat agora";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `heartbeat ha ${minutes} min`;
+  return `heartbeat ha ${Math.floor(minutes / 60)} h`;
+}
+
 function sortByRecentActivity(a: FluigOpenRequestRecord, b: FluigOpenRequestRecord) {
   const left = Date.parse(a.lastStatusCheckAt || a.lastSyncedAt || a.lastSeenInUserOpenListAt || a.openedAt || "");
   const right = Date.parse(b.lastStatusCheckAt || b.lastSyncedAt || b.lastSeenInUserOpenListAt || b.openedAt || "");
@@ -118,7 +126,7 @@ function sortByRecentActivity(a: FluigOpenRequestRecord, b: FluigOpenRequestReco
 
 function describeAgent(agent: FluigAdmAgent | null) {
   if (!agent) return "Nenhum agente online para o usuario atual.";
-  return `${agent.display_name}${agent.machine_name ? ` em ${agent.machine_name}` : ""}`;
+  return `${agent.display_name}${agent.machine_name ? ` em ${agent.machine_name}` : ""} - ${describeHeartbeatAge(agent.heartbeat_age_seconds)}`;
 }
 
 function selectedModule(value: ModuleFilter) {
@@ -136,6 +144,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   const [lastLookupNumber, setLastLookupNumber] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [testingAgent, setTestingAgent] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -296,6 +305,45 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
     }
   }
 
+  async function testAgentConnection() {
+    if (!onlineAgent) {
+      const message = "Nenhum agente local online para testar. Abra o agente nesta maquina e clique em Atualizar.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
+    setTestingAgent(true);
+    setError(null);
+
+    try {
+      const jobModule = moduleFilter === "all" ? "pagamentos" : moduleFilter;
+      const data = await fluigAdmApi.testAgentConnection({
+        module: jobModule,
+      });
+      const testJob: FluigAdmJobSummary = {
+        id: data.job.id,
+        module: jobModule,
+        operation: "health_check",
+        status: data.job.status,
+        progressStage: data.job.progressStage,
+        progressLabel: data.job.progressLabel,
+        errorMessage: null,
+      };
+
+      setJobs((current) => [testJob, ...current.filter((job) => job.id !== testJob.id)]);
+      await pollJobsUntilDone([testJob]);
+      await refresh(true);
+      toast.success("Agente local respondeu ao teste.");
+    } catch (testError) {
+      const message = testError instanceof Error ? testError.message : "Falha ao testar o agente local.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setTestingAgent(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -343,11 +391,21 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
                 ))}
               </SelectContent>
             </Select>
-            <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => void refresh()} disabled={loading || syncing || lookingUp}>
+            <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => void refresh()} disabled={loading || syncing || lookingUp || testingAgent}>
               <RotateCw className={cn("size-4", loading ? "animate-spin" : "")} />
               Atualizar
             </Button>
-            <Button type="button" className="stitch-soft-button" onClick={syncMyFluig} disabled={syncing || lookingUp}>
+            <Button
+              type="button"
+              variant="outline"
+              className="stitch-soft-button"
+              onClick={testAgentConnection}
+              disabled={loading || syncing || lookingUp || testingAgent || !onlineAgent}
+            >
+              {testingAgent ? <Loader2 className="size-4 animate-spin" /> : <Laptop className="size-4" />}
+              Testar agente
+            </Button>
+            <Button type="button" className="stitch-soft-button" onClick={syncMyFluig} disabled={syncing || lookingUp || testingAgent}>
               {syncing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
               Sincronizar meu Fluig
             </Button>
@@ -560,6 +618,11 @@ function AgentPanel({ agents, loading }: { agents: FluigAdmAgent[]; loading: boo
                 <StatusBadge status={normalizeStatus(agent.status, "PENDENTE")} />
               </div>
               <p className="mt-2 text-xs text-muted-foreground">Heartbeat: {formatDateTime(agent.last_heartbeat_at)}</p>
+              <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                <span>Versao: {agent.agent_version || "-"}</span>
+                <span>Ultimo sinal: {describeHeartbeatAge(agent.heartbeat_age_seconds)}</span>
+                <span className="truncate">{agent.local_api_url || "API local nao informada"}</span>
+              </div>
             </div>
           ))}
         </div>

@@ -384,6 +384,12 @@ async function executeJob(config, job, emitProgress) {
     return {
       data: {
         ok: true,
+        machineName: config.machineName,
+        agentVersion: config.agentVersion,
+        localApiUrl: `http://127.0.0.1:${config.localPort}`,
+        admApiUrl: config.apiUrl,
+        fluigBaseUrlConfigured: Boolean(config.fluig.baseUrl),
+        pollIntervalMs: config.pollIntervalMs,
         projectRoot: root,
         checkedAt: new Date().toISOString(),
       },

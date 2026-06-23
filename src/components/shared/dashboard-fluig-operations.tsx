@@ -59,6 +59,14 @@ function formatDateTime(value: string | null | undefined) {
   });
 }
 
+function describeHeartbeatAge(seconds: number | null | undefined) {
+  if (seconds == null) return "heartbeat sem registro";
+  if (seconds < 60) return "heartbeat agora";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `heartbeat ha ${minutes} min`;
+  return `heartbeat ha ${Math.floor(minutes / 60)} h`;
+}
+
 function sortByRecentActivity(a: FluigOpenRequestRecord, b: FluigOpenRequestRecord) {
   const left = Date.parse(a.lastStatusCheckAt || a.lastSyncedAt || a.openedAt || "");
   const right = Date.parse(b.lastStatusCheckAt || b.lastSyncedAt || b.openedAt || "");
@@ -67,7 +75,7 @@ function sortByRecentActivity(a: FluigOpenRequestRecord, b: FluigOpenRequestReco
 
 function describeAgent(agent: FluigAdmAgent | null) {
   if (!agent) return "Nenhum agente online para este usuario.";
-  return `${agent.display_name}${agent.machine_name ? ` em ${agent.machine_name}` : ""}`;
+  return `${agent.display_name}${agent.machine_name ? ` em ${agent.machine_name}` : ""} - ${describeHeartbeatAge(agent.heartbeat_age_seconds)}`;
 }
 
 async function loadSupplierReviewSummary(): Promise<SupplierReviewSummary> {
@@ -95,6 +103,7 @@ export function DashboardFluigOperations() {
   const [supplierReviewSummary, setSupplierReviewSummary] = useState<SupplierReviewSummary>({ total: 0 });
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [testingAgent, setTestingAgent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -219,6 +228,38 @@ export function DashboardFluigOperations() {
     }
   }
 
+  async function testAgentConnection() {
+    if (!onlineAgent) {
+      setError("Nenhum agente local online para testar. Abra o agente nesta maquina e clique em Atualizar.");
+      return;
+    }
+
+    setTestingAgent(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const data = await fluigAdmApi.testAgentConnection({ module: "pagamentos" });
+      const testJob = {
+        id: data.job.id,
+        module: "pagamentos" as FluigModuleSlug,
+        operation: "health_check" as const,
+        status: data.job.status,
+        progressLabel: data.job.progressLabel,
+        errorMessage: null,
+      };
+
+      setJobs((current) => [testJob, ...current.filter((job) => job.id !== testJob.id)]);
+      await pollJobsUntilDone([testJob]);
+      setMessage("Agente local respondeu ao teste. Use sincronizacao/consulta para validar uma sessao Fluig completa.");
+      await refresh(true);
+    } catch (testError) {
+      setError(testError instanceof Error ? testError.message : "Falha ao testar o agente local.");
+    } finally {
+      setTestingAgent(false);
+    }
+  }
+
   return (
     <Card className="stitch-animate-in stitch-hover-lift stitch-delay-150 rounded-lg border-border/70 shadow-none">
       <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -232,11 +273,21 @@ export function DashboardFluigOperations() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => void refresh()} disabled={loading || syncing}>
+          <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => void refresh()} disabled={loading || syncing || testingAgent}>
             <RotateCw className={cn("size-4", loading ? "animate-spin" : "")} />
             Atualizar
           </Button>
-          <Button type="button" className="stitch-soft-button" onClick={syncMyFluig} disabled={syncing}>
+          <Button
+            type="button"
+            variant="outline"
+            className="stitch-soft-button"
+            onClick={testAgentConnection}
+            disabled={loading || syncing || testingAgent || !onlineAgent}
+          >
+            {testingAgent ? <Loader2 className="size-4 animate-spin" /> : <Laptop className="size-4" />}
+            Testar agente
+          </Button>
+          <Button type="button" className="stitch-soft-button" onClick={syncMyFluig} disabled={syncing || testingAgent}>
             {syncing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
             Sincronizar meu Fluig
           </Button>

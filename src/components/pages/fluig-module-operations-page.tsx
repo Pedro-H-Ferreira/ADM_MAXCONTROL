@@ -80,6 +80,14 @@ function formatDateTime(value: string | null | undefined) {
   });
 }
 
+function describeHeartbeatAge(seconds: number | null | undefined) {
+  if (seconds == null) return "heartbeat sem registro";
+  if (seconds < 60) return "heartbeat agora";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `heartbeat ha ${minutes} min`;
+  return `heartbeat ha ${Math.floor(minutes / 60)} h`;
+}
+
 function sortByRecentActivity(a: FluigOpenRequestRecord, b: FluigOpenRequestRecord) {
   const left = Date.parse(a.lastStatusCheckAt || a.lastSyncedAt || a.lastSeenInUserOpenListAt || a.openedAt || "");
   const right = Date.parse(b.lastStatusCheckAt || b.lastSyncedAt || b.lastSeenInUserOpenListAt || b.openedAt || "");
@@ -88,7 +96,7 @@ function sortByRecentActivity(a: FluigOpenRequestRecord, b: FluigOpenRequestReco
 
 function describeAgent(agent: FluigAdmAgent | null) {
   if (!agent) return "Nenhum agente online para executar o Fluig nesta maquina.";
-  return `${agent.display_name}${agent.machine_name ? ` em ${agent.machine_name}` : ""}`;
+  return `${agent.display_name}${agent.machine_name ? ` em ${agent.machine_name}` : ""} - ${describeHeartbeatAge(agent.heartbeat_age_seconds)}`;
 }
 
 export function FluigModuleOperationsPage({

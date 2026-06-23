@@ -129,6 +129,15 @@ Invoke-RestMethod http://127.0.0.1:4777/health
 
 Na tela do ADM, o agente deve aparecer como `ONLINE` depois do primeiro heartbeat. O `/health` tambem mostra `agentVersion`, `lastHeartbeatAt`, `lastPollAt`, `lastSuccessfulApiAt` e `lastError` para diagnosticar agente antigo, falha de rede ou erro de polling.
 
+O botao `Testar agente` no dashboard, na Central Fluig e nos paineis Fluig cria um job `health_check`. Esse teste confirma que:
+
+- o portal conseguiu criar o job;
+- o agente local fez polling;
+- o agente local assumiu o job;
+- o agente conseguiu devolver resultado ao ADM.
+
+Esse teste nao faz login pesado no Fluig. A validacao de sessao/credencial Fluig acontece nos jobs reais de sincronizacao, consulta, abertura ou cancelamento, reaproveitando a sessao Playwright do usuario local.
+
 Tambem e possivel conferir pelo duplo clique:
 
 ```text

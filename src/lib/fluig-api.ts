@@ -24,7 +24,13 @@ export type FluigAdmAgent = {
   display_name: string;
   machine_name: string | null;
   status: string;
+  local_api_url?: string | null;
+  agent_version?: string | null;
   last_heartbeat_at: string | null;
+  paired_at?: string | null;
+  updated_at?: string | null;
+  heartbeat_age_seconds?: number | null;
+  heartbeat_is_stale?: boolean;
 };
 
 export type FluigAdmJobSummary = {
@@ -197,6 +203,16 @@ export const fluigAdmApi = {
         progressLabel: string | null;
       };
     }>(this.jobsPath, payload);
+  },
+  async testAgentConnection(payload: { module?: FluigModuleSlug } = {}) {
+    return this.createJob({
+      module: payload.module || "pagamentos",
+      operation: "health_check",
+      payload: {
+        check: "agent_health",
+        requestedAt: new Date().toISOString(),
+      },
+    });
   },
   async getJob(jobId: string) {
     const response = await fetch(`${this.jobsPath}/${jobId}`, { cache: "no-store" });

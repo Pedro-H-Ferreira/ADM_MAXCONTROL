@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { FluigLaunchForm } from "@/components/shared/fluig-launch-form";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { fluigAdmApi, type FluigAdmSyncAction } from "@/lib/fluig-api";
+import { fluigAdmApi, type FluigAdmAgent, type FluigAdmSyncAction } from "@/lib/fluig-api";
 import {
   fluigCatalogLabels,
   getFluigFieldLabel,
@@ -78,13 +78,35 @@ function normalizeFluigRequestNumber(value: string) {
   return value.replace(/\D+/g, "").trim();
 }
 
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function describeHeartbeatAge(seconds: number | null | undefined) {
+  if (seconds == null) return "sem heartbeat";
+  if (seconds < 60) return "agora";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min atras`;
+  return `${Math.floor(minutes / 60)} h atras`;
+}
+
 export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigIntegrationPanelProps) {
   const integration = getFluigIntegrationForModule(moduleSlug);
   const [syncData, setSyncData] = useState<FluigAdmSyncResponse | null>(null);
   const [pendingAction, setPendingAction] = useState<FluigAdmSyncAction | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [agents, setAgents] = useState<Array<{ id: string; display_name: string; machine_name: string | null; status: string; last_heartbeat_at: string | null }>>([]);
+  const [agents, setAgents] = useState<FluigAdmAgent[]>([]);
   const [pendingUserSync, setPendingUserSync] = useState(false);
+  const [testingAgent, setTestingAgent] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [lookupRequestId, setLookupRequestId] = useState("");
   const [lookupPersist, setLookupPersist] = useState(true);
@@ -117,6 +139,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     [catalogs, syncData]
   );
   const integrationSlug = integration?.slug;
+  const onlineAgent = useMemo(() => agents.find((agent) => agent.status === "online") || null, [agents]);
 
   async function runSync(action: FluigAdmSyncAction) {
     if (!integration) {
@@ -274,6 +297,32 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     }
   }
 
+  async function testAgentConnection() {
+    if (!integration) {
+      return;
+    }
+    if (!onlineAgent) {
+      setError("Nenhum agente local online para testar. Abra o agente nesta maquina e clique em Atualizar.");
+      return;
+    }
+
+    setTestingAgent(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const created = await fluigAdmApi.testAgentConnection({ module: integration.slug });
+      await pollJobUntilDone(created.job.id);
+      setNotice("Agente local respondeu ao teste. As credenciais Fluig serao usadas nas sincronizacoes e lancamentos.");
+      const nextAgents = await fluigAdmApi.listAgents();
+      setAgents(nextAgents);
+    } catch (testError) {
+      setError(testError instanceof Error ? testError.message : "Falha ao testar o agente local.");
+    } finally {
+      setTestingAgent(false);
+    }
+  }
+
   useEffect(() => {
     if (!integrationSlug) {
       return;
@@ -309,7 +358,6 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
 
   const visibleRows = compact ? rows.slice(0, 2) : rows;
   const visibleExamples = compact ? examples.slice(0, 1) : examples;
-  const onlineAgent = agents.find((agent) => agent.status === "online");
   const visibleCatalogs = catalogOrder
     .map((catalogType) => ({ catalogType, items: catalogs[catalogType] || [] }))
     .filter((group) => group.items.length > 0)
@@ -319,7 +367,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const monthlyTemplateCount =
     syncData?.launchTemplates?.filter((template) => template.module === integration.slug && template.recurrence === "monthly")
       .length || 0;
-  const fluigBusy = Boolean(pendingAction) || pendingUserSync || lookupPending;
+  const fluigBusy = Boolean(pendingAction) || pendingUserSync || lookupPending || testingAgent;
 
   return (
     <Card className="stitch-animate-in stitch-hover-lift rounded-lg shadow-none">
@@ -376,6 +424,16 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             <KeyRound className="size-4" />
             Parear agente
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="stitch-soft-button"
+            onClick={testAgentConnection}
+            disabled={fluigBusy || !onlineAgent}
+          >
+            {testingAgent ? <RefreshCcw className="size-4 animate-spin" /> : <Laptop className="size-4" />}
+            Testar agente
+          </Button>
         </div>
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
           <div className="rounded-md border bg-muted/20 p-3 text-xs">
@@ -391,6 +449,14 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
                   ? "Existe agente pareado, mas ele nao enviou heartbeat recente."
                   : "Nenhum agente local pareado para este usuario."}
             </p>
+            {onlineAgent ? (
+              <div className="mt-2 grid gap-1 text-muted-foreground md:grid-cols-2">
+                <span>Heartbeat: {formatDateTime(onlineAgent.last_heartbeat_at)}</span>
+                <span>Versao: {onlineAgent.agent_version || "-"}</span>
+                <span>Ultimo sinal: {describeHeartbeatAge(onlineAgent.heartbeat_age_seconds)}</span>
+                <span>{onlineAgent.local_api_url || "API local nao informada"}</span>
+              </div>
+            ) : null}
           </div>
           {activeJob ? (
             <div className="rounded-md border bg-muted/20 p-3 text-xs">

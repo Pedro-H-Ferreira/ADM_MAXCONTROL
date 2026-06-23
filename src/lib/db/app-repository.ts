@@ -174,6 +174,20 @@ type DbSyncStateRow = {
   updated_at: string;
 };
 
+type DbAgentRow = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  machine_name: string | null;
+  token_prefix: string | null;
+  status: string | null;
+  local_api_url: string | null;
+  agent_version: string | null;
+  last_heartbeat_at: string | null;
+  paired_at: string | null;
+  updated_at: string | null;
+};
+
 type DbPageAccessRow = {
   user_id: string;
   page_slug: string;
@@ -196,6 +210,7 @@ const reusableJobStatuses: FluigJobStatus[] = [
   "waiting_protocol",
   "syncing_result",
 ];
+const agentHeartbeatOnlineWindowMs = 2 * 60 * 1000;
 
 export class AppAuthError extends Error {
   status: number;
@@ -288,6 +303,27 @@ function mapSyncState(row: DbSyncStateRow) {
     metadata: row.metadata || {},
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function heartbeatAgeSeconds(value: string | null | undefined) {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return null;
+  return Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+}
+
+function mapAgent(row: DbAgentRow) {
+  const ageSeconds = heartbeatAgeSeconds(row.last_heartbeat_at);
+  const heartbeatIsFresh = ageSeconds != null && ageSeconds <= agentHeartbeatOnlineWindowMs / 1000;
+  const storedStatus = row.status || "offline";
+  const status = storedStatus === "online" && !heartbeatIsFresh ? "offline" : storedStatus;
+
+  return {
+    ...row,
+    status,
+    heartbeat_age_seconds: ageSeconds,
+    heartbeat_is_stale: storedStatus === "online" && !heartbeatIsFresh,
   };
 }
 
@@ -760,6 +796,7 @@ export async function createAgentPairing(input: { actor: AppActor; displayName?:
         "sync_status",
         "open_from_source",
         "cancel_request",
+        "health_check",
         "sync_initial_history",
         "sync_user_open_tasks",
         "sync_user_open_requests",
@@ -791,7 +828,7 @@ export async function listAgentsForActor(actor: AppActor) {
 
   const { data, error } = await query;
   if (error) throw error;
-  return data || [];
+  return ((data || []) as DbAgentRow[]).map(mapAgent);
 }
 
 export async function authenticateAgentToken(token: string) {
