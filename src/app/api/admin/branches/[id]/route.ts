@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { deleteBranch, readAdminBranch, updateBranch, type BranchInput } from "@/lib/db/branches-repository";
-import { resolveCurrentAppUser } from "@/lib/db/app-repository";
+import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser } from "@/lib/db/app-repository";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,8 +31,8 @@ function jsonError(error: string, status = 400) {
 export async function GET(_request: Request, context: RouteContext) {
   try {
     const actor = await resolveCurrentAppUser();
-    if (!actor.isAdmin) {
-      return jsonError("Somente administradores podem consultar filial administrativa.", 403);
+    if (!canActorAccessPage(actor, "configuracoes")) {
+      return jsonError("Usuario sem permissao para consultar filiais.", 403);
     }
 
     const { id } = await context.params;
@@ -49,8 +49,8 @@ export async function GET(_request: Request, context: RouteContext) {
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     const actor = await resolveCurrentAppUser();
-    if (!actor.isAdmin) {
-      return jsonError("Somente administradores podem editar filiais.", 403);
+    if (!canActorPerformPageAction(actor, "configuracoes", "canUpdate")) {
+      return jsonError("Usuario sem permissao para editar filiais.", 403);
     }
 
     const { id } = await context.params;
@@ -73,8 +73,8 @@ export async function PATCH(request: Request, context: RouteContext) {
 export async function DELETE(_request: Request, context: RouteContext) {
   try {
     const actor = await resolveCurrentAppUser();
-    if (!actor.isAdmin) {
-      return jsonError("Somente administradores podem excluir filiais.", 403);
+    if (!canActorPerformPageAction(actor, "configuracoes", "canUpdate")) {
+      return jsonError("Usuario sem permissao para excluir filiais.", 403);
     }
 
     const { id } = await context.params;

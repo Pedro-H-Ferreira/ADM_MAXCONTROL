@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
-import type { AppActor } from "@/lib/db/app-repository";
+import { canActorPerformPageAction, type AppActor } from "@/lib/db/app-repository";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -157,14 +157,14 @@ export async function readAdminBranch(id: string) {
   return mapBranch(data as BranchDbRow);
 }
 
-function assertAdmin(actor: AppActor) {
-  if (!actor.isAdmin) {
-    throw new Error("Somente administradores podem alterar filiais.");
+function assertBranchAction(actor: AppActor, action: "canCreate" | "canUpdate") {
+  if (!canActorPerformPageAction(actor, "configuracoes", action)) {
+    throw new Error("Usuario sem permissao para alterar filiais.");
   }
 }
 
 export async function createBranch(actor: AppActor, input: BranchInput) {
-  assertAdmin(actor);
+  assertBranchAction(actor, "canCreate");
   const client = assertServiceClient();
   const payload = normalizeBranchPayload(input);
   const { data, error } = await client
@@ -181,7 +181,7 @@ export async function createBranch(actor: AppActor, input: BranchInput) {
 }
 
 export async function updateBranch(actor: AppActor, id: string, input: Partial<BranchInput>) {
-  assertAdmin(actor);
+  assertBranchAction(actor, "canUpdate");
   const client = assertServiceClient();
   const payload = normalizeBranchPayload(input);
   const { data, error } = await client.from("app_branches").update(payload).eq("id", id).select("*").maybeSingle();
@@ -190,7 +190,7 @@ export async function updateBranch(actor: AppActor, id: string, input: Partial<B
 }
 
 export async function deleteBranch(actor: AppActor, id: string) {
-  assertAdmin(actor);
+  assertBranchAction(actor, "canUpdate");
   const client = assertServiceClient();
   const [userLinks, supplierLinks, requests] = await Promise.all([
     client.from("app_user_branch_access").select("branch_id", { count: "exact", head: true }).eq("branch_id", id),

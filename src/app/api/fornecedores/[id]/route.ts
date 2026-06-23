@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { deleteSupplier, readSupplier, updateSupplier, type SupplierInput } from "@/lib/db/suppliers-repository";
-import { resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
+import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,14 +50,18 @@ function jsonError(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
 }
 
-function canWriteSuppliers(actor: AppActor) {
-  return writeRoles.has(actor.role);
+function canUpdateSuppliers(actor: AppActor) {
+  return canActorAccessPage(actor, "fornecedores") && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canUpdate"));
 }
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const actor = await resolveCurrentAppUser();
+    if (!canActorAccessPage(actor, "fornecedores")) {
+      return jsonError("Usuario sem permissao para consultar fornecedores.", 403);
+    }
+
     const supplier = await readSupplier(actor, id);
     if (!supplier) return jsonError("Fornecedor nao encontrado.", 404);
     return NextResponse.json({ success: true, supplier });
@@ -72,7 +76,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const actor = await resolveCurrentAppUser();
-    if (!canWriteSuppliers(actor)) {
+    if (!canUpdateSuppliers(actor)) {
       return jsonError("Usuario sem permissao para editar fornecedor.", 403);
     }
 
@@ -96,7 +100,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const actor = await resolveCurrentAppUser();
-    if (!canWriteSuppliers(actor)) {
+    if (!canUpdateSuppliers(actor)) {
       return jsonError("Usuario sem permissao para excluir fornecedor.", 403);
     }
 

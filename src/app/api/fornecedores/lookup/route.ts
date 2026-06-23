@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { lookupSupplierByCnpj } from "@/lib/db/suppliers-repository";
-import { resolveCurrentAppUser } from "@/lib/db/app-repository";
+import { canActorAccessPage, resolveCurrentAppUser } from "@/lib/db/app-repository";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +13,10 @@ function jsonError(error: string, status = 400) {
 export async function GET(request: Request) {
   try {
     const actor = await resolveCurrentAppUser();
+    if (!canActorAccessPage(actor, "fornecedores")) {
+      return jsonError("Usuario sem permissao para consultar fornecedores.", 403);
+    }
+
     const url = new URL(request.url);
     const cnpj = url.searchParams.get("cnpj") || "";
     const result = await lookupSupplierByCnpj(actor, cnpj);

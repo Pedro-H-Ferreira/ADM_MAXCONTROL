@@ -162,6 +162,14 @@ type SuppliersPayload = {
   pageSize: number;
   total: number;
   items: SupplierRecord[];
+  permissions?: PagePermissions;
+};
+
+type PagePermissions = {
+  canView: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canApprove: boolean;
 };
 
 const sourceLabels: Record<SupplierSourceSystem, string> = {
@@ -300,6 +308,7 @@ export function SuppliersPage({
 }) {
   const [items, setItems] = useState<SupplierRecord[]>([]);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
+  const [permissions, setPermissions] = useState<PagePermissions>({ canView: true, canCreate: false, canUpdate: false, canApprove: false });
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -346,6 +355,7 @@ export function SuppliersPage({
         "Falha ao listar fornecedores."
       );
       setItems(data.items || []);
+      setPermissions(data.permissions || { canView: true, canCreate: false, canUpdate: false, canApprove: false });
       setTotal(data.total || 0);
     } catch (loadError) {
       const message = loadError instanceof Error ? loadError.message : "Falha ao listar fornecedores.";
@@ -390,11 +400,19 @@ export function SuppliersPage({
   }
 
   function openCreateDialog() {
+    if (!permissions.canCreate) {
+      toast.error("Usuario sem permissao para criar fornecedores.");
+      return;
+    }
     resetForm();
     setDialogOpen(true);
   }
 
   function openEditDialog(supplier: SupplierRecord) {
+    if (!permissions.canUpdate) {
+      toast.error("Usuario sem permissao para editar fornecedores.");
+      return;
+    }
     setEditing(supplier);
     setLookupResult(null);
     setForm(formFromSupplier(supplier));
@@ -668,10 +686,12 @@ export function SuppliersPage({
                 <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
                 Atualizar
               </Button>
-              <Button type="button" className="stitch-soft-button" onClick={openCreateDialog}>
-                <Plus className="size-4" />
-                Novo fornecedor
-              </Button>
+              {permissions.canCreate ? (
+                <Button type="button" className="stitch-soft-button" onClick={openCreateDialog}>
+                  <Plus className="size-4" />
+                  Novo fornecedor
+                </Button>
+              ) : null}
             </div>
           </div>
         </CardContent>
@@ -740,9 +760,11 @@ export function SuppliersPage({
                         <Button type="button" variant="ghost" size="icon-sm" title="Visualizar" onClick={() => setViewing(supplier)}>
                           <Eye className="size-4" />
                         </Button>
-                        <Button type="button" variant="ghost" size="icon-sm" title="Editar" onClick={() => openEditDialog(supplier)}>
-                          <Edit3 className="size-4" />
-                        </Button>
+                        {permissions.canUpdate ? (
+                          <Button type="button" variant="ghost" size="icon-sm" title="Editar" onClick={() => openEditDialog(supplier)}>
+                            <Edit3 className="size-4" />
+                          </Button>
+                        ) : null}
                         <Button
                           type="button"
                           variant="ghost"
@@ -757,23 +779,27 @@ export function SuppliersPage({
                         >
                           <FileSearch className="size-4" />
                         </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          title="Sincronizar fornecedor no Fluig"
-                          disabled={syncingSupplierId === supplier.id || !isValidCnpj(supplier.cnpjNormalizado || supplier.cnpj || "")}
-                          onClick={() => void syncSupplierWithFluig(supplier)}
-                        >
-                          {syncingSupplierId === supplier.id ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <RefreshCcw className="size-4" />
-                          )}
-                        </Button>
-                        <Button type="button" variant="ghost" size="icon-sm" title="Excluir ou inativar" onClick={() => setDeleteTarget(supplier)}>
-                          <Trash2 className="size-4" />
-                        </Button>
+                        {permissions.canUpdate ? (
+                          <>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              title="Sincronizar fornecedor no Fluig"
+                              disabled={syncingSupplierId === supplier.id || !isValidCnpj(supplier.cnpjNormalizado || supplier.cnpj || "")}
+                              onClick={() => void syncSupplierWithFluig(supplier)}
+                            >
+                              {syncingSupplierId === supplier.id ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <RefreshCcw className="size-4" />
+                              )}
+                            </Button>
+                            <Button type="button" variant="ghost" size="icon-sm" title="Excluir ou inativar" onClick={() => setDeleteTarget(supplier)}>
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </>
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -820,6 +846,7 @@ export function SuppliersPage({
         submitSupplier={submitSupplier}
         approveCandidate={approveCandidate}
         openEditDialog={openEditDialog}
+        permissions={permissions}
       />
 
       <SupplierViewDialog supplier={viewing} onOpenChange={(open) => !open && setViewing(null)} />
@@ -860,6 +887,7 @@ function SupplierFormDialog({
   submitSupplier,
   approveCandidate,
   openEditDialog,
+  permissions,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -875,8 +903,10 @@ function SupplierFormDialog({
   submitSupplier: () => Promise<void>;
   approveCandidate: () => Promise<void>;
   openEditDialog: (supplier: SupplierRecord) => void;
+  permissions: PagePermissions;
 }) {
   const candidateId = lookupResult?.suggestions?.candidateId;
+  const canSave = editing ? permissions.canUpdate : permissions.canCreate;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1068,7 +1098,7 @@ function SupplierFormDialog({
                         Modelo {lookupResult.suggestions.defaultSourceRequestId || "historico"}
                         {typeof lookupResult.suggestions.confidence === "number" ? ` - confianca ${lookupResult.suggestions.confidence}` : ""}
                       </p>
-                      {candidateId ? (
+                      {candidateId && permissions.canApprove ? (
                         <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => void approveCandidate()} disabled={saving}>
                           Converter candidato
                         </Button>
@@ -1090,10 +1120,12 @@ function SupplierFormDialog({
             <X className="size-4" />
             Cancelar
           </Button>
-          <Button type="button" onClick={() => void submitSupplier()} disabled={saving}>
-            {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-            {editing ? "Salvar alteracoes" : "Criar fornecedor"}
-          </Button>
+          {canSave ? (
+            <Button type="button" onClick={() => void submitSupplier()} disabled={saving}>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+              {editing ? "Salvar alteracoes" : "Criar fornecedor"}
+            </Button>
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

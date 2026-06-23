@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { ignoreSupplierCandidate } from "@/lib/db/suppliers-repository";
-import { resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
+import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ function jsonError(error: string, status = 400) {
 }
 
 function canWriteSuppliers(actor: AppActor) {
-  return writeRoles.has(actor.role);
+  return canActorAccessPage(actor, "fornecedores") && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canUpdate"));
 }
 
 export async function POST(_request: Request, context: RouteContext) {

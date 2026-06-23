@@ -53,6 +53,7 @@ export type AppActor = AppUserProfile & {
   branches: AppBranch[];
   branchCodes: string[];
   pageSlugs: string[];
+  pageAccess: AppUserPageAccess[];
 };
 
 export type AppUserPageAccess = {
@@ -335,6 +336,16 @@ export function canActorAccessPage(actor: Pick<AppActor, "isAdmin" | "pageSlugs"
   return actor.isAdmin || actor.pageSlugs.includes(pageSlug);
 }
 
+export function canActorPerformPageAction(
+  actor: Pick<AppActor, "isAdmin" | "pageAccess">,
+  pageSlug: string,
+  action: "canCreate" | "canUpdate" | "canApprove"
+) {
+  if (actor.isAdmin) return true;
+  const access = actor.pageAccess.find((page) => page.pageSlug === pageSlug);
+  return Boolean(access?.canView && access[action]);
+}
+
 function normalizePageSlugs(pageSlugs: string[] | null | undefined) {
   return Array.from(
     new Set(
@@ -353,6 +364,36 @@ function defaultPageAccessForRole(role: AppRole): AppUserPageAccess[] {
     canUpdate: false,
     canApprove: false,
   }));
+}
+
+function normalizePageAccessRows(rows: AppUserPageAccess[] | null | undefined, role: AppRole) {
+  if (!rows?.length) return defaultPageAccessForRole(role);
+
+  const bySlug = new Map<string, AppUserPageAccess>();
+  for (const row of rows) {
+    const pageSlug = String(row.pageSlug || "").trim();
+    if (!pageSlug || !isKnownNavigationPage(pageSlug)) continue;
+    const canView = pageSlug === "dashboard" || pageSlug === "perfil" || row.canView !== false;
+    bySlug.set(pageSlug, {
+      pageSlug,
+      canView,
+      canCreate: canView && Boolean(row.canCreate),
+      canUpdate: canView && Boolean(row.canUpdate),
+      canApprove: canView && Boolean(row.canApprove),
+    });
+  }
+
+  for (const requiredPage of ["dashboard", "perfil"]) {
+    bySlug.set(requiredPage, {
+      pageSlug: requiredPage,
+      canView: true,
+      canCreate: Boolean(bySlug.get(requiredPage)?.canCreate),
+      canUpdate: Boolean(bySlug.get(requiredPage)?.canUpdate),
+      canApprove: Boolean(bySlug.get(requiredPage)?.canApprove),
+    });
+  }
+
+  return Array.from(bySlug.values()).filter((row) => row.canView);
 }
 
 function normalizeEmail(value: unknown) {
@@ -528,20 +569,32 @@ async function listActorBranches(client: SupabaseClient, profile: AppUserProfile
     .map((branch) => mapBranch(branch as DbBranchRow));
 }
 
-async function listActorPageSlugs(client: SupabaseClient, profile: AppUserProfile) {
+async function listActorPageAccess(client: SupabaseClient, profile: AppUserProfile) {
   if (isAdminRole(profile.role)) {
-    return allNavigationPageSlugs;
+    return allNavigationPageSlugs.map((pageSlug) => ({
+      pageSlug,
+      canView: true,
+      canCreate: true,
+      canUpdate: true,
+      canApprove: true,
+    }));
   }
 
   const { data, error } = await client
     .from("app_user_page_access")
-    .select("page_slug")
-    .eq("user_id", profile.id)
-    .eq("can_view", true);
+    .select("user_id,page_slug,can_view,can_create,can_update,can_approve")
+    .eq("user_id", profile.id);
   if (error) throw error;
 
-  const explicitPages = (data || []).map((row) => String((row as { page_slug?: string }).page_slug || ""));
-  return normalizePageSlugs(explicitPages.length ? explicitPages : getDefaultPageSlugsForRole(profile.role));
+  const explicitRows = (data || []).map((row) => ({
+    pageSlug: String((row as { page_slug?: string }).page_slug || ""),
+    canView: Boolean((row as { can_view?: boolean }).can_view),
+    canCreate: Boolean((row as { can_create?: boolean }).can_create),
+    canUpdate: Boolean((row as { can_update?: boolean }).can_update),
+    canApprove: Boolean((row as { can_approve?: boolean }).can_approve),
+  }));
+
+  return normalizePageAccessRows(explicitRows, profile.role);
 }
 
 export async function resolveCurrentAppUser(options: { allowFallback?: boolean; requireApproved?: boolean } = {}): Promise<AppActor> {
@@ -563,7 +616,8 @@ export async function resolveCurrentAppUser(options: { allowFallback?: boolean; 
   }
 
   const branches = await listActorBranches(client, profile);
-  const pageSlugs = await listActorPageSlugs(client, profile);
+  const pageAccess = await listActorPageAccess(client, profile);
+  const pageSlugs = normalizePageSlugs(pageAccess.filter((page) => page.canView).map((page) => page.pageSlug));
 
   return {
     ...profile,
@@ -571,6 +625,7 @@ export async function resolveCurrentAppUser(options: { allowFallback?: boolean; 
     branches,
     branchCodes: branches.map((branch) => branch.code),
     pageSlugs,
+    pageAccess,
   };
 }
 
@@ -647,6 +702,7 @@ export async function upsertAppUser(input: {
   homeBranchId?: string | null;
   branchIds?: string[];
   pageSlugs?: string[];
+  pageAccess?: AppUserPageAccess[];
   active?: boolean;
   approvalStatus?: ApprovalStatus;
   approvedByUserId?: string | null;
@@ -697,19 +753,27 @@ export async function upsertAppUser(input: {
     }
   }
 
-  if (input.pageSlugs) {
-    const pageSlugs = normalizePageSlugs(input.pageSlugs);
+  if (input.pageAccess || input.pageSlugs) {
+    const pageAccess = input.pageAccess
+      ? normalizePageAccessRows(input.pageAccess, profile.role)
+      : normalizePageSlugs(input.pageSlugs).map((pageSlug) => ({
+          pageSlug,
+          canView: true,
+          canCreate: false,
+          canUpdate: false,
+          canApprove: false,
+        }));
     const { error: deleteError } = await client.from("app_user_page_access").delete().eq("user_id", profile.id);
     if (deleteError) throw deleteError;
 
-    if (pageSlugs.length) {
-      const rows = pageSlugs.map((pageSlug) => ({
+    if (pageAccess.length) {
+      const rows = pageAccess.map((page) => ({
         user_id: profile.id,
-        page_slug: pageSlug,
-        can_view: true,
-        can_create: false,
-        can_update: false,
-        can_approve: false,
+        page_slug: page.pageSlug,
+        can_view: page.canView,
+        can_create: page.canCreate,
+        can_update: page.canUpdate,
+        can_approve: page.canApprove,
       }));
       const { error: insertError } = await client.from("app_user_page_access").insert(rows);
       if (insertError) throw insertError;

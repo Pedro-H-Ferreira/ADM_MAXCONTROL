@@ -91,6 +91,14 @@ type BranchesPayload = {
   pageSize: number;
   total: number;
   items: BranchRecord[];
+  permissions?: PagePermissions;
+};
+
+type PagePermissions = {
+  canView: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canApprove: boolean;
 };
 
 const initialForm: BranchFormState = {
@@ -182,6 +190,7 @@ export function BranchesPage({
   initialOpenForm?: boolean;
 }) {
   const [items, setItems] = useState<BranchRecord[]>([]);
+  const [permissions, setPermissions] = useState<PagePermissions>({ canView: true, canCreate: false, canUpdate: false, canApprove: false });
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -221,6 +230,7 @@ export function BranchesPage({
         "Falha ao listar filiais."
       );
       setItems(data.items || []);
+      setPermissions(data.permissions || { canView: true, canCreate: false, canUpdate: false, canApprove: false });
       setTotal(data.total || 0);
     } catch (loadError) {
       const message = loadError instanceof Error ? loadError.message : "Falha ao listar filiais.";
@@ -245,11 +255,19 @@ export function BranchesPage({
   }
 
   function openCreateDialog() {
+    if (!permissions.canCreate) {
+      toast.error("Usuario sem permissao para criar filiais.");
+      return;
+    }
     resetForm();
     setDialogOpen(true);
   }
 
   function openEditDialog(branch: BranchRecord) {
+    if (!permissions.canUpdate) {
+      toast.error("Usuario sem permissao para editar filiais.");
+      return;
+    }
     setEditing(branch);
     setForm(formFromBranch(branch));
     setDialogOpen(true);
@@ -417,10 +435,12 @@ export function BranchesPage({
                 <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
                 Atualizar
               </Button>
-              <Button type="button" className="stitch-soft-button" onClick={openCreateDialog}>
-                <Plus className="size-4" />
-                Nova filial
-              </Button>
+              {permissions.canCreate ? (
+                <Button type="button" className="stitch-soft-button" onClick={openCreateDialog}>
+                  <Plus className="size-4" />
+                  Nova filial
+                </Button>
+              ) : null}
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -482,22 +502,26 @@ export function BranchesPage({
                         <Button type="button" variant="ghost" size="icon-sm" title="Visualizar" onClick={() => setViewing(branch)}>
                           <Eye className="size-4" />
                         </Button>
-                        <Button type="button" variant="ghost" size="icon-sm" title="Editar" onClick={() => openEditDialog(branch)}>
-                          <Edit3 className="size-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          title={branch.active ? "Inativar" : "Reativar"}
-                          disabled={saving}
-                          onClick={() => void toggleActive(branch)}
-                        >
-                          {branch.active ? "Inativar" : "Reativar"}
-                        </Button>
-                        <Button type="button" variant="ghost" size="icon-sm" title="Excluir" onClick={() => setDeleteTarget(branch)}>
-                          <Trash2 className="size-4" />
-                        </Button>
+                        {permissions.canUpdate ? (
+                          <>
+                            <Button type="button" variant="ghost" size="icon-sm" title="Editar" onClick={() => openEditDialog(branch)}>
+                              <Edit3 className="size-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              title={branch.active ? "Inativar" : "Reativar"}
+                              disabled={saving}
+                              onClick={() => void toggleActive(branch)}
+                            >
+                              {branch.active ? "Inativar" : "Reativar"}
+                            </Button>
+                            <Button type="button" variant="ghost" size="icon-sm" title="Excluir" onClick={() => setDeleteTarget(branch)}>
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </>
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>

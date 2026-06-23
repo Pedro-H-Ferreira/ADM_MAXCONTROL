@@ -22,6 +22,8 @@ export async function GET() {
         approvalStatus: actor.approvalStatus,
         branches: actor.branches,
         branchCodes: actor.branchCodes,
+        pageSlugs: actor.pageSlugs,
+        pageAccess: actor.pageAccess,
         isAdmin: actor.isAdmin,
       },
     });

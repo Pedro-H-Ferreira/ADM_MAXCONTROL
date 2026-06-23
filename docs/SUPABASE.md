@@ -53,6 +53,7 @@ Seguranca:
 - Leitura liberada para `authenticated`; escrita revogada para `authenticated` e feita pelas rotas server-side via `service_role`.
 - Nenhuma permissao foi concedida para `anon`.
 - As rotas server-side usam `SUPABASE_SERVICE_ROLE_KEY` apenas no servidor e fazem lazy initialization para nao quebrar `next build`.
+- `app_user_page_access` controla acesso por pagina e tambem acoes granulares (`can_create`, `can_update`, `can_approve`). As rotas de fornecedores e filiais aplicam essas permissoes alem do perfil.
 
 Status aplicado no Supabase:
 

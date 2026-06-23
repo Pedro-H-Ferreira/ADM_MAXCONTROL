@@ -65,14 +65,46 @@ const approvalLabels = {
   REJECTED: "BLOQUEADO",
 } as const;
 
+function normalizeDraftPageAccess(rows: UserPageAccess[]) {
+  const bySlug = new Map<string, UserPageAccess>();
+  for (const row of rows) {
+    if (!row.pageSlug) continue;
+    const canView = row.pageSlug === "dashboard" || row.pageSlug === "perfil" || row.canView !== false;
+    if (!canView) continue;
+    bySlug.set(row.pageSlug, {
+      pageSlug: row.pageSlug,
+      canView: true,
+      canCreate: Boolean(row.canCreate),
+      canUpdate: Boolean(row.canUpdate),
+      canApprove: Boolean(row.canApprove),
+    });
+  }
+
+  for (const requiredPage of ["dashboard", "perfil"]) {
+    const row = bySlug.get(requiredPage);
+    bySlug.set(requiredPage, {
+      pageSlug: requiredPage,
+      canView: true,
+      canCreate: Boolean(row?.canCreate),
+      canUpdate: Boolean(row?.canUpdate),
+      canApprove: Boolean(row?.canApprove),
+    });
+  }
+
+  return Array.from(bySlug.values());
+}
+
 export function UserBranchAccessPanel() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [pages, setPages] = useState<PageOption[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [draft, setDraft] = useState<Partial<UserProfile> & { branchIds: string[]; pageSlugs: string[] }>({
+  const [draft, setDraft] = useState<Partial<UserProfile> & { branchIds: string[]; pageAccess: UserPageAccess[] }>({
     branchIds: [],
-    pageSlugs: ["dashboard", "perfil"],
+    pageAccess: [
+      { pageSlug: "dashboard", canView: true, canCreate: false, canUpdate: false, canApprove: false },
+      { pageSlug: "perfil", canView: true, canCreate: false, canUpdate: false, canApprove: false },
+    ],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -113,9 +145,7 @@ export function UserBranchAccessPanel() {
     setDraft({
       ...user,
       branchIds: user.branches.filter((branch) => branch.canView).map((branch) => branch.branchId),
-      pageSlugs: Array.from(
-        new Set(["dashboard", "perfil", ...(user.pageAccess || []).filter((page) => page.canView).map((page) => page.pageSlug)])
-      ),
+      pageAccess: normalizeDraftPageAccess(user.pageAccess || []),
     });
   }
 
@@ -141,17 +171,31 @@ export function UserBranchAccessPanel() {
     }
 
     setDraft((current) => {
-      const pageSlugs = new Set(current.pageSlugs || ["dashboard", "perfil"]);
+      const rows = new Map(normalizeDraftPageAccess(current.pageAccess || []).map((page) => [page.pageSlug, page]));
       if (checked) {
-        pageSlugs.add(pageSlug);
+        rows.set(pageSlug, rows.get(pageSlug) || { pageSlug, canView: true, canCreate: false, canUpdate: false, canApprove: false });
       } else {
-        pageSlugs.delete(pageSlug);
+        rows.delete(pageSlug);
       }
-      pageSlugs.add("dashboard");
-      pageSlugs.add("perfil");
       return {
         ...current,
-        pageSlugs: Array.from(pageSlugs),
+        pageAccess: normalizeDraftPageAccess(Array.from(rows.values())),
+      };
+    });
+  }
+
+  function togglePageAction(pageSlug: string, action: "canCreate" | "canUpdate" | "canApprove", checked: boolean) {
+    setDraft((current) => {
+      const rows = new Map(normalizeDraftPageAccess(current.pageAccess || []).map((page) => [page.pageSlug, page]));
+      const currentRow = rows.get(pageSlug) || { pageSlug, canView: true, canCreate: false, canUpdate: false, canApprove: false };
+      rows.set(pageSlug, {
+        ...currentRow,
+        canView: true,
+        [action]: checked,
+      });
+      return {
+        ...current,
+        pageAccess: normalizeDraftPageAccess(Array.from(rows.values())),
       };
     });
   }
@@ -173,7 +217,7 @@ export function UserBranchAccessPanel() {
           fluigUserId: draft.fluigUserId,
           homeBranchId: draft.homeBranchId,
           branchIds: draft.branchIds,
-          pageSlugs: draft.pageSlugs,
+          pageAccess: normalizeDraftPageAccess(draft.pageAccess || []),
           active: draft.active,
           approvalStatus: draft.approvalStatus,
         }),
@@ -372,22 +416,43 @@ export function UserBranchAccessPanel() {
                 </header>
                 <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-3">
                   {pages.map((page) => {
-                    const checked = Boolean(draft.pageSlugs?.includes(page.slug));
+                    const pageRow = draft.pageAccess?.find((access) => access.pageSlug === page.slug);
+                    const checked = Boolean(pageRow?.canView);
                     const required = page.required || page.slug === "dashboard";
                     return (
-                      <label key={page.slug} className="flex items-start gap-3 rounded-md border bg-muted/20 p-3 text-sm">
-                        <Checkbox
-                          checked={checked}
-                          disabled={required}
-                          onCheckedChange={(value) => togglePage(page.slug, Boolean(value))}
-                        />
-                        <span className="min-w-0">
-                          <span className="block font-medium">{page.title}</span>
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {page.section} - {required ? "obrigatorio" : page.href}
+                      <div key={page.slug} className="space-y-3 rounded-md border bg-muted/20 p-3 text-sm">
+                        <label className="flex items-start gap-3">
+                          <Checkbox
+                            checked={checked}
+                            disabled={required}
+                            onCheckedChange={(value) => togglePage(page.slug, Boolean(value))}
+                          />
+                          <span className="min-w-0">
+                            <span className="block font-medium">{page.title}</span>
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {page.section} - {required ? "obrigatorio" : page.href}
+                            </span>
                           </span>
-                        </span>
-                      </label>
+                        </label>
+                        <div className="grid grid-cols-3 gap-2 pl-7 text-xs">
+                          {[
+                            ["canCreate", "Criar"],
+                            ["canUpdate", "Editar"],
+                            ["canApprove", "Aprovar"],
+                          ].map(([action, label]) => (
+                            <label key={action} className="flex items-center gap-1.5 text-muted-foreground">
+                              <Checkbox
+                                checked={Boolean(pageRow?.[action as "canCreate" | "canUpdate" | "canApprove"])}
+                                disabled={!checked}
+                                onCheckedChange={(value) =>
+                                  togglePageAction(page.slug, action as "canCreate" | "canUpdate" | "canApprove", Boolean(value))
+                                }
+                              />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { createBranch, listAdminBranches, type BranchInput } from "@/lib/db/branches-repository";
-import { resolveCurrentAppUser } from "@/lib/db/app-repository";
+import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
 import { parseBoolean } from "@/lib/fluig/route-utils";
 
 export const runtime = "nodejs";
@@ -23,11 +23,70 @@ function jsonError(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
 }
 
+function branchPermissions(actor: Awaited<ReturnType<typeof resolveCurrentAppUser>>) {
+  const canView = canActorAccessPage(actor, "configuracoes");
+  return {
+    canView,
+    canCreate: canView && canActorPerformPageAction(actor, "configuracoes", "canCreate"),
+    canUpdate: canView && canActorPerformPageAction(actor, "configuracoes", "canUpdate"),
+    canApprove: canView && canActorPerformPageAction(actor, "configuracoes", "canApprove"),
+  };
+}
+
+const supplierWriteRoles = new Set(["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO"]);
+
+function canListBranchesForSupplierForm(actor: AppActor) {
+  return (
+    canActorAccessPage(actor, "fornecedores") &&
+    (supplierWriteRoles.has(actor.role) ||
+      canActorPerformPageAction(actor, "fornecedores", "canCreate") ||
+      canActorPerformPageAction(actor, "fornecedores", "canUpdate"))
+  );
+}
+
+function actorBranchesPayload(actor: AppActor) {
+  const items = actor.branches
+    .filter((branch) => branch.active)
+    .map((branch) => ({
+      id: branch.id,
+      code: branch.code,
+      name: branch.name,
+      fluigLabel: branch.fluigLabel,
+      region: null,
+      city: null,
+      uf: null,
+      active: branch.active,
+      metadata: {},
+      lastFluigSyncAt: null,
+      usersCount: 0,
+      suppliersCount: 0,
+      openRequestsCount: 0,
+      createdAt: null,
+      updatedAt: null,
+      deletedAt: null,
+    }));
+
+  return {
+    page: 1,
+    pageSize: items.length,
+    total: items.length,
+    items,
+  };
+}
+
 export async function GET(request: Request) {
   try {
     const actor = await resolveCurrentAppUser();
-    if (!actor.isAdmin) {
-      return jsonError("Somente administradores podem consultar o cadastro completo de filiais.", 403);
+    if (!canActorAccessPage(actor, "configuracoes")) {
+      if (!canListBranchesForSupplierForm(actor)) {
+        return jsonError("Usuario sem permissao para consultar filiais.", 403);
+      }
+
+      return NextResponse.json({
+        success: true,
+        permissions: branchPermissions(actor),
+        ...actorBranchesPayload(actor),
+      });
     }
 
     const url = new URL(request.url);
@@ -39,7 +98,7 @@ export async function GET(request: Request) {
       pageSize: Number(url.searchParams.get("pageSize") || 50),
     });
 
-    return NextResponse.json({ success: true, ...payload });
+    return NextResponse.json({ success: true, permissions: branchPermissions(actor), ...payload });
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
@@ -50,8 +109,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const actor = await resolveCurrentAppUser();
-    if (!actor.isAdmin) {
-      return jsonError("Somente administradores podem criar filiais.", 403);
+    if (!canActorPerformPageAction(actor, "configuracoes", "canCreate")) {
+      return jsonError("Usuario sem permissao para criar filiais.", 403);
     }
 
     const body = await request.json().catch(() => ({}));

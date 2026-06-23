@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { createSupplier, listSuppliers, type SupplierInput } from "@/lib/db/suppliers-repository";
-import { resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
+import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,12 +45,26 @@ function jsonError(error: string, status = 400) {
 }
 
 function canWriteSuppliers(actor: AppActor) {
-  return writeRoles.has(actor.role);
+  return canActorAccessPage(actor, "fornecedores") && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canCreate"));
+}
+
+function supplierPermissions(actor: AppActor) {
+  const canView = canActorAccessPage(actor, "fornecedores");
+  return {
+    canView,
+    canCreate: canView && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canCreate")),
+    canUpdate: canView && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canUpdate")),
+    canApprove: canView && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canApprove")),
+  };
 }
 
 export async function GET(request: Request) {
   try {
     const actor = await resolveCurrentAppUser();
+    if (!canActorAccessPage(actor, "fornecedores")) {
+      return jsonError("Usuario sem permissao para consultar fornecedores.", 403);
+    }
+
     const url = new URL(request.url);
     const payload = await listSuppliers(actor, {
       search: url.searchParams.get("q") || url.searchParams.get("search"),
@@ -61,7 +75,7 @@ export async function GET(request: Request) {
       pageSize: Number(url.searchParams.get("pageSize") || 25),
     });
 
-    return NextResponse.json({ success: true, ...payload });
+    return NextResponse.json({ success: true, permissions: supplierPermissions(actor), ...payload });
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;

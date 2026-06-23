@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import {
+  canActorAccessPage,
+  canActorPerformPageAction,
   createFluigJob,
   resolveCurrentAppUser,
   upsertFluigUserSyncState,
@@ -33,7 +35,7 @@ function jsonError(error: string, status = 400) {
 }
 
 function canSyncSuppliers(actor: AppActor) {
-  return writeRoles.has(actor.role);
+  return canActorAccessPage(actor, "fornecedores") && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canUpdate"));
 }
 
 function parseNumber(value: unknown, fallback: number, min: number, max: number) {

@@ -4,6 +4,7 @@ import {
   listUsersWithBranches,
   resolveCurrentAppUser,
   upsertAppUser,
+  type AppUserPageAccess,
   type AppRole,
   type ApprovalStatus,
 } from "@/lib/db/app-repository";
@@ -21,6 +22,7 @@ type UserAccessBody = {
   homeBranchId?: string | null;
   branchIds?: string[];
   pageSlugs?: string[];
+  pageAccess?: AppUserPageAccess[];
   active?: boolean;
   approvalStatus?: ApprovalStatus;
   rejectionReason?: string | null;
@@ -86,6 +88,7 @@ export async function POST(request: Request) {
       homeBranchId: body.homeBranchId,
       branchIds: body.branchIds || [],
       pageSlugs: body.pageSlugs || [],
+      pageAccess: body.pageAccess,
       active: body.active,
       approvalStatus: body.approvalStatus,
       approvedByUserId: actor.id,
