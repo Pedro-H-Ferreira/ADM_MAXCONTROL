@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { UploadField } from "@/components/shared/upload-field";
 import { UserBranchAccessPanel } from "@/components/shared/user-branch-access-panel";
 import { BranchesPage } from "@/components/pages/branches-page";
+import { FluigTasksPage } from "@/components/pages/fluig-tasks-page";
 import { SuppliersPage } from "@/components/pages/suppliers-page";
 import type { ModuleConfig } from "@/lib/admin-data";
 
@@ -42,6 +43,10 @@ export function ModulePage({
 
   if (config.slug === "configuracoes") {
     return <BranchesPage config={config} initialOpenForm={mode === "new"} />;
+  }
+
+  if (config.slug === "tarefas" && mode === "list") {
+    return <FluigTasksPage config={config} />;
   }
 
   if (mode === "new") {
