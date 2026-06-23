@@ -31,6 +31,23 @@ const stitchDelays = [
   "stitch-delay-600",
 ];
 
+function toClientModuleConfig(config: ModuleConfig): ModuleConfig {
+  return {
+    ...config,
+    primaryAction: config.primaryAction ? { ...config.primaryAction } : undefined,
+    metrics: [],
+    table: {
+      columns: [...config.table.columns],
+      rows: config.table.rows.map((row) => ({ ...row })),
+    },
+    statuses: [...config.statuses],
+    formSections: config.formSections.map((section) => ({
+      title: section.title,
+      fields: [...section.fields],
+    })),
+  };
+}
+
 export function ModulePage({
   config,
   mode,
@@ -38,24 +55,26 @@ export function ModulePage({
   config: ModuleConfig;
   mode: "list" | "new" | "detail";
 }) {
+  const clientConfig = toClientModuleConfig(config);
+
   if (config.slug === "fornecedores") {
-    return <SuppliersPage config={config} initialOpenForm={mode === "new"} />;
+    return <SuppliersPage config={clientConfig} initialOpenForm={mode === "new"} />;
   }
 
   if (config.slug === "configuracoes") {
-    return <BranchesPage config={config} initialOpenForm={mode === "new"} />;
+    return <BranchesPage config={clientConfig} initialOpenForm={mode === "new"} />;
   }
 
   if (config.slug === "tarefas" && mode === "list") {
-    return <FluigTasksPage config={config} />;
+    return <FluigTasksPage config={clientConfig} />;
   }
 
   if (config.slug === "manutencao") {
-    return <MaintenancePage config={config} initialOpenForm={mode === "new"} />;
+    return <MaintenancePage config={clientConfig} initialOpenForm={mode === "new"} />;
   }
 
   if ((config.slug === "pagamentos" || config.slug === "compras") && mode === "list") {
-    return <FluigModuleOperationsPage config={config} moduleSlug={config.slug} />;
+    return <FluigModuleOperationsPage config={clientConfig} moduleSlug={config.slug} />;
   }
 
   if (mode === "new") {
