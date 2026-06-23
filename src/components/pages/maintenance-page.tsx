@@ -14,6 +14,7 @@ import {
   RefreshCcw,
   SendHorizontal,
   Smartphone,
+  Trash2,
   Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -77,6 +78,18 @@ type MaintenancePhotoRecord = {
   signedUrl?: string | null;
 };
 
+type MaintenanceMaterialRecord = {
+  item: string;
+  quantity?: string | null;
+  valueCents?: number | null;
+};
+
+type MaintenanceMaterialFormRow = {
+  item: string;
+  quantity: string;
+  value: string;
+};
+
 type MaintenanceOrderRecord = {
   id: string;
   code: string;
@@ -98,6 +111,7 @@ type MaintenanceOrderRecord = {
   finishedAt: string | null;
   materialSummary: string | null;
   materialCostCents: number;
+  materials: MaintenanceMaterialRecord[];
   photos: MaintenancePhotoRecord[];
   pendingReason: string | null;
   fluig: {
@@ -140,6 +154,7 @@ type FormState = {
   dueAt: string;
   materialSummary: string;
   materialCost: string;
+  materials: MaintenanceMaterialFormRow[];
   pendingReason: string;
   fluigRequestId: string;
   fluigSourceRequestId: string;
@@ -162,6 +177,7 @@ const emptyForm: FormState = {
   dueAt: "",
   materialSummary: "",
   materialCost: "",
+  materials: [],
   pendingReason: "",
   fluigRequestId: "",
   fluigSourceRequestId: "",
@@ -201,6 +217,14 @@ function centsFromMoney(value: string) {
 
 function moneyFromCents(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((value || 0) / 100);
+}
+
+function moneyInputFromCents(value: number | null | undefined) {
+  return value ? String(value / 100).replace(".", ",") : "";
+}
+
+function materialTotalCents(materials: MaintenanceMaterialFormRow[]) {
+  return materials.reduce((total, material) => total + centsFromMoney(material.value), 0);
 }
 
 function formatFileSize(value: number | null | undefined) {
@@ -243,6 +267,11 @@ function formFromOrder(order: MaintenanceOrderRecord): FormState {
     dueAt: order.dueAt ? order.dueAt.slice(0, 10) : "",
     materialSummary: order.materialSummary || "",
     materialCost: order.materialCostCents ? String(order.materialCostCents / 100).replace(".", ",") : "",
+    materials: (order.materials || []).map((material) => ({
+      item: material.item || "",
+      quantity: material.quantity || "",
+      value: moneyInputFromCents(material.valueCents),
+    })),
     pendingReason: order.pendingReason || "",
     fluigRequestId: order.fluig.requestId || "",
     fluigSourceRequestId: metadataText(order.metadata, "fluigSourceRequestId"),
@@ -254,6 +283,15 @@ function formFromOrder(order: MaintenanceOrderRecord): FormState {
 }
 
 function buildPayload(form: FormState) {
+  const materials = form.materials
+    .map((material) => ({
+      item: material.item.trim(),
+      quantity: material.quantity.trim() || null,
+      valueCents: centsFromMoney(material.value),
+    }))
+    .filter((material) => material.item);
+  const materialsTotal = materialTotalCents(form.materials);
+
   return {
     source: form.source,
     title: form.title.trim(),
@@ -266,7 +304,8 @@ function buildPayload(form: FormState) {
     branchId: form.branchId || null,
     dueAt: form.dueAt || null,
     materialSummary: form.materialSummary.trim() || null,
-    materialCostCents: centsFromMoney(form.materialCost),
+    materialCostCents: materials.length ? materialsTotal : centsFromMoney(form.materialCost),
+    materials,
     pendingReason: form.pendingReason.trim() || null,
     fluigRequestId: form.source === "fluig" ? form.fluigRequestId.trim() || null : null,
     fluigNumLancW: form.source === "fluig" ? form.fluigNumLancW.trim() || null : null,
@@ -401,6 +440,29 @@ export function MaintenancePage({
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function addMaterial() {
+    setForm((current) => ({
+      ...current,
+      materials: [...current.materials, { item: "", quantity: "", value: "" }],
+    }));
+  }
+
+  function updateMaterial(index: number, key: keyof MaintenanceMaterialFormRow, value: string) {
+    setForm((current) => ({
+      ...current,
+      materials: current.materials.map((material, currentIndex) =>
+        currentIndex === index ? { ...material, [key]: value } : material
+      ),
+    }));
+  }
+
+  function removeMaterial(index: number) {
+    setForm((current) => ({
+      ...current,
+      materials: current.materials.filter((_, currentIndex) => currentIndex !== index),
+    }));
   }
 
   function handlePhotoFiles(files: FileList | null) {
@@ -718,6 +780,8 @@ export function MaintenancePage({
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <StatusBadge status={order.status} />
                       <span className="text-xs text-muted-foreground">{formatDate(order.dueAt)}</span>
+                      <span className="text-xs text-muted-foreground">{order.materials.length} material(is)</span>
+                      <span className="text-xs text-muted-foreground">{moneyFromCents(order.materialCostCents)}</span>
                     </div>
                   </div>
                 ))
@@ -742,6 +806,9 @@ export function MaintenancePage({
         photoUploads={photoUploads}
         saving={saving}
         updateForm={updateForm}
+        addMaterial={addMaterial}
+        updateMaterial={updateMaterial}
+        removeMaterial={removeMaterial}
         onPhotoFilesChange={handlePhotoFiles}
         submitOrder={submitOrder}
       />
@@ -825,6 +892,7 @@ function MaintenanceOrderCard({
           <Field label="Prazo" value={formatDate(order.dueAt)} />
           <Field label="Inicio" value={formatDateTime(order.startedAt)} />
           <Field label="Custo" value={moneyFromCents(order.materialCostCents)} />
+          <Field label="Materiais" value={String(order.materials.length)} />
           <Field label="Fotos" value={String(order.photos.length)} />
           <Field label="Atualizada" value={formatDateTime(order.updatedAt)} />
         </div>
@@ -851,10 +919,23 @@ function MaintenanceOrderCard({
           </div>
         ) : null}
 
-        {order.materialSummary || order.pendingReason ? (
+        {order.materialSummary || order.materials.length || order.pendingReason ? (
           <div className="rounded-md border bg-muted/20 p-3 text-sm">
             <p className="font-medium">Execucao</p>
             {order.materialSummary ? <p className="mt-1 text-muted-foreground">{order.materialSummary}</p> : null}
+            {order.materials.length ? (
+              <div className="mt-2 grid gap-1">
+                {order.materials.slice(0, 4).map((material, index) => (
+                  <div key={`${material.item}-${index}`} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-background/70 px-2 py-1 text-xs">
+                    <span className="min-w-0 truncate font-medium">{material.item}</span>
+                    <span className="text-muted-foreground">
+                      {material.quantity || "Qtd. nao informada"} - {moneyFromCents(material.valueCents || 0)}
+                    </span>
+                  </div>
+                ))}
+                {order.materials.length > 4 ? <p className="text-xs text-muted-foreground">+ {order.materials.length - 4} material(is)</p> : null}
+              </div>
+            ) : null}
             {order.pendingReason ? <p className="mt-1 text-amber-700">Pendencia: {order.pendingReason}</p> : null}
           </div>
         ) : null}
@@ -887,6 +968,9 @@ function MaintenanceDialog({
   photoUploads,
   saving,
   updateForm,
+  addMaterial,
+  updateMaterial,
+  removeMaterial,
   onPhotoFilesChange,
   submitOrder,
 }: {
@@ -898,9 +982,14 @@ function MaintenanceDialog({
   photoUploads: PhotoUploadDraft[];
   saving: boolean;
   updateForm: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
+  addMaterial: () => void;
+  updateMaterial: (index: number, key: keyof MaintenanceMaterialFormRow, value: string) => void;
+  removeMaterial: (index: number) => void;
   onPhotoFilesChange: (files: FileList | null) => void;
   submitOrder: () => Promise<void>;
 }) {
+  const materialTotal = materialTotalCents(form.materials);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-5xl">
@@ -1003,8 +1092,57 @@ function MaintenanceDialog({
               placeholder="Produto, quantidade, unidade, observacoes da execucao"
             />
           </FormField>
-          <FormField label="Valor gasto">
-            <Input value={form.materialCost} onChange={(event) => updateForm("materialCost", event.target.value)} placeholder="R$ 0,00" />
+          <div className="space-y-3 rounded-md border bg-muted/20 p-3 md:col-span-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">Materiais e produtos usados</p>
+                <p className="text-xs text-muted-foreground">Registre item, quantidade e valor para alimentar o custo real da OS.</p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addMaterial}>
+                <Plus className="size-4" />
+                Adicionar material
+              </Button>
+            </div>
+
+            {form.materials.length ? (
+              <div className="space-y-2">
+                {form.materials.map((material, index) => (
+                  <div key={index} className="grid gap-2 rounded-md bg-background/70 p-2 md:grid-cols-[minmax(0,1fr)_140px_140px_40px]">
+                    <Input
+                      value={material.item}
+                      onChange={(event) => updateMaterial(index, "item", event.target.value)}
+                      placeholder="Material ou produto"
+                    />
+                    <Input
+                      value={material.quantity}
+                      onChange={(event) => updateMaterial(index, "quantity", event.target.value)}
+                      placeholder="Qtd./unidade"
+                    />
+                    <Input
+                      value={material.value}
+                      onChange={(event) => updateMaterial(index, "value", event.target.value)}
+                      placeholder="R$ 0,00"
+                    />
+                    <Button type="button" variant="outline" size="icon" onClick={() => removeMaterial(index)} title="Remover material">
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                ))}
+                <p className="text-sm font-medium">Total dos materiais: {moneyFromCents(materialTotal)}</p>
+              </div>
+            ) : (
+              <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                Nenhum material estruturado. Use o valor avulso abaixo quando nao houver detalhamento por item.
+              </p>
+            )}
+          </div>
+          <FormField label={form.materials.length ? "Valor avulso ignorado" : "Valor gasto avulso"}>
+            <Input
+              value={form.materials.length ? moneyFromCents(materialTotal) : form.materialCost}
+              onChange={(event) => updateForm("materialCost", event.target.value)}
+              placeholder="R$ 0,00"
+              disabled={form.materials.length > 0}
+            />
           </FormField>
           <FormField label="Fotos da execucao">
             <Input
