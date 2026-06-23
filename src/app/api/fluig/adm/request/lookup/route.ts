@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       actor,
       module: moduleSlug,
       operation: "sync_request_by_number",
+      reuseActive: true,
       requestPayload: {
         requestIds: [parsed.data.fluigRequestId],
         persist: parsed.data.persist,

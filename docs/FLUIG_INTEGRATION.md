@@ -129,6 +129,7 @@ Sincronizacao por usuario:
 - O dashboard chama `/api/fluig/adm/sync/user`.
 - A API le as solicitacoes abertas conhecidas por modulo e monta lotes internos para `open_tasks` e `my_requests`.
 - A API cria um unico job `sync_user_incremental_batch` em `fluig_jobs`.
+- Antes de criar o job, a API procura um job ativo equivalente para o mesmo usuario/modulo/operacao/payload. Se encontrar, reaproveita esse job em vez de gerar outra execucao e outro login no agente.
 - O agente executa `scripts/fluig/syncFluigStatus.js` uma unica vez com todos os numeros Fluig deduplicados.
 - O resultado volta com `moduleSlug` e tipos de sync para que a API salve cada solicitacao no modulo correto e atualize `fluig_user_sync_state` por usuario/modulo/tipo.
 - Os endpoints `/sync/open-tasks` e `/sync/my-requests` permanecem para execucoes isoladas e diagnostico.

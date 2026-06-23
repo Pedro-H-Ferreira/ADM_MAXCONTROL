@@ -70,6 +70,7 @@ export async function createKnownOpenSyncJobs(input: {
       actor: input.actor,
       module: moduleSlug,
       operation: input.operation,
+      reuseActive: true,
       requestPayload: {
         requestIds,
         taskUserId: input.actor.fluigUserId || map.defaultTaskUserId,
@@ -173,6 +174,7 @@ export async function createUserIncrementalBatchJob(input: {
     actor: input.actor,
     module: orchestrationModule,
     operation: "sync_user_incremental_batch",
+    reuseActive: true,
     requestPayload: {
       batches,
       batchCount: batches.length,

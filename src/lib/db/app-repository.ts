@@ -11,6 +11,7 @@ import {
 } from "@/lib/navigation";
 
 type JsonRecord = Record<string, unknown>;
+type JsonComparable = JsonRecord | unknown[] | string | number | boolean | null;
 
 export type AppRole =
   | "ADMIN_MASTER"
@@ -184,6 +185,17 @@ type DbPageAccessRow = {
 
 const adminRoles = new Set<AppRole>(["ADMIN_MASTER", "ADMIN"]);
 const fallbackAdminEmail = "admin@adm.local";
+const reusableJobStatuses: FluigJobStatus[] = [
+  "queued",
+  "agent_claimed",
+  "authenticating",
+  "opening_fluig",
+  "reading_page",
+  "filling_form",
+  "submitting",
+  "waiting_protocol",
+  "syncing_result",
+];
 
 export class AppAuthError extends Error {
   status: number;
@@ -318,6 +330,25 @@ function normalizeTokenHash(token: string) {
 
 function generateAgentToken() {
   return `admfa_${crypto.randomBytes(32).toString("base64url")}`;
+}
+
+function normalizeJsonComparable(value: unknown): JsonComparable {
+  if (value == null) return null;
+  if (Array.isArray(value)) return value.map(normalizeJsonComparable);
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, entryValue]) => entryValue !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entryValue]) => [key, normalizeJsonComparable(entryValue)])
+    );
+  }
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  return String(value);
+}
+
+function stableJsonFingerprint(value: unknown) {
+  return JSON.stringify(normalizeJsonComparable(value));
 }
 
 async function getAuthUser(): Promise<User | null> {
@@ -820,6 +851,7 @@ export async function createFluigJob(input: {
   branchCode?: string | null;
   branchLabel?: string | null;
   requestPayload?: JsonRecord;
+  reuseActive?: boolean;
 }) {
   const client = assertServiceClient();
   const selectedBranch =
@@ -831,6 +863,35 @@ export async function createFluigJob(input: {
     throw new Error("Usuario sem acesso a filial solicitada.");
   }
 
+  const requestPayload = input.requestPayload || {};
+  const branchCode = input.branchCode || selectedBranch?.code || null;
+  const branchLabel = input.branchLabel || selectedBranch?.fluigLabel || selectedBranch?.name || null;
+
+  if (input.reuseActive) {
+    const { data: activeJobs, error: activeJobsError } = await client
+      .from("fluig_jobs")
+      .select("*")
+      .eq("requested_by_user_id", input.actor.id)
+      .eq("module_slug", input.module)
+      .eq("operation", input.operation)
+      .in("status", reusableJobStatuses)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(25);
+    if (activeJobsError) throw activeJobsError;
+
+    const targetPayloadFingerprint = stableJsonFingerprint(requestPayload);
+    const reusableJob = ((activeJobs || []) as DbJobRow[]).find((job) => {
+      const sameBranch = (job.branch_code || null) === branchCode;
+      const samePayload = stableJsonFingerprint(job.request_payload || {}) === targetPayloadFingerprint;
+      return sameBranch && samePayload;
+    });
+
+    if (reusableJob) {
+      return mapJob(reusableJob);
+    }
+  }
+
   const { data, error } = await client
     .from("fluig_jobs")
     .insert({
@@ -838,10 +899,10 @@ export async function createFluigJob(input: {
       module_slug: input.module,
       operation: input.operation,
       branch_id: selectedBranch?.id || null,
-      branch_code: input.branchCode || selectedBranch?.code || null,
-      branch_label: input.branchLabel || selectedBranch?.fluigLabel || selectedBranch?.name || null,
+      branch_code: branchCode,
+      branch_label: branchLabel,
       fluig_username: input.actor.fluigUsername,
-      request_payload: input.requestPayload || {},
+      request_payload: requestPayload,
       status: "queued",
     })
     .select("*")

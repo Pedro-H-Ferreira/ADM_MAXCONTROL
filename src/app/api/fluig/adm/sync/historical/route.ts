@@ -140,6 +140,7 @@ export async function POST(request: Request) {
           actor,
           module: "fornecedores",
           operation: "sync_initial_history",
+          reuseActive: true,
           requestPayload: payload,
         })
       );
@@ -180,6 +181,7 @@ export async function POST(request: Request) {
           actor,
           module: moduleToSync,
           operation: "sync_initial_history",
+          reuseActive: true,
           requestPayload: payload,
         })
       );

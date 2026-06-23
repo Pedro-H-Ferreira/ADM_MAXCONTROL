@@ -19,6 +19,19 @@ function jsonError(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
 }
 
+function shouldReuseActiveJob(operation: FluigJobOperation) {
+  return (
+    operation === "sync_history" ||
+    operation === "sync_status" ||
+    operation === "sync_initial_history" ||
+    operation === "sync_user_open_tasks" ||
+    operation === "sync_user_open_requests" ||
+    operation === "sync_user_incremental_batch" ||
+    operation === "sync_request_by_number" ||
+    operation === "supplier_lookup_by_cnpj"
+  );
+}
+
 export async function GET(request: Request) {
   try {
     const actor = await resolveCurrentAppUser();
@@ -66,6 +79,7 @@ export async function POST(request: Request) {
       branchCode: body.branchCode,
       branchLabel: body.branchLabel,
       requestPayload,
+      reuseActive: shouldReuseActiveJob(operation),
     });
 
     return NextResponse.json({

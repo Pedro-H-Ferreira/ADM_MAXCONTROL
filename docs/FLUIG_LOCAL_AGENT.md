@@ -22,6 +22,32 @@ O portal ADM roda na Vercel, mas a automacao do Fluig roda na maquina Windows de
 - Consulta de status por numero Fluig: cria `sync_request_by_number`; o agente faz uma sessao e consulta todos os numeros enviados no mesmo job.
 - Abertura/cancelamento: criam `open_from_source` ou `cancel_request`; cada job usa a sessao do usuario local e devolve protocolo/status para a tela.
 
+## Controle contra jobs duplicados
+
+As rotas de sincronizacao reaproveitam um job ativo equivalente antes de inserir outro registro em `fluig_jobs`.
+
+O reaproveitamento considera:
+
+- mesmo usuario do ADM;
+- mesmo modulo;
+- mesma operacao;
+- mesma filial resolvida;
+- mesmo payload normalizado;
+- job ainda ativo e nao expirado.
+
+Isso vale para:
+
+- `sync_history`;
+- `sync_initial_history`;
+- `sync_status`;
+- `sync_user_open_tasks`;
+- `sync_user_open_requests`;
+- `sync_user_incremental_batch`;
+- `sync_request_by_number`;
+- `supplier_lookup_by_cnpj`.
+
+Nao vale para `open_from_source` e `cancel_request`, porque repetir essas operacoes pode representar uma acao intencional do usuario.
+
 ## Reuso de login
 
 O agente nao deve logar novamente para cada pagina ou item dentro do mesmo job. A regra atual e:
