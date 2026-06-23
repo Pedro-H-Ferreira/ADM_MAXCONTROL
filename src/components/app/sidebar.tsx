@@ -70,7 +70,7 @@ export function AppSidebar({
       )}
     >
       <div className="flex h-16 items-center px-4">
-        <Link href="/dashboard" className="flex min-w-0 items-center gap-2">
+        <Link href="/dashboard" prefetch={false} className="flex min-w-0 items-center gap-2">
           <div
             className={cn(
               "grid size-9 shrink-0 place-items-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground transition-transform duration-300",
@@ -109,6 +109,7 @@ export function AppSidebar({
                 const link = (
                   <Link
                     href={item.href}
+                    prefetch={false}
                     aria-label={item.title}
                     className={cn(
                       "group/nav flex h-9 items-center gap-2 rounded-md px-2 text-sm transition-all duration-200 ease-in-out active:scale-[0.98]",

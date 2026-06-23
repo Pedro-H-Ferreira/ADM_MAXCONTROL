@@ -57,7 +57,7 @@ export function UserMenu({ user }: { user: AppShellUser }) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/perfil">
+          <Link href="/perfil" prefetch={false}>
             <UserRound className="size-4" />
             Perfil
           </Link>

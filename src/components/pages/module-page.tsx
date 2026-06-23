@@ -121,7 +121,7 @@ function ModuleFormPage({ config }: { config: ModuleConfig }) {
   return (
     <div className="space-y-6">
       <Button variant="ghost" asChild className="stitch-soft-button w-fit">
-        <Link href={`/${config.slug}`}>
+        <Link href={`/${config.slug}`} prefetch={false}>
           <ArrowLeft className="size-4" />
           Voltar
         </Link>
@@ -179,7 +179,7 @@ function ModuleDetailPage({ config }: { config: ModuleConfig }) {
   return (
     <div className="space-y-6">
       <Button variant="ghost" asChild className="stitch-soft-button w-fit">
-        <Link href={`/${config.slug}`}>
+        <Link href={`/${config.slug}`} prefetch={false}>
           <ArrowLeft className="size-4" />
           Voltar
         </Link>

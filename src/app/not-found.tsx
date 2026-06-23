@@ -11,7 +11,9 @@ export default function NotFound() {
           A rota solicitada ainda não faz parte do portal administrativo.
         </p>
         <Button asChild className="mt-6">
-          <Link href="/dashboard">Voltar ao dashboard</Link>
+          <Link href="/dashboard" prefetch={false}>
+            Voltar ao dashboard
+          </Link>
         </Button>
       </div>
     </main>
