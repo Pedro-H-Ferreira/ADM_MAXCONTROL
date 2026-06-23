@@ -9,6 +9,7 @@ const historyChunkMaxItems = positiveInt(process.env.ADM_FLUIG_HISTORY_CHUNK_ITE
 const historyChunkMaxBytes = positiveInt(process.env.ADM_FLUIG_HISTORY_CHUNK_BYTES, 650000);
 const historyFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_FIELD_MAX_CHARS, 6000);
 const historyAggressiveFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_AGGRESSIVE_FIELD_MAX_CHARS, 1000);
+const resultMaxBytes = positiveInt(process.env.ADM_FLUIG_RESULT_MAX_BYTES, 650000);
 let currentJob = null;
 let lastError = null;
 let lastHeartbeatAt = null;
@@ -96,10 +97,24 @@ async function sendEvent(jobId, input) {
 }
 
 async function sendResult(job, input) {
-  await apiFetch(`/api/agent/jobs/${job.id}/result`, {
+  let resultPayload = input.resultPayload || {};
+  let payload = {
     status: input.status,
-    resultPayload: input.resultPayload || {},
+    resultPayload,
     errorMessage: input.errorMessage || null,
+  };
+
+  if (payloadBytes(payload) > resultMaxBytes) {
+    resultPayload = compactResultPayload(resultPayload);
+    payload = {
+      status: input.status,
+      resultPayload,
+      errorMessage: input.errorMessage ? truncateValue(input.errorMessage, 2000) : null,
+    };
+  }
+
+  await apiFetch(`/api/agent/jobs/${job.id}/result`, {
+    ...payload,
   });
 }
 
@@ -173,6 +188,57 @@ function payloadBytes(payload) {
   return Buffer.byteLength(JSON.stringify(payload), "utf8");
 }
 
+function plainObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function copyScalarFields(source, keys) {
+  const target = {};
+  for (const key of keys) {
+    const value = source[key];
+    if (value == null) continue;
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      target[key] = typeof value === "string" ? truncateValue(value, 2000) : value;
+    }
+  }
+  return target;
+}
+
+function compactResultPayload(result) {
+  const payload = plainObject(result);
+  const data = plainObject(payload.data);
+  const itemCount = historyItemsFromResult(payload).length;
+  const scalarKeys = [
+    "ok",
+    "success",
+    "status",
+    "outputPath",
+    "requestId",
+    "generatedRequestId",
+    "numeroSolicitacao",
+    "processInstanceId",
+    "processId",
+    "stateDescription",
+    "message",
+    "error",
+  ];
+
+  return {
+    ...copyScalarFields(payload, scalarKeys),
+    data: {
+      ...copyScalarFields(data, scalarKeys),
+      itemsOmitted: true,
+      itemCount,
+      compactedByAgent: true,
+      originalPayloadBytes: payloadBytes(payload),
+    },
+    itemsOmitted: true,
+    itemCount,
+    compactedByAgent: true,
+    originalPayloadBytes: payloadBytes(payload),
+  };
+}
+
 function historyChunkBytes(items) {
   return payloadBytes(historyChunkPayload({ chunkIndex: 0, totalChunks: 999, totalItems: items.length, items }));
 }
@@ -207,25 +273,26 @@ function buildHistoryChunks(items) {
 }
 
 function compactHistoryResult(result, input) {
-  const data = result && result.data && typeof result.data === "object" ? result.data : {};
-  const { items: _items, ...compactData } = data;
-  const { items: _topItems, ...compactResult } = result || {};
+  const payload = plainObject(result);
+  const data = plainObject(payload.data);
 
   return {
-    ...compactResult,
+    ...copyScalarFields(payload, ["outputPath", "ok", "success", "status", "message", "error"]),
     data: {
-      ...compactData,
+      ...copyScalarFields(data, ["outputPath", "ok", "success", "status", "message", "error"]),
       itemsChunked: true,
       itemCount: input.itemCount,
       chunkCount: input.chunkCount,
       maxChunkItems: historyChunkMaxItems,
       maxChunkBytes: historyChunkMaxBytes,
+      compactedByAgent: true,
     },
     itemsChunked: true,
     itemCount: input.itemCount,
     chunkCount: input.chunkCount,
     maxChunkItems: historyChunkMaxItems,
     maxChunkBytes: historyChunkMaxBytes,
+    compactedByAgent: true,
   };
 }
 
@@ -441,6 +508,7 @@ module.exports = {
   __test: {
     buildHistoryChunks,
     compactHistoryResult,
+    compactResultPayload,
     historyChunkPayload,
     payloadBytes,
   },
