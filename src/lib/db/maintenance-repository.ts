@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
-import type { AppActor, AppBranch } from "@/lib/db/app-repository";
+import type { AppActor, AppBranch, FluigJobRecord } from "@/lib/db/app-repository";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -115,6 +115,10 @@ function cleanText(value: unknown) {
   return text || null;
 }
 
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : {};
+}
+
 function upperText<T extends string>(value: unknown, fallback: T): T {
   return (cleanText(value)?.toUpperCase() || fallback) as T;
 }
@@ -146,6 +150,37 @@ function sanitizeMaterials(materials: MaintenanceMaterialInput[] | undefined) {
         }))
         .filter((material) => material.item)
     : [];
+}
+
+function findDeepStringByKey(value: unknown, keys: string[], depth = 0): string | null {
+  if (depth > 6 || value == null) return null;
+  if (typeof value !== "object") return null;
+
+  const normalizedKeys = new Set(keys.map((key) => key.toLowerCase()));
+  const entries = Object.entries(value as Record<string, unknown>);
+  for (const [key, entryValue] of entries) {
+    if (normalizedKeys.has(key.toLowerCase())) {
+      const text = cleanText(entryValue);
+      if (text) return text;
+    }
+  }
+
+  for (const [, entryValue] of entries) {
+    if (entryValue && typeof entryValue === "object") {
+      const nested = findDeepStringByKey(entryValue, keys, depth + 1);
+      if (nested) return nested;
+    }
+  }
+
+  return null;
+}
+
+function firstText(...values: unknown[]) {
+  for (const value of values) {
+    const text = cleanText(value);
+    if (text) return text;
+  }
+  return null;
 }
 
 function branchForInput(actor: AppActor, branchId?: string | null): AppBranch | null {
@@ -458,4 +493,168 @@ export async function updateMaintenanceOrder(actor: AppActor, id: string, input:
     },
   });
   return mapOrder(updated);
+}
+
+export async function completeMaintenanceOrderFluigOpenJob(input: {
+  job: FluigJobRecord;
+  generatedRequestId: string;
+  resultPayload: JsonRecord;
+}) {
+  const maintenanceOrderId = firstText(
+    input.job.requestPayload.maintenanceOrderId,
+    input.job.requestPayload.orderId,
+    asRecord(input.job.requestPayload.maintenanceOrder).id
+  );
+
+  if (!maintenanceOrderId || input.job.module !== "manutencao" || input.job.operation !== "open_from_source") {
+    return null;
+  }
+
+  const client = assertServiceClient();
+  const { data: currentData, error: currentError } = await client
+    .from("app_maintenance_orders")
+    .select("*")
+    .eq("id", maintenanceOrderId)
+    .maybeSingle();
+  if (currentError) throw currentError;
+  if (!currentData) return null;
+
+  const current = currentData as MaintenanceOrderDbRow;
+  const resultData = asRecord(input.resultPayload.data);
+  const finalDetails = asRecord(resultData.finalDetails);
+  const content = asRecord(finalDetails.content);
+  const now = new Date().toISOString();
+  const currentMetadata = asRecord(current.metadata);
+  const sourceRequestId = firstText(resultData.sourceRequestId, input.job.requestPayload.sourceRequestId);
+
+  const fluigNumLancW = firstText(
+    findDeepStringByKey(input.resultPayload, ["NumLancW", "numLancW", "numeroLancamento", "lancamentoConsinco"]),
+    current.fluig_num_lanc_w
+  );
+  const currentTask = firstText(
+    content.stateDescription,
+    findDeepStringByKey(input.resultPayload, ["stateDescription", "etapaAtual", "currentTask"]),
+    "Solicitacao aberta pelo ADM"
+  );
+  const taskOwner = firstText(
+    content.colleagueName,
+    findDeepStringByKey(input.resultPayload, ["colleagueName", "responsavelAtual", "taskOwner"]),
+    current.fluig_task_owner
+  );
+
+  const metadata = {
+    ...currentMetadata,
+    fluigSourceRequestId: sourceRequestId || currentMetadata.fluigSourceRequestId || null,
+    fluigOpenJob: {
+      id: input.job.id,
+      status: "success",
+      generatedRequestId: input.generatedRequestId,
+      sourceRequestId,
+      syncedAt: now,
+      outputPath: firstText(input.resultPayload.outputPath, resultData.outputPath),
+      attachmentCount: Number(resultData.attachmentCount || input.job.requestPayload.attachmentCount || 0),
+      fieldOverrideCount: Number(resultData.fieldOverrideCount || 0),
+    },
+  };
+
+  const { data, error } = await client
+    .from("app_maintenance_orders")
+    .update({
+      source: "fluig",
+      fluig_request_id: input.generatedRequestId,
+      fluig_num_lanc_w: fluigNumLancW,
+      fluig_current_task: currentTask,
+      fluig_task_owner: taskOwner,
+      fluig_last_sync_at: now,
+      metadata,
+      updated_by_user_id: input.job.requestedByUserId,
+    })
+    .eq("id", maintenanceOrderId)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  await recordOrderEvent(client, {
+    orderId: maintenanceOrderId,
+    actorId: input.job.requestedByUserId,
+    type: "fluig_opened",
+    label: `OS aberta no Fluig ${input.generatedRequestId}.`,
+    statusFrom: current.status,
+    statusTo: current.status,
+    payload: {
+      jobId: input.job.id,
+      generatedRequestId: input.generatedRequestId,
+      sourceRequestId,
+      currentTask,
+      taskOwner,
+      fluigNumLancW,
+    },
+  });
+
+  return mapOrder(data as MaintenanceOrderDbRow);
+}
+
+export async function recordMaintenanceOrderFluigJobFailure(input: {
+  job: FluigJobRecord;
+  errorMessage?: string | null;
+}) {
+  const maintenanceOrderId = firstText(
+    input.job.requestPayload.maintenanceOrderId,
+    input.job.requestPayload.orderId,
+    asRecord(input.job.requestPayload.maintenanceOrder).id
+  );
+
+  if (!maintenanceOrderId || input.job.module !== "manutencao" || input.job.operation !== "open_from_source") {
+    return null;
+  }
+
+  const client = assertServiceClient();
+  const { data: currentData, error: currentError } = await client
+    .from("app_maintenance_orders")
+    .select("*")
+    .eq("id", maintenanceOrderId)
+    .maybeSingle();
+  if (currentError) throw currentError;
+  if (!currentData) return null;
+
+  const current = currentData as MaintenanceOrderDbRow;
+  const now = new Date().toISOString();
+  const metadata = {
+    ...asRecord(current.metadata),
+    fluigOpenJob: {
+      id: input.job.id,
+      status: "error",
+      errorMessage: input.errorMessage || "Falha ao abrir OS no Fluig.",
+      syncedAt: now,
+      sourceRequestId: firstText(input.job.requestPayload.sourceRequestId),
+    },
+  };
+
+  const { data, error } = await client
+    .from("app_maintenance_orders")
+    .update({
+      metadata,
+      updated_by_user_id: input.job.requestedByUserId,
+    })
+    .eq("id", maintenanceOrderId)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  await recordOrderEvent(client, {
+    orderId: maintenanceOrderId,
+    actorId: input.job.requestedByUserId,
+    type: "fluig_open_error",
+    label: input.errorMessage || "Falha ao abrir OS no Fluig.",
+    statusFrom: current.status,
+    statusTo: current.status,
+    payload: {
+      jobId: input.job.id,
+      sourceRequestId: firstText(input.job.requestPayload.sourceRequestId),
+    },
+  });
+
+  return mapOrder(data as MaintenanceOrderDbRow);
 }

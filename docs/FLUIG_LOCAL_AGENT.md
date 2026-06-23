@@ -21,6 +21,7 @@ O portal ADM roda na Vercel, mas a automacao do Fluig roda na maquina Windows de
 - Endpoints especificos `/api/fluig/adm/sync/open-tasks` e `/api/fluig/adm/sync/my-requests`: continuam criando jobs separados quando for necessario diagnosticar ou executar somente uma parte da sincronizacao.
 - Consulta de status por numero Fluig: cria `sync_request_by_number`; o agente faz uma sessao e consulta todos os numeros enviados no mesmo job.
 - Abertura/cancelamento: criam `open_from_source` ou `cancel_request`; cada job usa a sessao do usuario local e devolve protocolo/status para a tela.
+- Em `/manutencao`, `open_from_source` tambem carrega `maintenanceOrderId`; ao receber o resultado, a API atualiza `app_maintenance_orders` com numero Fluig, etapa, responsavel, `NumLancW` quando existir, e evento de auditoria.
 
 ## Controle contra jobs duplicados
 

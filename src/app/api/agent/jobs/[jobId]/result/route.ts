@@ -16,6 +16,10 @@ import {
   persistStatusItems,
   persistSupplierCandidates,
 } from "@/lib/db/fluig-repository";
+import {
+  completeMaintenanceOrderFluigOpenJob,
+  recordMaintenanceOrderFluigJobFailure,
+} from "@/lib/db/maintenance-repository";
 import { mergePersistence } from "@/lib/fluig/route-utils";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
@@ -177,7 +181,19 @@ export async function POST(request: Request, context: RouteContext) {
           },
         ])
       );
+      await completeMaintenanceOrderFluigOpenJob({
+        job,
+        generatedRequestId,
+        resultPayload,
+      });
     }
+  }
+
+  if (status !== "success" && job.operation === "open_from_source") {
+    await recordMaintenanceOrderFluigJobFailure({
+      job,
+      errorMessage: body.errorMessage,
+    });
   }
 
   const persistence = persistenceResults.length ? mergePersistence(...persistenceResults) : undefined;

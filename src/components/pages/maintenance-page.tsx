@@ -9,6 +9,7 @@ import {
   PackageOpen,
   Plus,
   RefreshCcw,
+  SendHorizontal,
   Smartphone,
   Wrench,
 } from "lucide-react";
@@ -40,6 +41,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PriorityBadge } from "@/components/shared/priority-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import type { ModuleConfig } from "@/lib/admin-data";
+import { fluigAdmApi } from "@/lib/fluig-api";
 import { cn } from "@/lib/utils";
 
 type MaintenanceOrderSource = "manual" | "fluig";
@@ -90,6 +92,7 @@ type MaintenanceOrderRecord = {
     taskOwner: string | null;
     lastSyncAt: string | null;
   };
+  metadata: Record<string, unknown>;
   updatedAt: string;
   createdAt: string;
 };
@@ -124,6 +127,7 @@ type FormState = {
   materialCost: string;
   pendingReason: string;
   fluigRequestId: string;
+  fluigSourceRequestId: string;
   fluigNumLancW: string;
   fluigCurrentTask: string;
   fluigTaskOwner: string;
@@ -145,6 +149,7 @@ const emptyForm: FormState = {
   materialCost: "",
   pendingReason: "",
   fluigRequestId: "",
+  fluigSourceRequestId: "",
   fluigNumLancW: "",
   fluigCurrentTask: "",
   fluigTaskOwner: "",
@@ -196,6 +201,11 @@ function formatDateTime(value: string | null) {
   });
 }
 
+function metadataText(metadata: Record<string, unknown> | null | undefined, key: string) {
+  const value = metadata?.[key];
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+}
+
 function formFromOrder(order: MaintenanceOrderRecord): FormState {
   return {
     source: order.source,
@@ -212,6 +222,7 @@ function formFromOrder(order: MaintenanceOrderRecord): FormState {
     materialCost: order.materialCostCents ? String(order.materialCostCents / 100).replace(".", ",") : "",
     pendingReason: order.pendingReason || "",
     fluigRequestId: order.fluig.requestId || "",
+    fluigSourceRequestId: metadataText(order.metadata, "fluigSourceRequestId"),
     fluigNumLancW: order.fluig.numLancW || "",
     fluigCurrentTask: order.fluig.currentTask || "",
     fluigTaskOwner: order.fluig.taskOwner || "",
@@ -239,8 +250,19 @@ function buildPayload(form: FormState) {
     fluigNumLancW: form.source === "fluig" ? form.fluigNumLancW.trim() || null : null,
     fluigCurrentTask: form.source === "fluig" ? form.fluigCurrentTask.trim() || null : null,
     fluigTaskOwner: form.source === "fluig" ? form.fluigTaskOwner.trim() || null : null,
+    metadata:
+      form.source === "fluig" && form.fluigSourceRequestId.trim()
+        ? { fluigSourceRequestId: form.fluigSourceRequestId.trim() }
+        : undefined,
   };
 }
+
+type ActiveFluigJob = {
+  orderId: string;
+  id: string;
+  status: string;
+  progressLabel: string | null;
+};
 
 export function MaintenancePage({
   config,
@@ -267,6 +289,7 @@ export function MaintenancePage({
   const [dialogOpen, setDialogOpen] = useState(initialOpenForm);
   const [editing, setEditing] = useState<MaintenanceOrderRecord | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [activeFluigJob, setActiveFluigJob] = useState<ActiveFluigJob | null>(null);
 
   const visibleMobileOrders = useMemo(
     () => orders.filter((order) => order.status !== "FINALIZADA" && order.status !== "CANCELADA").slice(0, 6),
@@ -362,6 +385,66 @@ export function MaintenancePage({
     }
   }
 
+  async function pollFluigJob(orderId: string, jobId: string) {
+    const terminal = new Set(["success", "error", "cancelled", "expired"]);
+
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const data = await fluigAdmApi.getJob(jobId);
+      setActiveFluigJob({
+        orderId,
+        id: data.job.id,
+        status: data.job.status,
+        progressLabel: data.job.progressLabel,
+      });
+
+      if (terminal.has(data.job.status)) {
+        if (data.job.status !== "success") {
+          throw new Error(data.job.errorMessage || `Job Fluig finalizado com status ${data.job.status}`);
+        }
+        return;
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 2000));
+    }
+
+    throw new Error("Tempo limite aguardando o agente local abrir a OS no Fluig.");
+  }
+
+  async function openOrderInFluig(order: MaintenanceOrderRecord) {
+    const sourceRequestId = metadataText(order.metadata, "fluigSourceRequestId");
+    if (!sourceRequestId) {
+      toast.error("Abra a OS e informe o numero da solicitacao modelo Fluig antes de enviar.");
+      openEdit(order);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/manutencao/${order.id}/fluig/open`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceRequestId }),
+      });
+      const data = await parseResponse<{
+        success: true;
+        job: { id: string; status: string; progressLabel: string | null };
+      }>(response, "Falha ao criar job de abertura Fluig.");
+
+      setActiveFluigJob({
+        orderId: order.id,
+        id: data.job.id,
+        status: data.job.status,
+        progressLabel: data.job.progressLabel,
+      });
+      await pollFluigJob(order.id, data.job.id);
+      toast.success(`OS ${order.code} aberta no Fluig.`);
+      setActiveFluigJob(null);
+      await loadOrders();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao abrir OS no Fluig.");
+      await loadOrders();
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -436,8 +519,10 @@ export function MaintenancePage({
               <MaintenanceOrderCard
                 key={order.id}
                 order={order}
+                activeFluigJob={activeFluigJob?.orderId === order.id ? activeFluigJob : null}
                 onEdit={() => openEdit(order)}
                 onQuickStatus={(nextStatus) => void quickStatus(order, nextStatus)}
+                onOpenFluig={() => void openOrderInFluig(order)}
               />
             ))
           ) : (
@@ -500,11 +585,18 @@ function MaintenanceOrderCard({
   order,
   onEdit,
   onQuickStatus,
+  onOpenFluig,
+  activeFluigJob,
 }: {
   order: MaintenanceOrderRecord;
   onEdit: () => void;
   onQuickStatus: (status: MaintenanceOrderStatus) => void;
+  onOpenFluig: () => void;
+  activeFluigJob: ActiveFluigJob | null;
 }) {
+  const hasFluigModel = Boolean(metadataText(order.metadata, "fluigSourceRequestId"));
+  const canOpenFluig = order.source === "fluig" && !order.fluig.requestId;
+
   return (
     <Card className="stitch-animate-in rounded-lg shadow-none">
       <CardContent className="space-y-4 p-4">
@@ -521,9 +613,23 @@ function MaintenanceOrderCard({
             <h3 className="mt-2 text-base font-semibold">{order.title}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{order.description}</p>
           </div>
-          <Button type="button" variant="outline" className="stitch-soft-button w-fit" onClick={onEdit}>
-            Atualizar OS
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {canOpenFluig ? (
+              <Button
+                type="button"
+                className="stitch-soft-button w-fit"
+                onClick={onOpenFluig}
+                disabled={Boolean(activeFluigJob)}
+                title={hasFluigModel ? "Abrir processo no Fluig pelo agente local" : "Informe o modelo Fluig na OS"}
+              >
+                {activeFluigJob ? <Loader2 className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
+                Abrir no Fluig
+              </Button>
+            ) : null}
+            <Button type="button" variant="outline" className="stitch-soft-button w-fit" onClick={onEdit}>
+              Atualizar OS
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-2 text-sm md:grid-cols-2 xl:grid-cols-4">
@@ -543,6 +649,19 @@ function MaintenanceOrderCard({
             <Field label="NumLancW" value={order.fluig.numLancW || "-"} />
             <Field label="Etapa" value={order.fluig.currentTask || "-"} />
             <Field label="Responsavel" value={order.fluig.taskOwner || "-"} />
+          </div>
+        ) : null}
+
+        {activeFluigJob ? (
+          <div className="rounded-md border bg-muted/20 p-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">Execucao Fluig</span>
+              <StatusBadge status={activeFluigJob.status.toUpperCase()} />
+              <span className="font-mono text-xs text-muted-foreground">{activeFluigJob.id.slice(0, 8)}</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {activeFluigJob.progressLabel || "Aguardando agente local assumir a abertura da OS."}
+            </p>
           </div>
         ) : null}
 
@@ -718,6 +837,13 @@ function MaintenanceDialog({
 
         {form.source === "fluig" ? (
           <div className="grid gap-4 rounded-md border bg-muted/20 p-3 md:grid-cols-2">
+            <FormField label="Solicitacao modelo Fluig" required>
+              <Input
+                value={form.fluigSourceRequestId}
+                onChange={(event) => updateForm("fluigSourceRequestId", event.target.value)}
+                placeholder="Ex.: numero de uma OS Fluig real para clonar"
+              />
+            </FormField>
             <FormField label="Numero Fluig">
               <Input value={form.fluigRequestId} onChange={(event) => updateForm("fluigRequestId", event.target.value)} />
             </FormField>

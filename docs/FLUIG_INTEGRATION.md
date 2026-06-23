@@ -105,6 +105,8 @@ Rotas novas:
 - `POST /api/fluig/adm/open`: abre solicitacao a partir de `sourceRequestId`. Sem `confirm=true`, executa apenas dry-run. Em `mode=test`, abre e cancela em seguida; em `mode=production`, mantem aberta.
 - `POST /api/fluig/adm/cancel`: cancela solicitacoes informadas. Sem `confirm=true`, executa apenas dry-run.
 - `POST /api/fluig/adm/suppliers/preload`: varre historico e cria pre-cadastro de fornecedores por CNPJ/nome normalizado.
+- `GET|POST /api/manutencao`: lista e cria OS manuais ou integradas ao Fluig.
+- `POST /api/manutencao/[id]/fluig/open`: cria job `open_from_source` para uma OS Fluig existente. O payload leva `maintenanceOrderId`; quando o agente finaliza, `/api/agent/jobs/[jobId]/result` grava numero Fluig, `NumLancW`, etapa, responsavel e evento na OS local.
 
 Rotas de cadastro operacional adicionadas:
 
@@ -133,6 +135,13 @@ Sincronizacao por usuario:
 - O agente executa `scripts/fluig/syncFluigStatus.js` uma unica vez com todos os numeros Fluig deduplicados.
 - O resultado volta com `moduleSlug` e tipos de sync para que a API salve cada solicitacao no modulo correto e atualize `fluig_user_sync_state` por usuario/modulo/tipo.
 - Os endpoints `/sync/open-tasks` e `/sync/my-requests` permanecem para execucoes isoladas e diagnostico.
+
+Abertura de OS Fluig:
+
+- A OS integrada ao Fluig continua sendo um registro local em `app_maintenance_orders`.
+- O usuario informa uma solicitacao modelo real no campo `Solicitacao modelo Fluig`.
+- O botao `Abrir no Fluig` chama `/api/manutencao/[id]/fluig/open`, que cria o job para o agente local do usuario.
+- O callback do agente atualiza a OS local com protocolo, etapa, responsavel e `NumLancW` quando o Fluig devolver esses campos.
 
 Validacoes executadas em 17/06/2026:
 
