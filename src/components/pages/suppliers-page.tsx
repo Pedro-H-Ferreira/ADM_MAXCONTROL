@@ -143,10 +143,12 @@ type SupplierFormState = {
 };
 
 type LookupSuggestions = Partial<SupplierFormState> & {
+  linkId?: string;
   candidateId?: string;
   confidence?: number;
   sourceRequestIds?: string[];
   defaultPayload?: Record<string, unknown>;
+  sourceTable?: string;
 };
 
 type LookupResult = {
@@ -154,6 +156,14 @@ type LookupResult = {
   supplier: SupplierRecord | null;
   suggestions: LookupSuggestions;
   warnings: string[];
+};
+
+const lookupSourceLabels: Record<LookupResult["source"], string> = {
+  local: "Cadastro local",
+  fluig_candidate: "Pre-cadastro Fluig",
+  fluig_catalog: "Catalogo Fluig",
+  fluig_request: "Solicitacao Fluig",
+  not_found: "Nao encontrado",
 };
 
 type SuppliersPayload = {
@@ -1073,7 +1083,7 @@ function SupplierFormDialog({
             <section className="rounded-md border p-3">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-sm font-semibold">Resultado do CNPJ</h3>
-                {lookupResult ? <Badge variant="outline">{lookupResult.source}</Badge> : null}
+                {lookupResult ? <Badge variant="outline">{lookupSourceLabels[lookupResult.source]}</Badge> : null}
               </div>
               {lookupResult ? (
                 <div className="mt-3 space-y-3 text-xs">

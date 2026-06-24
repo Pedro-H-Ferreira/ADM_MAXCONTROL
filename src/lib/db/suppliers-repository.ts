@@ -745,6 +745,45 @@ function suggestionFromCandidate(row: Record<string, unknown>) {
   };
 }
 
+function suggestionFromSupplierLink(
+  row: Record<string, unknown>,
+  candidate: Record<string, unknown> | null = null
+) {
+  const linkDefaults = (row.default_payload || {}) as JsonRecord;
+  const candidateSuggestion = candidate ? suggestionFromCandidate(candidate) : null;
+  const sourceRequestIds = Array.from(
+    new Set(
+      [
+        row.default_source_request_id,
+        ...(candidateSuggestion?.sourceRequestIds || []),
+      ].filter(Boolean)
+    )
+  );
+
+  return {
+    linkId: row.id,
+    candidateId: candidateSuggestion?.candidateId,
+    razaoSocial: row.supplier_name || candidateSuggestion?.razaoSocial,
+    cnpj: row.cnpj || candidateSuggestion?.cnpj,
+    fluigName: row.fluig_name || candidateSuggestion?.fluigName || row.supplier_name,
+    fluigCode: row.fluig_code || candidateSuggestion?.fluigCode,
+    fluigSupplierLabel: row.fluig_name || row.supplier_name,
+    defaultSourceRequestId:
+      row.default_source_request_id ||
+      linkDefaults.sourceRequestId ||
+      candidateSuggestion?.defaultSourceRequestId ||
+      sourceRequestIds[0] ||
+      null,
+    defaultPayload: {
+      ...(candidateSuggestion?.defaultPayload || {}),
+      ...linkDefaults,
+    },
+    confidence: candidateSuggestion?.confidence ?? 100,
+    sourceRequestIds,
+    sourceTable: "fluig_supplier_links",
+  };
+}
+
 export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
   const client = assertServiceClient();
   const cnpj = normalizeCnpj(rawCnpj);
@@ -766,6 +805,58 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
       supplier,
       suggestions: {},
       warnings: ["Fornecedor ja cadastrado. Deseja abrir o cadastro existente?"],
+    };
+  }
+
+  const cnpjVariants = Array.from(new Set([cnpj, formatCnpj(cnpj)]));
+  const { data: supplierLink, error: supplierLinkError } = await client
+    .from("fluig_supplier_links")
+    .select(
+      "id,candidate_id,app_supplier_id,adm_supplier_id,supplier_name,cnpj,fluig_name,fluig_code,default_source_request_id,default_payload,active,updated_at"
+    )
+    .in("cnpj", cnpjVariants)
+    .eq("active", true)
+    .order("updated_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  if (supplierLinkError) throw supplierLinkError;
+  if (supplierLink) {
+    const link = supplierLink as Record<string, unknown>;
+    const linkedSupplierId = cleanText(link.app_supplier_id) || cleanText(link.adm_supplier_id);
+
+    if (linkedSupplierId) {
+      const supplier = await readSupplier(actor, linkedSupplierId);
+      if (supplier) {
+        return {
+          source: "local" as const,
+          supplier,
+          suggestions: suggestionFromSupplierLink(link),
+          warnings: ["Fornecedor ja cadastrado e vinculado ao Fluig. Deseja abrir o cadastro existente?"],
+        };
+      }
+    }
+
+    let linkedCandidate: Record<string, unknown> | null = null;
+    const candidateId = cleanText(link.candidate_id);
+    if (candidateId) {
+      const { data, error } = await client
+        .from("fluig_supplier_candidates")
+        .select("*")
+        .eq("id", candidateId)
+        .neq("status", "IGNORADO")
+        .maybeSingle();
+      if (error) throw error;
+      const candidateRow = data as Record<string, unknown> | null;
+      if (candidateRow && candidateRow.status !== "APROVADO") {
+        linkedCandidate = candidateRow;
+      }
+    }
+
+    return {
+      source: linkedCandidate ? ("fluig_candidate" as const) : ("fluig_catalog" as const),
+      supplier: null,
+      suggestions: suggestionFromSupplierLink(link, linkedCandidate),
+      warnings: [],
     };
   }
 
