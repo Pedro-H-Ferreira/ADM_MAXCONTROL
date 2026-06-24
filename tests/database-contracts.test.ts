@@ -92,4 +92,14 @@ describe("database and API contracts", () => {
     expect(repository).toContain("supabase.auth.getClaims()");
     expect(page).toContain("resolveCurrentAppUserForPage");
   });
+
+  it("divide os vinculos de fornecedores do dashboard para evitar URL PostgREST excessiva", async () => {
+    const dashboardRepository = await source("src/lib/db/dashboard-repository.ts");
+
+    expect(dashboardRepository).toContain("chunksOf(supplierIds, 100)");
+    expect(dashboardRepository).toContain("Dashboard: falha ao consultar");
+    expect(dashboardRepository).not.toMatch(
+      /\.from\("app_supplier_branch_links"\)[\s\S]{0,220}\.in\("supplier_id", supplierIds\)/
+    );
+  });
 });

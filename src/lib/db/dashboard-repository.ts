@@ -86,6 +86,18 @@ const emptyDashboardOverviewData: DashboardOverviewData = {
   warnings: [],
 };
 
+function chunksOf<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function throwDashboardQueryError(source: string, error: { message: string }): never {
+  throw new Error(`Dashboard: falha ao consultar ${source}: ${error.message}`, { cause: error });
+}
+
 function isOpenFluigRequest(row: Pick<FluigDashboardRow, "is_open" | "status" | "normalized_status">) {
   if (row.is_open === true) return true;
   if (row.is_open === false) return false;
@@ -232,20 +244,29 @@ async function loadSupplierSummary(actor: AppActor) {
     .select("id,status,sync_status")
     .is("deleted_at", null)
     .limit(5000);
-  if (error) throw error;
+  if (error) throwDashboardQueryError("fornecedores", error);
 
   const rows = (data || []) as SupplierDashboardRow[];
   const supplierIds = rows.map((row) => row.id);
   let linksBySupplier = new Map<string, SupplierBranchLinkRow[]>();
 
   if (!actor.isAdmin && supplierIds.length) {
-    const { data: linkData, error: linkError } = await client
-      .from("app_supplier_branch_links")
-      .select("supplier_id,branch:app_branches(code)")
-      .in("supplier_id", supplierIds);
-    if (linkError) throw linkError;
+    const linkResults = await Promise.all(
+      chunksOf(supplierIds, 100).map((supplierIdBatch) =>
+        client
+          .from("app_supplier_branch_links")
+          .select("supplier_id,branch:app_branches(code)")
+          .in("supplier_id", supplierIdBatch)
+      )
+    );
+    const linkRows: SupplierBranchLinkRow[] = [];
 
-    linksBySupplier = ((linkData || []) as unknown as SupplierBranchLinkRow[]).reduce((map, link) => {
+    for (const result of linkResults) {
+      if (result.error) throwDashboardQueryError("filiais dos fornecedores", result.error);
+      linkRows.push(...((result.data || []) as unknown as SupplierBranchLinkRow[]));
+    }
+
+    linksBySupplier = linkRows.reduce((map, link) => {
       map.set(link.supplier_id, [...(map.get(link.supplier_id) || []), link]);
       return map;
     }, new Map<string, SupplierBranchLinkRow[]>());
@@ -270,7 +291,7 @@ async function loadMaintenanceSummary(actor: AppActor) {
     .select("id,status,due_at,branch_code,created_by_user_id,requester_user_id,technician_user_id")
     .is("deleted_at", null)
     .limit(5000);
-  if (error) throw error;
+  if (error) throwDashboardQueryError("ordens de manutencao", error);
 
   const visibleRows = ((data || []) as MaintenanceDashboardRow[]).filter((row) =>
     maintenanceVisibleForActor(actor, row)
@@ -313,7 +334,7 @@ async function loadFluigRows(actor: AppActor) {
     )
     .order("last_synced_at", { ascending: false, nullsFirst: false })
     .limit(5000);
-  if (error) throw error;
+  if (error) throwDashboardQueryError("solicitacoes Fluig", error);
 
   const rows = (data || []) as unknown as FluigDashboardRow[];
   if (actor.isAdmin) return rows;
@@ -340,7 +361,7 @@ async function loadRecentJobs(actor: AppActor) {
   }
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) throwDashboardQueryError("jobs Fluig", error);
   return (data || []) as FluigJobDashboardRow[];
 }
 
