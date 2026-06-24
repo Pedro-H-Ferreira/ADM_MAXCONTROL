@@ -137,6 +137,7 @@ type SupplierFormState = {
   fluigCode: string;
   fluigSupplierLabel: string;
   defaultSourceRequestId: string;
+  defaultPayload: Record<string, unknown>;
   sourceSystem: SupplierSourceSystem;
   syncStatus: SupplierSyncStatus;
   branchIds: string[];
@@ -149,6 +150,11 @@ type LookupSuggestions = Partial<SupplierFormState> & {
   sourceRequestIds?: string[];
   defaultPayload?: Record<string, unknown>;
   sourceTable?: string;
+  branchCode?: string;
+  branchLabel?: string;
+  latestRequestId?: string;
+  autoFilledFields?: string[];
+  reviewFields?: string[];
 };
 
 type LookupResult = {
@@ -218,6 +224,7 @@ const initialForm: SupplierFormState = {
   fluigCode: "",
   fluigSupplierLabel: "",
   defaultSourceRequestId: "",
+  defaultPayload: {},
   sourceSystem: "LOCAL",
   syncStatus: "NAO_SINCRONIZADO",
   branchIds: [],
@@ -270,6 +277,7 @@ function formFromSupplier(supplier: SupplierRecord): SupplierFormState {
     fluigCode: supplier.fluig.code || "",
     fluigSupplierLabel: supplier.fluig.supplierLabel || "",
     defaultSourceRequestId: supplier.fluig.defaultSourceRequestId || "",
+    defaultPayload: supplier.fluig.defaultPayload || {},
     sourceSystem: supplier.sourceSystem || "LOCAL",
     syncStatus: supplier.syncStatus || "NAO_SINCRONIZADO",
     branchIds: supplier.branches.map((branch) => branch.id),
@@ -299,6 +307,7 @@ function buildSupplierPayload(form: SupplierFormState) {
     fluigCode: nullable(form.fluigCode),
     fluigSupplierLabel: nullable(form.fluigSupplierLabel),
     defaultSourceRequestId: nullable(form.defaultSourceRequestId),
+    defaultPayload: form.defaultPayload,
     sourceSystem: form.sourceSystem,
     syncStatus: form.syncStatus,
     branchIds: form.branchIds,
@@ -444,6 +453,17 @@ export function SuppliersPage({
 
   function applyLookupSuggestions(result: LookupResult) {
     const suggestions = result.suggestions || {};
+    const suggestedBranch = branches.find((branch) => {
+      const branchCode = String(suggestions.branchCode || "").trim();
+      const branchLabel = String(suggestions.branchLabel || "").trim().toLocaleLowerCase("pt-BR");
+      return (
+        (branchCode && branch.code === branchCode) ||
+        (branchLabel &&
+          [branch.fluigLabel, branch.name]
+            .filter(Boolean)
+            .some((value) => String(value).trim().toLocaleLowerCase("pt-BR") === branchLabel))
+      );
+    });
     setForm((current) => ({
       ...current,
       cnpj: String(suggestions.cnpj || current.cnpj || ""),
@@ -452,8 +472,12 @@ export function SuppliersPage({
       fluigCode: String(suggestions.fluigCode || current.fluigCode || ""),
       fluigSupplierLabel: String(suggestions.fluigSupplierLabel || suggestions.fluigName || current.fluigSupplierLabel || ""),
       defaultSourceRequestId: String(suggestions.defaultSourceRequestId || current.defaultSourceRequestId || ""),
+      defaultPayload: suggestions.defaultPayload || current.defaultPayload || {},
       sourceSystem: result.source === "fluig_candidate" ? "PRE_CADASTRO_FLUIG" : result.source === "not_found" ? "LOCAL" : "FLUIG",
       syncStatus: result.source === "not_found" ? "NAO_SINCRONIZADO" : "PENDENTE_REVISAO",
+      branchIds: suggestedBranch
+        ? Array.from(new Set([...current.branchIds, suggestedBranch.id]))
+        : current.branchIds,
     }));
   }
 
@@ -1106,8 +1130,42 @@ function SupplierFormDialog({
                       <p className="font-semibold">{lookupResult.suggestions.razaoSocial || lookupResult.suggestions.fluigName || "Sugestao Fluig"}</p>
                       <p className="text-muted-foreground">
                         Modelo {lookupResult.suggestions.defaultSourceRequestId || "historico"}
-                        {typeof lookupResult.suggestions.confidence === "number" ? ` - confianca ${lookupResult.suggestions.confidence}` : ""}
+                        {typeof lookupResult.suggestions.confidence === "number"
+                          ? ` - confianca ${Math.round(
+                              lookupResult.suggestions.confidence <= 1
+                                ? lookupResult.suggestions.confidence * 100
+                                : lookupResult.suggestions.confidence
+                            )}%`
+                          : ""}
                       </p>
+                      {lookupResult.suggestions.latestRequestId ? (
+                        <p className="mt-1 text-muted-foreground">
+                          Ultima solicitacao: {lookupResult.suggestions.latestRequestId}
+                        </p>
+                      ) : null}
+                      {lookupResult.suggestions.branchLabel ? (
+                        <p className="mt-1 text-muted-foreground">
+                          Filial mais usada: {lookupResult.suggestions.branchLabel}
+                        </p>
+                      ) : null}
+                      {lookupResult.suggestions.autoFilledFields?.length ? (
+                        <div className="mt-3">
+                          <p className="font-medium text-foreground">Preenchido automaticamente</p>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {lookupResult.suggestions.autoFilledFields.map((field) => (
+                              <Badge key={field} variant="secondary">{field}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {lookupResult.suggestions.reviewFields?.length ? (
+                        <div className="mt-3">
+                          <p className="font-medium text-foreground">Revisar manualmente</p>
+                          <p className="mt-1 text-muted-foreground">
+                            {lookupResult.suggestions.reviewFields.join(", ")}
+                          </p>
+                        </div>
+                      ) : null}
                       {candidateId && permissions.canApprove ? (
                         <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => void approveCandidate()} disabled={saving}>
                           Converter candidato

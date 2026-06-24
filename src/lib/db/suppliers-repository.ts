@@ -730,26 +730,216 @@ export async function markSupplierFluigSyncResult(input: {
 }
 
 function suggestionFromCandidate(row: Record<string, unknown>) {
-  const defaults = (row.suggested_defaults || {}) as JsonRecord;
+  const defaults = normalizedLookupDefaults((row.suggested_defaults || {}) as JsonRecord);
   const sourceRequestIds = Array.isArray(row.source_request_ids) ? row.source_request_ids : [];
-  return {
+  return withLookupReview({
     candidateId: row.id,
     razaoSocial: row.supplier_name,
     cnpj: row.cnpj,
     fluigName: row.fluig_name,
     fluigCode: row.fluig_code,
-    defaultSourceRequestId: defaults.sourceRequestId || sourceRequestIds[0] || null,
+    branchCode: defaults.branchCode,
+    branchLabel: defaults.branchLabel,
+    defaultSourceRequestId: firstText(defaults, ["sourceRequestId", "latestRequest"]) || sourceRequestIds[0] || null,
     defaultPayload: defaults,
     confidence: row.confidence,
     sourceRequestIds,
+  });
+}
+
+type SupplierRequestEvidence = {
+  latestRequestId: string | null;
+  branchCode: string | null;
+  branchLabel: string | null;
+  supplierName: string | null;
+  defaults: JsonRecord;
+  sourceRequestIds: string[];
+};
+
+function historicalCnpjVariants(cnpj: string) {
+  const variants = new Set([cnpj, formatCnpj(cnpj)]);
+  const withoutLeadingZeros = cnpj.replace(/^0+/, "");
+  if (withoutLeadingZeros.length >= 12) {
+    variants.add(withoutLeadingZeros);
+  }
+  return Array.from(variants);
+}
+
+function historicalCnpjMatches(value: unknown, normalizedCnpj: string) {
+  const digits = onlyDigits(value);
+  if (!digits) return false;
+  if (digits === normalizedCnpj) return true;
+  return digits.length >= 12 && digits.length < 14 && digits.padStart(14, "0") === normalizedCnpj;
+}
+
+function payloadFormFields(payload: JsonRecord) {
+  const nestedRaw = (payload.raw || {}) as JsonRecord;
+  const rawPayload = (payload.rawPayload || {}) as JsonRecord;
+  const candidates = [
+    payload.latestFields,
+    payload.formFields,
+    rawPayload.formFields,
+    nestedRaw.formFields,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return Object.fromEntries(
+        candidate
+          .map((item) => {
+            const row = (item || {}) as JsonRecord;
+            const field = cleanText(row.field);
+            return field ? [field, cleanText(row.value) || ""] : null;
+          })
+          .filter(Boolean) as Array<[string, string]>
+      );
+    }
+    if (candidate && typeof candidate === "object") {
+      return Object.fromEntries(
+        Object.entries(candidate as JsonRecord).map(([key, value]) => [key, cleanText(value) || ""])
+      );
+    }
+  }
+
+  return {} as Record<string, string>;
+}
+
+function normalizedLookupDefaults(defaultPayload: JsonRecord, evidence?: SupplierRequestEvidence | null) {
+  const fields = payloadFormFields(defaultPayload);
+  const merged = { ...fields, ...defaultPayload };
+  const branchLabel =
+    evidence?.branchLabel ||
+    firstText(merged, ["branchLabel", "unidadeFilial", "filial", "filialOrigem"]) ||
+    null;
+  const branchCode =
+    evidence?.branchCode ||
+    firstText(merged, ["branchCode", "coFilial", "codigoFilial", "codFilial"]) ||
+    leadingCode(branchLabel);
+
+  return {
+    ...defaultPayload,
+    branchCode,
+    branchLabel,
+    unidadeFilial: firstText(merged, ["unidadeFilial", "branchLabel", "filial"]) || branchLabel,
+    centroCusto: firstText(merged, ["centroCusto", "centroDeCusto", "ccusto"]),
+    codCentroCusto: firstText(merged, ["codCentroCusto", "codCCusto"]) || leadingCode(merged.centroCusto),
+    natureza: firstText(merged, ["natureza", "codigonaturezaC", "naturezaSalva", "codNatureza"]),
+    formaPagamento: firstText(merged, ["formaPagamento", "tipoPagamento", "meioPagamento"]),
+    latestRequest: evidence?.latestRequestId || firstText(merged, ["latestRequest", "sourceRequestId"]),
   };
+}
+
+function withLookupReview<T extends Record<string, unknown>>(suggestion: T) {
+  const defaults = (suggestion.defaultPayload || {}) as JsonRecord;
+  const autoFilledFields = [
+    suggestion.cnpj ? "CNPJ" : null,
+    suggestion.razaoSocial ? "Razao social" : null,
+    suggestion.fluigName ? "Nome no Fluig" : null,
+    suggestion.fluigCode ? "Codigo Fluig" : null,
+    suggestion.defaultSourceRequestId ? "Solicitacao modelo" : null,
+    suggestion.branchLabel || defaults.branchLabel || defaults.unidadeFilial ? "Filial mais usada" : null,
+    defaults.centroCusto || defaults.codCentroCusto ? "Centro de custo" : null,
+    defaults.natureza ? "Natureza de despesa" : null,
+    defaults.formaPagamento ? "Forma de pagamento" : null,
+  ].filter(Boolean);
+
+  return {
+    ...suggestion,
+    autoFilledFields,
+    reviewFields: ["Nome fantasia", "Categoria", "Contato", "Endereco"],
+  };
+}
+
+async function loadSupplierRequestEvidence(
+  client: SupabaseClient,
+  cnpjVariants: string[]
+): Promise<SupplierRequestEvidence | null> {
+  const { data, error } = await client
+    .from("fluig_requests")
+    .select("fluig_request_id,supplier_name,branch_code,branch_label,raw_payload,last_synced_at")
+    .in("supplier_cnpj", cnpjVariants)
+    .order("last_synced_at", { ascending: false, nullsFirst: false })
+    .limit(200);
+  if (error) throw error;
+
+  const rows = (data || []) as Array<Record<string, unknown>>;
+  if (!rows.length) return null;
+
+  const branchCounts = new Map<
+    string,
+    { branchCode: string | null; branchLabel: string | null; count: number }
+  >();
+  for (const row of rows) {
+    const branchCode = cleanText(row.branch_code);
+    const branchLabel = cleanText(row.branch_label);
+    const key = branchCode || branchLabel;
+    if (!key) continue;
+    const current = branchCounts.get(key);
+    branchCounts.set(key, {
+      branchCode,
+      branchLabel,
+      count: (current?.count || 0) + 1,
+    });
+  }
+
+  const mostUsedBranch = Array.from(branchCounts.values()).sort((left, right) => right.count - left.count)[0];
+  const latest = rows[0];
+  const latestPayload = (latest.raw_payload || {}) as JsonRecord;
+  const latestFields = payloadFormFields(latestPayload);
+  const latestRequestId = cleanText(latest.fluig_request_id);
+
+  return {
+    latestRequestId,
+    branchCode: mostUsedBranch?.branchCode || cleanText(latest.branch_code),
+    branchLabel: mostUsedBranch?.branchLabel || cleanText(latest.branch_label),
+    supplierName: cleanText(latest.supplier_name),
+    defaults: normalizedLookupDefaults(
+      {
+        latestFields,
+        sourceRequestId: latestRequestId,
+      },
+      null
+    ),
+    sourceRequestIds: rows.map((row) => cleanText(row.fluig_request_id)).filter(Boolean) as string[],
+  };
+}
+
+function mergeSuggestionWithEvidence<T extends Record<string, unknown>>(
+  suggestion: T,
+  evidence: SupplierRequestEvidence | null
+) {
+  if (!evidence) return withLookupReview(suggestion);
+  const currentDefaults = (suggestion.defaultPayload || {}) as JsonRecord;
+  const defaultPayload = normalizedLookupDefaults(
+    {
+      ...evidence.defaults,
+      ...currentDefaults,
+    },
+    evidence
+  );
+
+  return withLookupReview({
+    ...suggestion,
+    razaoSocial: suggestion.razaoSocial || evidence.supplierName,
+    branchCode: evidence.branchCode,
+    branchLabel: evidence.branchLabel,
+    latestRequestId: evidence.latestRequestId,
+    defaultPayload,
+    sourceRequestIds: Array.from(
+      new Set([
+        ...((suggestion.sourceRequestIds as string[] | undefined) || []),
+        ...evidence.sourceRequestIds,
+      ])
+    ),
+  });
 }
 
 function suggestionFromSupplierLink(
   row: Record<string, unknown>,
-  candidate: Record<string, unknown> | null = null
+  candidate: Record<string, unknown> | null = null,
+  evidence: SupplierRequestEvidence | null = null
 ) {
-  const linkDefaults = (row.default_payload || {}) as JsonRecord;
+  const linkDefaults = normalizedLookupDefaults((row.default_payload || {}) as JsonRecord);
   const candidateSuggestion = candidate ? suggestionFromCandidate(candidate) : null;
   const sourceRequestIds = Array.from(
     new Set(
@@ -760,7 +950,7 @@ function suggestionFromSupplierLink(
     )
   );
 
-  return {
+  return mergeSuggestionWithEvidence({
     linkId: row.id,
     candidateId: candidateSuggestion?.candidateId,
     razaoSocial: row.supplier_name || candidateSuggestion?.razaoSocial,
@@ -768,9 +958,11 @@ function suggestionFromSupplierLink(
     fluigName: row.fluig_name || candidateSuggestion?.fluigName || row.supplier_name,
     fluigCode: row.fluig_code || candidateSuggestion?.fluigCode,
     fluigSupplierLabel: row.fluig_name || row.supplier_name,
+    branchCode: linkDefaults.branchCode || candidateSuggestion?.branchCode,
+    branchLabel: linkDefaults.branchLabel || candidateSuggestion?.branchLabel,
     defaultSourceRequestId:
       row.default_source_request_id ||
-      linkDefaults.sourceRequestId ||
+      firstText(linkDefaults, ["sourceRequestId", "latestRequest"]) ||
       candidateSuggestion?.defaultSourceRequestId ||
       sourceRequestIds[0] ||
       null,
@@ -781,7 +973,7 @@ function suggestionFromSupplierLink(
     confidence: candidateSuggestion?.confidence ?? 100,
     sourceRequestIds,
     sourceTable: "fluig_supplier_links",
-  };
+  }, evidence);
 }
 
 export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
@@ -808,7 +1000,7 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
     };
   }
 
-  const cnpjVariants = Array.from(new Set([cnpj, formatCnpj(cnpj)]));
+  const cnpjVariants = historicalCnpjVariants(cnpj);
   const { data: supplierLink, error: supplierLinkError } = await client
     .from("fluig_supplier_links")
     .select(
@@ -822,6 +1014,7 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
   if (supplierLinkError) throw supplierLinkError;
   if (supplierLink) {
     const link = supplierLink as Record<string, unknown>;
+    const evidence = await loadSupplierRequestEvidence(client, cnpjVariants);
     const linkedSupplierId = cleanText(link.app_supplier_id) || cleanText(link.adm_supplier_id);
 
     if (linkedSupplierId) {
@@ -830,7 +1023,7 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
         return {
           source: "local" as const,
           supplier,
-          suggestions: suggestionFromSupplierLink(link),
+          suggestions: suggestionFromSupplierLink(link, null, evidence),
           warnings: ["Fornecedor ja cadastrado e vinculado ao Fluig. Deseja abrir o cadastro existente?"],
         };
       }
@@ -855,15 +1048,16 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
     return {
       source: linkedCandidate ? ("fluig_candidate" as const) : ("fluig_catalog" as const),
       supplier: null,
-      suggestions: suggestionFromSupplierLink(link, linkedCandidate),
+      suggestions: suggestionFromSupplierLink(link, linkedCandidate, evidence),
       warnings: [],
     };
   }
 
+  const requestEvidence = await loadSupplierRequestEvidence(client, cnpjVariants);
   const { data: candidate, error: candidateError } = await client
     .from("fluig_supplier_candidates")
     .select("*")
-    .eq("cnpj", cnpj)
+    .in("cnpj", cnpjVariants)
     .neq("status", "IGNORADO")
     .order("confidence", { ascending: false })
     .limit(1)
@@ -873,7 +1067,10 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
     return {
       source: "fluig_candidate" as const,
       supplier: null,
-      suggestions: suggestionFromCandidate(candidate as Record<string, unknown>),
+      suggestions: mergeSuggestionWithEvidence(
+        suggestionFromCandidate(candidate as Record<string, unknown>),
+        requestEvidence
+      ),
       warnings: [],
     };
   }
@@ -886,48 +1083,39 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
   if (catalogError) throw catalogError;
   const catalog = (catalogRows || []).find((row) => {
     const metadata = ((row as { metadata?: JsonRecord }).metadata || {}) as JsonRecord;
-    return onlyDigits(metadata.cnpj) === cnpj || onlyDigits((row as { value?: string }).value) === cnpj;
+    return historicalCnpjMatches(metadata.cnpj, cnpj) || historicalCnpjMatches((row as { value?: string }).value, cnpj);
   }) as Record<string, unknown> | undefined;
   if (catalog) {
     const metadata = (catalog.metadata || {}) as JsonRecord;
     return {
       source: "fluig_catalog" as const,
       supplier: null,
-      suggestions: {
+      suggestions: mergeSuggestionWithEvidence({
         razaoSocial: catalog.label,
         cnpj,
         fluigCode: catalog.code || null,
         fluigName: metadata.fluigName || catalog.value || catalog.label,
         defaultSourceRequestId: catalog.source_request_id || metadata.latestRequest || null,
-        defaultPayload: metadata,
-      },
+        defaultPayload: normalizedLookupDefaults(metadata, requestEvidence),
+      }, requestEvidence),
       warnings: [],
     };
   }
 
-  const { data: request, error: requestError } = await client
-    .from("fluig_requests")
-    .select("fluig_request_id,supplier_name,supplier_cnpj,branch_code,branch_label,raw_payload,last_synced_at")
-    .eq("supplier_cnpj", cnpj)
-    .order("last_synced_at", { ascending: false, nullsFirst: false })
-    .limit(1)
-    .maybeSingle();
-  if (requestError) throw requestError;
-  if (request) {
+  if (requestEvidence) {
     return {
       source: "fluig_request" as const,
       supplier: null,
-      suggestions: {
-        razaoSocial: request.supplier_name,
-        cnpj: request.supplier_cnpj,
-        defaultSourceRequestId: request.fluig_request_id,
-        defaultPayload: {
-          branchCode: request.branch_code,
-          branchLabel: request.branch_label,
-          latestRequest: request.fluig_request_id,
-          rawPayload: request.raw_payload,
-        },
-      },
+      suggestions: mergeSuggestionWithEvidence({
+        razaoSocial: requestEvidence.supplierName,
+        cnpj,
+        defaultSourceRequestId: requestEvidence.latestRequestId,
+        branchCode: requestEvidence.branchCode,
+        branchLabel: requestEvidence.branchLabel,
+        latestRequestId: requestEvidence.latestRequestId,
+        defaultPayload: requestEvidence.defaults,
+        sourceRequestIds: requestEvidence.sourceRequestIds,
+      }, requestEvidence),
       warnings: [],
     };
   }

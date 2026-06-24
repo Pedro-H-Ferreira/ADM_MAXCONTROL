@@ -646,6 +646,7 @@ export function buildFluigCatalogItems(module: FluigModuleSlug, items: FluigHist
     const branchCode = extractBranchCode(fields);
     const metadata: JsonRecord = {
       branchCode,
+      branchLabel,
       processId: item.processId,
       processVersion: item.processVersion,
       latestRequest: item.processInstanceId,

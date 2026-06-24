@@ -113,7 +113,7 @@ Rotas de cadastro operacional adicionadas:
 
 - `GET|POST /api/fornecedores`: lista fornecedores reais com paginacao/filtros e cria fornecedor oficial.
 - `GET|PATCH|DELETE /api/fornecedores/[id]`: consulta, edita e exclui fornecedor. Quando houver vinculos Fluig, a exclusao vira inativacao logica.
-- `GET /api/fornecedores/lookup?cnpj=`: valida CNPJ, consulta cadastro local e depois candidatos/catalogos/solicitacoes Fluig.
+- `GET /api/fornecedores/lookup?cnpj=`: valida CNPJ e consulta, nesta ordem, cadastro local, `fluig_supplier_links`, candidatos, catalogos e solicitacoes Fluig. O lookup aceita historicos que perderam zeros a esquerda, identifica a filial mais usada e devolve somente os defaults necessarios (modelo, centro de custo, natureza e forma de pagamento), sem transportar o payload bruto completo para o navegador.
 - `POST /api/fornecedores/candidates/[id]/approve`: converte candidato Fluig em fornecedor oficial e cria link Fluig.
 - `POST /api/fornecedores/candidates/[id]/ignore`: ignora candidato Fluig.
 - `GET|POST /api/admin/branches`: lista e cria filiais administrativas.
