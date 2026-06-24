@@ -77,4 +77,19 @@ describe("database and API contracts", () => {
     expect(migration).toContain("app_user_branch_access");
     expect(migration).toContain("fluig_requests");
   });
+
+  it("renova a sessao Supabase uma vez antes de renderizar rotas protegidas", async () => {
+    const rootProxy = await source("proxy.ts");
+    const supabaseProxy = await source("src/lib/supabase/proxy.ts");
+    const repository = await source("src/lib/db/app-repository.ts");
+    const page = await source("src/app/(app)/[...slug]/page.tsx");
+
+    expect(rootProxy).toContain("updateSupabaseSession");
+    expect(supabaseProxy).toContain("request.cookies.set");
+    expect(supabaseProxy).toContain("response.cookies.set");
+    expect(supabaseProxy).toContain("supabase.auth.getClaims()");
+    expect(repository).toContain("cache(resolveCurrentAppUserUncached)");
+    expect(repository).toContain("supabase.auth.getClaims()");
+    expect(page).toContain("resolveCurrentAppUserForPage");
+  });
 });

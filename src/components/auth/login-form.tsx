@@ -30,6 +30,10 @@ function messageFromStatus(status?: string) {
     return "Seu acesso foi bloqueado. Fale com um administrador para revisar a liberacao.";
   }
 
+  if (status === "auth_unavailable" || status === "AUTH_UNAVAILABLE") {
+    return "Nao foi possivel validar sua sessao agora. Aguarde alguns segundos e tente novamente.";
+  }
+
   return "";
 }
 

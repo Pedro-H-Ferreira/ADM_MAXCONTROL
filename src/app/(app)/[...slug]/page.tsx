@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { DashboardOverview } from "@/components/pages/dashboard-overview";
 import { ModulePage } from "@/components/pages/module-page";
 import { getKnownSlugs, getModuleConfig } from "@/lib/admin-data";
-import { canActorAccessPage, resolveCurrentAppUser } from "@/lib/db/app-repository";
+import { canActorAccessPage } from "@/lib/db/app-repository";
+import { resolveCurrentAppUserForPage } from "@/lib/page-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export function generateStaticParams() {
 export default async function AdminCatchAllPage({ params }: PageProps) {
   const { slug } = await params;
   const [moduleSlug, mode] = slug;
-  const actor = await resolveCurrentAppUser();
+  const actor = await resolveCurrentAppUserForPage();
 
   if (!canActorAccessPage(actor, moduleSlug)) {
     notFound();

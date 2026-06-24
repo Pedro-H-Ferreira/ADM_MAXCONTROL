@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { cache } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
@@ -428,12 +429,41 @@ function stableJsonFingerprint(value: unknown) {
   return JSON.stringify(normalizeJsonComparable(value));
 }
 
-async function getAuthUser(): Promise<User | null> {
+type AuthUserIdentity = Pick<User, "id" | "email" | "user_metadata">;
+
+async function getAuthUser(): Promise<AuthUserIdentity | null> {
   try {
     const supabase = await getSupabaseServerClient();
-    const { data } = await supabase.auth.getUser();
-    return data.user || null;
-  } catch {
+    const { data, error } = await supabase.auth.getClaims();
+
+    if (error) {
+      const retryable =
+        error.name === "AuthRetryableFetchError" ||
+        (typeof error.status === "number" && error.status >= 500);
+      if (retryable) {
+        throw new AppAuthError(
+          "Nao foi possivel validar a sessao agora.",
+          503,
+          "AUTH_UNAVAILABLE"
+        );
+      }
+      return null;
+    }
+
+    const claims = data?.claims as Record<string, unknown> | undefined;
+    const id = typeof claims?.sub === "string" ? claims.sub : "";
+    if (!id) return null;
+
+    return {
+      id,
+      email: typeof claims?.email === "string" ? claims.email : undefined,
+      user_metadata:
+        claims?.user_metadata && typeof claims.user_metadata === "object"
+          ? (claims.user_metadata as Record<string, unknown>)
+          : {},
+    };
+  } catch (error) {
+    if (isAppAuthError(error)) throw error;
     return null;
   }
 }
@@ -460,7 +490,7 @@ function displayNameFromEmail(email: string) {
     .join(" ") || localPart;
 }
 
-async function ensureProfileForAuthUser(client: SupabaseClient, user: User) {
+async function ensureProfileForAuthUser(client: SupabaseClient, user: AuthUserIdentity) {
   const email = normalizeEmail(user.email);
   const displayName =
     String(user.user_metadata?.name || user.user_metadata?.full_name || email || "Usuario ADM").trim() || "Usuario ADM";
@@ -597,13 +627,15 @@ async function listActorPageAccess(client: SupabaseClient, profile: AppUserProfi
   return normalizePageAccessRows(explicitRows, profile.role);
 }
 
-export async function resolveCurrentAppUser(options: { allowFallback?: boolean; requireApproved?: boolean } = {}): Promise<AppActor> {
+async function resolveCurrentAppUserUncached(
+  allowFallback: boolean,
+  requireApproved: boolean
+): Promise<AppActor> {
   const client = assertServiceClient();
   const authUser = await getAuthUser();
-  const requireApproved = options.requireApproved !== false;
   const profile = authUser
     ? await ensureProfileForAuthUser(client, authUser)
-    : options.allowFallback
+    : allowFallback
       ? await ensureFallbackAdminProfile(client)
       : null;
 
@@ -627,6 +659,17 @@ export async function resolveCurrentAppUser(options: { allowFallback?: boolean; 
     pageSlugs,
     pageAccess,
   };
+}
+
+const resolveCurrentAppUserCached = cache(resolveCurrentAppUserUncached);
+
+export function resolveCurrentAppUser(
+  options: { allowFallback?: boolean; requireApproved?: boolean } = {}
+): Promise<AppActor> {
+  return resolveCurrentAppUserCached(
+    options.allowFallback === true,
+    options.requireApproved !== false
+  );
 }
 
 export async function listUsersWithBranches() {
