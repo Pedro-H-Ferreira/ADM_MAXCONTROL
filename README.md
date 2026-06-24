@@ -42,13 +42,18 @@ Copie `.env.example` para `.env.local` e preencha:
 ## Comandos de validação
 
 ```powershell
+npm test
 npm run lint
+npm run typecheck
 npm run build
 ```
 
-## Próximas etapas
+Os testes unitários e de contrato cobrem atualmente:
 
-1. Criar migrations Supabase.
-2. Ligar Supabase Auth ao `/login`.
-3. Substituir dados de desenvolvimento por queries reais filtradas por `cd_id`.
-4. Implementar CRUDs com Server Actions e RLS.
+- validação, normalização e formatação de CNPJ;
+- lookup histórico de fornecedor, inclusive zeros à esquerda;
+- extração de defaults Fluig;
+- deduplicação de candidatos de fornecedor;
+- idempotência contratual do upsert de solicitações;
+- CRUD contratual das rotas de filiais;
+- constraint do perfil `ADMINISTRATIVO`.

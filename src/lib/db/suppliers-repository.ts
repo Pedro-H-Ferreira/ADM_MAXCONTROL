@@ -3,6 +3,15 @@ import { formatCnpj, isValidCnpj, normalizeCnpj, onlyDigits } from "@/lib/cnpj";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { AppActor } from "@/lib/db/app-repository";
 import type { FluigHistoryItem } from "@/lib/fluig/server-client";
+import {
+  historicalCnpjMatches,
+  historicalCnpjVariants,
+  mergeSuggestionWithEvidence,
+  normalizedLookupDefaults,
+  payloadFormFields,
+  withLookupReview,
+  type SupplierRequestEvidence,
+} from "@/lib/supplier-lookup";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -747,109 +756,6 @@ function suggestionFromCandidate(row: Record<string, unknown>) {
   });
 }
 
-type SupplierRequestEvidence = {
-  latestRequestId: string | null;
-  branchCode: string | null;
-  branchLabel: string | null;
-  supplierName: string | null;
-  defaults: JsonRecord;
-  sourceRequestIds: string[];
-};
-
-function historicalCnpjVariants(cnpj: string) {
-  const variants = new Set([cnpj, formatCnpj(cnpj)]);
-  const withoutLeadingZeros = cnpj.replace(/^0+/, "");
-  if (withoutLeadingZeros.length >= 12) {
-    variants.add(withoutLeadingZeros);
-  }
-  return Array.from(variants);
-}
-
-function historicalCnpjMatches(value: unknown, normalizedCnpj: string) {
-  const digits = onlyDigits(value);
-  if (!digits) return false;
-  if (digits === normalizedCnpj) return true;
-  return digits.length >= 12 && digits.length < 14 && digits.padStart(14, "0") === normalizedCnpj;
-}
-
-function payloadFormFields(payload: JsonRecord) {
-  const nestedRaw = (payload.raw || {}) as JsonRecord;
-  const rawPayload = (payload.rawPayload || {}) as JsonRecord;
-  const candidates = [
-    payload.latestFields,
-    payload.formFields,
-    rawPayload.formFields,
-    nestedRaw.formFields,
-  ];
-
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate)) {
-      return Object.fromEntries(
-        candidate
-          .map((item) => {
-            const row = (item || {}) as JsonRecord;
-            const field = cleanText(row.field);
-            return field ? [field, cleanText(row.value) || ""] : null;
-          })
-          .filter(Boolean) as Array<[string, string]>
-      );
-    }
-    if (candidate && typeof candidate === "object") {
-      return Object.fromEntries(
-        Object.entries(candidate as JsonRecord).map(([key, value]) => [key, cleanText(value) || ""])
-      );
-    }
-  }
-
-  return {} as Record<string, string>;
-}
-
-function normalizedLookupDefaults(defaultPayload: JsonRecord, evidence?: SupplierRequestEvidence | null) {
-  const fields = payloadFormFields(defaultPayload);
-  const merged = { ...fields, ...defaultPayload };
-  const branchLabel =
-    evidence?.branchLabel ||
-    firstText(merged, ["branchLabel", "unidadeFilial", "filial", "filialOrigem"]) ||
-    null;
-  const branchCode =
-    evidence?.branchCode ||
-    firstText(merged, ["branchCode", "coFilial", "codigoFilial", "codFilial"]) ||
-    leadingCode(branchLabel);
-
-  return {
-    ...defaultPayload,
-    branchCode,
-    branchLabel,
-    unidadeFilial: firstText(merged, ["unidadeFilial", "branchLabel", "filial"]) || branchLabel,
-    centroCusto: firstText(merged, ["centroCusto", "centroDeCusto", "ccusto"]),
-    codCentroCusto: firstText(merged, ["codCentroCusto", "codCCusto"]) || leadingCode(merged.centroCusto),
-    natureza: firstText(merged, ["natureza", "codigonaturezaC", "naturezaSalva", "codNatureza"]),
-    formaPagamento: firstText(merged, ["formaPagamento", "tipoPagamento", "meioPagamento"]),
-    latestRequest: evidence?.latestRequestId || firstText(merged, ["latestRequest", "sourceRequestId"]),
-  };
-}
-
-function withLookupReview<T extends Record<string, unknown>>(suggestion: T) {
-  const defaults = (suggestion.defaultPayload || {}) as JsonRecord;
-  const autoFilledFields = [
-    suggestion.cnpj ? "CNPJ" : null,
-    suggestion.razaoSocial ? "Razao social" : null,
-    suggestion.fluigName ? "Nome no Fluig" : null,
-    suggestion.fluigCode ? "Codigo Fluig" : null,
-    suggestion.defaultSourceRequestId ? "Solicitacao modelo" : null,
-    suggestion.branchLabel || defaults.branchLabel || defaults.unidadeFilial ? "Filial mais usada" : null,
-    defaults.centroCusto || defaults.codCentroCusto ? "Centro de custo" : null,
-    defaults.natureza ? "Natureza de despesa" : null,
-    defaults.formaPagamento ? "Forma de pagamento" : null,
-  ].filter(Boolean);
-
-  return {
-    ...suggestion,
-    autoFilledFields,
-    reviewFields: ["Nome fantasia", "Categoria", "Contato", "Endereco"],
-  };
-}
-
 async function loadSupplierRequestEvidence(
   client: SupabaseClient,
   cnpjVariants: string[]
@@ -902,36 +808,6 @@ async function loadSupplierRequestEvidence(
     ),
     sourceRequestIds: rows.map((row) => cleanText(row.fluig_request_id)).filter(Boolean) as string[],
   };
-}
-
-function mergeSuggestionWithEvidence<T extends Record<string, unknown>>(
-  suggestion: T,
-  evidence: SupplierRequestEvidence | null
-) {
-  if (!evidence) return withLookupReview(suggestion);
-  const currentDefaults = (suggestion.defaultPayload || {}) as JsonRecord;
-  const defaultPayload = normalizedLookupDefaults(
-    {
-      ...evidence.defaults,
-      ...currentDefaults,
-    },
-    evidence
-  );
-
-  return withLookupReview({
-    ...suggestion,
-    razaoSocial: suggestion.razaoSocial || evidence.supplierName,
-    branchCode: evidence.branchCode,
-    branchLabel: evidence.branchLabel,
-    latestRequestId: evidence.latestRequestId,
-    defaultPayload,
-    sourceRequestIds: Array.from(
-      new Set([
-        ...((suggestion.sourceRequestIds as string[] | undefined) || []),
-        ...evidence.sourceRequestIds,
-      ])
-    ),
-  });
 }
 
 function suggestionFromSupplierLink(
