@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatCnpj, isValidCnpj, normalizeCnpj, onlyDigits } from "@/lib/cnpj";
+import { canonicalHistoricalCnpj, formatCnpj, isValidCnpj, normalizeCnpj, onlyDigits } from "@/lib/cnpj";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { AppActor } from "@/lib/db/app-repository";
 import type { FluigHistoryItem } from "@/lib/fluig/server-client";
@@ -13,6 +13,11 @@ import {
   withLookupReview,
   type SupplierRequestEvidence,
 } from "@/lib/supplier-lookup";
+import {
+  consolidateSupplierPreRegistrations,
+  supplierLegalName,
+  type SupplierPreRegistrationCandidate,
+} from "@/lib/supplier-pre-registration";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -100,6 +105,19 @@ type BranchLinkRow = {
     fluig_label: string | null;
     active: boolean;
   } | null;
+};
+
+type SupplierPreRegistrationDbRow = {
+  id: string;
+  candidate_key: string;
+  supplier_name: string;
+  cnpj: string | null;
+  fluig_name: string | null;
+  fluig_code: string | null;
+  confidence: number | string | null;
+  source_request_ids: string[] | null;
+  suggested_defaults: JsonRecord | null;
+  status: string;
 };
 
 function assertServiceClient(): SupabaseClient {
@@ -501,6 +519,197 @@ async function linkSupplierFluigReferences(
     requests: requestCount || 0,
     links: linkCount || 0,
     insertedLinks,
+  };
+}
+
+function candidateFromDbRow(row: SupplierPreRegistrationDbRow): SupplierPreRegistrationCandidate {
+  return {
+    id: row.id,
+    candidateKey: row.candidate_key,
+    supplierName: row.supplier_name,
+    cnpj: row.cnpj,
+    fluigName: row.fluig_name,
+    fluigCode: row.fluig_code,
+    confidence: row.confidence,
+    sourceRequestIds: row.source_request_ids || [],
+    suggestedDefaults: row.suggested_defaults || {},
+  };
+}
+
+function chunksOf<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+async function loadSupplierPreRegistrationCandidates(client: SupabaseClient, candidateKeys?: string[]) {
+  const rows: SupplierPreRegistrationDbRow[] = [];
+  const select =
+    "id,candidate_key,supplier_name,cnpj,fluig_name,fluig_code,confidence,source_request_ids,suggested_defaults,status";
+
+  if (candidateKeys) {
+    const uniqueKeys = Array.from(new Set(candidateKeys.filter(Boolean)));
+    for (const keys of chunksOf(uniqueKeys, 100)) {
+      if (!keys.length) continue;
+      const { data, error } = await client
+        .from("fluig_supplier_candidates")
+        .select(select)
+        .in("candidate_key", keys)
+        .in("status", ["PRE_CADASTRO", "EM_REVISAO"]);
+      if (error) throw error;
+      rows.push(...((data || []) as unknown as SupplierPreRegistrationDbRow[]));
+    }
+    return rows;
+  }
+
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await client
+      .from("fluig_supplier_candidates")
+      .select(select)
+      .in("status", ["PRE_CADASTRO", "EM_REVISAO"])
+      .order("updated_at", { ascending: false })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const page = (data || []) as unknown as SupplierPreRegistrationDbRow[];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return rows;
+}
+
+export async function reconcileSupplierPreRegistrations(input: {
+  actorId?: string | null;
+  candidateKeys?: string[];
+} = {}) {
+  const client = assertServiceClient();
+  const candidateRows = await loadSupplierPreRegistrationCandidates(client, input.candidateKeys);
+  const consolidated = consolidateSupplierPreRegistrations(candidateRows.map(candidateFromDbRow));
+  const canonicalCnpjs = consolidated.items.map((item) => item.cnpj);
+  const existingRows: Array<Pick<SupplierDbRow, "id" | "cnpj_normalizado" | "source_system" | "status">> = [];
+
+  for (const cnpjs of chunksOf(canonicalCnpjs, 200)) {
+    if (!cnpjs.length) continue;
+    const { data, error } = await client
+      .from("app_suppliers")
+      .select("id,cnpj_normalizado,source_system,status")
+      .in("cnpj_normalizado", cnpjs)
+      .is("deleted_at", null);
+    if (error) throw error;
+    existingRows.push(
+      ...((data || []) as unknown as Array<Pick<SupplierDbRow, "id" | "cnpj_normalizado" | "source_system" | "status">>)
+    );
+  }
+
+  const existingByCnpj = new Map(existingRows.map((row) => [row.cnpj_normalizado, row]));
+  const createdRows: Array<{ id: string; cnpj_normalizado: string }> = [];
+  const missing = consolidated.items.filter((item) => !existingByCnpj.has(item.cnpj));
+
+  for (const batch of chunksOf(missing, 100)) {
+    if (!batch.length) continue;
+    const { data, error } = await client
+      .from("app_suppliers")
+      .insert(
+        batch.map((item) => ({
+          cnpj: formatCnpj(item.cnpj),
+          cnpj_normalizado: item.cnpj,
+          razao_social: item.razaoSocial,
+          status: "PENDENTE_REVISAO",
+          fluig_name: item.fluigName,
+          fluig_code: item.fluigCode,
+          fluig_supplier_label: item.fluigName || item.razaoSocial,
+          default_source_request_id: item.defaultSourceRequestId,
+          default_payload: item.defaultPayload,
+          source_system: "PRE_CADASTRO_FLUIG",
+          sync_status: "PENDENTE_REVISAO",
+          created_by_user_id: input.actorId || null,
+          updated_by_user_id: input.actorId || null,
+        }))
+      )
+      .select("id,cnpj_normalizado");
+    if (error) throw error;
+    createdRows.push(...((data || []) as Array<{ id: string; cnpj_normalizado: string }>));
+  }
+
+  const createdByCnpj = new Map(createdRows.map((row) => [row.cnpj_normalizado, row]));
+  let refreshed = 0;
+  const refreshable = consolidated.items.filter((item) => {
+    const current = existingByCnpj.get(item.cnpj);
+    return current?.source_system === "PRE_CADASTRO_FLUIG" && current.status === "PENDENTE_REVISAO";
+  });
+
+  for (const batch of chunksOf(refreshable, 20)) {
+    await Promise.all(
+      batch.map(async (item) => {
+        const current = existingByCnpj.get(item.cnpj);
+        if (!current) return;
+        const { error } = await client
+          .from("app_suppliers")
+          .update({
+            fluig_name: item.fluigName,
+            fluig_code: item.fluigCode,
+            fluig_supplier_label: item.fluigName || item.razaoSocial,
+            default_source_request_id: item.defaultSourceRequestId,
+            default_payload: item.defaultPayload,
+            updated_by_user_id: input.actorId || null,
+          })
+          .eq("id", current.id);
+        if (error) throw error;
+        refreshed += 1;
+      })
+    );
+  }
+
+  if (createdRows.length) {
+    const auditRows = createdRows.map((created) => {
+      const item = consolidated.items.find((candidate) => candidate.cnpj === created.cnpj_normalizado);
+      return {
+        supplier_id: created.id,
+        actor_user_id: input.actorId || null,
+        event_type: "fluig_pre_registration_created",
+        after_payload: item || null,
+        metadata: {
+          source: "fluig_supplier_candidates",
+          candidateIds: item?.candidateIds || [],
+          sourceRequestIds: item?.sourceRequestIds || [],
+          confidence: item?.confidence || 0,
+        },
+      };
+    });
+    for (const batch of chunksOf(auditRows, 200)) {
+      const { error } = await client.from("app_supplier_audit_events").insert(batch);
+      if (error) throw error;
+    }
+  }
+
+  const supplierIds = consolidated.items
+    .map((item) => existingByCnpj.get(item.cnpj)?.id || createdByCnpj.get(item.cnpj)?.id)
+    .filter(Boolean) as string[];
+  const relationSummary: Record<string, number> = {};
+  for (const supplierIdBatch of chunksOf(supplierIds, 50)) {
+    const { data, error } = await client.rpc("reconcile_fluig_supplier_relations", {
+      p_supplier_ids: supplierIdBatch,
+    });
+    if (error) throw error;
+    for (const [key, value] of Object.entries((data || {}) as Record<string, number>)) {
+      relationSummary[key] = (relationSummary[key] || 0) + Number(value || 0);
+    }
+  }
+
+  return {
+    configured: true,
+    saved: {
+      supplierPreRegistrations: createdRows.length,
+      supplierPreRegistrationsRefreshed: refreshed,
+      supplierCandidatesInvalidCnpj: consolidated.invalidCnpj,
+      supplierRequestLinks: Number(relationSummary.requestLinks || 0),
+      supplierCandidateLinks: Number(relationSummary.candidateLinks || 0),
+      supplierBranchLinks: Number(relationSummary.branchLinks || 0),
+      supplierCandidatesInReview: Number(relationSummary.candidatesInReview || 0),
+    },
+    errors: [] as string[],
   };
 }
 
@@ -1037,17 +1246,36 @@ export async function approveSupplierCandidate(actor: AppActor, candidateId: str
 
   const row = candidate as Record<string, unknown>;
   const suggestions = suggestionFromCandidate(row);
-  const supplier = await createSupplier(actor, {
-    cnpj: String(row.cnpj || ""),
-    razaoSocial: String(row.supplier_name || row.fluig_name || "Fornecedor Fluig"),
+  const canonicalCnpj = canonicalHistoricalCnpj(row.cnpj);
+  const { data: existingSupplier, error: existingSupplierError } = canonicalCnpj
+    ? await client
+        .from("app_suppliers")
+        .select("id")
+        .eq("cnpj_normalizado", canonicalCnpj)
+        .is("deleted_at", null)
+        .maybeSingle()
+    : { data: null, error: null };
+  if (existingSupplierError) throw existingSupplierError;
+
+  const approvedInput: SupplierInput = {
+    cnpj: canonicalCnpj || String(row.cnpj || ""),
+    razaoSocial: supplierLegalName(
+      row.supplier_name || row.fluig_name || "Fornecedor Fluig",
+      canonicalCnpj || row.cnpj,
+      row.fluig_code
+    ),
+    status: "ATIVO",
     fluigName: String(row.fluig_name || row.supplier_name || ""),
     fluigCode: String(row.fluig_code || ""),
     fluigSupplierLabel: String(row.fluig_name || row.supplier_name || ""),
     defaultSourceRequestId: String(suggestions.defaultSourceRequestId || ""),
     defaultPayload: suggestions.defaultPayload as JsonRecord,
-    sourceSystem: "PRE_CADASTRO_FLUIG",
-    syncStatus: "PENDENTE_REVISAO",
-  });
+    sourceSystem: "LOCAL_FLUIG",
+    syncStatus: "SINCRONIZADO",
+  };
+  const supplier = existingSupplier
+    ? await updateSupplier(actor, String(existingSupplier.id), approvedInput)
+    : await createSupplier(actor, approvedInput);
 
   const { error: updateError } = await client.from("fluig_supplier_candidates").update({ status: "APROVADO" }).eq("id", candidateId);
   if (updateError) throw updateError;

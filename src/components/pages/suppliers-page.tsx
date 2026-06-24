@@ -188,6 +188,7 @@ type PagePermissions = {
   canCreate: boolean;
   canUpdate: boolean;
   canApprove: boolean;
+  canReconcile?: boolean;
 };
 
 const sourceLabels: Record<SupplierSourceSystem, string> = {
@@ -342,6 +343,7 @@ export function SuppliersPage({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
   const [syncingSupplierId, setSyncingSupplierId] = useState<string | null>(null);
   const [statusChangingSupplierId, setStatusChangingSupplierId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -621,6 +623,37 @@ export function SuppliersPage({
     }
   }
 
+  async function reconcileHistoricalSuppliers() {
+    setReconciling(true);
+    try {
+      const data = await parseResponse<{
+        success: true;
+        persistence: {
+          saved: Record<string, number>;
+        };
+      }>(
+        await fetch("/api/fornecedores/reconcile", { method: "POST" }),
+        "Falha ao atualizar pre-cadastros do Fluig."
+      );
+      const created = Number(data.persistence.saved.supplierPreRegistrations || 0);
+      const branches = Number(data.persistence.saved.supplierBranchLinks || 0);
+      toast.success(
+        created
+          ? `${created} pre-cadastros criados e ${branches} vinculos de filial reconciliados.`
+          : `Pre-cadastros atualizados. ${branches} vinculos de filial reconciliados.`
+      );
+      await loadSuppliers();
+    } catch (reconcileError) {
+      toast.error(
+        reconcileError instanceof Error
+          ? reconcileError.message
+          : "Falha ao atualizar pre-cadastros do Fluig."
+      );
+    } finally {
+      setReconciling(false);
+    }
+  }
+
   async function syncSupplierWithFluig(supplier: SupplierRecord) {
     const cnpj = supplier.cnpjNormalizado || supplier.cnpj || "";
     if (!isValidCnpj(cnpj)) {
@@ -774,6 +807,18 @@ export function SuppliersPage({
               {loading ? "Consultando fornecedores..." : `${items.length} exibidos de ${total} registros encontrados.`}
             </p>
             <div className="flex flex-wrap gap-2">
+              {permissions.canReconcile ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="stitch-soft-button"
+                  onClick={() => void reconcileHistoricalSuppliers()}
+                  disabled={reconciling}
+                >
+                  <RefreshCcw className={cn("size-4", reconciling && "animate-spin")} />
+                  Atualizar pre-cadastros
+                </Button>
+              ) : null}
               <Button type="button" variant="outline" className="stitch-soft-button" onClick={loadSuppliers} disabled={loading}>
                 <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
                 Atualizar

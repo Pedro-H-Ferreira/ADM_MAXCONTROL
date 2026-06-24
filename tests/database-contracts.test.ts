@@ -49,4 +49,32 @@ describe("database and API contracts", () => {
     expect(route).toContain("supplierListFiltersSchema.safeParse");
     expect(route).toContain("Usuario sem permissao para consultar fornecedores desta filial.");
   });
+
+  it("materializa pre-cadastros e relacionamentos do historico sem reabrir candidatos aprovados", async () => {
+    const supplierRepository = await source("src/lib/db/suppliers-repository.ts");
+    const fluigRepository = await source("src/lib/db/fluig-repository.ts");
+    const chunkRoute = await source("src/app/api/agent/jobs/[jobId]/chunk/route.ts");
+    const resultRoute = await source("src/app/api/agent/jobs/[jobId]/result/route.ts");
+    const migration = await source("supabase/migrations/20260624090623_reconcile_fluig_supplier_relations.sql");
+
+    expect(supplierRepository).toContain("reconcileSupplierPreRegistrations");
+    expect(supplierRepository).toContain('"PRE_CADASTRO_FLUIG"');
+    expect(supplierRepository).toContain('"PENDENTE_REVISAO"');
+    expect(fluigRepository).not.toMatch(/source_payload: candidate\.sourcePayload,\s*status: "PRE_CADASTRO"/);
+    expect(chunkRoute).toContain("reconcileSupplierPreRegistrations");
+    expect(resultRoute).toContain("reconcileSupplierPreRegistrations");
+    expect(migration).toContain("security invoker");
+    expect(migration).toContain("revoke all on function public.reconcile_fluig_supplier_relations");
+    expect(migration).toContain("app_supplier_branch_links");
+  });
+
+  it("normaliza filiais Fluig antes de persistir historico e catalogos", async () => {
+    const repository = await source("src/lib/db/fluig-repository.ts");
+    const migration = await source("supabase/migrations/20260624091741_normalize_fluig_branch_codes.sql");
+
+    expect(repository).toContain("normalizeFluigBranch");
+    expect(migration).toContain("app_supplier_branch_links");
+    expect(migration).toContain("app_user_branch_access");
+    expect(migration).toContain("fluig_requests");
+  });
 });

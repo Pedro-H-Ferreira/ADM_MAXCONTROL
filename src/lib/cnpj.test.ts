@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCnpj, isValidCnpj, normalizeCnpj, onlyDigits } from "@/lib/cnpj";
+import { canonicalHistoricalCnpj, formatCnpj, isValidCnpj, normalizeCnpj, onlyDigits } from "@/lib/cnpj";
 
 describe("CNPJ", () => {
   it("aceita CNPJ valido com ou sem mascara", () => {
@@ -11,6 +11,12 @@ describe("CNPJ", () => {
     expect(onlyDigits("32.858.158/0001-93")).toBe("32858158000193");
     expect(normalizeCnpj("32.858.158/0001-93")).toBe("32858158000193");
     expect(formatCnpj("32858158000193")).toBe("32.858.158/0001-93");
+  });
+
+  it("recupera CNPJ historico que perdeu zeros a esquerda", () => {
+    expect(canonicalHistoricalCnpj("801587000138")).toBe("00801587000138");
+    expect(canonicalHistoricalCnpj("00.801.587/0001-38")).toBe("00801587000138");
+    expect(canonicalHistoricalCnpj("7182631113")).toBeNull();
   });
 
   it("rejeita tamanho, sequencia e digitos verificadores invalidos", () => {

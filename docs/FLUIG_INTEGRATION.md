@@ -116,6 +116,7 @@ Rotas de cadastro operacional adicionadas:
 - `GET /api/fornecedores/lookup?cnpj=`: valida CNPJ e consulta, nesta ordem, cadastro local, `fluig_supplier_links`, candidatos, catalogos e solicitacoes Fluig. O lookup aceita historicos que perderam zeros a esquerda, identifica a filial mais usada e devolve somente os defaults necessarios (modelo, centro de custo, natureza e forma de pagamento), sem transportar o payload bruto completo para o navegador.
 - `POST /api/fornecedores/candidates/[id]/approve`: converte candidato Fluig em fornecedor oficial e cria link Fluig.
 - `POST /api/fornecedores/candidates/[id]/ignore`: ignora candidato Fluig.
+- `POST /api/fornecedores/reconcile`: materializa candidatos com CNPJ valido como pre-cadastros pendentes, liga solicitacoes existentes e cria vinculos de filial pela frequencia do historico. Restrito a administradores.
 - `GET|POST /api/admin/branches`: lista e cria filiais administrativas.
 - `GET|PATCH|DELETE /api/admin/branches/[id]`: consulta, edita e exclui filial. Quando houver vinculos, a exclusao vira inativacao logica.
 
@@ -160,12 +161,29 @@ Persistencia:
 - Novas tabelas: `app_suppliers`, `app_supplier_contacts`, `app_supplier_branch_links`, `app_supplier_audit_events`, `fluig_user_sync_state`.
 - Evolucoes: `app_branches` recebeu campos administrativos; `fluig_requests` recebeu vinculo com fornecedor oficial, status normalizado, flags de aberto/finalizado e dono de sync; `fluig_jobs` passou a aceitar operacoes de sync inicial, consulta por numero e sync por usuario.
 - Hardening aplicado: `supabase/migrations/20260622200452_harden_supplier_sync_schema.sql`, com `search_path` fixo em `set_updated_at`, indices para FKs usadas pelos fluxos novos e policies explicitas de bloqueio direto para tabelas operadas somente via service role.
+- Reconciliacao historica: `supabase/migrations/20260624090623_reconcile_fluig_supplier_relations.sql`, executada pelo backend com service role para relacionar pre-cadastros, candidatos, solicitacoes e filiais sem expor escrita direta ao cliente.
 
 Estado verificado em `PORTAL ADM CD` em 22/06/2026:
 
 - Data API retorna `200` para `app_suppliers`, `app_supplier_contacts`, `app_supplier_branch_links`, `app_supplier_audit_events`, `fluig_user_sync_state`, `app_branches` e `fluig_jobs`.
 - Advisor de seguranca restante: `unaccent` em schema `public` e protecao de senha vazada desativada no Supabase Auth.
 - Advisor de performance restante: indices recentes ainda aparecem como `unused_index` porque os fluxos acabaram de ser criados; nao remover sem volume real de uso.
+
+Reconciliacao de fornecedores verificada em `PORTAL ADM CD` em 24/06/2026:
+
+- `956` fornecedores unicos com CNPJ valido foram materializados em `app_suppliers` como `PRE_CADASTRO_FLUIG` e `PENDENTE_REVISAO`.
+- `957` candidatos Fluig foram vinculados aos pre-cadastros; dois candidatos historicos representam o mesmo CNPJ canonico.
+- `10.009` solicitacoes Fluig foram ligadas ao fornecedor oficial pelo CNPJ canonico, sem divergencia de CNPJ.
+- `3.139` vinculos fornecedor-filial foram criados; `955` fornecedores possuem filial historica e nenhum possui mais de uma filial padrao.
+- `334` candidatos sem CNPJ validavel permaneceram somente em `fluig_supplier_candidates` para revisao, sem contaminar o cadastro oficial.
+- Filiais corrompidas por valores como `[object HTMLInputElement]` ou identificadores internos prefixados foram removidas/normalizadas. O cadastro ficou com `46` filiais, sem codigo historico invalido.
+- A reconciliacao e idempotente: uma segunda execucao criou `0` fornecedores e vinculou `0` solicitacoes adicionais.
+
+Operacao:
+
+- O botao `Atualizar pre-cadastros` em `/fornecedores` executa o backfill completo e e exibido somente para administradores.
+- Novos lotes de `sync_history`, `sync_initial_history` e `supplier_lookup_by_cnpj` materializam automaticamente apenas os candidatos afetados pelo lote.
+- A aprovacao de um candidato reutiliza o pre-cadastro existente, ativa o fornecedor e altera a origem para `LOCAL_FLUIG`, sem criar CNPJ duplicado.
 
 Comandos seguros de teste:
 

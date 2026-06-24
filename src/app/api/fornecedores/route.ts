@@ -56,6 +56,7 @@ function supplierPermissions(actor: AppActor) {
     canCreate: canView && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canCreate")),
     canUpdate: canView && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canUpdate")),
     canApprove: canView && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canApprove")),
+    canReconcile: canView && actor.isAdmin,
   };
 }
 

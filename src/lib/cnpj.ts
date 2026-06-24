@@ -28,3 +28,13 @@ export function normalizeCnpj(value: unknown) {
   const digits = onlyDigits(value);
   return digits.length ? digits : null;
 }
+
+export function canonicalHistoricalCnpj(value: unknown) {
+  const digits = onlyDigits(value);
+  if (isValidCnpj(digits)) return digits;
+  if (digits.length >= 8 && digits.length < 14) {
+    const padded = digits.padStart(14, "0");
+    if (isValidCnpj(padded)) return padded;
+  }
+  return null;
+}

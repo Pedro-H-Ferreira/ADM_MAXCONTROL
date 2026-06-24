@@ -12,6 +12,7 @@ import type {
   FluigSyncRow,
 } from "@/lib/fluig-data";
 import type { FluigProcessMap } from "@/lib/fluig/process-map";
+import { normalizeFluigBranch } from "@/lib/fluig-branch";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -318,15 +319,17 @@ function catalogKey(input: Pick<FluigCatalogCandidate, "catalogType" | "moduleSl
 }
 
 function extractBranchLabel(fields: Record<string, string>) {
-  return String(fields.unidadeFilial || fields.filial || fields.filialOrigem || fields.filialDestino || "").trim();
+  return normalizeFluigBranch({
+    label: fields.unidadeFilial || fields.filial || fields.filialOrigem || fields.filialDestino,
+    explicitCode: fields.codigoFilial || fields.codFilial || fields.branchCode,
+  }).label || "";
 }
 
 function extractBranchCode(fields: Record<string, string>) {
-  const label = extractBranchLabel(fields);
-  const explicitCode = String(fields.codigoFilial || fields.codFilial || fields.branchCode || "").trim();
-  if (explicitCode) return explicitCode;
-  const firstChunk = label.split(/\s+-\s+|\s+/)[0]?.trim();
-  return firstChunk || null;
+  return normalizeFluigBranch({
+    label: fields.unidadeFilial || fields.filial || fields.filialOrigem || fields.filialDestino,
+    explicitCode: fields.codigoFilial || fields.codFilial || fields.branchCode,
+  }).code;
 }
 
 function mapRequestRowToSyncRow(row: FluigRequestDbRow): FluigSyncRow {
@@ -1187,7 +1190,6 @@ export async function persistSupplierCandidates(candidates: FluigSupplierCandida
       source_request_ids: candidate.sourceRequestIds,
       suggested_defaults: candidate.suggestedDefaults,
       source_payload: candidate.sourcePayload,
-      status: "PRE_CADASTRO",
     }));
     const { error } = await client
       .from("fluig_supplier_candidates")

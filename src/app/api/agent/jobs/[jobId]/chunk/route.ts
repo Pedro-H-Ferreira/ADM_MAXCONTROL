@@ -8,6 +8,7 @@ import {
   persistHistoryItemsInChunksByModule,
   persistSupplierCandidates,
 } from "@/lib/db/fluig-repository";
+import { reconcileSupplierPreRegistrations } from "@/lib/db/suppliers-repository";
 import { mergePersistence } from "@/lib/fluig/route-utils";
 import type { FluigHistoryItem } from "@/lib/fluig/server-client";
 import { requireAgent } from "@/app/api/agent/_utils";
@@ -60,10 +61,17 @@ export async function POST(request: Request, context: RouteContext) {
   const chunkIndex = Number.isFinite(Number(body.chunkIndex)) ? Number(body.chunkIndex) : 0;
   const totalChunks = Number.isFinite(Number(body.totalChunks)) ? Number(body.totalChunks) : 1;
   const persistenceResults: PersistenceResult[] = [];
+  const supplierCandidates = buildSupplierCandidates(historyItems);
 
   persistenceResults.push(await persistHistoryItemsInChunksByModule(job.module, historyItems, { id: job.requestedByUserId }));
   persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItemsByModule(job.module, historyItems)));
-  persistenceResults.push(await persistSupplierCandidates(buildSupplierCandidates(historyItems)));
+  persistenceResults.push(await persistSupplierCandidates(supplierCandidates));
+  persistenceResults.push(
+    await reconcileSupplierPreRegistrations({
+      actorId: job.requestedByUserId,
+      candidateKeys: supplierCandidates.map((candidate) => candidate.candidateKey),
+    })
+  );
 
   const persistence = mergePersistence(...persistenceResults);
   const label = chunkLabel({ chunkIndex, totalChunks, itemCount: historyItems.length });

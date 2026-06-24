@@ -20,7 +20,7 @@ import {
   completeMaintenanceOrderFluigOpenJob,
   recordMaintenanceOrderFluigJobFailure,
 } from "@/lib/db/maintenance-repository";
-import { markSupplierFluigSyncResult } from "@/lib/db/suppliers-repository";
+import { markSupplierFluigSyncResult, reconcileSupplierPreRegistrations } from "@/lib/db/suppliers-repository";
 import { mergePersistence } from "@/lib/fluig/route-utils";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
@@ -151,16 +151,30 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (status === "success" && (job.operation === "sync_history" || job.operation === "sync_initial_history")) {
     const historyItems = extractHistoryItems(resultPayload);
+    const supplierCandidates = buildSupplierCandidates(historyItems);
     persistenceResults.push(await persistHistoryItemsInChunksByModule(job.module, historyItems, { id: job.requestedByUserId }));
     persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItemsByModule(job.module, historyItems)));
-    persistenceResults.push(await persistSupplierCandidates(buildSupplierCandidates(historyItems)));
+    persistenceResults.push(await persistSupplierCandidates(supplierCandidates));
+    persistenceResults.push(
+      await reconcileSupplierPreRegistrations({
+        actorId: job.requestedByUserId,
+        candidateKeys: supplierCandidates.map((candidate) => candidate.candidateKey),
+      })
+    );
   }
 
   if (status === "success" && job.operation === "supplier_lookup_by_cnpj") {
     const historyItems = extractHistoryItems(resultPayload);
+    const supplierCandidates = buildSupplierCandidates(historyItems);
     persistenceResults.push(await persistHistoryItemsInChunksByModule(job.module, historyItems, { id: job.requestedByUserId }));
     persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItemsByModule(job.module, historyItems)));
-    persistenceResults.push(await persistSupplierCandidates(buildSupplierCandidates(historyItems)));
+    persistenceResults.push(await persistSupplierCandidates(supplierCandidates));
+    persistenceResults.push(
+      await reconcileSupplierPreRegistrations({
+        actorId: job.requestedByUserId,
+        candidateKeys: supplierCandidates.map((candidate) => candidate.candidateKey),
+      })
+    );
   }
 
   if (status === "success" && (job.operation === "sync_status" || job.operation === "sync_request_by_number")) {
