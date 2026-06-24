@@ -20,6 +20,10 @@ import {
   completeMaintenanceOrderFluigOpenJob,
   recordMaintenanceOrderFluigJobFailure,
 } from "@/lib/db/maintenance-repository";
+import {
+  completeOperationalLaunchJob,
+  markOperationalLaunchFailure,
+} from "@/lib/db/operational-launch-repository";
 import { markSupplierFluigSyncResult, reconcileSupplierPreRegistrations } from "@/lib/db/suppliers-repository";
 import { mergePersistence } from "@/lib/fluig/route-utils";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
@@ -234,6 +238,11 @@ export async function POST(request: Request, context: RouteContext) {
         generatedRequestId,
         resultPayload,
       });
+      await completeOperationalLaunchJob({
+        job,
+        generatedRequestId,
+        resultPayload,
+      });
     }
   }
 
@@ -242,6 +251,14 @@ export async function POST(request: Request, context: RouteContext) {
       job,
       errorMessage: body.errorMessage,
     });
+    if (job.requestPayload.launchId) {
+      await markOperationalLaunchFailure(
+        String(job.requestPayload.launchId),
+        job.requestedByUserId,
+        body.errorMessage || "Falha ao abrir solicitacao no Fluig.",
+        job.id
+      );
+    }
   }
 
   const persistence = persistenceResults.length ? mergePersistence(...persistenceResults) : undefined;

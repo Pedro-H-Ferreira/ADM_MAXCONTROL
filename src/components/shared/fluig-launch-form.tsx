@@ -2,7 +2,19 @@
 
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, FileCheck2, FileUp, Loader2, Paperclip, Search, SendHorizontal, X } from "lucide-react";
+import {
+  CheckCircle2,
+  FileCheck2,
+  FileUp,
+  History,
+  Loader2,
+  Paperclip,
+  Plus,
+  Search,
+  SendHorizontal,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +29,13 @@ import {
   type FluigLaunchTemplate,
   type FluigModuleSlug,
 } from "@/lib/fluig-data";
+import {
+  formatPurchaseItemsForFluig,
+  operationalLaunchFingerprint,
+  parseCurrencyToCents,
+  type OperationalLaunchItemInput,
+  type OperationalLaunchRecord,
+} from "@/lib/operational-launch";
 import { cn } from "@/lib/utils";
 
 type LaunchModule = Exclude<FluigModuleSlug, "fornecedores">;
@@ -79,11 +98,20 @@ type LaunchPayload = {
 };
 
 type LaunchReview = LaunchPayload & {
+  launchId: string | null;
   fingerprint: string;
   generatedAt: string;
   rows: Array<{ label: string; value: string; required: boolean }>;
   attachments: Array<{ name: string; mimeType: string; size: number }>;
   warnings: string[];
+};
+
+type PurchaseItemDraft = {
+  id: string;
+  description: string;
+  quantity: string;
+  unit: string;
+  unitPrice: string;
 };
 
 const maxAttachmentBytes = 3 * 1024 * 1024;
@@ -118,14 +146,6 @@ const launchFields: Record<LaunchModule, LaunchField[]> = {
     { key: "codFilialPedido", label: "Filial do pedido", type: "catalog", catalogType: "branch", required: true },
     { key: "centroCusto", label: "Centro de custo", type: "catalog", catalogType: "cost_center", required: true },
     { key: "contaCentroCusto", label: "Conta contabil", type: "catalog", catalogType: "account", required: true },
-    {
-      key: "descricaoProduto",
-      label: "Itens da requisicao",
-      type: "textarea",
-      required: true,
-      wide: true,
-      placeholder: "Produto ou servico, quantidade, unidade, valor estimado e justificativa.",
-    },
     {
       key: "observacao",
       label: "Observacoes",
@@ -316,12 +336,24 @@ function attachmentMetadata(attachments: AttachmentPayload[]) {
   return attachments.map(({ name, mimeType, size }) => ({ name, mimeType, size }));
 }
 
-function buildLaunchFingerprint(input: LaunchPayload, attachments: AttachmentPayload[]) {
-  return JSON.stringify({
-    sourceRequestId: input.sourceRequestId,
-    fieldOverrides: Object.fromEntries(Object.entries(input.fieldOverrides).sort(([left], [right]) => left.localeCompare(right))),
-    attachments: attachmentMetadata(attachments),
-  });
+function initialPurchaseItem(): PurchaseItemDraft {
+  return {
+    id: "item-1",
+    description: "",
+    quantity: "1",
+    unit: "UN",
+    unitPrice: "",
+  };
+}
+
+function parseQuantity(value: string) {
+  const quantity = Number(value.trim().replace(",", "."));
+  return Number.isFinite(quantity) && quantity > 0 ? quantity : null;
+}
+
+function formatMoney(cents: number | null) {
+  if (cents == null) return "-";
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
 
 export function FluigLaunchForm({
@@ -336,11 +368,18 @@ export function FluigLaunchForm({
   onSynced?: (data: FluigAdmSyncResponse) => void;
 }) {
   const fields = moduleSlug === "fornecedores" ? [] : launchFields[moduleSlug as LaunchModule];
+  const isOperationalLaunchModule = moduleSlug === "pagamentos" || moduleSlug === "compras";
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [officialSuppliers, setOfficialSuppliers] = useState<CatalogOption[]>([]);
   const [supplierCatalogWarning, setSupplierCatalogWarning] = useState<string | null>(null);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
+  const [selectedBranchCode, setSelectedBranchCode] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [attachments, setAttachments] = useState<AttachmentPayload[]>([]);
+  const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>([initialPurchaseItem()]);
+  const [recentLaunches, setRecentLaunches] = useState<OperationalLaunchRecord[]>([]);
+  const [launchPermissions, setLaunchPermissions] = useState<{ canView: boolean; canCreate: boolean } | null>(null);
+  const [loadingLaunches, setLoadingLaunches] = useState(isOperationalLaunchModule);
   const [review, setReview] = useState<LaunchReview | null>(null);
   const [jobState, setJobState] = useState<JobState | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -371,6 +410,31 @@ export function FluigLaunchForm({
     moduleSlug === "pagamentos"
       ? "PDF ou XML da nota fiscal. Limite total: 3 MB."
       : "PDF, XML, imagem ou planilha. Limite total: 3 MB.";
+  const purchaseTotalCents = useMemo(
+    () =>
+      purchaseItems.reduce((total, item) => {
+        const quantity = parseQuantity(item.quantity);
+        const unitPriceCents = parseCurrencyToCents(item.unitPrice);
+        return quantity == null || unitPriceCents == null ? total : total + Math.round(quantity * unitPriceCents);
+      }, 0),
+    [purchaseItems]
+  );
+
+  async function refreshOperationalLaunches() {
+    if (moduleSlug !== "pagamentos" && moduleSlug !== "compras") return;
+    setLoadingLaunches(true);
+    try {
+      const data = await fluigAdmApi.listOperationalLaunches(moduleSlug, 12);
+      setRecentLaunches(data.launches);
+      setLaunchPermissions(data.permissions);
+    } catch (loadError) {
+      setRecentLaunches([]);
+      setLaunchPermissions(null);
+      setError(loadError instanceof Error ? loadError.message : "Falha ao carregar lancamentos recentes.");
+    } finally {
+      setLoadingLaunches(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -391,6 +455,32 @@ export function FluigLaunchForm({
     };
   }, []);
 
+  useEffect(() => {
+    if (moduleSlug !== "pagamentos" && moduleSlug !== "compras") return;
+    let cancelled = false;
+
+    fluigAdmApi
+      .listOperationalLaunches(moduleSlug, 12)
+      .then((data) => {
+        if (cancelled) return;
+        setRecentLaunches(data.launches);
+        setLaunchPermissions(data.permissions);
+      })
+      .catch((loadError) => {
+        if (cancelled) return;
+        setRecentLaunches([]);
+        setLaunchPermissions(null);
+        setError(loadError instanceof Error ? loadError.message : "Falha ao carregar lancamentos recentes.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingLaunches(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [moduleSlug]);
+
   if (moduleSlug === "fornecedores") {
     return null;
   }
@@ -403,6 +493,9 @@ export function FluigLaunchForm({
   function applyTemplate(template: FluigLaunchTemplate) {
     setReview(null);
     setSelectedTemplateId(template.id);
+    setSelectedBranchCode(template.branchCode || null);
+    const matchingSupplier = officialSuppliers.find((supplier) => templateMatchesCatalog(template, supplier));
+    setSelectedSupplierId(matchingSupplier ? metadataText(matchingSupplier, "appSupplierId") || null : null);
     setFormValues((current) => {
       const next = { ...current };
       for (const [key, value] of Object.entries(template.defaultFields)) {
@@ -427,20 +520,66 @@ export function FluigLaunchForm({
     setError(null);
   }
 
-  function handleCatalogSelect(field: LaunchField, item: FluigCatalogItem) {
+  function handleCatalogSelect(field: LaunchField, item: CatalogOption) {
     setFieldValue(field.key, item.value || item.label);
 
     if (field.catalogType === "supplier") {
+      setSelectedSupplierId(item.origin === "adm" ? metadataText(item, "appSupplierId") || null : null);
       const cnpj = metadataText(item, "cnpj");
       if (cnpj) setFieldValue("codCNPJ", cnpj);
+      const branchCode = metadataText(item, "branchCode");
       const branchLabel = metadataText(item, "branchLabel");
       if (branchLabel) {
         setFieldValue("unidadeFilial", branchLabel);
         setFieldValue("codFilialPedido", branchLabel);
+        setSelectedBranchCode(branchCode || null);
       }
       const template = templates.find((candidate) => templateMatchesCatalog(candidate, item));
       if (template) applyTemplate(template);
+    } else if (field.catalogType === "branch") {
+      setSelectedBranchCode(item.code || metadataText(item, "branchCode") || null);
     }
+  }
+
+  function handleCatalogChange(field: LaunchField, value: string) {
+    setFieldValue(field.key, value);
+    if (field.catalogType === "supplier") setSelectedSupplierId(null);
+    if (field.catalogType === "branch") setSelectedBranchCode(null);
+  }
+
+  function updatePurchaseItem(id: string, key: keyof Omit<PurchaseItemDraft, "id">, value: string) {
+    setReview(null);
+    setPurchaseItems((current) => current.map((item) => (item.id === id ? { ...item, [key]: value } : item)));
+  }
+
+  function addPurchaseItem() {
+    setReview(null);
+    setPurchaseItems((current) => [
+      ...current,
+      {
+        ...initialPurchaseItem(),
+        id: `item-${Date.now()}-${current.length + 1}`,
+      },
+    ]);
+  }
+
+  function removePurchaseItem(id: string) {
+    setReview(null);
+    setPurchaseItems((current) => (current.length === 1 ? [initialPurchaseItem()] : current.filter((item) => item.id !== id)));
+  }
+
+  function buildPurchaseItems(): OperationalLaunchItemInput[] {
+    if (moduleSlug !== "compras") return [];
+    return purchaseItems.map((item, index) => {
+      const description = item.description.trim();
+      const quantity = parseQuantity(item.quantity);
+      const unit = item.unit.trim();
+      const unitPriceCents = parseCurrencyToCents(item.unitPrice);
+      if (!description || quantity == null || !unit || unitPriceCents == null) {
+        throw new Error(`Complete descricao, quantidade, unidade e valor unitario do item ${index + 1}.`);
+      }
+      return { description, quantity, unit, unitPriceCents };
+    });
   }
 
   async function handleFiles(files: FileList | null) {
@@ -495,7 +634,7 @@ export function FluigLaunchForm({
     throw new Error("Tempo limite aguardando o agente local executar a tarefa Fluig.");
   }
 
-  function buildFieldOverrides() {
+  function buildFieldOverrides(items: OperationalLaunchItemInput[] = []) {
     const overrides: Record<string, string> = {};
     if (selectedTemplate) {
       for (const [key, value] of Object.entries(selectedTemplate.defaultFields)) {
@@ -509,11 +648,14 @@ export function FluigLaunchForm({
       const value = formValues[field.key]?.trim();
       if (value) overrides[field.key] = payloadValueForField(field.key, value);
     }
+    if (moduleSlug === "compras") {
+      overrides.descricaoProduto = formatPurchaseItemsForFluig(items);
+    }
 
     return overrides;
   }
 
-  function buildLaunchPayload(): LaunchPayload {
+  function buildLaunchPayload(items: OperationalLaunchItemInput[] = []): LaunchPayload {
     const missing = fields.filter((field) => field.required && !formValues[field.key]?.trim()).map((field) => field.label);
     if (missing.length) {
       throw new Error(`Preencha: ${missing.join(", ")}.`);
@@ -530,7 +672,7 @@ export function FluigLaunchForm({
 
     return {
       sourceRequestId,
-      fieldOverrides: buildFieldOverrides(),
+      fieldOverrides: buildFieldOverrides(items),
     };
   }
 
@@ -548,8 +690,13 @@ export function FluigLaunchForm({
     setMessage(null);
 
     try {
-      const payload = buildLaunchPayload();
-      const fingerprint = buildLaunchFingerprint(payload, attachments);
+      const items = buildPurchaseItems();
+      const payload = buildLaunchPayload(items);
+      let fingerprint = operationalLaunchFingerprint({
+        ...payload,
+        attachments: attachmentMetadata(attachments),
+        items,
+      });
       const dryRun = await fluigAdmApi.openDryRun({
         module: moduleSlug,
         sourceRequestId: payload.sourceRequestId,
@@ -561,9 +708,48 @@ export function FluigLaunchForm({
         ...(selectedTemplate ? [] : ["Nenhum modelo mensal selecionado; o sistema usara o primeiro modelo real sincronizado."]),
         ...(supplierCatalogWarning ? [supplierCatalogWarning] : []),
       ];
+      let launchId: string | null = null;
+
+      if (moduleSlug === "pagamentos" || moduleSlug === "compras") {
+        const supplierName = formValues.fornecedorC?.trim() || null;
+        const branchField = moduleSlug === "pagamentos" ? "unidadeFilial" : "codFilialPedido";
+        const branchLabel = formValues[branchField]?.trim() || null;
+        const amountCents =
+          moduleSlug === "pagamentos" ? parseCurrencyToCents(formValues.valorNF || "") : purchaseTotalCents;
+        if (moduleSlug === "pagamentos" && amountCents == null) {
+          throw new Error("Informe um valor valido para a nota fiscal.");
+        }
+
+        const validated = await fluigAdmApi.validateOperationalLaunch({
+          module: moduleSlug,
+          sourceRequestId: payload.sourceRequestId,
+          title:
+            moduleSlug === "pagamentos"
+              ? `Pagamento - ${supplierName || formValues.nNotaFiscal || "novo lancamento"}`
+              : `Pedido de compra - ${branchLabel || "nova requisicao"}`,
+          description:
+            moduleSlug === "pagamentos"
+              ? formValues.descricaoDemandaEnvio?.trim() || null
+              : formValues.observacao?.trim() || null,
+          supplierId: selectedSupplierId,
+          supplierName,
+          supplierCnpj: formValues.codCNPJ?.trim() || null,
+          branchCode: selectedBranchCode,
+          branchLabel,
+          amountCents,
+          dueDate: moduleSlug === "pagamentos" ? formValues.vencPagNota || null : null,
+          fieldOverrides: payload.fieldOverrides,
+          attachments: attachmentMetadata(attachments),
+          items,
+        });
+        launchId = validated.launch.id;
+        fingerprint = validated.launch.reviewFingerprint;
+        await refreshOperationalLaunches();
+      }
 
       setReview({
         ...payload,
+        launchId,
         fingerprint,
         generatedAt: dryRun.generatedAt,
         rows: buildReviewRows(payload),
@@ -585,22 +771,35 @@ export function FluigLaunchForm({
     setMessage(null);
 
     try {
-      const payload = buildLaunchPayload();
-      const fingerprint = buildLaunchFingerprint(payload, attachments);
+      const items = buildPurchaseItems();
+      const payload = buildLaunchPayload(items);
+      const fingerprint = operationalLaunchFingerprint({
+        ...payload,
+        attachments: attachmentMetadata(attachments),
+        items,
+      });
       if (!review || review.fingerprint !== fingerprint) {
         throw new Error("Valide o lancamento antes de enviar. Se alterou algum campo ou anexo, rode a validacao novamente.");
       }
 
-      const created = await fluigAdmApi.createJob({
-        module: moduleSlug,
-        operation: "open_from_source",
-        payload: {
-          sourceRequestId: payload.sourceRequestId,
-          fieldOverrides: payload.fieldOverrides,
-          attachments,
-          confirm: true,
-        },
-      });
+      let created;
+      if (moduleSlug === "pagamentos" || moduleSlug === "compras") {
+        if (!review.launchId) {
+          throw new Error("Registro validado nao encontrado. Valide novamente antes de enviar.");
+        }
+        created = await fluigAdmApi.submitOperationalLaunch(review.launchId, attachments);
+      } else {
+        created = await fluigAdmApi.createJob({
+          module: moduleSlug,
+          operation: "open_from_source",
+          payload: {
+            sourceRequestId: payload.sourceRequestId,
+            fieldOverrides: payload.fieldOverrides,
+            attachments,
+            confirm: true,
+          },
+        });
+      }
 
       setJobState({
         id: created.job.id,
@@ -608,10 +807,23 @@ export function FluigLaunchForm({
         progressLabel: created.job.progressLabel,
       });
       await pollJobUntilDone(created.job.id);
-      setMessage("Lancamento enviado para o Fluig. O numero sera exibido apos a proxima leitura de status.");
+      if (moduleSlug === "pagamentos" || moduleSlug === "compras") {
+        const completed = await fluigAdmApi.getOperationalLaunch(review.launchId!);
+        const launch = completed.launches[0] || null;
+        setMessage(
+          launch?.fluigRequestId
+            ? `Solicitacao Fluig ${launch.fluigRequestId} aberta e vinculada ao lancamento.`
+            : "Lancamento executado pelo agente. Atualize o historico para consultar o numero Fluig."
+        );
+        await refreshOperationalLaunches();
+      } else {
+        setMessage("Lancamento enviado para o Fluig. O numero sera exibido apos a proxima leitura de status.");
+      }
 
-      const refreshed = await fluigAdmApi.sync({ module: moduleSlug, action: "sync" });
-      onSynced?.(refreshed);
+      if (moduleSlug === "manutencao") {
+        const refreshed = await fluigAdmApi.sync({ module: moduleSlug, action: "sync" });
+        onSynced?.(refreshed);
+      }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Falha ao abrir lancamento no Fluig.");
     } finally {
@@ -680,6 +892,12 @@ export function FluigLaunchForm({
           </p>
         ) : null}
 
+        {isOperationalLaunchModule && launchPermissions && !launchPermissions.canCreate ? (
+          <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            Seu usuario pode consultar os lancamentos deste modulo, mas ainda nao recebeu permissao para criar e enviar novos registros.
+          </p>
+        ) : null}
+
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {fields.map((field) =>
             field.type === "catalog" && field.catalogType ? (
@@ -688,7 +906,7 @@ export function FluigLaunchForm({
                 field={field}
                 value={formValues[field.key] || ""}
                 items={catalogs[field.catalogType] || []}
-                onChange={(value) => setFieldValue(field.key, value)}
+                onChange={(value) => handleCatalogChange(field, value)}
                 onSelect={(item) => handleCatalogSelect(field, item)}
               />
             ) : field.type === "textarea" ? (
@@ -712,6 +930,84 @@ export function FluigLaunchForm({
             )
           )}
         </div>
+
+        {moduleSlug === "compras" ? (
+          <div className="rounded-md border bg-muted/20 p-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-sm font-semibold">Itens da requisicao</h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Informe produto ou servico, quantidade, unidade e valor estimado.
+                </p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addPurchaseItem}>
+                <Plus className="size-4" />
+                Adicionar item
+              </Button>
+            </div>
+            <div className="mt-3 space-y-2">
+              {purchaseItems.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="grid gap-2 rounded-md border bg-background p-2 md:grid-cols-[minmax(0,2fr)_110px_100px_150px_36px]"
+                >
+                  <div className="space-y-1">
+                    <Label htmlFor={`${item.id}-description`}>Descricao do item {index + 1}</Label>
+                    <Input
+                      id={`${item.id}-description`}
+                      value={item.description}
+                      placeholder="Produto, servico ou material"
+                      onChange={(event) => updatePurchaseItem(item.id, "description", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`${item.id}-quantity`}>Quantidade</Label>
+                    <Input
+                      id={`${item.id}-quantity`}
+                      inputMode="decimal"
+                      value={item.quantity}
+                      onChange={(event) => updatePurchaseItem(item.id, "quantity", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`${item.id}-unit`}>Unidade</Label>
+                    <Input
+                      id={`${item.id}-unit`}
+                      value={item.unit}
+                      placeholder="UN"
+                      onChange={(event) => updatePurchaseItem(item.id, "unit", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`${item.id}-price`}>Valor unitario</Label>
+                    <Input
+                      id={`${item.id}-price`}
+                      inputMode="decimal"
+                      value={item.unitPrice}
+                      placeholder="0,00"
+                      onChange={(event) => updatePurchaseItem(item.id, "unitPrice", event.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removePurchaseItem(item.id)}
+                      aria-label={`Remover item ${index + 1}`}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex justify-end text-sm">
+              <span className="text-muted-foreground">Total estimado:</span>
+              <strong className="ml-2">{formatMoney(purchaseTotalCents)}</strong>
+            </div>
+          </div>
+        ) : null}
 
         <div className="rounded-md border bg-muted/20 p-3">
           <Label className="text-sm">Anexos</Label>
@@ -785,6 +1081,14 @@ export function FluigLaunchForm({
                   : "Nenhum anexo informado"}
               </p>
             </div>
+            {moduleSlug === "compras" ? (
+              <div className="mt-3 rounded border bg-background px-2 py-2 text-foreground">
+                <p className="text-muted-foreground">Itens e total estimado</p>
+                <p className="mt-1 font-medium">
+                  {purchaseItems.length} {purchaseItems.length === 1 ? "item" : "itens"} - {formatMoney(purchaseTotalCents)}
+                </p>
+              </div>
+            ) : null}
             {review.warnings.length ? (
               <div className="mt-3 rounded border border-amber-200 bg-amber-50 px-2 py-2 text-amber-900">
                 {review.warnings.map((warning) => (
@@ -809,21 +1113,93 @@ export function FluigLaunchForm({
             variant="outline"
             onClick={() => {
               setFormValues({});
+              setSelectedSupplierId(null);
+              setSelectedBranchCode(null);
+              setSelectedTemplateId("");
+              setAttachments([]);
+              setPurchaseItems([initialPurchaseItem()]);
               setReview(null);
+              setJobState(null);
+              setMessage(null);
+              setError(null);
             }}
             disabled={submitting || validating}
           >
             Limpar
           </Button>
-          <Button type="button" variant="outline" onClick={validateLaunch} disabled={submitting || validating}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={validateLaunch}
+            disabled={
+              submitting ||
+              validating ||
+              loadingLaunches ||
+              (isOperationalLaunchModule && launchPermissions?.canCreate === false)
+            }
+          >
             {validating ? <Loader2 className="size-4 animate-spin" /> : <FileCheck2 className="size-4" />}
             Validar lancamento
           </Button>
-          <Button type="button" onClick={submitLaunch} disabled={submitting || validating || !review}>
+          <Button
+            type="button"
+            onClick={submitLaunch}
+            disabled={
+              submitting ||
+              validating ||
+              !review ||
+              (isOperationalLaunchModule && launchPermissions?.canCreate === false)
+            }
+          >
             {submitting ? <Loader2 className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
             Enviar para o Fluig
           </Button>
         </div>
+
+        {isOperationalLaunchModule ? (
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <History className="size-4 text-muted-foreground" />
+                <h4 className="text-sm font-semibold">Lancamentos recentes</h4>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={() => void refreshOperationalLaunches()} disabled={loadingLaunches}>
+                {loadingLaunches ? <Loader2 className="size-4 animate-spin" /> : null}
+                Atualizar
+              </Button>
+            </div>
+            {loadingLaunches && !recentLaunches.length ? (
+              <p className="mt-3 text-xs text-muted-foreground">Carregando lancamentos...</p>
+            ) : recentLaunches.length ? (
+              <div className="mt-3 divide-y rounded-md border">
+                {recentLaunches.map((launch) => (
+                  <div key={launch.id} className="grid gap-2 p-3 text-xs md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] md:items-center">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-foreground">{launch.title}</p>
+                      <p className="mt-1 truncate text-muted-foreground">
+                        {[launch.supplierName, launch.branchLabel || launch.branchCode].filter(Boolean).join(" - ") || "Sem fornecedor ou filial vinculada"}
+                      </p>
+                    </div>
+                    <div className="min-w-0 text-muted-foreground">
+                      <p className="truncate">
+                        {launch.fluigRequestId ? `Fluig ${launch.fluigRequestId}` : launch.progressLabel || "Aguardando envio"}
+                      </p>
+                      <p className="mt-1">
+                        {new Date(launch.createdAt).toLocaleString("pt-BR")}
+                        {launch.amountCents != null ? ` - ${formatMoney(launch.amountCents)}` : ""}
+                      </p>
+                    </div>
+                    <StatusBadge status={launch.status} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                Nenhum lancamento validado neste modulo.
+              </p>
+            )}
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -852,7 +1228,7 @@ function SearchableCatalogField({
   value: string;
   items: CatalogOption[];
   onChange: (value: string) => void;
-  onSelect: (item: FluigCatalogItem) => void;
+  onSelect: (item: CatalogOption) => void;
 }) {
   const [open, setOpen] = useState(false);
   const normalizedQuery = normalizeText(value);

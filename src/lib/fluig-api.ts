@@ -1,4 +1,10 @@
 import type { FluigAdmSyncResponse, FluigModuleSlug } from "@/lib/fluig-data";
+import type {
+  OperationalLaunchAttachmentPayload,
+  OperationalLaunchModule,
+  OperationalLaunchRecord,
+  OperationalLaunchValidateInput,
+} from "@/lib/operational-launch";
 
 export type FluigAdmSyncAction = "sync" | "examples" | "suppliers" | "tasks";
 export type FluigJobOperation =
@@ -148,6 +154,7 @@ export const fluigAdmApi = {
   requestLookupPath: "/api/fluig/adm/request/lookup",
   myTasksPath: "/api/fluig/adm/tasks/my",
   myOpenRequestsPath: "/api/fluig/adm/requests/my-open",
+  operationalLaunchesPath: "/api/fluig/adm/launches",
   async sync(payload: FluigAdmSyncRequest) {
     const response = await fetch(this.syncPath, {
       method: "POST",
@@ -316,6 +323,49 @@ export const fluigAdmApi = {
       confirm: false,
       persist: false,
     });
+  },
+  async validateOperationalLaunch(payload: OperationalLaunchValidateInput) {
+    return this.post<{
+      success: true;
+      launch: OperationalLaunchRecord;
+    }>(this.operationalLaunchesPath, {
+      action: "validate",
+      ...payload,
+    });
+  },
+  async submitOperationalLaunch(launchId: string, attachments: OperationalLaunchAttachmentPayload[]) {
+    return this.post<{
+      success: true;
+      launch: OperationalLaunchRecord;
+      job: {
+        id: string;
+        status: string;
+        progressStage: string | null;
+        progressLabel: string | null;
+      };
+    }>(this.operationalLaunchesPath, {
+      action: "submit",
+      launchId,
+      attachments,
+    });
+  },
+  async listOperationalLaunches(module: OperationalLaunchModule, limit = 20) {
+    const params = new URLSearchParams({ module, limit: String(limit) });
+    return this.get<{
+      success: true;
+      launches: OperationalLaunchRecord[];
+      permissions: {
+        canView: boolean;
+        canCreate: boolean;
+      };
+    }>(`${this.operationalLaunchesPath}?${params.toString()}`);
+  },
+  async getOperationalLaunch(id: string) {
+    const params = new URLSearchParams({ id });
+    return this.get<{
+      success: true;
+      launches: OperationalLaunchRecord[];
+    }>(`${this.operationalLaunchesPath}?${params.toString()}`);
   },
   async listMyTasks(limit = 20, module?: FluigModuleSlug) {
     const params = new URLSearchParams({ limit: String(limit) });

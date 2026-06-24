@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readJobForAgent, recordFluigJobEvent, type FluigJobStatus } from "@/lib/db/app-repository";
+import { updateOperationalLaunchJobProgress } from "@/lib/db/operational-launch-repository";
 import { requireAgent } from "@/app/api/agent/_utils";
 
 export const runtime = "nodejs";
@@ -38,6 +39,12 @@ export async function POST(request: Request, context: RouteContext) {
     label: body.label,
     payload: body.payload,
     status: body.status,
+  });
+  await updateOperationalLaunchJobProgress({
+    job,
+    status: body.status,
+    stage: body.stage,
+    label: body.label,
   });
 
   return NextResponse.json({

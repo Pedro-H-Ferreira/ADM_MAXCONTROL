@@ -102,4 +102,23 @@ describe("database and API contracts", () => {
       /\.from\("app_supplier_branch_links"\)[\s\S]{0,220}\.in\("supplier_id", supplierIds\)/
     );
   });
+
+  it("persiste lancamentos operacionais com itens, auditoria e escrita somente server-side", async () => {
+    const migration = await source("supabase/migrations/20260624094623_operational_fluig_launches.sql");
+    const repository = await source("src/lib/db/operational-launch-repository.ts");
+    const route = await source("src/app/api/fluig/adm/launches/route.ts");
+    const resultRoute = await source("src/app/api/agent/jobs/[jobId]/result/route.ts");
+
+    expect(migration).toContain("create table if not exists public.app_fluig_launches");
+    expect(migration).toContain("create table if not exists public.app_fluig_launch_items");
+    expect(migration).toContain("create table if not exists public.app_fluig_launch_events");
+    expect(migration).toContain("revoke all on public.app_fluig_launches from anon, authenticated");
+    expect(migration).toContain("to service_role");
+    expect(repository).toContain('eq("review_fingerprint", fingerprint)');
+    expect(repository).toContain("completeOperationalLaunchJob");
+    expect(route).toContain('"open_from_source"');
+    expect(route).toContain("operationalLaunchFingerprint");
+    expect(resultRoute).toContain("completeOperationalLaunchJob");
+    expect(resultRoute).toContain("markOperationalLaunchFailure");
+  });
 });
