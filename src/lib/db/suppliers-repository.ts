@@ -3,6 +3,7 @@ import { formatCnpj, isValidCnpj, normalizeCnpj, onlyDigits } from "@/lib/cnpj";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { AppActor } from "@/lib/db/app-repository";
 import type { FluigHistoryItem } from "@/lib/fluig/server-client";
+import type { SupplierListFilters } from "@/lib/supplier-list-filters";
 import {
   historicalCnpjMatches,
   historicalCnpjVariants,
@@ -294,23 +295,17 @@ async function fetchRequestCounts(client: SupabaseClient, supplierIds: string[])
 
 export async function listSuppliers(
   actor: AppActor,
-  input: {
-    search?: string | null;
-    status?: string | null;
-    sourceSystem?: string | null;
-    syncStatus?: string | null;
-    page?: number;
-    pageSize?: number;
-  }
+  input: SupplierListFilters
 ) {
   const client = assertServiceClient();
   const page = Math.max(Number(input.page || 1), 1);
   const pageSize = Math.min(Math.max(Number(input.pageSize || 25), 1), 100);
   const from = (page - 1) * pageSize;
+  const branchScoped = Boolean(input.branchId);
 
   let query = client
     .from("app_suppliers")
-    .select("*", { count: "exact" })
+    .select(branchScoped ? "*,app_supplier_branch_links!inner(branch_id)" : "*", { count: "exact" })
     .is("deleted_at", null)
     .order("razao_social", { ascending: true });
 
@@ -332,12 +327,17 @@ export async function listSuppliers(
   if (input.status) query = query.eq("status", input.status);
   if (input.sourceSystem) query = query.eq("source_system", input.sourceSystem);
   if (input.syncStatus) query = query.eq("sync_status", input.syncStatus);
+  if (input.branchId) query = query.eq("app_supplier_branch_links.branch_id", input.branchId);
+  if (input.attention === "PENDING") {
+    query = query.or("status.eq.PENDENTE_REVISAO,sync_status.eq.PENDENTE_REVISAO");
+  }
+  if (input.attention === "ERROR") query = query.eq("sync_status", "ERRO_SYNC");
 
-  const queryLimitMultiplier = actor.isAdmin ? 1 : 5;
+  const queryLimitMultiplier = actor.isAdmin || branchScoped ? 1 : 5;
   const { data, error, count } = await query.range(from, from + pageSize * queryLimitMultiplier - 1);
   if (error) throw error;
 
-  const rows = (data || []) as SupplierDbRow[];
+  const rows = (data || []) as unknown as SupplierDbRow[];
   const supplierIds = rows.map((row) => row.id);
   const [linksBySupplier, requestCounts] = await Promise.all([
     fetchLinks(client, supplierIds),
@@ -348,7 +348,7 @@ export async function listSuppliers(
   return {
     page,
     pageSize,
-    total: actor.isAdmin ? count || 0 : visibleRows.length,
+    total: actor.isAdmin || branchScoped ? count || 0 : visibleRows.length,
     items: visibleRows.map((row) => mapSupplier(row, linksBySupplier.get(row.id), requestCounts.get(row.id) || 0)),
   };
 }
@@ -562,10 +562,35 @@ export async function updateSupplier(actor: AppActor, id: string, input: Partial
   const current = before as SupplierDbRow;
   const payload = normalizeSupplierInput(
     {
-      razaoSocial: current.razao_social,
       cnpj: current.cnpj_normalizado,
+      razaoSocial: current.razao_social,
+      nomeFantasia: current.nome_fantasia,
+      inscricaoEstadual: current.inscricao_estadual,
+      inscricaoMunicipal: current.inscricao_municipal,
+      categoria: current.categoria,
+      status: current.status,
+      email: current.email,
+      telefone: current.telefone,
+      contatoPrincipal: current.contato_principal,
+      contatos: current.contatos || [],
+      cep: current.cep,
+      endereco: current.endereco,
+      numero: current.numero,
+      complemento: current.complemento,
+      bairro: current.bairro,
+      cidade: current.cidade,
+      uf: current.uf,
+      pais: current.pais,
+      observacoes: current.observacoes,
+      fluigName: current.fluig_name,
+      fluigCode: current.fluig_code,
+      fluigSupplierLabel: current.fluig_supplier_label,
+      defaultSourceRequestId: current.default_source_request_id,
+      defaultPayload: current.default_payload || {},
+      sourceSystem: current.source_system,
+      syncStatus: current.sync_status,
       ...input,
-    } as SupplierInput,
+    },
     actor
   );
   await assertNoDuplicateCnpj(client, payload.cnpj_normalizado, id);

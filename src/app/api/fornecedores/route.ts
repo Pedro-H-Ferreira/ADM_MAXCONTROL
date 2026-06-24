@@ -3,6 +3,7 @@ import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { createSupplier, listSuppliers, type SupplierInput } from "@/lib/db/suppliers-repository";
 import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
+import { supplierListFiltersSchema, supplierListFilterValues } from "@/lib/supplier-list-filters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,14 +67,20 @@ export async function GET(request: Request) {
     }
 
     const url = new URL(request.url);
-    const payload = await listSuppliers(actor, {
-      search: url.searchParams.get("q") || url.searchParams.get("search"),
-      status: url.searchParams.get("status"),
-      sourceSystem: url.searchParams.get("sourceSystem"),
-      syncStatus: url.searchParams.get("syncStatus"),
-      page: Number(url.searchParams.get("page") || 1),
-      pageSize: Number(url.searchParams.get("pageSize") || 25),
-    });
+    const parsedFilters = supplierListFiltersSchema.safeParse(supplierListFilterValues(url.searchParams));
+    if (!parsedFilters.success) {
+      return jsonError(parsedFilters.error.issues[0]?.message || "Filtros de fornecedores invalidos.");
+    }
+
+    if (
+      parsedFilters.data.branchId &&
+      !actor.isAdmin &&
+      !actor.branches.some((branch) => branch.id === parsedFilters.data.branchId)
+    ) {
+      return jsonError("Usuario sem permissao para consultar fornecedores desta filial.", 403);
+    }
+
+    const payload = await listSuppliers(actor, parsedFilters.data);
 
     return NextResponse.json({ success: true, permissions: supplierPermissions(actor), ...payload });
   } catch (error) {

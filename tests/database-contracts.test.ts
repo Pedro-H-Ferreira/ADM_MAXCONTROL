@@ -28,4 +28,25 @@ describe("database and API contracts", () => {
     expect(itemRoute).toMatch(/export async function PATCH/);
     expect(itemRoute).toMatch(/export async function DELETE/);
   });
+
+  it("preserva todos os campos do fornecedor em atualizacoes parciais", async () => {
+    const repository = await source("src/lib/db/suppliers-repository.ts");
+
+    expect(repository).toMatch(/nomeFantasia:\s*current\.nome_fantasia/);
+    expect(repository).toMatch(/defaultPayload:\s*current\.default_payload \|\| \{\}/);
+    expect(repository).toMatch(/sourceSystem:\s*current\.source_system/);
+    expect(repository).toMatch(/syncStatus:\s*current\.sync_status/);
+    expect(repository).toMatch(/\.\.\.input/);
+  });
+
+  it("mantem filtros de filial, pendencia e erro na consulta de fornecedores", async () => {
+    const repository = await source("src/lib/db/suppliers-repository.ts");
+    const route = await source("src/app/api/fornecedores/route.ts");
+
+    expect(repository).toContain("app_supplier_branch_links!inner(branch_id)");
+    expect(repository).toContain('"status.eq.PENDENTE_REVISAO,sync_status.eq.PENDENTE_REVISAO"');
+    expect(repository).toContain('query.eq("sync_status", "ERRO_SYNC")');
+    expect(route).toContain("supplierListFiltersSchema.safeParse");
+    expect(route).toContain("Usuario sem permissao para consultar fornecedores desta filial.");
+  });
 });

@@ -8,6 +8,8 @@ import {
   FileSearch,
   Loader2,
   Plus,
+  Power,
+  PowerOff,
   RefreshCcw,
   Search,
   Trash2,
@@ -335,15 +337,19 @@ export function SuppliersPage({
   const [status, setStatus] = useState<"ALL" | SupplierStatus>("ALL");
   const [sourceSystem, setSourceSystem] = useState<"ALL" | SupplierSourceSystem>("ALL");
   const [syncStatus, setSyncStatus] = useState<"ALL" | SupplierSyncStatus>("ALL");
+  const [branchId, setBranchId] = useState("ALL");
+  const [attention, setAttention] = useState<"ALL" | "PENDING" | "ERROR">("ALL");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [syncingSupplierId, setSyncingSupplierId] = useState<string | null>(null);
+  const [statusChangingSupplierId, setStatusChangingSupplierId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(initialOpenForm);
   const [editing, setEditing] = useState<SupplierRecord | null>(null);
   const [viewing, setViewing] = useState<SupplierRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SupplierRecord | null>(null);
+  const [inactivateTarget, setInactivateTarget] = useState<SupplierRecord | null>(null);
   const [lookupResult, setLookupResult] = useState<LookupResult | null>(null);
   const [form, setForm] = useState<SupplierFormState>(initialForm);
   const pageSize = 25;
@@ -368,6 +374,8 @@ export function SuppliersPage({
       if (status !== "ALL") params.set("status", status);
       if (sourceSystem !== "ALL") params.set("sourceSystem", sourceSystem);
       if (syncStatus !== "ALL") params.set("syncStatus", syncStatus);
+      if (branchId !== "ALL") params.set("branchId", branchId);
+      if (attention !== "ALL") params.set("attention", attention);
 
       const data = await parseResponse<SuppliersPayload>(
         await fetch(`/api/fornecedores?${params.toString()}`, { cache: "no-store" }),
@@ -384,7 +392,7 @@ export function SuppliersPage({
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, page, sourceSystem, status, syncStatus]);
+  }, [attention, branchId, debouncedSearch, page, sourceSystem, status, syncStatus]);
 
   const loadBranches = useCallback(async () => {
     try {
@@ -586,6 +594,33 @@ export function SuppliersPage({
     }
   }
 
+  async function updateSupplierStatus(supplier: SupplierRecord, nextStatus: "ATIVO" | "INATIVO") {
+    setStatusChangingSupplierId(supplier.id);
+    try {
+      await parseResponse(
+        await fetch(`/api/fornecedores/${supplier.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: nextStatus }),
+        }),
+        nextStatus === "ATIVO" ? "Falha ao reativar fornecedor." : "Falha ao inativar fornecedor."
+      );
+      toast.success(nextStatus === "ATIVO" ? "Fornecedor reativado." : "Fornecedor inativado.");
+      setInactivateTarget(null);
+      await loadSuppliers();
+    } catch (statusError) {
+      toast.error(
+        statusError instanceof Error
+          ? statusError.message
+          : nextStatus === "ATIVO"
+            ? "Falha ao reativar fornecedor."
+            : "Falha ao inativar fornecedor."
+      );
+    } finally {
+      setStatusChangingSupplierId(null);
+    }
+  }
+
   async function syncSupplierWithFluig(supplier: SupplierRecord) {
     const cnpj = supplier.cnpjNormalizado || supplier.cnpj || "";
     if (!isValidCnpj(cnpj)) {
@@ -673,7 +708,7 @@ export function SuppliersPage({
                 placeholder="Buscar por CNPJ, razao social, nome Fluig ou codigo"
               />
             </div>
-            <div className="grid gap-2 sm:grid-cols-3 xl:w-[620px]">
+            <div className="grid gap-2 sm:grid-cols-2 xl:w-[980px] xl:grid-cols-5">
               <Select value={status} onValueChange={(value) => { setStatus(value as typeof status); setPage(1); }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Status" />
@@ -707,6 +742,29 @@ export function SuppliersPage({
                   <SelectItem value="SINCRONIZADO">Sincronizado</SelectItem>
                   <SelectItem value="PENDENTE_REVISAO">Pendente revisao</SelectItem>
                   <SelectItem value="ERRO_SYNC">Erro sync</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={branchId} onValueChange={(value) => { setBranchId(value); setPage(1); }}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filial" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todas as filiais</SelectItem>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.code} - {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={attention} onValueChange={(value) => { setAttention(value as typeof attention); setPage(1); }}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Situacao" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todas as situacoes</SelectItem>
+                  <SelectItem value="PENDING">Com pendencia</SelectItem>
+                  <SelectItem value="ERROR">Com erro</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -829,6 +887,28 @@ export function SuppliersPage({
                                 <RefreshCcw className="size-4" />
                               )}
                             </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              title={supplier.status === "INATIVO" ? "Reativar fornecedor" : "Inativar fornecedor"}
+                              disabled={statusChangingSupplierId === supplier.id}
+                              onClick={() => {
+                                if (supplier.status === "INATIVO") {
+                                  void updateSupplierStatus(supplier, "ATIVO");
+                                } else {
+                                  setInactivateTarget(supplier);
+                                }
+                              }}
+                            >
+                              {statusChangingSupplierId === supplier.id ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : supplier.status === "INATIVO" ? (
+                                <Power className="size-4" />
+                              ) : (
+                                <PowerOff className="size-4" />
+                              )}
+                            </Button>
                             <Button type="button" variant="ghost" size="icon-sm" title="Excluir ou inativar" onClick={() => setDeleteTarget(supplier)}>
                               <Trash2 className="size-4" />
                             </Button>
@@ -884,6 +964,28 @@ export function SuppliersPage({
       />
 
       <SupplierViewDialog supplier={viewing} onOpenChange={(open) => !open && setViewing(null)} />
+
+      <AlertDialog open={Boolean(inactivateTarget)} onOpenChange={(open) => !open && setInactivateTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Inativar fornecedor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O cadastro permanecera no historico e podera ser reativado depois. Nenhum vinculo existente sera apagado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(statusChangingSupplierId)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={!inactivateTarget || Boolean(statusChangingSupplierId)}
+              onClick={() => inactivateTarget && void updateSupplierStatus(inactivateTarget, "INATIVO")}
+            >
+              {statusChangingSupplierId ? <Loader2 className="size-4 animate-spin" /> : <PowerOff className="size-4" />}
+              Inativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
