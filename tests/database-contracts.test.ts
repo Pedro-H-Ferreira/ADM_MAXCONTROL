@@ -101,6 +101,8 @@ describe("database and API contracts", () => {
     expect(repository).toContain("cache(resolveCurrentAppUserUncached)");
     expect(repository).toContain("supabase.auth.getClaims()");
     expect(page).toContain("resolveCurrentAppUserForPage");
+    expect(page).toContain("AccessDeniedPage");
+    expect(page).toContain("Seu usuario esta autenticado");
   });
 
   it("divide os vinculos de fornecedores do dashboard para evitar URL PostgREST excessiva", async () => {
