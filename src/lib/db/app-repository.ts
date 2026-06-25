@@ -11,6 +11,13 @@ import {
   navigationPageOptions,
 } from "@/lib/navigation";
 import { filterFluigRowsForActor, type FluigVisibilityRow } from "@/lib/fluig-visibility";
+import {
+  defaultFluigJobMaxAttempts,
+  evaluateFluigJobLifecycle,
+  fluigActiveJobStatuses,
+  fluigJobQueueLifetimeMs,
+  type FluigLifecycleStatus,
+} from "@/lib/fluig-job-lifecycle";
 
 type JsonRecord = Record<string, unknown>;
 type JsonComparable = JsonRecord | unknown[] | string | number | boolean | null;
@@ -111,6 +118,11 @@ export type FluigJobRecord = {
   errorMessage: string | null;
   progressStage: string | null;
   progressLabel: string | null;
+  attempts: number;
+  maxAttempts: number;
+  nextAttemptAt: string | null;
+  lastAttemptAt: string | null;
+  expiresAt: string;
   createdAt: string;
   updatedAt: string;
   finishedAt: string | null;
@@ -155,6 +167,11 @@ type DbJobRow = {
   error_message: string | null;
   progress_stage: string | null;
   progress_label: string | null;
+  attempts: number;
+  max_attempts: number;
+  next_attempt_at: string | null;
+  last_attempt_at: string | null;
+  expires_at: string;
   created_at: string;
   updated_at: string;
   finished_at: string | null;
@@ -202,17 +219,7 @@ type DbPageAccessRow = {
 
 const adminRoles = new Set<AppRole>(["ADMIN_MASTER", "ADMIN"]);
 const fallbackAdminEmail = "admin@adm.local";
-const reusableJobStatuses: FluigJobStatus[] = [
-  "queued",
-  "agent_claimed",
-  "authenticating",
-  "opening_fluig",
-  "reading_page",
-  "filling_form",
-  "submitting",
-  "waiting_protocol",
-  "syncing_result",
-];
+const reusableJobStatuses: FluigJobStatus[] = [...fluigActiveJobStatuses];
 const agentHeartbeatOnlineWindowMs = 2 * 60 * 1000;
 
 export class AppAuthError extends Error {
@@ -284,10 +291,104 @@ function mapJob(row: DbJobRow): FluigJobRecord {
     errorMessage: row.error_message,
     progressStage: row.progress_stage,
     progressLabel: row.progress_label,
+    attempts: Number(row.attempts || 0),
+    maxAttempts: Number(row.max_attempts || defaultFluigJobMaxAttempts(row.operation)),
+    nextAttemptAt: row.next_attempt_at || null,
+    lastAttemptAt: row.last_attempt_at || null,
+    expiresAt: row.expires_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     finishedAt: row.finished_at,
   };
+}
+
+async function reconcileFluigJobLifecycle(client: SupabaseClient, userId?: string | null) {
+  let query = client
+    .from("fluig_jobs")
+    .select("*")
+    .in("status", reusableJobStatuses)
+    .order("created_at", { ascending: true })
+    .limit(500);
+
+  if (userId) query = query.eq("requested_by_user_id", userId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+  let expired = 0;
+  let retried = 0;
+
+  for (const row of (data || []) as DbJobRow[]) {
+    const decision = evaluateFluigJobLifecycle(
+      {
+        operation: row.operation,
+        status: row.status as FluigLifecycleStatus,
+        attempts: Number(row.attempts || 0),
+        maxAttempts: Number(row.max_attempts || defaultFluigJobMaxAttempts(row.operation)),
+        updatedAt: row.updated_at,
+        expiresAt: row.expires_at,
+        nextAttemptAt: row.next_attempt_at,
+      },
+      now
+    );
+    if (decision.action === "keep") continue;
+
+    const updatePayload =
+      decision.action === "retry"
+        ? {
+            assigned_agent_id: null,
+            status: "queued",
+            progress_stage: "queued",
+            progress_label: decision.label,
+            error_message: null,
+            claimed_at: null,
+            started_at: null,
+            finished_at: null,
+            next_attempt_at: decision.nextAttemptAt,
+            expires_at: decision.expiresAt,
+            updated_at: nowIso,
+          }
+        : {
+            status: "expired",
+            progress_stage: "expired",
+            progress_label: decision.label,
+            error_message: decision.label,
+            finished_at: nowIso,
+            updated_at: nowIso,
+          };
+    const { data: updated, error: updateError } = await client
+      .from("fluig_jobs")
+      .update(updatePayload)
+      .eq("id", row.id)
+      .eq("status", row.status)
+      .eq("updated_at", row.updated_at)
+      .select("id")
+      .maybeSingle();
+    if (updateError) throw updateError;
+    if (!updated) continue;
+
+    const eventType = decision.action === "retry" ? "retry_scheduled" : "expired";
+    const { error: eventError } = await client.from("fluig_job_events").insert({
+      job_id: row.id,
+      agent_id: row.assigned_agent_id,
+      event_type: eventType,
+      stage: decision.action === "retry" ? "queued" : "expired",
+      label: decision.label,
+      event_payload: {
+        attempts: Number(row.attempts || 0),
+        maxAttempts: Number(row.max_attempts || defaultFluigJobMaxAttempts(row.operation)),
+        nextAttemptAt: decision.action === "retry" ? decision.nextAttemptAt : null,
+      },
+    });
+    if (eventError) throw eventError;
+
+    if (decision.action === "retry") retried += 1;
+    else expired += 1;
+  }
+
+  return { expired, retried };
 }
 
 function mapSyncState(row: DbSyncStateRow) {
@@ -999,6 +1100,7 @@ export async function createFluigJob(input: {
   reuseActive?: boolean;
 }) {
   const client = assertServiceClient();
+  await reconcileFluigJobLifecycle(client, input.actor.id);
   const selectedBranch =
     input.branchCode && input.actor.branchCodes.includes(input.branchCode)
       ? input.actor.branches.find((branch) => branch.code === input.branchCode)
@@ -1011,6 +1113,8 @@ export async function createFluigJob(input: {
   const requestPayload = input.requestPayload || {};
   const branchCode = input.branchCode || selectedBranch?.code || null;
   const branchLabel = input.branchLabel || selectedBranch?.fluigLabel || selectedBranch?.name || null;
+  const now = new Date();
+  const maxAttempts = defaultFluigJobMaxAttempts(input.operation);
 
   if (input.reuseActive) {
     const { data: activeJobs, error: activeJobsError } = await client
@@ -1049,6 +1153,9 @@ export async function createFluigJob(input: {
       fluig_username: input.actor.fluigUsername,
       request_payload: requestPayload,
       status: "queued",
+      max_attempts: maxAttempts,
+      next_attempt_at: now.toISOString(),
+      expires_at: new Date(now.getTime() + fluigJobQueueLifetimeMs(input.operation)).toISOString(),
     })
     .select("*")
     .single();
@@ -1145,6 +1252,7 @@ export async function listFluigUserSyncState(actor: AppActor, input: { userId?: 
 
 export async function listJobsForActor(actor: AppActor, limit = 20) {
   const client = assertServiceClient();
+  await reconcileFluigJobLifecycle(client, actor.isAdmin ? null : actor.id);
   let query = client.from("fluig_jobs").select("*").order("created_at", { ascending: false }).limit(limit);
 
   if (!actor.isAdmin) {
@@ -1158,6 +1266,7 @@ export async function listJobsForActor(actor: AppActor, limit = 20) {
 
 export async function readJobForActor(actor: AppActor, jobId: string) {
   const client = assertServiceClient();
+  await reconcileFluigJobLifecycle(client, actor.isAdmin ? null : actor.id);
   const { data, error } = await client.from("fluig_jobs").select("*").eq("id", jobId).maybeSingle();
   if (error) throw error;
   if (!data) return null;
@@ -1179,6 +1288,7 @@ export async function readJobForActor(actor: AppActor, jobId: string) {
 
 export async function pollNextAgentJob(agent: { id: string; userId: string }) {
   const client = assertServiceClient();
+  await reconcileFluigJobLifecycle(client, agent.userId);
   const { data: existing, error: existingError } = await client
     .from("fluig_jobs")
     .select("*")
@@ -1205,6 +1315,7 @@ export async function pollNextAgentJob(agent: { id: string; userId: string }) {
     .eq("requested_by_user_id", agent.userId)
     .eq("status", "queued")
     .gt("expires_at", new Date().toISOString())
+    .lte("next_attempt_at", new Date().toISOString())
     .order("priority", { ascending: true })
     .order("created_at", { ascending: true })
     .limit(1)
@@ -1223,6 +1334,7 @@ export async function pollNextAgentJob(agent: { id: string; userId: string }) {
       progress_stage: "agent_claimed",
       progress_label: "Agente local assumiu a tarefa.",
       attempts: Number((queued as { attempts?: number }).attempts || 0) + 1,
+      last_attempt_at: now,
       updated_at: now,
     })
     .eq("id", queued.id)
@@ -1244,7 +1356,7 @@ export async function readJobForAgent(agent: { id: string; userId: string }, job
   if (error) throw error;
   if (!data) return null;
   const job = mapJob(data as DbJobRow);
-  if (job.assignedAgentId && job.assignedAgentId !== agent.id) return null;
+  if (job.assignedAgentId !== agent.id) return null;
   return job;
 }
 
@@ -1259,29 +1371,31 @@ export async function recordFluigJobEvent(input: {
 }) {
   const client = assertServiceClient();
   const now = new Date().toISOString();
-  const [{ error: eventError }, { error: updateError }] = await Promise.all([
-    client.from("fluig_job_events").insert({
-      job_id: input.jobId,
-      agent_id: input.agentId,
-      event_type: input.eventType,
-      stage: input.stage || null,
-      label: input.label || null,
-      event_payload: input.payload || {},
-    }),
-    input.status || input.stage || input.label
-      ? client
-          .from("fluig_jobs")
-          .update({
-            status: input.status || undefined,
-            progress_stage: input.stage || undefined,
-            progress_label: input.label || undefined,
-            updated_at: now,
-          })
-          .eq("id", input.jobId)
-      : Promise.resolve({ error: null }),
-  ]);
-  if (eventError) throw eventError;
+  const updatePayload: Record<string, string> = { updated_at: now };
+  if (input.status) updatePayload.status = input.status;
+  if (input.stage) updatePayload.progress_stage = input.stage;
+  if (input.label) updatePayload.progress_label = input.label;
+
+  const { data: updated, error: updateError } = await client
+    .from("fluig_jobs")
+    .update(updatePayload)
+    .eq("id", input.jobId)
+    .eq("assigned_agent_id", input.agentId)
+    .in("status", reusableJobStatuses)
+    .select("id")
+    .maybeSingle();
   if (updateError) throw updateError;
+  if (!updated) throw new Error("Job nao esta mais atribuido a este agente.");
+
+  const { error: eventError } = await client.from("fluig_job_events").insert({
+    job_id: input.jobId,
+    agent_id: input.agentId,
+    event_type: input.eventType,
+    stage: input.stage || null,
+    label: input.label || null,
+    event_payload: input.payload || {},
+  });
+  if (eventError) throw eventError;
 }
 
 export async function completeFluigJob(input: {
@@ -1294,30 +1408,33 @@ export async function completeFluigJob(input: {
   const client = assertServiceClient();
   const now = new Date().toISOString();
   const statusLabel = input.status === "success" ? "Tarefa finalizada com sucesso." : input.errorMessage || "Tarefa finalizada com erro.";
-  const [{ error: jobError }, { error: eventError }] = await Promise.all([
-    client
-      .from("fluig_jobs")
-      .update({
-        status: input.status,
-        result_payload: input.resultPayload || {},
-        error_message: input.errorMessage || null,
-        progress_stage: input.status,
-        progress_label: statusLabel,
-        finished_at: now,
-        updated_at: now,
-      })
-      .eq("id", input.jobId)
-      .eq("assigned_agent_id", input.agentId),
-    client.from("fluig_job_events").insert({
-      job_id: input.jobId,
-      agent_id: input.agentId,
-      event_type: input.status,
-      stage: input.status,
-      label: statusLabel,
-      event_payload: input.resultPayload || {},
-    }),
-  ]);
+  const { data: completed, error: jobError } = await client
+    .from("fluig_jobs")
+    .update({
+      status: input.status,
+      result_payload: input.resultPayload || {},
+      error_message: input.errorMessage || null,
+      progress_stage: input.status,
+      progress_label: statusLabel,
+      finished_at: now,
+      updated_at: now,
+    })
+    .eq("id", input.jobId)
+    .eq("assigned_agent_id", input.agentId)
+    .in("status", reusableJobStatuses)
+    .select("id")
+    .maybeSingle();
   if (jobError) throw jobError;
+  if (!completed) throw new Error("Job nao esta mais atribuido a este agente.");
+
+  const { error: eventError } = await client.from("fluig_job_events").insert({
+    job_id: input.jobId,
+    agent_id: input.agentId,
+    event_type: input.status,
+    stage: input.status,
+    label: statusLabel,
+    event_payload: input.resultPayload || {},
+  });
   if (eventError) throw eventError;
 }
 

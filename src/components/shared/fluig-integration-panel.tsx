@@ -313,7 +313,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     try {
       const created = await fluigAdmApi.testAgentConnection({ module: integration.slug });
       await pollJobUntilDone(created.job.id);
-      setNotice("Agente local respondeu ao teste. As credenciais Fluig serao usadas nas sincronizacoes e lancamentos.");
+      setNotice("Conexao autenticada com o Fluig validada pelo agente local.");
       const nextAgents = await fluigAdmApi.listAgents();
       setAgents(nextAgents);
     } catch (testError) {

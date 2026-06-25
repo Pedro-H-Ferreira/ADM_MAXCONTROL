@@ -498,9 +498,23 @@ async function executeJob(config, job, emitProgress) {
   }
 
   if (job.operation === "health_check") {
+    emitProgress({ stage: "authenticating", label: "Autenticando com as credenciais locais no Fluig." });
+    const scriptPath = path.join(root, "scripts", "fluig", "healthCheck.js");
+    const { stdout } = await runNodeScript(config, scriptPath, [], { onLine });
+    const healthResult = stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .map((line) => parseTaggedJson(line, "FLUIG_HEALTH_CHECK_RESULT"))
+      .find(Boolean);
+
+    if (!healthResult?.ok || !healthResult.authenticated) {
+      throw new Error("O Fluig nao confirmou uma sessao autenticada para este usuario.");
+    }
+
+    emitProgress({ stage: "reading_page", label: "Sessao autenticada confirmada pelo Fluig." });
     return {
       data: {
-        ok: true,
+        ...healthResult,
         machineName: config.machineName,
         agentVersion: config.agentVersion,
         localApiUrl: `http://127.0.0.1:${config.localPort}`,
@@ -508,7 +522,6 @@ async function executeJob(config, job, emitProgress) {
         fluigBaseUrlConfigured: Boolean(config.fluig.baseUrl),
         pollIntervalMs: config.pollIntervalMs,
         projectRoot: root,
-        checkedAt: new Date().toISOString(),
       },
     };
   }

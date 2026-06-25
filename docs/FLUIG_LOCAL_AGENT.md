@@ -135,9 +135,13 @@ O botao `Testar agente` no dashboard, na Central Fluig e nos paineis Fluig cria 
 - o portal conseguiu criar o job;
 - o agente local fez polling;
 - o agente local assumiu o job;
+- o agente fez login com a credencial protegida por DPAPI;
+- o Fluig confirmou o usuario autenticado em uma chamada protegida;
 - o agente conseguiu devolver resultado ao ADM.
 
-Esse teste nao faz login pesado no Fluig. A validacao de sessao/credencial Fluig acontece nos jobs reais de sincronizacao, consulta, abertura ou cancelamento, reaproveitando a sessao Playwright do usuario local.
+O resultado nao envia a senha ao portal. O agente devolve apenas o status da verificacao, o identificador confirmado pelo Fluig e dados tecnicos de diagnostico.
+
+Jobs de leitura interrompidos pelo fechamento do agente recebem novas tentativas com espera progressiva. Jobs de abertura ou cancelamento nao sao repetidos automaticamente, evitando lancamentos duplicados. Jobs que ficam sem agente alem do prazo mudam para `EXPIRADO` com uma orientacao legivel para o usuario.
 
 Tambem e possivel conferir pelo duplo clique:
 

@@ -143,4 +143,20 @@ describe("database and API contracts", () => {
     expect(tasksRoute).toContain("onlyTasks: true");
     expect(dashboardRepository).toContain("buildFluigActorPostgrestFilter");
   });
+
+  it("mantem expiracao, retry controlado e teste autenticado no agente Fluig", async () => {
+    const migration = await source("supabase/migrations/20260625141131_harden_fluig_job_lifecycle.sql");
+    const repository = await source("src/lib/db/app-repository.ts");
+    const runner = await source("agent/fluig-agent/src/runner.js");
+    const healthCheck = await source("scripts/fluig/healthCheck.js");
+
+    expect(migration).toContain("max_attempts");
+    expect(migration).toContain("next_attempt_at");
+    expect(migration).toMatch(/where status = 'queued'[\s\S]*expires_at <= now\(\)/);
+    expect(repository).toContain("reconcileFluigJobLifecycle");
+    expect(repository).toContain('.eq("assigned_agent_id", input.agentId)');
+    expect(runner).toContain('"scripts", "fluig", "healthCheck.js"');
+    expect(healthCheck).toContain("loginWithBrowser");
+    expect(healthCheck).toContain("/portal/api/rest/wcm/rest/admin/location/getCurrentUserId");
+  });
 });

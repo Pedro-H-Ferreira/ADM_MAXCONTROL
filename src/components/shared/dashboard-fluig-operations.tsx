@@ -251,7 +251,7 @@ export function DashboardFluigOperations() {
 
       setJobs((current) => [testJob, ...current.filter((job) => job.id !== testJob.id)]);
       await pollJobsUntilDone([testJob]);
-      setMessage("Agente local respondeu ao teste. Use sincronizacao/consulta para validar uma sessao Fluig completa.");
+      setMessage("Conexao autenticada com o Fluig validada pelo agente local.");
       await refresh(true);
     } catch (testError) {
       setError(testError instanceof Error ? testError.message : "Falha ao testar o agente local.");

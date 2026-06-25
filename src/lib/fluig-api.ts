@@ -47,6 +47,11 @@ export type FluigAdmJobSummary = {
   progressStage: string | null;
   progressLabel: string | null;
   errorMessage?: string | null;
+  attempts?: number;
+  maxAttempts?: number;
+  nextAttemptAt?: string | null;
+  lastAttemptAt?: string | null;
+  expiresAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
   finishedAt?: string | null;
@@ -216,7 +221,7 @@ export const fluigAdmApi = {
       module: payload.module || "pagamentos",
       operation: "health_check",
       payload: {
-        check: "agent_health",
+        check: "fluig_login",
         requestedAt: new Date().toISOString(),
       },
     });

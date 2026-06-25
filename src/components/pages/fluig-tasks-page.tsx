@@ -343,7 +343,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
       setJobs((current) => [testJob, ...current.filter((job) => job.id !== testJob.id)]);
       await pollJobsUntilDone([testJob]);
       await refresh(true);
-      toast.success("Agente local respondeu ao teste.");
+      toast.success("Conexao autenticada com o Fluig validada.");
     } catch (testError) {
       const message = testError instanceof Error ? testError.message : "Falha ao testar o agente local.";
       setError(message);
