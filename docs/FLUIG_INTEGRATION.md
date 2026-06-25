@@ -137,6 +137,10 @@ Sincronizacao por usuario:
 - O agente executa `scripts/fluig/syncFluigStatus.js` uma unica vez com todos os numeros Fluig deduplicados.
 - O resultado volta com `moduleSlug` e tipos de sync para que a API salve cada solicitacao no modulo correto e atualize `fluig_user_sync_state` por usuario/modulo/tipo.
 - Os endpoints `/sync/open-tasks` e `/sync/my-requests` permanecem para execucoes isoladas e diagnostico.
+- A visibilidade e aplicada no Supabase antes de ordenar e limitar os registros. Usuario comum recebe somente registros da filial, criados por ele, sincronizados por ele ou identificados pelos seus dados Fluig; administradores recebem todas as filiais.
+- `GET /api/fluig/adm/tasks/my` exige tarefa ou responsavel atual preenchido e nao mistura solicitacoes abertas sem atividade atribuida.
+- O status incremental atualiza etapa, responsavel, vencimento e estado aberto/finalizado sem apagar `formFields` e anexos do historico. A resposta mais recente fica em `raw_payload.statusSnapshot`.
+- Historicos antigos recuperam solicitante e matricula pelos campos `responsavelEnvio` e `matResponsavelEnvio` quando a API do Fluig nao devolve o solicitante no cabecalho.
 
 Abertura de OS Fluig:
 
@@ -179,6 +183,14 @@ Reconciliacao de fornecedores verificada em `PORTAL ADM CD` em 24/06/2026:
 - Filiais corrompidas por valores como `[object HTMLInputElement]` ou identificadores internos prefixados foram removidas/normalizadas. O cadastro ficou com `46` filiais, sem codigo historico invalido.
 - A reconciliacao e idempotente: uma segunda execucao criou `0` fornecedores e vinculou `0` solicitacoes adicionais.
 
+Identidade e visibilidade Fluig verificadas em `PORTAL ADM CD` em 25/06/2026:
+
+- `12.193` solicitacoes persistidas.
+- `12.190` solicitacoes possuem solicitante normalizado.
+- `11.792` possuem nome/login do solicitante e `11.711` possuem matricula/codigo Fluig.
+- O backfill foi aplicado pela migracao `20260625134829_backfill_fluig_requester_identity.sql`.
+- Consultas de dashboard, tarefas, solicitacoes abertas e snapshots aplicam o escopo do usuario antes do `limit`, evitando que registros de outras filiais ocupem a janela de resultados.
+
 Operacao:
 
 - O botao `Atualizar pre-cadastros` em `/fornecedores` executa o backfill completo e e exibido somente para administradores.
@@ -205,10 +217,8 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:3000/api/fluig/adm/open' -Method Post -
 ## Proximas etapas tecnicas
 
 - Operar a automacao real por usuario via `ADM Fluig Agent` local. Instalacao e fluxo em `docs/FLUIG_LOCAL_AGENT.md`.
-- Usar `fluig_jobs` e `fluig_job_events` como fila e trilha de progresso das execucoes em background.
-- Controlar visibilidade por filial com `app_branches` e `app_user_branch_access`; admin ve todas.
-- Implementar chamadas reais de abertura por modulo: pagamento, compra e manutencao.
-- Persistir numero Fluig, etapa atual, responsavel, SLA, valor fiscal e `NumLancW` nas tabelas do ADM.
-- Salvar mapa de fornecedor no cadastro local para evitar erro nos zooms `fornecedorC` e `codCNPJ`.
-- Criar sincronizacao agendada para tarefas abertas sob responsabilidade do usuario/grupo Fluig.
-- Validar anexos XML/PDF antes de enviar para o Fluig.
+- Manter o agente online e concluir os jobs enfileirados de cada usuario.
+- Preencher `fluig_username` e `fluig_user_id` nos perfis para complementar o escopo por filial com a identidade individual do Fluig.
+- Validar em producao uma abertura controlada de pagamento, compra e manutencao com anexos reais e protocolo retornado.
+- Evoluir a leitura de atividades do Fluig para preencher tarefa atual, responsavel e SLA de todas as solicitacoes abertas.
+- Configurar observabilidade com retencao suficiente para correlacionar digests de erro do Next.js com os logs de runtime da Vercel.

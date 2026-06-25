@@ -10,6 +10,7 @@ import {
   isKnownNavigationPage,
   navigationPageOptions,
 } from "@/lib/navigation";
+import { filterFluigRowsForActor, type FluigVisibilityRow } from "@/lib/fluig-visibility";
 
 type JsonRecord = Record<string, unknown>;
 type JsonComparable = JsonRecord | unknown[] | string | number | boolean | null;
@@ -1320,26 +1321,6 @@ export async function completeFluigJob(input: {
   if (eventError) throw eventError;
 }
 
-export function filterRowsForActor<T extends {
-  branch_code?: string | null;
-  created_by_user_id?: string | null;
-  fluig_requester_login?: string | null;
-  fluig_requester_code?: string | null;
-  requester?: string | null;
-}>(actor: AppActor | null | undefined, rows: T[]) {
-  if (!actor || actor.isAdmin) return rows;
-
-  const branchCodes = new Set(actor.branchCodes);
-  const fluigUser = String(actor.fluigUsername || actor.fluigUserId || "").trim().toLowerCase();
-
-  return rows.filter((row) => {
-    const rowBranch = String(row.branch_code || "").trim();
-    if (rowBranch && branchCodes.has(rowBranch)) return true;
-    if (row.created_by_user_id && row.created_by_user_id === actor.id) return true;
-
-    const requesterValues = [row.fluig_requester_login, row.fluig_requester_code, row.requester]
-      .map((value) => String(value || "").trim().toLowerCase())
-      .filter(Boolean);
-    return Boolean(fluigUser && requesterValues.some((value) => value === fluigUser || value.includes(fluigUser)));
-  });
+export function filterRowsForActor<T extends FluigVisibilityRow>(actor: AppActor | null | undefined, rows: T[]) {
+  return filterFluigRowsForActor(actor, rows);
 }

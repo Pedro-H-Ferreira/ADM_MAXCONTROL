@@ -13,6 +13,7 @@ import type {
 } from "@/lib/fluig-data";
 import type { FluigProcessMap } from "@/lib/fluig/process-map";
 import { normalizeFluigBranch } from "@/lib/fluig-branch";
+import { buildFluigActorPostgrestFilter } from "@/lib/fluig-visibility";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -223,6 +224,16 @@ function mapFluigRequestRecord(row: FluigRequestDbRow) {
     syncOwnerUserId: row.sync_owner_user_id || null,
     syncSource: row.sync_source || null,
   };
+}
+
+function compareOpenRequestPriority(left: FluigRequestDbRow, right: FluigRequestDbRow) {
+  const leftStatusCheck = left.last_status_check_at ? Date.parse(left.last_status_check_at) : Number.NEGATIVE_INFINITY;
+  const rightStatusCheck = right.last_status_check_at ? Date.parse(right.last_status_check_at) : Number.NEGATIVE_INFINITY;
+  if (leftStatusCheck !== rightStatusCheck) return leftStatusCheck - rightStatusCheck;
+
+  const leftSynced = left.last_synced_at ? Date.parse(left.last_synced_at) : 0;
+  const rightSynced = right.last_synced_at ? Date.parse(right.last_synced_at) : 0;
+  return rightSynced - leftSynced;
 }
 
 async function linkFluigRequestsToKnownSuppliersForCnpjs(client: SupabaseClient, cnpjs: unknown[]) {
@@ -780,9 +791,28 @@ export function buildFluigLaunchTemplatesFromRequests(rows: FluigRequestDbRow[])
     });
 }
 
-function mapHistoryToRequest(module: FluigModuleSlug, item: FluigHistoryItem, actor?: Pick<AppActor, "id"> | null) {
+function historyRequester(item: FluigHistoryItem, fields: Record<string, string>) {
+  const name =
+    item.requesterName ||
+    firstStringField(fields, ["responsavelEnvio", "nomeColaborador", "colaboradorInput", "nomeSolicitante"]);
+  const code =
+    item.requesterId ||
+    firstStringField(fields, ["matResponsavelEnvio", "matSolicitante", "codigoSolicitante"]);
+
+  return {
+    name: name || null,
+    code: code || null,
+  };
+}
+
+export function buildFluigHistoryRequestRow(
+  module: FluigModuleSlug,
+  item: FluigHistoryItem,
+  actor?: Pick<AppActor, "id"> | null
+) {
   const fields = item.formFields || {};
   const supplier = supplierFromFields(fields);
+  const requester = historyRequester(item, fields);
   const amount =
     parseMoneyToCents(fields.valorNF || fields.valorNFT || fields.valorTotalExibicao || fields.valorPedido || fields.valorTotal) ??
     null;
@@ -798,12 +828,12 @@ function mapHistoryToRequest(module: FluigModuleSlug, item: FluigHistoryItem, ac
     status: item.status || null,
     current_task: null,
     task_owner: null,
-    requester: item.requesterName || item.requesterId || null,
+    requester: requester.name || requester.code,
     branch_code: branchCode,
     branch_label: branchLabel || null,
     created_by_user_id: actor?.id || null,
-    fluig_requester_login: item.requesterName || null,
-    fluig_requester_code: item.requesterId || null,
+    fluig_requester_login: requester.name,
+    fluig_requester_code: requester.code,
     supplier_name: supplier.name || null,
     supplier_cnpj: supplier.cnpj,
     amount_cents: amount,
@@ -826,21 +856,27 @@ function isStatusOpen(item: FluigStatusItem) {
   return true;
 }
 
-function mapStatusToRequest(
+export function buildFluigStatusRequestRow(
   module: FluigModuleSlug,
   item: FluigStatusItem,
-  options: { ownerUserId?: string | null; syncSource?: string | null; markSeenOpen?: boolean } = {}
+  options: { ownerUserId?: string | null; syncSource?: string | null; markSeenOpen?: boolean } = {},
+  existing?: Pick<FluigRequestDbRow, "status" | "current_task" | "task_owner" | "due_date" | "raw_payload"> | null
 ) {
   const checkedAt = item.dataUltimaConsulta || new Date().toISOString();
   const open = isStatusOpen(item);
+  const currentTask = String(item.etapaAtual || "").trim() || existing?.current_task || null;
+  const taskOwner =
+    String(item.responsavelAtual || item.responsavelLogin || item.responsavelCodigo || "").trim() ||
+    existing?.task_owner ||
+    null;
 
   return {
     module_slug: module,
     fluig_request_id: item.numeroFluig,
-    status: item.statusProcesso || (item.active === false ? "finalizado" : "em_andamento"),
-    current_task: item.etapaAtual || null,
-    task_owner: item.responsavelAtual || null,
-    due_date: item.vencimentoPagamento || null,
+    status: item.statusProcesso || existing?.status || (item.active === false ? "finalizado" : "em_andamento"),
+    current_task: currentTask,
+    task_owner: taskOwner,
+    due_date: item.vencimentoPagamento || existing?.due_date || null,
     normalized_status: open ? "em_andamento" : "finalizado",
     is_open: open,
     last_status_check_at: checkedAt,
@@ -848,7 +884,10 @@ function mapStatusToRequest(
     sync_source: options.syncSource || "status_check",
     sync_owner_user_id: options.ownerUserId || null,
     last_synced_at: checkedAt,
-    raw_payload: item as unknown as JsonRecord,
+    raw_payload: {
+      ...(existing?.raw_payload || {}),
+      statusSnapshot: item as unknown as JsonRecord,
+    },
   };
 }
 
@@ -899,7 +938,7 @@ export async function persistProcessMaps(processMaps: FluigProcessMap[]) {
 
 export async function persistHistoryItems(module: FluigModuleSlug, items: FluigHistoryItem[], actor?: Pick<AppActor, "id"> | null) {
   return runWithDb(async (client) => {
-    const rows = items.map((item) => mapHistoryToRequest(module, item, actor)).filter((item) => item.fluig_request_id);
+    const rows = items.map((item) => buildFluigHistoryRequestRow(module, item, actor)).filter((item) => item.fluig_request_id);
     if (!rows.length) return { requests: 0, supplierRequestLinks: 0 };
 
     const branches = Array.from(
@@ -1022,9 +1061,27 @@ export async function persistStatusItems(
   options: { ownerUserId?: string | null; syncSource?: string | null; markSeenOpen?: boolean } = {}
 ) {
   return runWithDb(async (client) => {
-    const rows = items
-      .filter((item) => item.numeroFluig && !(item as FluigStatusItem & { error?: unknown }).error)
-      .map((item) => mapStatusToRequest(module, item, options));
+    const statusItems = items.filter(
+      (item) => item.numeroFluig && !(item as FluigStatusItem & { error?: unknown }).error
+    );
+    if (!statusItems.length) return 0;
+
+    const requestIds = Array.from(new Set(statusItems.map((item) => String(item.numeroFluig))));
+    const { data: existingRows, error: existingError } = await client
+      .from("fluig_requests")
+      .select("fluig_request_id,status,current_task,task_owner,due_date,raw_payload")
+      .eq("module_slug", module)
+      .in("fluig_request_id", requestIds);
+    if (existingError) throw existingError;
+
+    const existingByRequestId = new Map(
+      ((existingRows || []) as Array<
+        Pick<FluigRequestDbRow, "fluig_request_id" | "status" | "current_task" | "task_owner" | "due_date" | "raw_payload">
+      >).map((row) => [String(row.fluig_request_id || ""), row])
+    );
+    const rows = statusItems.map((item) =>
+      buildFluigStatusRequestRow(module, item, options, existingByRequestId.get(String(item.numeroFluig)))
+    );
     if (!rows.length) return 0;
     const { error } = await client.from("fluig_requests").upsert(rows, { onConflict: "module_slug,fluig_request_id" });
     if (error) throw error;
@@ -1039,6 +1096,7 @@ export async function readKnownOpenFluigRequestsForActor(input: {
   actor: AppActor;
   module?: FluigModuleSlug | null;
   limit?: number;
+  onlyTasks?: boolean;
 }) {
   return runWithDb(async (client) => {
     const modules =
@@ -1046,20 +1104,25 @@ export async function readKnownOpenFluigRequestsForActor(input: {
         ? ([input.module] satisfies FluigModuleSlug[])
         : (["pagamentos", "compras", "manutencao"] satisfies FluigModuleSlug[]);
     const limit = Math.min(Math.max(Number(input.limit || 50), 1), 200);
-    const query = client
+    const actorFilter = buildFluigActorPostgrestFilter(input.actor);
+    let query = client
       .from("fluig_requests")
       .select(fluigRequestSelect)
       .in("module_slug", modules)
       .or("is_open.eq.true,is_open.is.null")
-      .not("fluig_request_id", "is", null)
+      .not("fluig_request_id", "is", null);
+
+    if (actorFilter) query = query.or(actorFilter);
+    if (input.onlyTasks) query = query.or("current_task.not.is.null,task_owner.not.is.null");
+
+    const { data, error } = await query
       .order("last_status_check_at", { ascending: true, nullsFirst: true })
       .order("last_synced_at", { ascending: false, nullsFirst: false })
-      .limit(input.actor.isAdmin ? limit : Math.max(limit * 5, 100));
-
-    const { data, error } = await query;
+      .limit(limit);
     if (error) throw error;
 
     return filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[])
+      .sort(compareOpenRequestPriority)
       .slice(0, limit)
       .map(mapFluigRequestRecord);
   }).then(({ result, persistence }) => ({
@@ -1082,13 +1145,17 @@ export async function readFluigRequestByNumberForActor(input: {
       input.module && input.module !== "fornecedores"
         ? ([input.module] satisfies FluigModuleSlug[])
         : (["pagamentos", "compras", "manutencao", "fornecedores"] satisfies FluigModuleSlug[]);
-    const { data, error } = await client
+    let query = client
       .from("fluig_requests")
       .select(fluigRequestSelect)
       .eq("fluig_request_id", fluigRequestId)
       .in("module_slug", modules)
       .order("last_status_check_at", { ascending: false, nullsFirst: false })
       .order("last_synced_at", { ascending: false, nullsFirst: false });
+    const actorFilter = buildFluigActorPostgrestFilter(input.actor);
+    if (actorFilter) query = query.or(actorFilter);
+
+    const { data, error } = await query;
     if (error) throw error;
 
     const row = filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[])[0];
@@ -1297,7 +1364,7 @@ export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50,
         ? (["pagamentos", "compras", "manutencao"] satisfies FluigModuleSlug[])
         : ([module] satisfies FluigModuleSlug[]);
 
-    const requestsQuery = client
+    let requestsQuery = client
       .from("fluig_requests")
       .select(
         [
@@ -1313,6 +1380,7 @@ export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50,
           "branch_code",
           "branch_label",
           "created_by_user_id",
+          "sync_owner_user_id",
           "fluig_requester_login",
           "fluig_requester_code",
           "supplier_name",
@@ -1327,7 +1395,9 @@ export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50,
       )
       .in("module_slug", requestModules)
       .order("last_synced_at", { ascending: false, nullsFirst: false })
-      .limit(actor?.isAdmin === false ? Math.max(limit * 5, 100) : limit);
+      .limit(limit);
+    const actorFilter = buildFluigActorPostgrestFilter(actor);
+    if (actorFilter) requestsQuery = requestsQuery.or(actorFilter);
 
     const [
       { data: requestRows, error: requestsError },

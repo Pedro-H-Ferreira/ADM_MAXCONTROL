@@ -19,10 +19,10 @@ export async function GET(request: Request) {
       actor,
       module: moduleOrNull(url.searchParams.get("module") || ""),
       limit: parseNumber(url.searchParams.get("limit"), 50),
+      onlyTasks: true,
     });
-    const tasks = result.requests.filter((request) => request.currentTask || request.taskOwner);
 
-    return NextResponse.json({ success: true, tasks, persistence: result.persistence });
+    return NextResponse.json({ success: true, tasks: result.requests, persistence: result.persistence });
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;

@@ -1,4 +1,5 @@
 import { filterRowsForActor, type AppActor } from "@/lib/db/app-repository";
+import { buildFluigActorPostgrestFilter } from "@/lib/fluig-visibility";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 
 type FluigDashboardRow = {
@@ -308,7 +309,7 @@ async function loadFluigRows(actor: AppActor) {
   const client = getSupabaseServiceClient();
   if (!client) return [] as FluigDashboardRow[];
 
-  const { data, error } = await client
+  let query = client
     .from("fluig_requests")
     .select(
       [
@@ -334,16 +335,14 @@ async function loadFluigRows(actor: AppActor) {
     )
     .order("last_synced_at", { ascending: false, nullsFirst: false })
     .limit(5000);
+  const actorFilter = buildFluigActorPostgrestFilter(actor);
+  if (actorFilter) query = query.or(actorFilter);
+
+  const { data, error } = await query;
   if (error) throwDashboardQueryError("solicitacoes Fluig", error);
 
   const rows = (data || []) as unknown as FluigDashboardRow[];
-  if (actor.isAdmin) return rows;
-
-  const directRows = rows.filter((row) => row.sync_owner_user_id === actor.id);
-  const scopedRows = filterRowsForActor(actor, rows);
-  const byId = new Map<string, FluigDashboardRow>();
-  for (const row of [...directRows, ...scopedRows]) byId.set(row.id, row);
-  return Array.from(byId.values());
+  return filterRowsForActor(actor, rows);
 }
 
 async function loadRecentJobs(actor: AppActor) {

@@ -7,6 +7,16 @@ async function source(path: string) {
 }
 
 describe("database and API contracts", () => {
+  it("mantem uma protecao global para falhas de layout e sessao", async () => {
+    const globalError = await source("src/app/global-error.tsx");
+
+    expect(globalError).toContain('"use client"');
+    expect(globalError).toContain("<html");
+    expect(globalError).toContain("<body");
+    expect(globalError).toContain("unstable_retry");
+    expect(globalError).toContain("[global-app-error]");
+  });
+
   it("mantem ADMINISTRATIVO no constraint de perfis", async () => {
     const migration = await source("supabase/migrations/20260623102458_harden_fluig_data_api_access.sql");
     expect(migration).toContain("'ADMINISTRATIVO'");
@@ -120,5 +130,17 @@ describe("database and API contracts", () => {
     expect(route).toContain("operationalLaunchFingerprint");
     expect(resultRoute).toContain("completeOperationalLaunchJob");
     expect(resultRoute).toContain("markOperationalLaunchFailure");
+  });
+
+  it("aplica visibilidade Fluig no banco antes do limite e separa tarefas abertas", async () => {
+    const repository = await source("src/lib/db/fluig-repository.ts");
+    const tasksRoute = await source("src/app/api/fluig/adm/tasks/my/route.ts");
+    const dashboardRepository = await source("src/lib/db/dashboard-repository.ts");
+
+    expect(repository).toContain("buildFluigActorPostgrestFilter");
+    expect(repository).toMatch(/if \(actorFilter\) query = query\.or\(actorFilter\)/);
+    expect(repository).not.toContain("Math.max(limit * 5, 100)");
+    expect(tasksRoute).toContain("onlyTasks: true");
+    expect(dashboardRepository).toContain("buildFluigActorPostgrestFilter");
   });
 });
