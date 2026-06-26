@@ -91,6 +91,8 @@ describe("database and API contracts", () => {
 
   it("exibe fila de revisao e acoes de pre-cadastro Fluig em fornecedores", async () => {
     const suppliersPage = await source("src/components/pages/suppliers-page.tsx");
+    const supplierRepository = await source("src/lib/db/suppliers-repository.ts");
+    const approvePreRegistrationRoute = await source("src/app/api/fornecedores/[id]/approve-pre-registration/route.ts");
     const ignoreRoute = await source("src/app/api/fornecedores/candidates/[id]/ignore/route.ts");
 
     expect(suppliersPage).toContain("setPreRegistrationReviewFilters");
@@ -98,7 +100,12 @@ describe("database and API contracts", () => {
     expect(suppliersPage).toContain("ignoreCandidate");
     expect(suppliersPage).toContain("Revisar pre-cadastros");
     expect(suppliersPage).toContain("Aprovar pre-cadastro");
+    expect(suppliersPage).toContain("approve-pre-registration");
     expect(suppliersPage).toContain("candidates/${candidateId}/ignore");
+    expect(supplierRepository).toContain("approveSupplierPreRegistration");
+    expect(supplierRepository).toContain("pre_registration_approved");
+    expect(supplierRepository).toContain("reconcile_fluig_supplier_relations");
+    expect(approvePreRegistrationRoute).toContain("approveSupplierPreRegistration");
     expect(ignoreRoute).toContain("ignoreSupplierCandidate");
   });
 

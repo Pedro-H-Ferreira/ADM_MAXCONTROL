@@ -828,6 +828,92 @@ export async function updateSupplier(actor: AppActor, id: string, input: Partial
   return readSupplier(actor, id);
 }
 
+export async function approveSupplierPreRegistration(actor: AppActor, id: string) {
+  const client = assertServiceClient();
+  const { data: before, error: beforeError } = await client
+    .from("app_suppliers")
+    .select("*")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (beforeError) throw beforeError;
+  if (!before) return null;
+
+  const current = before as SupplierDbRow;
+  const linksBySupplier = await fetchLinks(client, [current.id]);
+  if (!supplierCanBeSeenByActor(actor, current.id, linksBySupplier)) return null;
+
+  const isPreRegistration =
+    current.source_system === "PRE_CADASTRO_FLUIG" ||
+    current.status === "PENDENTE_REVISAO" ||
+    current.sync_status === "PENDENTE_REVISAO";
+  if (!isPreRegistration) {
+    throw new Error("Fornecedor nao esta pendente de revisao Fluig.");
+  }
+
+  const canonicalCnpj = normalizeCnpj(current.cnpj_normalizado || current.cnpj);
+  if (!canonicalCnpj || !isValidCnpj(canonicalCnpj)) {
+    throw new Error("Pre-cadastro sem CNPJ valido para aprovacao.");
+  }
+
+  const now = new Date().toISOString();
+  const { data: updated, error: updateError } = await client
+    .from("app_suppliers")
+    .update({
+      status: "ATIVO",
+      source_system: current.source_system === "PRE_CADASTRO_FLUIG" ? "LOCAL_FLUIG" : current.source_system,
+      sync_status: current.sync_status === "PENDENTE_REVISAO" ? "SINCRONIZADO" : current.sync_status,
+      updated_by_user_id: actor.id,
+      updated_at: now,
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (updateError) throw updateError;
+
+  const relationSummary = await client
+    .rpc("reconcile_fluig_supplier_relations", { p_supplier_ids: [id] })
+    .then(({ data, error }) => {
+      if (error) throw error;
+      return (data || {}) as Record<string, number>;
+    });
+
+  const cnpjVariants = historicalCnpjVariants(canonicalCnpj);
+  const { data: approvedCandidates, error: candidateError } = await client
+    .from("fluig_supplier_candidates")
+    .update({
+      status: "APROVADO",
+      updated_at: now,
+    })
+    .in("cnpj", cnpjVariants)
+    .in("status", ["PRE_CADASTRO", "EM_REVISAO"])
+    .select("id");
+  if (candidateError) throw candidateError;
+
+  const row = updated as SupplierDbRow;
+  const fluigLinks = await linkSupplierFluigReferences(client, {
+    supplierId: id,
+    cnpj: row.cnpj_normalizado,
+    supplierName: row.razao_social,
+  });
+
+  await recordSupplierAudit(client, {
+    supplierId: id,
+    actorId: actor.id,
+    eventType: "pre_registration_approved",
+    beforePayload: before,
+    afterPayload: updated,
+    metadata: {
+      candidateIds: (approvedCandidates || []).map((candidate) => candidate.id),
+      approvedCandidateCount: approvedCandidates?.length || 0,
+      relationSummary,
+      fluigLinks,
+    },
+  });
+
+  return readSupplier(actor, id);
+}
+
 export async function deleteSupplier(actor: AppActor, id: string) {
   const client = assertServiceClient();
   const { count: requestCount, error: requestError } = await client

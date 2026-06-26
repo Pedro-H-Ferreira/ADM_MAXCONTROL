@@ -635,15 +635,7 @@ export function SuppliersPage({
     setApprovingSupplierId(supplier.id);
     try {
       await parseResponse(
-        await fetch(`/api/fornecedores/${supplier.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status: "ATIVO",
-            sourceSystem: supplier.sourceSystem === "PRE_CADASTRO_FLUIG" ? "LOCAL_FLUIG" : supplier.sourceSystem,
-            syncStatus: supplier.syncStatus === "PENDENTE_REVISAO" ? "SINCRONIZADO" : supplier.syncStatus,
-          }),
-        }),
+        await fetch(`/api/fornecedores/${supplier.id}/approve-pre-registration`, { method: "POST" }),
         "Falha ao aprovar pre-cadastro."
       );
       toast.success("Pre-cadastro aprovado como fornecedor oficial.");
