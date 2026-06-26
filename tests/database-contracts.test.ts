@@ -9,12 +9,21 @@ async function source(path: string) {
 describe("database and API contracts", () => {
   it("mantem uma protecao global para falhas de layout e sessao", async () => {
     const globalError = await source("src/app/global-error.tsx");
+    const rootError = await source("src/app/error.tsx");
+    const appError = await source("src/app/(app)/error.tsx");
 
     expect(globalError).toContain('"use client"');
     expect(globalError).toContain("<html");
     expect(globalError).toContain("<body");
     expect(globalError).toContain("unstable_retry");
     expect(globalError).toContain("[global-app-error]");
+    expect(globalError).toContain("window.location.reload");
+    expect(rootError).toContain('"use client"');
+    expect(rootError).toContain("[root-app-error]");
+    expect(rootError).toContain("unstable_retry");
+    expect(rootError).toContain("window.location.reload");
+    expect(appError).toContain("[app-route-error]");
+    expect(appError).toContain("window.location.reload");
   });
 
   it("mantem ADMINISTRATIVO no constraint de perfis", async () => {

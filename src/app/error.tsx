@@ -6,7 +6,7 @@ import { AlertTriangle, Home, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function AdminRouteError({
+export default function RootRouteError({
   error,
   unstable_retry,
 }: {
@@ -14,26 +14,28 @@ export default function AdminRouteError({
   unstable_retry: () => void;
 }) {
   useEffect(() => {
-    console.error("[app-route-error]", {
+    console.error("[root-app-error]", {
       message: error.message,
       digest: error.digest,
       stack: error.stack,
+      path: window.location.pathname,
     });
   }, [error]);
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center p-4">
+    <main className="grid min-h-screen place-items-center bg-background p-6">
       <Card className="w-full max-w-xl rounded-lg shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <AlertTriangle className="size-5 text-destructive" />
+            <AlertTriangle className="size-5 text-destructive" aria-hidden="true" />
             Nao foi possivel abrir esta tela
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
           <p>
-            A tela falhou durante o carregamento. Tente novamente para buscar os dados atuais do
-            servidor.
+            O portal nao conseguiu concluir o carregamento desta rota. Isso pode acontecer quando a
+            tela ficou aberta durante uma nova publicacao. Tente novamente ou recarregue a pagina
+            para buscar a versao atual.
           </p>
           {error.digest ? (
             <p className="rounded-md border bg-muted/40 p-3 font-mono text-xs text-foreground">
@@ -42,7 +44,7 @@ export default function AdminRouteError({
           ) : null}
           <div className="flex flex-wrap gap-2">
             <Button type="button" onClick={() => unstable_retry()} className="stitch-soft-button">
-              <RefreshCw className="size-4" />
+              <RefreshCw className="size-4" aria-hidden="true" />
               Tentar novamente
             </Button>
             <Button
@@ -51,18 +53,18 @@ export default function AdminRouteError({
               onClick={() => window.location.reload()}
               className="stitch-soft-button"
             >
-              <RefreshCw className="size-4" />
+              <RefreshCw className="size-4" aria-hidden="true" />
               Recarregar tela
             </Button>
             <Button type="button" variant="outline" asChild className="stitch-soft-button">
               <Link href="/dashboard" prefetch={false}>
-                <Home className="size-4" />
+                <Home className="size-4" aria-hidden="true" />
                 Ir para o dashboard
               </Link>
             </Button>
           </div>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

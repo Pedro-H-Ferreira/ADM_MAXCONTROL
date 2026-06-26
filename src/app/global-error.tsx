@@ -40,6 +40,9 @@ export default function GlobalError({
             <button type="button" onClick={() => unstable_retry()} style={styles.primaryButton}>
               Tentar novamente
             </button>
+            <button type="button" onClick={() => window.location.reload()} style={styles.secondaryButton}>
+              Recarregar pagina
+            </button>
             <Link href="/dashboard" style={styles.secondaryButton}>
               Ir para o dashboard
             </Link>
