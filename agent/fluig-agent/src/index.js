@@ -10,6 +10,16 @@ const historyChunkMaxBytes = positiveInt(process.env.ADM_FLUIG_HISTORY_CHUNK_BYT
 const historyFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_FIELD_MAX_CHARS, 6000);
 const historyAggressiveFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_AGGRESSIVE_FIELD_MAX_CHARS, 1000);
 const resultMaxBytes = positiveInt(process.env.ADM_FLUIG_RESULT_MAX_BYTES, 650000);
+const chunkableResultOperations = new Set([
+  "sync_history",
+  "sync_initial_history",
+  "supplier_lookup_by_cnpj",
+  "sync_status",
+  "sync_request_by_number",
+  "sync_user_open_tasks",
+  "sync_user_open_requests",
+  "sync_user_incremental_batch",
+]);
 let currentJob = null;
 let lastError = null;
 let lastHeartbeatAt = null;
@@ -70,7 +80,15 @@ async function apiFetch(path, payload = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok || data.success === false) {
-    throw new Error(data.error || `Falha HTTP ${response.status} em ${path}`);
+    const message =
+      data.error ||
+      (response.status === 413
+        ? `Payload muito grande para a Vercel em ${path}. O agente vai tentar reenviar em formato compacto.`
+        : `Falha HTTP ${response.status} em ${path}`);
+    const error = new Error(message);
+    error.status = response.status;
+    error.path = path;
+    throw error;
   }
 
   lastSuccessfulApiAt = new Date().toISOString();
@@ -113,9 +131,28 @@ async function sendResult(job, input) {
     };
   }
 
-  await apiFetch(`/api/agent/jobs/${job.id}/result`, {
-    ...payload,
-  });
+  if (payloadBytes(payload) > resultMaxBytes) {
+    resultPayload = minimalResultPayload(resultPayload, "compact_result_still_too_large");
+    payload = {
+      status: input.status,
+      resultPayload,
+      errorMessage: input.errorMessage ? truncateValue(input.errorMessage, 1000) : null,
+    };
+  }
+
+  try {
+    await apiFetch(`/api/agent/jobs/${job.id}/result`, {
+      ...payload,
+    });
+  } catch (error) {
+    if (!isPayloadTooLargeError(error)) throw error;
+
+    await apiFetch(`/api/agent/jobs/${job.id}/result`, {
+      status: input.status,
+      resultPayload: minimalResultPayload(resultPayload, "vercel_413_retry"),
+      errorMessage: input.errorMessage ? truncateValue(input.errorMessage, 1000) : null,
+    });
+  }
 }
 
 async function sendHistoryChunk(job, input) {
@@ -168,6 +205,35 @@ function compactHistoryItem(item, aggressive = false) {
     ...item,
     formFields: compactFormFields(item && item.formFields, maxChars),
     raw: aggressive ? null : compactRawPayload(item && item.raw),
+  };
+}
+
+function minimalChunkItem(item) {
+  const payload = plainObject(item);
+  return {
+    ...copyScalarFields(payload, [
+      "moduleSlug",
+      "module",
+      "processInstanceId",
+      "numeroFluig",
+      "requestId",
+      "processId",
+      "processVersion",
+      "status",
+      "statusProcesso",
+      "startDate",
+      "requesterId",
+      "requesterName",
+      "active",
+      "stateDescription",
+      "etapaAtual",
+      "currentTask",
+      "taskOwner",
+      "dataUltimaConsulta",
+    ]),
+    formFields: compactFormFields(payload.formFields, 200),
+    raw: null,
+    itemCompactedByAgent: true,
   };
 }
 
@@ -239,6 +305,31 @@ function compactResultPayload(result) {
   };
 }
 
+function minimalResultPayload(result, reason) {
+  const payload = plainObject(result);
+  const data = plainObject(payload.data);
+  const itemCount = historyItemsFromResult(payload).length;
+
+  return {
+    ...copyScalarFields(payload, ["outputPath", "ok", "success", "status", "message", "error"]),
+    data: {
+      ...copyScalarFields(data, ["outputPath", "ok", "success", "status", "message", "error"]),
+      itemsOmitted: true,
+      itemCount,
+      compactedByAgent: true,
+      compactReason: reason,
+    },
+    itemsOmitted: true,
+    itemCount,
+    compactedByAgent: true,
+    compactReason: reason,
+  };
+}
+
+function isPayloadTooLargeError(error) {
+  return Boolean(error && (error.status === 413 || String(error.message || "").includes("HTTP 413")));
+}
+
 function historyChunkBytes(items) {
   return payloadBytes(historyChunkPayload({ chunkIndex: 0, totalChunks: 999, totalItems: items.length, items }));
 }
@@ -251,6 +342,9 @@ function buildHistoryChunks(items) {
     let compactItem = compactHistoryItem(item);
     if (historyChunkBytes([compactItem]) > historyChunkMaxBytes) {
       compactItem = compactHistoryItem(item, true);
+    }
+    if (historyChunkBytes([compactItem]) > historyChunkMaxBytes) {
+      compactItem = minimalChunkItem(item);
     }
 
     const next = [...current, compactItem];
@@ -270,6 +364,17 @@ function buildHistoryChunks(items) {
   }
 
   return chunks;
+}
+
+function shouldChunkResult(job, result) {
+  if (!chunkableResultOperations.has(job.operation)) return false;
+  const items = historyItemsFromResult(result);
+  if (!items.length) return false;
+  return payloadBytes({
+    status: "success",
+    resultPayload: result,
+    errorMessage: null,
+  }) > resultMaxBytes;
 }
 
 function compactHistoryResult(result, input) {
@@ -373,7 +478,7 @@ async function processJob(job) {
       label: "Enviando resultado para o ADM.",
     });
 
-    if (job.operation === "sync_history" || job.operation === "sync_initial_history") {
+    if (job.operation === "sync_history" || job.operation === "sync_initial_history" || shouldChunkResult(job, result)) {
       result = await sendChunkedHistoryResult(job, result);
     }
 
@@ -510,6 +615,8 @@ module.exports = {
     compactHistoryResult,
     compactResultPayload,
     historyChunkPayload,
+    minimalResultPayload,
     payloadBytes,
+    shouldChunkResult,
   },
 };

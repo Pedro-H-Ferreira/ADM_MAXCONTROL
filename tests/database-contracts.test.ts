@@ -89,6 +89,21 @@ describe("database and API contracts", () => {
     expect(migration).toContain("app_supplier_branch_links");
   });
 
+  it("divide resultados grandes do agente antes de finalizar jobs Fluig", async () => {
+    const chunkRoute = await source("src/app/api/agent/jobs/[jobId]/chunk/route.ts");
+    const agent = await source("agent/fluig-agent/src/index.js");
+
+    expect(chunkRoute).toContain("isHistoryChunkJob");
+    expect(chunkRoute).toContain("isStatusChunkJob");
+    expect(chunkRoute).toContain("supplier_lookup_by_cnpj");
+    expect(chunkRoute).toContain("persistStatusItems");
+    expect(agent).toContain("chunkableResultOperations");
+    expect(agent).toContain("shouldChunkResult");
+    expect(agent).toContain("minimalResultPayload");
+    expect(agent).toContain("error.status = response.status");
+    expect(agent).toContain("isPayloadTooLargeError");
+  });
+
   it("normaliza filiais Fluig antes de persistir historico e catalogos", async () => {
     const repository = await source("src/lib/db/fluig-repository.ts");
     const migration = await source("supabase/migrations/20260624091741_normalize_fluig_branch_codes.sql");
