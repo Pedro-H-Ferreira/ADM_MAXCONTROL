@@ -33,10 +33,38 @@ const syncTypeLabels: Record<FluigUserSyncStateRecord["syncType"], string> = {
   supplier_lookup: "Fornecedores",
 };
 
-type DashboardJob = Pick<FluigAdmJobSummary, "id" | "module" | "operation" | "status" | "progressLabel" | "errorMessage">;
+type DashboardJob = Pick<
+  FluigAdmJobSummary,
+  "id" | "module" | "operation" | "status" | "progressLabel" | "errorMessage" | "updatedAt" | "finishedAt"
+>;
 type SupplierReviewSummary = {
   total: number;
 };
+
+const recentFailureWindowMs = 24 * 60 * 60 * 1000;
+
+function timestampMs(value: string | null | undefined) {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function isRecentTimestamp(value: string | null | undefined) {
+  const timestamp = timestampMs(value);
+  return timestamp != null && Date.now() - timestamp <= recentFailureWindowMs;
+}
+
+function isRecentJobFailure(job: DashboardJob) {
+  return (job.status === "error" || job.status === "expired") && isRecentTimestamp(job.finishedAt || job.updatedAt);
+}
+
+function isCurrentSyncStateError(state: FluigUserSyncStateRecord) {
+  if (!state.lastErrorAt && !state.lastErrorMessage) return false;
+  const errorAt = timestampMs(state.lastErrorAt || state.updatedAt);
+  const successAt = timestampMs(state.lastSuccessAt);
+  if (errorAt != null && successAt != null && successAt >= errorAt) return false;
+  return isRecentTimestamp(state.lastErrorAt || state.updatedAt);
+}
 
 function normalizeStatus(value: string | null | undefined, fallback = "ABERTO") {
   const normalized = (value || fallback)
@@ -112,8 +140,8 @@ export function DashboardFluigOperations() {
   const visibleTasks = tasks.slice(0, 5);
   const visibleRequests = sortedRequests.slice(0, 5);
   const pendingJobs = jobs.filter((job) => !terminalJobStatuses.has(job.status));
-  const failedJobs = jobs.filter((job) => job.status === "error" || job.status === "expired");
-  const syncStatesWithErrors = states.filter((state) => state.lastErrorAt || state.lastErrorMessage);
+  const failedJobs = jobs.filter(isRecentJobFailure);
+  const syncStatesWithErrors = states.filter(isCurrentSyncStateError);
   const syncErrorCount = failedJobs.length + syncStatesWithErrors.length;
 
   const latestState = useMemo(() => {
@@ -170,6 +198,8 @@ export function DashboardFluigOperations() {
         status: job.status,
         progressLabel: job.progressLabel,
         errorMessage: job.errorMessage || null,
+        updatedAt: seedById.get(job.id)?.updatedAt,
+        finishedAt: seedById.get(job.id)?.finishedAt || null,
       })) satisfies DashboardJob[];
 
       setJobs((current) =>
@@ -207,6 +237,8 @@ export function DashboardFluigOperations() {
         status: job.status,
         progressLabel: job.progressLabel,
         errorMessage: job.errorMessage || null,
+        updatedAt: job.updatedAt,
+        finishedAt: job.finishedAt,
       }));
 
       setJobs(nextJobs);
@@ -247,6 +279,8 @@ export function DashboardFluigOperations() {
         status: data.job.status,
         progressLabel: data.job.progressLabel,
         errorMessage: null,
+        updatedAt: new Date().toISOString(),
+        finishedAt: null,
       };
 
       setJobs((current) => [testJob, ...current.filter((job) => job.id !== testJob.id)]);
@@ -300,7 +334,7 @@ export function DashboardFluigOperations() {
           <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requests.length)} detail="Pagamentos, compras e manutencoes" />
           <MetricTile icon={ClipboardCheck} label="Aguardando acao" value={String(tasks.length)} detail="Itens do Fluig que dependem do usuario logado" />
           <MetricTile icon={UserCheck} label="Fornecedores em revisao" value={String(supplierReviewSummary.total)} detail="Pre-cadastros Fluig pendentes de validacao" />
-          <MetricTile icon={AlertTriangle} label="Erros de sync" value={String(syncErrorCount)} detail="Jobs e estados de sincronizacao com falha" tone={syncErrorCount ? "danger" : "default"} />
+          <MetricTile icon={AlertTriangle} label="Erros de sync" value={String(syncErrorCount)} detail="Falhas acionaveis das ultimas 24h" tone={syncErrorCount ? "danger" : "default"} />
           <MetricTile
             icon={RefreshCcw}
             label="Ultima sync"
@@ -334,6 +368,7 @@ export function DashboardFluigOperations() {
             <div className="flex items-center gap-2 font-medium">
               <AlertTriangle className="size-4" />
               Erros recentes de sincronizacao
+              <span className="font-normal text-red-700">Ultimas 24h</span>
             </div>
             <div className="mt-2 grid gap-2 md:grid-cols-2">
               {failedJobs.slice(0, 4).map((job) => (

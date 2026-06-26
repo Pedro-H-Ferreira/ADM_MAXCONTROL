@@ -53,6 +53,7 @@ type FluigJobDashboardRow = {
   progress_label: string | null;
   error_message: string | null;
   updated_at: string | null;
+  finished_at: string | null;
 };
 
 export type DashboardOverviewData = {
@@ -86,6 +87,25 @@ const emptyDashboardOverviewData: DashboardOverviewData = {
   recentActivities: [],
   warnings: [],
 };
+
+const recentFailureWindowMs = 24 * 60 * 60 * 1000;
+
+function timestampMs(value: string | null | undefined) {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function isRecentFailureJob(job: FluigJobDashboardRow) {
+  if (job.status !== "error" && job.status !== "expired") return false;
+  const timestamp = timestampMs(job.finished_at || job.updated_at);
+  return timestamp != null && Date.now() - timestamp <= recentFailureWindowMs;
+}
+
+function shouldShowRecentActivity(job: FluigJobDashboardRow) {
+  if (job.status === "error" || job.status === "expired") return isRecentFailureJob(job);
+  return true;
+}
 
 function chunksOf<T>(items: T[], size: number) {
   const chunks: T[][] = [];
@@ -229,7 +249,7 @@ function buildUpcomingPayments(payments: FluigDashboardRow[]) {
 }
 
 function buildRecentActivities(jobs: FluigJobDashboardRow[]) {
-  return jobs.slice(0, 6).map((job) => {
+  return jobs.filter(shouldShowRecentActivity).slice(0, 6).map((job) => {
     const status = job.status === "success" ? "concluiu" : job.status === "error" ? "falhou em" : "atualizou";
     const detail = job.error_message || job.progress_label || operationLabel(job.operation);
     return `${moduleLabel(job.module_slug)} ${status} ${operationLabel(job.operation)} - ${detail}`;
@@ -351,7 +371,7 @@ async function loadRecentJobs(actor: AppActor) {
 
   let query = client
     .from("fluig_jobs")
-    .select("module_slug,operation,status,progress_label,error_message,updated_at")
+    .select("module_slug,operation,status,progress_label,error_message,updated_at,finished_at")
     .order("updated_at", { ascending: false, nullsFirst: false })
     .limit(8);
 

@@ -161,6 +161,18 @@ describe("database and API contracts", () => {
     );
   });
 
+  it("nao trata falhas antigas do agente Fluig como erro atual do dashboard", async () => {
+    const dashboardRepository = await source("src/lib/db/dashboard-repository.ts");
+    const dashboardOperations = await source("src/components/shared/dashboard-fluig-operations.tsx");
+
+    expect(dashboardRepository).toContain("recentFailureWindowMs");
+    expect(dashboardRepository).toContain("shouldShowRecentActivity");
+    expect(dashboardRepository).toContain("finished_at");
+    expect(dashboardOperations).toContain("isRecentJobFailure");
+    expect(dashboardOperations).toContain("isCurrentSyncStateError");
+    expect(dashboardOperations).toContain("Falhas acionaveis das ultimas 24h");
+  });
+
   it("mantem pagamentos e compras no fluxo de lancamento Fluig da propria pagina", async () => {
     const adminData = await source("src/lib/admin-data.ts");
     const dashboard = await source("src/components/pages/dashboard-overview.tsx");
