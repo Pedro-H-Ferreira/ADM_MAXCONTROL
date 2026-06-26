@@ -320,10 +320,13 @@ export async function listSuppliers(
   const pageSize = Math.min(Math.max(Number(input.pageSize || 25), 1), 100);
   const from = (page - 1) * pageSize;
   const branchScoped = Boolean(input.branchId);
+  const actorBranchIds = actor.branches.map((branch) => branch.id).filter(Boolean);
+  const actorBranchScoped = !actor.isAdmin && !branchScoped && actorBranchIds.length > 0;
+  const branchFiltered = branchScoped || actorBranchScoped;
 
   let query = client
     .from("app_suppliers")
-    .select(branchScoped ? "*,app_supplier_branch_links!inner(branch_id)" : "*", { count: "exact" })
+    .select(branchFiltered ? "*,app_supplier_branch_links!inner(branch_id)" : "*", { count: "exact" })
     .is("deleted_at", null)
     .order("razao_social", { ascending: true });
 
@@ -346,12 +349,13 @@ export async function listSuppliers(
   if (input.sourceSystem) query = query.eq("source_system", input.sourceSystem);
   if (input.syncStatus) query = query.eq("sync_status", input.syncStatus);
   if (input.branchId) query = query.eq("app_supplier_branch_links.branch_id", input.branchId);
+  if (actorBranchScoped) query = query.in("app_supplier_branch_links.branch_id", actorBranchIds);
   if (input.attention === "PENDING") {
     query = query.or("status.eq.PENDENTE_REVISAO,sync_status.eq.PENDENTE_REVISAO");
   }
   if (input.attention === "ERROR") query = query.eq("sync_status", "ERRO_SYNC");
 
-  const queryLimitMultiplier = actor.isAdmin || branchScoped ? 1 : 5;
+  const queryLimitMultiplier = actor.isAdmin || branchScoped || actorBranchScoped ? 1 : 5;
   const { data, error, count } = await query.range(from, from + pageSize * queryLimitMultiplier - 1);
   if (error) throw error;
 
@@ -366,7 +370,7 @@ export async function listSuppliers(
   return {
     page,
     pageSize,
-    total: actor.isAdmin || branchScoped ? count || 0 : visibleRows.length,
+    total: actor.isAdmin || branchScoped || actorBranchScoped ? count || 0 : visibleRows.length,
     items: visibleRows.map((row) => mapSupplier(row, linksBySupplier.get(row.id), requestCounts.get(row.id) || 0)),
   };
 }

@@ -63,6 +63,8 @@ describe("database and API contracts", () => {
     const route = await source("src/app/api/fornecedores/route.ts");
 
     expect(repository).toContain("app_supplier_branch_links!inner(branch_id)");
+    expect(repository).toContain("actorBranchScoped");
+    expect(repository).toContain('query.in("app_supplier_branch_links.branch_id", actorBranchIds)');
     expect(repository).toContain('"status.eq.PENDENTE_REVISAO,sync_status.eq.PENDENTE_REVISAO"');
     expect(repository).toContain('query.eq("sync_status", "ERRO_SYNC")');
     expect(route).toContain("supplierListFiltersSchema.safeParse");
