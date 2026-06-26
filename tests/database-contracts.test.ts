@@ -126,6 +126,20 @@ describe("database and API contracts", () => {
     );
   });
 
+  it("mantem pagamentos e compras no fluxo de lancamento Fluig da propria pagina", async () => {
+    const adminData = await source("src/lib/admin-data.ts");
+    const dashboard = await source("src/components/pages/dashboard-overview.tsx");
+    const launchForm = await source("src/components/shared/fluig-launch-form.tsx");
+
+    expect(adminData).toContain("/pagamentos#novo-lancamento-fluig");
+    expect(adminData).toContain("/compras#novo-lancamento-fluig");
+    expect(adminData).not.toContain("/pagamentos/novo");
+    expect(adminData).not.toContain("/compras/nova");
+    expect(dashboard).toContain("/pagamentos#novo-lancamento-fluig");
+    expect(dashboard).toContain("/compras#novo-lancamento-fluig");
+    expect(launchForm).toContain('id="novo-lancamento-fluig"');
+  });
+
   it("persiste lancamentos operacionais com itens, auditoria e escrita somente server-side", async () => {
     const migration = await source("supabase/migrations/20260624094623_operational_fluig_launches.sql");
     const repository = await source("src/lib/db/operational-launch-repository.ts");

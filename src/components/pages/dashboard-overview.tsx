@@ -24,10 +24,10 @@ import type { AppActor } from "@/lib/db/app-repository";
 import type { StatItem, Tone } from "@/lib/admin-data";
 
 const quickActions = [
-  { label: "Nova despesa", href: "/despesas/nova" },
+  { label: "Registrar pagamento", href: "/pagamentos#novo-lancamento-fluig" },
   { label: "Novo fornecedor", href: "/fornecedores/novo" },
   { label: "Novo contrato", href: "/contratos/novo" },
-  { label: "Nova requisição", href: "/compras/nova" },
+  { label: "Nova requisição", href: "/compras#novo-lancamento-fluig" },
   { label: "Nova OS", href: "/manutencao/nova" },
   { label: "Nova tarefa", href: "/tarefas/nova" },
 ];

@@ -832,7 +832,7 @@ export function FluigLaunchForm({
   }
 
   return (
-    <section className="rounded-md border bg-background">
+    <section id="novo-lancamento-fluig" className="scroll-mt-24 rounded-md border bg-background">
       <header className="flex flex-col gap-3 border-b p-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className="text-sm font-semibold">{integration.primaryAction}</h3>
