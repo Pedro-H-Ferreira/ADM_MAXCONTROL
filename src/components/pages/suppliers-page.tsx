@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Building2,
+  CheckCircle2,
   Edit3,
   Eye,
   FileSearch,
@@ -345,6 +346,7 @@ export function SuppliersPage({
   const [lookupLoading, setLookupLoading] = useState(false);
   const [reconciling, setReconciling] = useState(false);
   const [syncingSupplierId, setSyncingSupplierId] = useState<string | null>(null);
+  const [approvingSupplierId, setApprovingSupplierId] = useState<string | null>(null);
   const [statusChangingSupplierId, setStatusChangingSupplierId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(initialOpenForm);
@@ -426,6 +428,27 @@ export function SuppliersPage({
     setEditing(null);
     setLookupResult(null);
     setForm(initialForm);
+  }
+
+  function setPreRegistrationReviewFilters() {
+    setSearch("");
+    setDebouncedSearch("");
+    setStatus("PENDENTE_REVISAO");
+    setSourceSystem("PRE_CADASTRO_FLUIG");
+    setSyncStatus("PENDENTE_REVISAO");
+    setAttention("PENDING");
+    setPage(1);
+  }
+
+  function clearSupplierFilters() {
+    setSearch("");
+    setDebouncedSearch("");
+    setStatus("ALL");
+    setSourceSystem("ALL");
+    setSyncStatus("ALL");
+    setBranchId("ALL");
+    setAttention("ALL");
+    setPage(1);
   }
 
   function openCreateDialog() {
@@ -575,6 +598,60 @@ export function SuppliersPage({
       toast.error(approveError instanceof Error ? approveError.message : "Falha ao converter candidato Fluig.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function ignoreCandidate() {
+    const candidateId = lookupResult?.suggestions?.candidateId;
+    if (!candidateId) return;
+
+    setSaving(true);
+    try {
+      await parseResponse(
+        await fetch(`/api/fornecedores/candidates/${candidateId}/ignore`, { method: "POST" }),
+        "Falha ao ignorar candidato Fluig."
+      );
+      toast.success("Candidato Fluig ignorado para novas conversoes.");
+      setLookupResult(null);
+      setForm((current) => ({
+        ...current,
+        sourceSystem: "LOCAL",
+        syncStatus: "NAO_SINCRONIZADO",
+      }));
+      await loadSuppliers();
+    } catch (ignoreError) {
+      toast.error(ignoreError instanceof Error ? ignoreError.message : "Falha ao ignorar candidato Fluig.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function approvePreRegistration(supplier: SupplierRecord) {
+    if (!permissions.canUpdate) {
+      toast.error("Usuario sem permissao para aprovar pre-cadastros.");
+      return;
+    }
+
+    setApprovingSupplierId(supplier.id);
+    try {
+      await parseResponse(
+        await fetch(`/api/fornecedores/${supplier.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "ATIVO",
+            sourceSystem: supplier.sourceSystem === "PRE_CADASTRO_FLUIG" ? "LOCAL_FLUIG" : supplier.sourceSystem,
+            syncStatus: supplier.syncStatus === "PENDENTE_REVISAO" ? "SINCRONIZADO" : supplier.syncStatus,
+          }),
+        }),
+        "Falha ao aprovar pre-cadastro."
+      );
+      toast.success("Pre-cadastro aprovado como fornecedor oficial.");
+      await loadSuppliers();
+    } catch (approveError) {
+      toast.error(approveError instanceof Error ? approveError.message : "Falha ao aprovar pre-cadastro.");
+    } finally {
+      setApprovingSupplierId(null);
     }
   }
 
@@ -807,6 +884,13 @@ export function SuppliersPage({
               {loading ? "Consultando fornecedores..." : `${items.length} exibidos de ${total} registros encontrados.`}
             </p>
             <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" className="stitch-soft-button" onClick={setPreRegistrationReviewFilters}>
+                <FileSearch className="size-4" />
+                Revisar pre-cadastros
+              </Button>
+              <Button type="button" variant="ghost" className="stitch-soft-button" onClick={clearSupplierFilters}>
+                Limpar filtros
+              </Button>
               {permissions.canReconcile ? (
                 <Button
                   type="button"
@@ -863,7 +947,10 @@ export function SuppliersPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((supplier) => (
+                {items.map((supplier) => {
+                  const needsReview = supplier.status === "PENDENTE_REVISAO" || supplier.syncStatus === "PENDENTE_REVISAO";
+
+                  return (
                   <TableRow key={supplier.id}>
                     <TableCell className="max-w-[320px] whitespace-normal">
                       <div className="font-medium">{supplier.razaoSocial}</div>
@@ -900,6 +987,22 @@ export function SuppliersPage({
                         {permissions.canUpdate ? (
                           <Button type="button" variant="ghost" size="icon-sm" title="Editar" onClick={() => openEditDialog(supplier)}>
                             <Edit3 className="size-4" />
+                          </Button>
+                        ) : null}
+                        {permissions.canUpdate && needsReview ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            title="Aprovar pre-cadastro"
+                            disabled={approvingSupplierId === supplier.id}
+                            onClick={() => void approvePreRegistration(supplier)}
+                          >
+                            {approvingSupplierId === supplier.id ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="size-4" />
+                            )}
                           </Button>
                         ) : null}
                         <Button
@@ -962,7 +1065,8 @@ export function SuppliersPage({
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
@@ -1004,6 +1108,7 @@ export function SuppliersPage({
         lookupCnpj={lookupCnpj}
         submitSupplier={submitSupplier}
         approveCandidate={approveCandidate}
+        ignoreCandidate={ignoreCandidate}
         openEditDialog={openEditDialog}
         permissions={permissions}
       />
@@ -1067,6 +1172,7 @@ function SupplierFormDialog({
   lookupCnpj,
   submitSupplier,
   approveCandidate,
+  ignoreCandidate,
   openEditDialog,
   permissions,
 }: {
@@ -1083,6 +1189,7 @@ function SupplierFormDialog({
   lookupCnpj: (rawCnpj?: string) => Promise<void>;
   submitSupplier: () => Promise<void>;
   approveCandidate: () => Promise<void>;
+  ignoreCandidate: () => Promise<void>;
   openEditDialog: (supplier: SupplierRecord) => void;
   permissions: PagePermissions;
 }) {
@@ -1313,10 +1420,19 @@ function SupplierFormDialog({
                           </p>
                         </div>
                       ) : null}
-                      {candidateId && permissions.canApprove ? (
-                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => void approveCandidate()} disabled={saving}>
-                          Converter candidato
-                        </Button>
+                      {candidateId && (permissions.canApprove || permissions.canUpdate) ? (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {permissions.canApprove ? (
+                            <Button type="button" variant="outline" size="sm" onClick={() => void approveCandidate()} disabled={saving}>
+                              Converter candidato
+                            </Button>
+                          ) : null}
+                          {permissions.canUpdate ? (
+                            <Button type="button" variant="ghost" size="sm" onClick={() => void ignoreCandidate()} disabled={saving}>
+                              Ignorar candidato
+                            </Button>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                   ) : null}

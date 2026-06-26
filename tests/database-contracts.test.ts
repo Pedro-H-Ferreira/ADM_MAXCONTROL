@@ -89,6 +89,19 @@ describe("database and API contracts", () => {
     expect(migration).toContain("app_supplier_branch_links");
   });
 
+  it("exibe fila de revisao e acoes de pre-cadastro Fluig em fornecedores", async () => {
+    const suppliersPage = await source("src/components/pages/suppliers-page.tsx");
+    const ignoreRoute = await source("src/app/api/fornecedores/candidates/[id]/ignore/route.ts");
+
+    expect(suppliersPage).toContain("setPreRegistrationReviewFilters");
+    expect(suppliersPage).toContain("approvePreRegistration");
+    expect(suppliersPage).toContain("ignoreCandidate");
+    expect(suppliersPage).toContain("Revisar pre-cadastros");
+    expect(suppliersPage).toContain("Aprovar pre-cadastro");
+    expect(suppliersPage).toContain("candidates/${candidateId}/ignore");
+    expect(ignoreRoute).toContain("ignoreSupplierCandidate");
+  });
+
   it("divide resultados grandes do agente antes de finalizar jobs Fluig", async () => {
     const chunkRoute = await source("src/app/api/agent/jobs/[jobId]/chunk/route.ts");
     const agent = await source("agent/fluig-agent/src/index.js");
