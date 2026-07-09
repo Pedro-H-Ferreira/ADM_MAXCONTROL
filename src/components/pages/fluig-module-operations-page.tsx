@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 type OperationalModuleSlug = Extract<FluigModuleSlug, "pagamentos" | "compras">;
 
 const terminalJobStatuses = new Set(["success", "error", "cancelled", "expired"]);
+const recentFailureWindowMs = 24 * 60 * 60 * 1000;
 
 const moduleLabels: Record<OperationalModuleSlug, string> = {
   pagamentos: "Pagamentos",
@@ -45,6 +46,29 @@ const syncTypeLabels: Record<FluigUserSyncStateRecord["syncType"], string> = {
   status_check: "Consulta de status",
   supplier_lookup: "Consulta de fornecedor",
 };
+
+function timestampMs(value: string | null | undefined) {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function isRecentTimestamp(value: string | null | undefined) {
+  const timestamp = timestampMs(value);
+  return timestamp != null && Date.now() - timestamp <= recentFailureWindowMs;
+}
+
+function isRecentJobFailure(job: Pick<FluigAdmJobSummary, "status" | "updatedAt" | "finishedAt">) {
+  return (job.status === "error" || job.status === "expired") && isRecentTimestamp(job.finishedAt || job.updatedAt);
+}
+
+function isCurrentSyncStateError(state: FluigUserSyncStateRecord) {
+  if (!state.lastErrorAt && !state.lastErrorMessage) return false;
+  const errorAt = timestampMs(state.lastErrorAt || state.updatedAt);
+  const successAt = timestampMs(state.lastSuccessAt);
+  if (errorAt != null && successAt != null && successAt >= errorAt) return false;
+  return isRecentTimestamp(state.lastErrorAt || state.updatedAt);
+}
 
 function normalizeStatus(value: string | null | undefined, fallback = "ABERTO") {
   const normalized = (value || fallback)
@@ -121,8 +145,8 @@ export function FluigModuleOperationsPage({
   const sortedRequests = useMemo(() => [...requests].sort(sortByRecentActivity), [requests]);
   const moduleJobs = useMemo(() => jobs.filter((job) => job.module === moduleSlug), [jobs, moduleSlug]);
   const pendingJobs = useMemo(() => moduleJobs.filter((job) => !terminalJobStatuses.has(job.status)), [moduleJobs]);
-  const failedJobs = useMemo(() => moduleJobs.filter((job) => job.status === "error" || job.status === "expired"), [moduleJobs]);
-  const syncErrors = useMemo(() => states.filter((state) => state.lastErrorAt || state.lastErrorMessage), [states]);
+  const failedJobs = useMemo(() => moduleJobs.filter(isRecentJobFailure), [moduleJobs]);
+  const syncErrors = useMemo(() => states.filter(isCurrentSyncStateError), [states]);
   const latestState = useMemo(
     () => [...states].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0] || null,
     [states]
@@ -282,7 +306,7 @@ export function FluigModuleOperationsPage({
           icon={AlertTriangle}
           label="Erros recentes"
           value={String(failedJobs.length + syncErrors.length)}
-          detail="Falhas de job ou sincronizacao"
+          detail="Falhas acionaveis das ultimas 24h"
           tone={failedJobs.length + syncErrors.length ? "danger" : "default"}
         />
         <MetricTile

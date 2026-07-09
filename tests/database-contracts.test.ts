@@ -165,6 +165,7 @@ describe("database and API contracts", () => {
     const dashboardRepository = await source("src/lib/db/dashboard-repository.ts");
     const dashboardOperations = await source("src/components/shared/dashboard-fluig-operations.tsx");
     const fluigTasksPage = await source("src/components/pages/fluig-tasks-page.tsx");
+    const fluigModuleOperationsPage = await source("src/components/pages/fluig-module-operations-page.tsx");
 
     expect(dashboardRepository).toContain("recentFailureWindowMs");
     expect(dashboardRepository).toContain("shouldShowRecentActivity");
@@ -175,6 +176,9 @@ describe("database and API contracts", () => {
     expect(fluigTasksPage).toContain("isVisibleRecentJob");
     expect(fluigTasksPage).toContain("isCurrentSyncStateError");
     expect(fluigTasksPage).toContain("Falhas acionaveis das ultimas 24h");
+    expect(fluigModuleOperationsPage).toContain("isRecentJobFailure");
+    expect(fluigModuleOperationsPage).toContain("isCurrentSyncStateError");
+    expect(fluigModuleOperationsPage).toContain("Falhas acionaveis das ultimas 24h");
   });
 
   it("mantem pagamentos e compras no fluxo de lancamento Fluig da propria pagina", async () => {
