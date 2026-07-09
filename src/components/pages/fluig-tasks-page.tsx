@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 type ModuleFilter = "all" | FluigModuleSlug;
 
 const terminalJobStatuses = new Set(["success", "error", "cancelled", "expired"]);
+const recentFailureWindowMs = 24 * 60 * 60 * 1000;
 
 const moduleLabels: Record<FluigModuleSlug, string> = {
   pagamentos: "Pagamentos",
@@ -74,6 +75,34 @@ const operationLabels: Record<string, string> = {
   sync_request_by_number: "Consulta por numero",
   supplier_lookup_by_cnpj: "Fornecedor por CNPJ",
 };
+
+function timestampMs(value: string | null | undefined) {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function isRecentTimestamp(value: string | null | undefined) {
+  const timestamp = timestampMs(value);
+  return timestamp != null && Date.now() - timestamp <= recentFailureWindowMs;
+}
+
+function isRecentJobFailure(job: Pick<FluigAdmJobSummary, "status" | "updatedAt" | "finishedAt">) {
+  return (job.status === "error" || job.status === "expired") && isRecentTimestamp(job.finishedAt || job.updatedAt);
+}
+
+function isCurrentSyncStateError(state: FluigUserSyncStateRecord) {
+  if (!state.lastErrorAt && !state.lastErrorMessage) return false;
+  const errorAt = timestampMs(state.lastErrorAt || state.updatedAt);
+  const successAt = timestampMs(state.lastSuccessAt);
+  if (errorAt != null && successAt != null && successAt >= errorAt) return false;
+  return isRecentTimestamp(state.lastErrorAt || state.updatedAt);
+}
+
+function isVisibleRecentJob(job: FluigAdmJobSummary) {
+  if (job.status === "error" || job.status === "expired") return isRecentJobFailure(job);
+  return true;
+}
 
 function normalizeStatus(value: string | null | undefined, fallback = "ABERTO") {
   const normalized = (value || fallback)
@@ -153,8 +182,8 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   const sortedTasks = useMemo(() => [...tasks].sort(sortByRecentActivity), [tasks]);
   const sortedRequests = useMemo(() => [...requests].sort(sortByRecentActivity), [requests]);
   const pendingJobs = useMemo(() => jobs.filter((job) => !terminalJobStatuses.has(job.status)), [jobs]);
-  const failedJobs = useMemo(() => jobs.filter((job) => job.status === "error" || job.status === "expired"), [jobs]);
-  const syncErrors = useMemo(() => states.filter((state) => state.lastErrorAt || state.lastErrorMessage), [states]);
+  const failedJobs = useMemo(() => jobs.filter(isRecentJobFailure), [jobs]);
+  const syncErrors = useMemo(() => states.filter(isCurrentSyncStateError), [states]);
   const latestState = useMemo(
     () => [...states].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0] || null,
     [states]
@@ -225,6 +254,8 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
           progressStage: job.progressStage,
           progressLabel: job.progressLabel,
           errorMessage: job.errorMessage || null,
+          updatedAt: seed?.updatedAt,
+          finishedAt: seed?.finishedAt,
         };
       });
 
@@ -338,6 +369,8 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
         progressStage: data.job.progressStage,
         progressLabel: data.job.progressLabel,
         errorMessage: null,
+        updatedAt: new Date().toISOString(),
+        finishedAt: null,
       };
 
       setJobs((current) => [testJob, ...current.filter((job) => job.id !== testJob.id)]);
@@ -367,7 +400,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
         <MetricTile icon={ClipboardList} label="Minhas tarefas" value={String(tasks.length)} detail="Pendencias abertas no Fluig" />
         <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requests.length)} detail="Itens ainda acompanhados pelo ADM" />
         <MetricTile icon={Activity} label="Jobs em andamento" value={String(pendingJobs.length)} detail="Execucoes aguardando agente local" />
-        <MetricTile icon={AlertTriangle} label="Erros recentes" value={String(failedJobs.length + syncErrors.length)} detail="Falhas de job ou sync state" tone={failedJobs.length + syncErrors.length ? "danger" : "default"} />
+        <MetricTile icon={AlertTriangle} label="Erros recentes" value={String(failedJobs.length + syncErrors.length)} detail="Falhas acionaveis das ultimas 24h" tone={failedJobs.length + syncErrors.length ? "danger" : "default"} />
         <MetricTile
           icon={RefreshCcw}
           label="Ultima sync"
@@ -656,12 +689,12 @@ function SyncStatePanel({ states, loading }: { states: FluigUserSyncStateRecord[
                   <p className="truncate text-sm font-medium">{moduleLabels[state.module]}</p>
                   <p className="mt-1 truncate text-xs text-muted-foreground">{syncTypeLabels[state.syncType]}</p>
                 </div>
-                <StatusBadge status={state.lastErrorAt || state.lastErrorMessage ? "FALHA" : "SINCRONIZADO"} />
+                <StatusBadge status={isCurrentSyncStateError(state) ? "FALHA" : "SINCRONIZADO"} />
               </div>
               <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
                 <span>Sucesso: {formatDateTime(state.lastSuccessAt)}</span>
                 <span>Atualizado: {formatDateTime(state.updatedAt)}</span>
-                {state.lastErrorMessage ? <span className="text-red-700">{state.lastErrorMessage}</span> : null}
+                {isCurrentSyncStateError(state) && state.lastErrorMessage ? <span className="text-red-700">{state.lastErrorMessage}</span> : null}
               </div>
             </div>
           ))}
@@ -674,11 +707,13 @@ function SyncStatePanel({ states, loading }: { states: FluigUserSyncStateRecord[
 }
 
 function RecentJobsPanel({ jobs, loading }: { jobs: FluigAdmJobSummary[]; loading: boolean }) {
+  const visibleJobs = jobs.filter(isVisibleRecentJob).slice(0, 8);
+
   return (
     <SidePanel icon={Workflow} title="Jobs recentes">
-      {jobs.length ? (
+      {visibleJobs.length ? (
         <div className="space-y-2">
-          {jobs.slice(0, 8).map((job) => (
+          {visibleJobs.map((job) => (
             <div key={job.id} className="rounded-md border bg-muted/20 p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
