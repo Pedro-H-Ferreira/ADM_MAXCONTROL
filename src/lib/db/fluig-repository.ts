@@ -818,6 +818,7 @@ export function buildFluigHistoryRequestRow(
     null;
   const branchLabel = extractBranchLabel(fields);
   const branchCode = extractBranchCode(fields);
+  const syncedAt = new Date().toISOString();
 
   return {
     module_slug: module,
@@ -840,8 +841,9 @@ export function buildFluigHistoryRequestRow(
     currency: "BRL",
     due_date: parseDateOnly(fields.vencPagNota || fields.vencimento || fields.dataPrevRetorno),
     opened_at: item.startDate,
-    last_synced_at: new Date().toISOString(),
-    canceled_at: String(item.status || "").toLowerCase().includes("cancel") ? new Date().toISOString() : null,
+    last_synced_at: syncedAt,
+    updated_at: syncedAt,
+    canceled_at: String(item.status || "").toLowerCase().includes("cancel") ? syncedAt : null,
     source_url: item.sourceUrl,
     raw_payload: {
       formFields: fields,
@@ -863,6 +865,7 @@ export function buildFluigStatusRequestRow(
   existing?: Pick<FluigRequestDbRow, "status" | "current_task" | "task_owner" | "due_date" | "raw_payload"> | null
 ) {
   const checkedAt = item.dataUltimaConsulta || new Date().toISOString();
+  const syncedAt = new Date().toISOString();
   const open = isStatusOpen(item);
   const currentTask = String(item.etapaAtual || "").trim() || existing?.current_task || null;
   const taskOwner =
@@ -884,6 +887,7 @@ export function buildFluigStatusRequestRow(
     sync_source: options.syncSource || "status_check",
     sync_owner_user_id: options.ownerUserId || null,
     last_synced_at: checkedAt,
+    updated_at: syncedAt,
     raw_payload: {
       ...(existing?.raw_payload || {}),
       statusSnapshot: item as unknown as JsonRecord,

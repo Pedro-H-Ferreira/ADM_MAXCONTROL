@@ -37,6 +37,13 @@ describe("database and API contracts", () => {
     expect(repository).toContain('onConflict: "module_slug,fluig_request_id"');
   });
 
+  it("atualiza updated_at ao persistir historico e status Fluig", async () => {
+    const repository = await source("src/lib/db/fluig-repository.ts");
+
+    expect(repository).toMatch(/last_synced_at:\s*syncedAt[\s\S]*updated_at:\s*syncedAt/);
+    expect(repository).toMatch(/last_synced_at:\s*checkedAt[\s\S]*updated_at:\s*syncedAt/);
+  });
+
   it("mantem o CRUD completo das rotas de filial", async () => {
     const collectionRoute = await source("src/app/api/admin/branches/route.ts");
     const itemRoute = await source("src/app/api/admin/branches/[id]/route.ts");
