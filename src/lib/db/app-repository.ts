@@ -302,6 +302,11 @@ function mapJob(row: DbJobRow): FluigJobRecord {
   };
 }
 
+function fluigUserIdFromJobPayload(payload: JsonRecord) {
+  const userMatch = payload.userMatch as Record<string, unknown> | undefined;
+  return String(payload.taskUserId || userMatch?.fluigUserId || "").trim() || null;
+}
+
 async function reconcileFluigJobLifecycle(client: SupabaseClient, userId?: string | null) {
   let query = client
     .from("fluig_jobs")
@@ -1090,6 +1095,29 @@ export async function recordAgentHeartbeat(input: {
   if (error) throw error;
 }
 
+export async function recordDetectedFluigUserId(input: {
+  userId: string;
+  fluigUserId?: string | null;
+}) {
+  const fluigUserId = String(input.fluigUserId || "").trim();
+  if (!fluigUserId) return false;
+
+  const client = assertServiceClient();
+  const { data, error } = await client
+    .from("app_user_profiles")
+    .update({
+      fluig_user_id: fluigUserId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.userId)
+    .or("fluig_user_id.is.null,fluig_user_id.eq.")
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+
+  return Boolean(data);
+}
+
 export async function createFluigJob(input: {
   actor: AppActor;
   module: FluigModuleSlug;
@@ -1209,7 +1237,7 @@ export async function completeFluigUserSyncStateForJob(input: {
   const payload = {
     user_id: input.job.requestedByUserId,
     fluig_username: input.job.fluigUsername,
-    fluig_user_id: null,
+    fluig_user_id: fluigUserIdFromJobPayload(input.job.requestPayload),
     module_slug: input.module || input.job.module,
     sync_type: input.syncType,
     last_sync_at: now,

@@ -3,6 +3,7 @@ import {
   completeFluigUserSyncStateForJob,
   completeFluigJob,
   readJobForAgent,
+  recordDetectedFluigUserId,
   recordFluigJobEvent,
   type FluigUserSyncType,
   type FluigJobStatus,
@@ -57,6 +58,11 @@ function extractStatusItems(payload: Record<string, unknown>) {
   const directItems = payload.items;
   const dataItems = data?.items;
   return (Array.isArray(dataItems) ? dataItems : Array.isArray(directItems) ? directItems : []) as FluigStatusItem[];
+}
+
+function extractCurrentFluigUserId(payload: Record<string, unknown>) {
+  const data = payload.data as Record<string, unknown> | undefined;
+  return String(data?.currentUserId || payload.currentUserId || "").trim();
 }
 
 function extractGeneratedRequest(payload: Record<string, unknown>) {
@@ -258,6 +264,25 @@ export async function POST(request: Request, context: RouteContext) {
         body.errorMessage || "Falha ao abrir solicitacao no Fluig.",
         job.id
       );
+    }
+  }
+
+  if (status === "success" && job.operation === "health_check") {
+    const currentFluigUserId = extractCurrentFluigUserId(resultPayload);
+    const profileUpdated = await recordDetectedFluigUserId({
+      userId: job.requestedByUserId,
+      fluigUserId: currentFluigUserId,
+    });
+
+    if (profileUpdated) {
+      await recordFluigJobEvent({
+        jobId,
+        agentId: agent.id,
+        eventType: "profile_updated",
+        stage: "syncing_result",
+        label: "Usuario Fluig detectado pelo agente e salvo no perfil.",
+        payload: { fluigUserId: currentFluigUserId },
+      });
     }
   }
 
