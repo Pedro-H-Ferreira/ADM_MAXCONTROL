@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Building2,
   CheckCircle2,
+  ClipboardList,
   Edit3,
   Eye,
   FileSearch,
@@ -71,6 +72,26 @@ type SupplierBranch = {
   defaultBranch: boolean;
 };
 
+type SupplierLinkedRequest = {
+  id: string;
+  module: string;
+  fluigRequestId: string;
+  status: string | null;
+  normalizedStatus: string | null;
+  isOpen: boolean | null;
+  currentTask: string | null;
+  taskOwner: string | null;
+  requester: string | null;
+  branchCode: string | null;
+  branchLabel: string | null;
+  supplierName: string | null;
+  openedAt: string | null;
+  dueDate: string | null;
+  lastSyncedAt: string | null;
+  lastStatusCheckAt: string | null;
+  lastSeenInUserOpenListAt: string | null;
+};
+
 type SupplierRecord = {
   id: string;
   cnpj: string | null;
@@ -105,6 +126,7 @@ type SupplierRecord = {
   sourceSystem: SupplierSourceSystem;
   syncStatus: SupplierSyncStatus;
   requestCount: number;
+  requests: SupplierLinkedRequest[];
   branches: SupplierBranch[];
   updatedAt: string;
   deletedAt: string | null;
@@ -206,6 +228,13 @@ const syncLabels: Record<SupplierSyncStatus, string> = {
   ERRO_SYNC: "Erro de sync",
 };
 
+const fluigModuleLabels: Record<string, string> = {
+  pagamentos: "Pagamento",
+  compras: "Compra",
+  manutencao: "Manutencao",
+  fornecedores: "Fornecedor",
+};
+
 const initialForm: SupplierFormState = {
   cnpj: "",
   razaoSocial: "",
@@ -248,6 +277,24 @@ function formatDateTime(value: string | null | undefined) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function requestStatusLabel(request: SupplierLinkedRequest) {
+  const status = request.normalizedStatus || request.status;
+  if (status) return status.replaceAll("_", " ");
+  if (request.isOpen === true) return "ABERTO";
+  if (request.isOpen === false) return "FINALIZADO";
+  return "SEM STATUS";
+}
+
+function requestStatusBadge(request: SupplierLinkedRequest) {
+  if (request.isOpen === true) return "ABERTO";
+  if (request.isOpen === false) return "FINALIZADO";
+  return request.normalizedStatus || request.status || "SEM STATUS";
+}
+
+function requestActivityDate(request: SupplierLinkedRequest) {
+  return request.lastStatusCheckAt || request.lastSyncedAt || request.lastSeenInUserOpenListAt || request.openedAt;
 }
 
 async function parseResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
@@ -469,6 +516,19 @@ export function SuppliersPage({
     setLookupResult(null);
     setForm(formFromSupplier(supplier));
     setDialogOpen(true);
+  }
+
+  async function openViewDialog(supplier: SupplierRecord) {
+    setViewing(supplier);
+    try {
+      const data = await parseResponse<{ success: true; supplier: SupplierRecord }>(
+        await fetch(`/api/fornecedores/${supplier.id}`, { cache: "no-store" }),
+        "Falha ao consultar fornecedor."
+      );
+      setViewing(data.supplier);
+    } catch (viewError) {
+      toast.error(viewError instanceof Error ? viewError.message : "Falha ao consultar fornecedor.");
+    }
   }
 
   function updateForm<K extends keyof SupplierFormState>(key: K, value: SupplierFormState[K]) {
@@ -970,10 +1030,22 @@ export function SuppliersPage({
                         : "Sem filial vinculada"}
                       {supplier.branches.length > 2 ? ` +${supplier.branches.length - 2}` : ""}
                     </TableCell>
-                    <TableCell>{supplier.requestCount}</TableCell>
+                    <TableCell className="min-w-[180px] max-w-[260px] whitespace-normal">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <ClipboardList className="size-4 text-muted-foreground" />
+                        {supplier.requestCount}
+                      </div>
+                      {supplier.requests[0] ? (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Fluig {supplier.requests[0].fluigRequestId || "-"} - {fluigModuleLabels[supplier.requests[0].module] || supplier.requests[0].module}
+                        </div>
+                      ) : (
+                        <div className="mt-1 text-xs text-muted-foreground">Sem amostra recente</div>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        <Button type="button" variant="ghost" size="icon-sm" title="Visualizar" onClick={() => setViewing(supplier)}>
+                        <Button type="button" variant="ghost" size="icon-sm" title="Visualizar" onClick={() => void openViewDialog(supplier)}>
                           <Eye className="size-4" />
                         </Button>
                         {permissions.canUpdate ? (
@@ -1458,24 +1530,64 @@ function SupplierFormDialog({
 function SupplierViewDialog({ supplier, onOpenChange }: { supplier: SupplierRecord | null; onOpenChange: (open: boolean) => void }) {
   return (
     <Dialog open={Boolean(supplier)} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>{supplier?.razaoSocial || "Fornecedor"}</DialogTitle>
           <DialogDescription>Resumo cadastral, vinculos e ultima sincronizacao Fluig.</DialogDescription>
         </DialogHeader>
         {supplier ? (
-          <div className="grid gap-3 md:grid-cols-2">
-            <Info label="CNPJ" value={supplier.cnpjFormatado || supplier.cnpjNormalizado || "-"} />
-            <Info label="Status" value={supplier.status.replaceAll("_", " ")} />
-            <Info label="Origem" value={sourceLabels[supplier.sourceSystem]} />
-            <Info label="Sincronizacao" value={syncLabels[supplier.syncStatus]} />
-            <Info label="Nome Fluig" value={supplier.fluig.name || "-"} />
-            <Info label="Codigo Fluig" value={supplier.fluig.code || "-"} />
-            <Info label="Solicitacoes vinculadas" value={String(supplier.requestCount)} />
-            <Info label="Ultima sync" value={formatDateTime(supplier.fluig.lastSyncAt)} />
-            <Info label="Filiais" value={supplier.branches.map((branch) => branch.code || branch.name).join(", ") || "-"} className="md:col-span-2" />
-            <Info label="Contato" value={[supplier.contatoPrincipal, supplier.email, supplier.telefone].filter(Boolean).join(" / ") || "-"} className="md:col-span-2" />
-            <Info label="Observacoes" value={supplier.observacoes || "-"} className="md:col-span-2" />
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <Info label="CNPJ" value={supplier.cnpjFormatado || supplier.cnpjNormalizado || "-"} />
+              <Info label="Status" value={supplier.status.replaceAll("_", " ")} />
+              <Info label="Origem" value={sourceLabels[supplier.sourceSystem]} />
+              <Info label="Sincronizacao" value={syncLabels[supplier.syncStatus]} />
+              <Info label="Nome Fluig" value={supplier.fluig.name || "-"} />
+              <Info label="Codigo Fluig" value={supplier.fluig.code || "-"} />
+              <Info label="Solicitacoes vinculadas" value={String(supplier.requestCount)} />
+              <Info label="Ultima sync" value={formatDateTime(supplier.fluig.lastSyncAt)} />
+              <Info label="Filiais" value={supplier.branches.map((branch) => branch.code || branch.name).join(", ") || "-"} className="md:col-span-2" />
+              <Info label="Contato" value={[supplier.contatoPrincipal, supplier.email, supplier.telefone].filter(Boolean).join(" / ") || "-"} className="md:col-span-2" />
+              <Info label="Observacoes" value={supplier.observacoes || "-"} className="md:col-span-2" />
+            </div>
+
+            <section className="rounded-md border">
+              <div className="flex items-center justify-between gap-3 border-b p-3">
+                <div>
+                  <h3 className="text-sm font-semibold">Solicitacoes Fluig vinculadas</h3>
+                  <p className="text-xs text-muted-foreground">Ultimos registros ligados ao CNPJ/fornecedor oficial.</p>
+                </div>
+                <Badge variant="outline">{supplier.requestCount} total</Badge>
+              </div>
+              {supplier.requests.length ? (
+                <div className="divide-y">
+                  {supplier.requests.map((request) => (
+                    <div key={request.id} className="grid gap-3 p-3 text-sm md:grid-cols-[1fr_auto]">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">Fluig {request.fluigRequestId || "-"}</span>
+                          <Badge variant="outline">{fluigModuleLabels[request.module] || request.module}</Badge>
+                          <StatusBadge status={requestStatusBadge(request)} />
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {request.branchLabel || request.branchCode || "Filial nao identificada"}
+                          {request.currentTask ? ` - ${request.currentTask}` : ""}
+                          {request.taskOwner ? ` - ${request.taskOwner}` : ""}
+                        </p>
+                      </div>
+                      <div className="text-xs text-muted-foreground md:text-right">
+                        <p>{requestStatusLabel(request)}</p>
+                        <p>Atualizado {formatDateTime(requestActivityDate(request))}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-sm text-muted-foreground">
+                  Nenhuma solicitacao visivel para este usuario. Use a consulta por CNPJ ou sincronize o historico Fluig para preencher o vinculo.
+                </div>
+              )}
+            </section>
           </div>
         ) : null}
       </DialogContent>

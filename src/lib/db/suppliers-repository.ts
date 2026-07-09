@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { canonicalHistoricalCnpj, formatCnpj, isValidCnpj, normalizeCnpj, onlyDigits } from "@/lib/cnpj";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
-import type { AppActor } from "@/lib/db/app-repository";
+import { filterRowsForActor, type AppActor } from "@/lib/db/app-repository";
 import type { FluigHistoryItem } from "@/lib/fluig/server-client";
 import type { SupplierListFilters } from "@/lib/supplier-list-filters";
 import {
@@ -105,6 +105,31 @@ type BranchLinkRow = {
     fluig_label: string | null;
     active: boolean;
   } | null;
+};
+
+type SupplierLinkedRequestDbRow = {
+  id: string;
+  app_supplier_id: string;
+  module_slug: string;
+  fluig_request_id: string | null;
+  status: string | null;
+  normalized_status: string | null;
+  is_open: boolean | null;
+  current_task: string | null;
+  task_owner: string | null;
+  requester: string | null;
+  branch_code: string | null;
+  branch_label: string | null;
+  supplier_name: string | null;
+  opened_at: string | null;
+  due_date: string | null;
+  last_synced_at: string | null;
+  last_status_check_at: string | null;
+  last_seen_in_user_open_list_at: string | null;
+  created_by_user_id: string | null;
+  sync_owner_user_id: string | null;
+  fluig_requester_login: string | null;
+  fluig_requester_code: string | null;
 };
 
 type SupplierPreRegistrationDbRow = {
@@ -224,7 +249,40 @@ function supplierCanBeSeenByActor(actor: AppActor, supplierId: string, linksBySu
   return links.some((link) => link.branch?.code && branchCodes.has(link.branch.code));
 }
 
-function mapSupplier(row: SupplierDbRow, links: BranchLinkRow[] = [], requestCount = 0) {
+function requestActivityTimestamp(row: SupplierLinkedRequestDbRow) {
+  const value = row.last_status_check_at || row.last_synced_at || row.last_seen_in_user_open_list_at || row.opened_at || "";
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function mapSupplierLinkedRequest(row: SupplierLinkedRequestDbRow) {
+  return {
+    id: row.id,
+    module: row.module_slug,
+    fluigRequestId: row.fluig_request_id || "",
+    status: row.status,
+    normalizedStatus: row.normalized_status,
+    isOpen: row.is_open,
+    currentTask: row.current_task,
+    taskOwner: row.task_owner,
+    requester: row.requester,
+    branchCode: row.branch_code,
+    branchLabel: row.branch_label,
+    supplierName: row.supplier_name,
+    openedAt: row.opened_at,
+    dueDate: row.due_date,
+    lastSyncedAt: row.last_synced_at,
+    lastStatusCheckAt: row.last_status_check_at,
+    lastSeenInUserOpenListAt: row.last_seen_in_user_open_list_at,
+  };
+}
+
+function mapSupplier(
+  row: SupplierDbRow,
+  links: BranchLinkRow[] = [],
+  requestCount = 0,
+  requests: SupplierLinkedRequestDbRow[] = []
+) {
   return {
     id: row.id,
     cnpj: row.cnpj,
@@ -262,6 +320,7 @@ function mapSupplier(row: SupplierDbRow, links: BranchLinkRow[] = [], requestCou
     sourceSystem: row.source_system,
     syncStatus: row.sync_status,
     requestCount,
+    requests: requests.map(mapSupplierLinkedRequest),
     branches: links.map((link) => ({
       id: link.branch_id,
       code: link.branch?.code || null,
@@ -309,6 +368,64 @@ async function fetchRequestCounts(client: SupabaseClient, supplierIds: string[])
   }
 
   return counts;
+}
+
+async function fetchSupplierRequestSummaries(
+  client: SupabaseClient,
+  actor: AppActor,
+  supplierIds: string[],
+  perSupplier = 3
+) {
+  const requestsBySupplier = new Map<string, SupplierLinkedRequestDbRow[]>();
+  if (!supplierIds.length || perSupplier <= 0) return requestsBySupplier;
+
+  for (const supplierIdBatch of chunksOf(supplierIds, 50)) {
+    const { data, error } = await client
+      .from("fluig_requests")
+      .select(
+        [
+          "id",
+          "app_supplier_id",
+          "module_slug",
+          "fluig_request_id",
+          "status",
+          "normalized_status",
+          "is_open",
+          "current_task",
+          "task_owner",
+          "requester",
+          "branch_code",
+          "branch_label",
+          "supplier_name",
+          "opened_at",
+          "due_date",
+          "last_synced_at",
+          "last_status_check_at",
+          "last_seen_in_user_open_list_at",
+          "created_by_user_id",
+          "sync_owner_user_id",
+          "fluig_requester_login",
+          "fluig_requester_code",
+        ].join(",")
+      )
+      .in("app_supplier_id", supplierIdBatch)
+      .order("last_status_check_at", { ascending: false, nullsFirst: false })
+      .order("last_synced_at", { ascending: false, nullsFirst: false })
+      .limit(Math.min(Math.max(supplierIdBatch.length * perSupplier * 3, perSupplier), 300));
+    if (error) throw error;
+
+    const visibleRows = filterRowsForActor(actor, (data || []) as unknown as SupplierLinkedRequestDbRow[]);
+    for (const row of visibleRows) {
+      const supplierId = String(row.app_supplier_id || "");
+      if (!supplierId) continue;
+      const current = requestsBySupplier.get(supplierId) || [];
+      current.push(row);
+      current.sort((left, right) => requestActivityTimestamp(right) - requestActivityTimestamp(left));
+      requestsBySupplier.set(supplierId, current.slice(0, perSupplier));
+    }
+  }
+
+  return requestsBySupplier;
 }
 
 export async function listSuppliers(
@@ -366,12 +483,20 @@ export async function listSuppliers(
     fetchRequestCounts(client, supplierIds),
   ]);
   const visibleRows = rows.filter((row) => supplierCanBeSeenByActor(actor, row.id, linksBySupplier)).slice(0, pageSize);
+  const requestsBySupplier = await fetchSupplierRequestSummaries(client, actor, visibleRows.map((row) => row.id), 2);
 
   return {
     page,
     pageSize,
     total: actor.isAdmin || branchScoped || actorBranchScoped ? count || 0 : visibleRows.length,
-    items: visibleRows.map((row) => mapSupplier(row, linksBySupplier.get(row.id), requestCounts.get(row.id) || 0)),
+    items: visibleRows.map((row) =>
+      mapSupplier(
+        row,
+        linksBySupplier.get(row.id),
+        requestCounts.get(row.id) || 0,
+        requestsBySupplier.get(row.id) || []
+      )
+    ),
   };
 }
 
@@ -757,13 +882,19 @@ export async function readSupplier(actor: AppActor, id: string) {
   if (!data) return null;
 
   const row = data as SupplierDbRow;
-  const [linksBySupplier, requestCounts] = await Promise.all([
+  const [linksBySupplier, requestCounts, requestsBySupplier] = await Promise.all([
     fetchLinks(client, [row.id]),
     fetchRequestCounts(client, [row.id]),
+    fetchSupplierRequestSummaries(client, actor, [row.id], 8),
   ]);
 
   if (!supplierCanBeSeenByActor(actor, row.id, linksBySupplier)) return null;
-  return mapSupplier(row, linksBySupplier.get(row.id), requestCounts.get(row.id) || 0);
+  return mapSupplier(
+    row,
+    linksBySupplier.get(row.id),
+    requestCounts.get(row.id) || 0,
+    requestsBySupplier.get(row.id) || []
+  );
 }
 
 export async function updateSupplier(actor: AppActor, id: string, input: Partial<SupplierInput>) {
