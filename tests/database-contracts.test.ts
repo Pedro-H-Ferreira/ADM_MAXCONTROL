@@ -251,6 +251,16 @@ describe("database and API contracts", () => {
     expect(lookupRoute).not.toContain('module === "auto" || module === "fornecedores" ? "pagamentos"');
   });
 
+  it("permite escolher o modulo operacional na consulta por numero Fluig", async () => {
+    const fluigTasksPage = await source("src/components/pages/fluig-tasks-page.tsx");
+
+    expect(fluigTasksPage).toContain("lookupModuleOptions");
+    expect(fluigTasksPage).toContain("lookupModuleForRequest");
+    expect(fluigTasksPage).toContain("Modulo da consulta");
+    expect(fluigTasksPage).toContain("Detectar pelo ADM");
+    expect(fluigTasksPage).toContain("module: targetLookupModule");
+  });
+
   it("mantem expiracao, retry controlado e teste autenticado no agente Fluig", async () => {
     const migration = await source("supabase/migrations/20260625141131_harden_fluig_job_lifecycle.sql");
     const repository = await source("src/lib/db/app-repository.ts");

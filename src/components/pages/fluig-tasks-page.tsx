@@ -35,6 +35,8 @@ import type { ModuleConfig } from "@/lib/admin-data";
 import { cn } from "@/lib/utils";
 
 type ModuleFilter = "all" | FluigModuleSlug;
+type OperationalLookupModule = Extract<FluigModuleSlug, "pagamentos" | "compras" | "manutencao">;
+type LookupModuleFilter = "auto" | OperationalLookupModule;
 
 const terminalJobStatuses = new Set(["success", "error", "cancelled", "expired"]);
 const recentFailureWindowMs = 24 * 60 * 60 * 1000;
@@ -52,6 +54,13 @@ const moduleOptions: Array<{ value: ModuleFilter; label: string }> = [
   { value: "compras", label: moduleLabels.compras },
   { value: "manutencao", label: moduleLabels.manutencao },
   { value: "fornecedores", label: moduleLabels.fornecedores },
+];
+
+const lookupModuleOptions: Array<{ value: LookupModuleFilter; label: string }> = [
+  { value: "auto", label: "Detectar pelo ADM" },
+  { value: "pagamentos", label: moduleLabels.pagamentos },
+  { value: "compras", label: moduleLabels.compras },
+  { value: "manutencao", label: moduleLabels.manutencao },
 ];
 
 const syncTypeLabels: Record<FluigUserSyncStateRecord["syncType"], string> = {
@@ -162,8 +171,19 @@ function selectedModule(value: ModuleFilter) {
   return value === "all" ? undefined : value;
 }
 
+function lookupModuleForRequest(moduleFilter: ModuleFilter, lookupModule: LookupModuleFilter): LookupModuleFilter {
+  if (lookupModule !== "auto") return lookupModule;
+  if (moduleFilter === "pagamentos" || moduleFilter === "compras" || moduleFilter === "manutencao") return moduleFilter;
+  return "auto";
+}
+
+function lookupModuleLabel(value: LookupModuleFilter) {
+  return value === "auto" ? "Detectar pelo ADM" : moduleLabels[value];
+}
+
 export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   const [moduleFilter, setModuleFilter] = useState<ModuleFilter>("all");
+  const [lookupModule, setLookupModule] = useState<LookupModuleFilter>("auto");
   const [agents, setAgents] = useState<FluigAdmAgent[]>([]);
   const [tasks, setTasks] = useState<FluigOpenRequestRecord[]>([]);
   const [requests, setRequests] = useState<FluigOpenRequestRecord[]>([]);
@@ -320,9 +340,9 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
     setLookedUpRequest(null);
 
     try {
-      const lookupModule = moduleFilter === "all" ? "auto" : moduleFilter;
+      const targetLookupModule = lookupModuleForRequest(moduleFilter, lookupModule);
       const data = await fluigAdmApi.lookupRequest({
-        module: lookupModule,
+        module: targetLookupModule,
         fluigRequestId,
         persist: true,
       });
@@ -331,7 +351,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
       await pollJobsUntilDone([data.job]);
       await refresh(true);
       const lookupResult = await fluigAdmApi.getLookupRequest({
-        module: lookupModule,
+        module: targetLookupModule,
         fluigRequestId,
       });
       setLookedUpRequest(lookupResult.request || null);
@@ -454,7 +474,19 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 xl:grid-cols-[1fr_auto]">
+          <div className="grid gap-3 xl:grid-cols-[220px_minmax(0,1fr)_auto]">
+            <Select value={lookupModule} onValueChange={(value) => setLookupModule(value as LookupModuleFilter)} disabled={lookingUp || syncing}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Modulo da consulta" />
+              </SelectTrigger>
+              <SelectContent>
+                {lookupModuleOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -474,6 +506,10 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
               Consultar numero
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Modulo usado na consulta: {lookupModuleLabel(lookupModuleForRequest(moduleFilter, lookupModule))}. Escolha Pagamentos, Compras ou
+            Manutencao quando a solicitacao ainda nao foi sincronizada no ADM.
+          </p>
 
           {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">{error}</p> : null}
           {pendingJobs.length ? <PendingJobs jobs={pendingJobs} /> : null}
