@@ -241,6 +241,16 @@ describe("database and API contracts", () => {
     expect(dashboardRepository).toContain("buildFluigActorPostgrestFilter");
   });
 
+  it("resolve consulta por numero Fluig pelo modulo conhecido antes de criar job", async () => {
+    const lookupRoute = await source("src/app/api/fluig/adm/request/lookup/route.ts");
+
+    expect(lookupRoute).toContain("resolveModuleForLookup");
+    expect(lookupRoute).toContain("readFluigRequestByNumberForActor");
+    expect(lookupRoute).toContain("knownRequest.request?.module");
+    expect(lookupRoute).toContain("Selecione Pagamentos, Compras ou Manutencao");
+    expect(lookupRoute).not.toContain('module === "auto" || module === "fornecedores" ? "pagamentos"');
+  });
+
   it("mantem expiracao, retry controlado e teste autenticado no agente Fluig", async () => {
     const migration = await source("supabase/migrations/20260625141131_harden_fluig_job_lifecycle.sql");
     const repository = await source("src/lib/db/app-repository.ts");

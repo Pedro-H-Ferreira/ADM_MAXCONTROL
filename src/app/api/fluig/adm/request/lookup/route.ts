@@ -20,8 +20,38 @@ function jsonError(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
 }
 
-function moduleForLookup(module: string): FluigModuleSlug {
-  return module === "auto" || module === "fornecedores" ? "pagamentos" : (module as FluigModuleSlug);
+function normalizeFluigRequestId(value: string) {
+  return value.replace(/\D+/g, "").trim();
+}
+
+async function resolveModuleForLookup(input: {
+  actor: Awaited<ReturnType<typeof resolveCurrentAppUser>>;
+  requestedModule: string;
+  fluigRequestId: string;
+}): Promise<FluigModuleSlug | null> {
+  if (
+    input.requestedModule === "pagamentos" ||
+    input.requestedModule === "compras" ||
+    input.requestedModule === "manutencao"
+  ) {
+    return input.requestedModule;
+  }
+
+  const knownRequest = await readFluigRequestByNumberForActor({
+    actor: input.actor,
+    fluigRequestId: input.fluigRequestId,
+    module: null,
+  });
+
+  if (
+    knownRequest.request?.module === "pagamentos" ||
+    knownRequest.request?.module === "compras" ||
+    knownRequest.request?.module === "manutencao"
+  ) {
+    return knownRequest.request.module;
+  }
+
+  return null;
 }
 
 export async function GET(request: Request) {
@@ -58,7 +88,23 @@ export async function POST(request: Request) {
       return jsonError(parsed.error.issues[0]?.message || "Consulta Fluig invalida.");
     }
 
-    const moduleSlug = moduleForLookup(parsed.data.module);
+    const fluigRequestId = normalizeFluigRequestId(parsed.data.fluigRequestId);
+    if (!fluigRequestId) {
+      return jsonError("Numero Fluig e obrigatorio.");
+    }
+
+    const moduleSlug = await resolveModuleForLookup({
+      actor,
+      requestedModule: parsed.data.module,
+      fluigRequestId,
+    });
+    if (!moduleSlug) {
+      return jsonError(
+        "Numero Fluig ainda nao existe no ADM. Selecione Pagamentos, Compras ou Manutencao antes de consultar diretamente no Fluig.",
+        409
+      );
+    }
+
     const map = requireFluigProcessMap(moduleSlug);
     const job = await createFluigJob({
       actor,
@@ -66,7 +112,7 @@ export async function POST(request: Request) {
       operation: "sync_request_by_number",
       reuseActive: true,
       requestPayload: {
-        requestIds: [parsed.data.fluigRequestId],
+        requestIds: [fluigRequestId],
         persist: parsed.data.persist,
         processMap: {
           module: map.module,
@@ -83,7 +129,7 @@ export async function POST(request: Request) {
       module: moduleSlug,
       syncType: "status_check",
       status: "started",
-      cursor: { fluigRequestId: parsed.data.fluigRequestId },
+      cursor: { fluigRequestId },
       metadata: { jobId: job.id, requestedModule: parsed.data.module },
     });
 
