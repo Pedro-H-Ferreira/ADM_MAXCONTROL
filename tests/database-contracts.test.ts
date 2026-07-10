@@ -261,6 +261,26 @@ describe("database and API contracts", () => {
     expect(fluigTasksPage).toContain("module: targetLookupModule");
   });
 
+  it("executa cancelamento Fluig pelo agente local e persiste retorno", async () => {
+    const cancelRoute = await source("src/app/api/fluig/adm/cancel/route.ts");
+    const resultRoute = await source("src/app/api/agent/jobs/[jobId]/result/route.ts");
+    const fluigApi = await source("src/lib/fluig-api.ts");
+    const fluigTasksPage = await source("src/components/pages/fluig-tasks-page.tsx");
+    const integrationDoc = await source("docs/FLUIG_INTEGRATION.md");
+
+    expect(cancelRoute).toContain("createFluigJob");
+    expect(cancelRoute).toContain('operation: "cancel_request"');
+    expect(cancelRoute).toContain("upsertFluigUserSyncState");
+    expect(cancelRoute).not.toContain("cancelFluigRequests");
+    expect(resultRoute).toContain("extractCancelStatusItems");
+    expect(resultRoute).toContain('job.operation === "cancel_request"');
+    expect(resultRoute).toContain("syncSource: job.operation");
+    expect(fluigApi).toContain("async cancelRequest");
+    expect(fluigTasksPage).toContain("cancelFluigRequest");
+    expect(fluigTasksPage).toContain("Cancelar no Fluig");
+    expect(integrationDoc).toContain("cria job `cancel_request`");
+  });
+
   it("mantem expiracao, retry controlado e teste autenticado no agente Fluig", async () => {
     const migration = await source("supabase/migrations/20260625141131_harden_fluig_job_lifecycle.sql");
     const repository = await source("src/lib/db/app-repository.ts");

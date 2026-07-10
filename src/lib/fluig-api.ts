@@ -292,6 +292,26 @@ export const fluigAdmApi = {
       job: FluigAdmJobSummary;
     }>(this.requestLookupPath, payload);
   },
+  async cancelRequest(payload: {
+    module: Exclude<FluigModuleSlug, "fornecedores">;
+    requestIds: string[] | string;
+    comment?: string;
+    confirm?: boolean;
+    persist?: boolean;
+  }) {
+    return this.post<{
+      success: true;
+      generatedAt: string;
+      module: Exclude<FluigModuleSlug, "fornecedores">;
+      job: FluigAdmJobSummary;
+      dryRun?: {
+        module: Exclude<FluigModuleSlug, "fornecedores">;
+        requestIds: string[];
+        comment: string;
+        requiredConfirmation: boolean;
+      };
+    }>(this.cancelPath, payload);
+  },
   async getLookupRequest(payload: { module?: FluigModuleSlug | "auto"; fluigRequestId: string }) {
     const params = new URLSearchParams({ fluigRequestId: payload.fluigRequestId });
     if (payload.module && payload.module !== "auto") params.set("module", payload.module);

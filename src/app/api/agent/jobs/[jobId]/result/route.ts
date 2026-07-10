@@ -60,6 +60,31 @@ function extractStatusItems(payload: Record<string, unknown>) {
   return (Array.isArray(dataItems) ? dataItems : Array.isArray(directItems) ? directItems : []) as FluigStatusItem[];
 }
 
+function extractCancelStatusItems(payload: Record<string, unknown>) {
+  const data = payload.data as Record<string, unknown> | undefined;
+  const directItems = payload.items;
+  const dataItems = data?.items;
+  const items = (Array.isArray(dataItems) ? dataItems : Array.isArray(directItems) ? directItems : []) as Array<
+    Record<string, unknown>
+  >;
+  const processedAt = String(data?.processedAt || payload.processedAt || new Date().toISOString());
+
+  return items
+    .map((item) => String(item.requestId || item.numeroFluig || "").trim())
+    .filter(Boolean)
+    .map(
+      (requestId): FluigStatusItem => ({
+        numeroFluig: requestId,
+        etapaAtual: "Cancelado",
+        responsavelAtual: "",
+        statusProcesso: "cancelado",
+        active: false,
+        cancelavel: false,
+        dataUltimaConsulta: processedAt,
+      })
+    );
+}
+
 function extractCurrentFluigUserId(payload: Record<string, unknown>) {
   const data = payload.data as Record<string, unknown> | undefined;
   return String(data?.currentUserId || payload.currentUserId || "").trim();
@@ -190,6 +215,15 @@ export async function POST(request: Request, context: RouteContext) {
   if (status === "success" && (job.operation === "sync_status" || job.operation === "sync_request_by_number")) {
     persistenceResults.push(
       await persistStatusItems(job.module, extractStatusItems(resultPayload), {
+        ownerUserId: job.requestedByUserId,
+        syncSource: job.operation,
+      })
+    );
+  }
+
+  if (status === "success" && job.operation === "cancel_request") {
+    persistenceResults.push(
+      await persistStatusItems(job.module, extractCancelStatusItems(resultPayload), {
         ownerUserId: job.requestedByUserId,
         syncSource: job.operation,
       })

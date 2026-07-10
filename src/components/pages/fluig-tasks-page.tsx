@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import {
   Activity,
   AlertTriangle,
+  Ban,
   ClipboardList,
   History,
   Laptop,
@@ -16,6 +17,16 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -162,6 +173,17 @@ function sortByRecentActivity(a: FluigOpenRequestRecord, b: FluigOpenRequestReco
   return (Number.isFinite(right) ? right : 0) - (Number.isFinite(left) ? left : 0);
 }
 
+function requestRowKey(row: Pick<FluigOpenRequestRecord, "module" | "fluigRequestId" | "id">) {
+  return `${row.module}:${row.fluigRequestId || row.id}`;
+}
+
+function isCancelableRequest(row: FluigOpenRequestRecord | null | undefined) {
+  if (!row || row.module === "fornecedores" || !row.fluigRequestId) return false;
+  const status = normalizeStatus(row.normalizedStatus || row.status, row.isOpen === false ? "FINALIZADO" : "ABERTO");
+  if (row.isOpen === false) return false;
+  return !status.includes("FINALIZ") && !status.includes("CANCEL") && !status.includes("ENCERR");
+}
+
 function describeAgent(agent: FluigAdmAgent | null) {
   if (!agent) return "Nenhum agente online para o usuario atual.";
   return `${agent.display_name}${agent.machine_name ? ` em ${agent.machine_name}` : ""} - ${describeHeartbeatAge(agent.heartbeat_age_seconds)}`;
@@ -192,6 +214,8 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   const [lookupNumber, setLookupNumber] = useState("");
   const [lastLookupNumber, setLastLookupNumber] = useState<string | null>(null);
   const [lookedUpRequest, setLookedUpRequest] = useState<FluigOpenRequestRecord | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<FluigOpenRequestRecord | null>(null);
+  const [cancellingRequestKey, setCancellingRequestKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [testingAgent, setTestingAgent] = useState(false);
@@ -406,6 +430,48 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
     }
   }
 
+  async function cancelFluigRequest(record: FluigOpenRequestRecord) {
+    if (record.module === "fornecedores" || !isCancelableRequest(record)) {
+      toast.error("Esta solicitacao nao esta disponivel para cancelamento pelo ADM.");
+      return;
+    }
+
+    const targetKey = requestRowKey(record);
+    setCancellingRequestKey(targetKey);
+    setError(null);
+
+    try {
+      const data = await fluigAdmApi.cancelRequest({
+        module: record.module,
+        requestIds: [record.fluigRequestId],
+        comment: "Cancelamento confirmado no ADM MaxControl.",
+        confirm: true,
+        persist: true,
+      });
+
+      setJobs((current) => [data.job, ...current.filter((job) => job.id !== data.job.id)]);
+      await pollJobsUntilDone([data.job]);
+      await refresh(true);
+
+      const lookupResult = await fluigAdmApi.getLookupRequest({
+        module: record.module,
+        fluigRequestId: record.fluigRequestId,
+      });
+      if (lastLookupNumber === record.fluigRequestId) {
+        setLookedUpRequest(lookupResult.request || null);
+      }
+
+      setCancelTarget(null);
+      toast.success(`Cancelamento da solicitacao Fluig ${record.fluigRequestId} concluido.`);
+    } catch (cancelError) {
+      const message = cancelError instanceof Error ? cancelError.message : "Falha ao cancelar solicitacao Fluig.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setCancellingRequestKey(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -513,7 +579,15 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
 
           {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">{error}</p> : null}
           {pendingJobs.length ? <PendingJobs jobs={pendingJobs} /> : null}
-          {lastLookupNumber ? <LookupResult requestNumber={lastLookupNumber} record={lookedUpRecord} loading={lookingUp} /> : null}
+          {lastLookupNumber ? (
+            <LookupResult
+              requestNumber={lastLookupNumber}
+              record={lookedUpRecord}
+              loading={lookingUp}
+              onCancelRequest={setCancelTarget}
+              cancellingRequestKey={cancellingRequestKey}
+            />
+          ) : null}
         </CardContent>
       </Card>
 
@@ -523,11 +597,15 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
             title="Tarefas sob minha responsabilidade"
             emptyText={loading ? "Carregando tarefas do Fluig..." : "Nenhuma tarefa aberta sincronizada para este usuario."}
             rows={sortedTasks}
+            onCancelRequest={setCancelTarget}
+            cancellingRequestKey={cancellingRequestKey}
           />
           <RequestTable
             title="Minhas solicitacoes abertas"
             emptyText={loading ? "Carregando solicitacoes do Fluig..." : "Nenhuma solicitacao aberta sincronizada para este usuario."}
             rows={sortedRequests}
+            onCancelRequest={setCancelTarget}
+            cancellingRequestKey={cancellingRequestKey}
           />
         </div>
 
@@ -537,6 +615,29 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
           <RecentJobsPanel jobs={jobs} loading={loading} />
         </div>
       </div>
+
+      <AlertDialog open={Boolean(cancelTarget)} onOpenChange={(open) => !open && !cancellingRequestKey && setCancelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar solicitacao Fluig?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O agente local vai entrar no Fluig com o seu usuario e cancelar a solicitacao {cancelTarget?.fluigRequestId}. Esta acao nao e
+              repetida automaticamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(cancellingRequestKey)}>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={!cancelTarget || Boolean(cancellingRequestKey)}
+              onClick={() => cancelTarget && void cancelFluigRequest(cancelTarget)}
+            >
+              {cancellingRequestKey ? <Loader2 className="size-4 animate-spin" /> : <Ban className="size-4" />}
+              Cancelar no Fluig
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -595,11 +696,18 @@ function LookupResult({
   requestNumber,
   record,
   loading,
+  onCancelRequest,
+  cancellingRequestKey,
 }: {
   requestNumber: string;
   record: FluigOpenRequestRecord | null;
   loading: boolean;
+  onCancelRequest: (record: FluigOpenRequestRecord) => void;
+  cancellingRequestKey: string | null;
 }) {
+  const cancelable = isCancelableRequest(record);
+  const cancelling = record ? cancellingRequestKey === requestRowKey(record) : false;
+
   return (
     <section className="rounded-md border bg-muted/20 p-3">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -609,7 +717,17 @@ function LookupResult({
             {loading ? "Consultando diretamente no Fluig pelo agente local." : record ? "Registro encontrado na base sincronizada." : "Consulta finalizada; atualize a lista se o job ainda estiver processando."}
           </p>
         </div>
-        {record ? <StatusBadge status={normalizeStatus(record.normalizedStatus || record.status)} /> : null}
+        {record ? (
+          <div className="flex items-center gap-2">
+            <StatusBadge status={normalizeStatus(record.normalizedStatus || record.status)} />
+            {cancelable ? (
+              <Button type="button" variant="destructive" size="sm" onClick={() => onCancelRequest(record)} disabled={cancelling}>
+                {cancelling ? <Loader2 className="size-4 animate-spin" /> : <Ban className="size-4" />}
+                Cancelar
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       {record ? (
         <div className="mt-3 grid gap-2 text-xs md:grid-cols-4">
@@ -627,10 +745,14 @@ function RequestTable({
   title,
   rows,
   emptyText,
+  onCancelRequest,
+  cancellingRequestKey,
 }: {
   title: string;
   rows: FluigOpenRequestRecord[];
   emptyText: string;
+  onCancelRequest: (record: FluigOpenRequestRecord) => void;
+  cancellingRequestKey: string | null;
 }) {
   return (
     <section className="stitch-animate-in rounded-lg border bg-background shadow-none">
@@ -652,26 +774,44 @@ function RequestTable({
               <TableHead>Responsavel</TableHead>
               <TableHead>Atualizado</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Acoes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((row) => (
-              <TableRow key={`${row.module}-${row.fluigRequestId}-${row.id}`}>
-                <TableCell className="font-medium">{row.fluigRequestId}</TableCell>
-                <TableCell>{moduleLabels[row.module]}</TableCell>
-                <TableCell className="min-w-[240px] max-w-[360px] whitespace-normal">
-                  <p className="font-medium">{row.supplierName || row.requester || "Solicitacao Fluig"}</p>
-                  <p className="text-xs text-muted-foreground">{row.supplierCnpj || row.admReference || "-"}</p>
-                </TableCell>
-                <TableCell className="min-w-[160px] max-w-[260px] whitespace-normal">{row.branchLabel || row.branchCode || "-"}</TableCell>
-                <TableCell className="min-w-[180px] max-w-[280px] whitespace-normal">{row.currentTask || "-"}</TableCell>
-                <TableCell className="min-w-[160px] max-w-[240px] whitespace-normal">{row.taskOwner || "-"}</TableCell>
-                <TableCell>{formatDateTime(row.lastStatusCheckAt || row.lastSyncedAt || row.lastSeenInUserOpenListAt)}</TableCell>
-                <TableCell>
-                  <StatusBadge status={normalizeStatus(row.normalizedStatus || row.status)} />
-                </TableCell>
-              </TableRow>
-            ))}
+            {rows.map((row) => {
+              const cancelable = isCancelableRequest(row);
+              const cancelling = cancellingRequestKey === requestRowKey(row);
+
+              return (
+                <TableRow key={`${row.module}-${row.fluigRequestId}-${row.id}`}>
+                  <TableCell className="font-medium">{row.fluigRequestId}</TableCell>
+                  <TableCell>{moduleLabels[row.module]}</TableCell>
+                  <TableCell className="min-w-[240px] max-w-[360px] whitespace-normal">
+                    <p className="font-medium">{row.supplierName || row.requester || "Solicitacao Fluig"}</p>
+                    <p className="text-xs text-muted-foreground">{row.supplierCnpj || row.admReference || "-"}</p>
+                  </TableCell>
+                  <TableCell className="min-w-[160px] max-w-[260px] whitespace-normal">{row.branchLabel || row.branchCode || "-"}</TableCell>
+                  <TableCell className="min-w-[180px] max-w-[280px] whitespace-normal">{row.currentTask || "-"}</TableCell>
+                  <TableCell className="min-w-[160px] max-w-[240px] whitespace-normal">{row.taskOwner || "-"}</TableCell>
+                  <TableCell>{formatDateTime(row.lastStatusCheckAt || row.lastSyncedAt || row.lastSeenInUserOpenListAt)}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={normalizeStatus(row.normalizedStatus || row.status)} />
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => onCancelRequest(row)}
+                      disabled={!cancelable || cancelling}
+                    >
+                      {cancelling ? <Loader2 className="size-4 animate-spin" /> : <Ban className="size-4" />}
+                      Cancelar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       ) : (

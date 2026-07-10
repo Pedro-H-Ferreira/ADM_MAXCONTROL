@@ -104,7 +104,7 @@ Rotas novas:
 - `GET /api/fluig/adm/request/lookup?fluigRequestId=1103651&module=pagamentos`: le o ultimo snapshot persistido do numero Fluig, inclusive quando a solicitacao ja esta finalizada e nao deve voltar para as listas de abertas.
 - `POST /api/fluig/adm/status`: consulta etapa, responsavel, SLA, vencimento e cancelabilidade por numero Fluig.
 - `POST /api/fluig/adm/open`: abre solicitacao a partir de `sourceRequestId`. Sem `confirm=true`, executa apenas dry-run. Em `mode=test`, abre e cancela em seguida; em `mode=production`, mantem aberta.
-- `POST /api/fluig/adm/cancel`: cancela solicitacoes informadas. Sem `confirm=true`, executa apenas dry-run.
+- `POST /api/fluig/adm/cancel`: sem `confirm=true`, retorna dry-run. Com confirmacao, cria job `cancel_request` para o agente local do usuario cancelar no Fluig e persistir o status cancelado quando o resultado voltar.
 - `POST /api/fluig/adm/suppliers/preload`: varre historico e cria pre-cadastro de fornecedores por CNPJ/nome normalizado.
 - `GET|POST /api/manutencao`: lista e cria OS manuais ou integradas ao Fluig.
 - `POST /api/manutencao/[id]/fluig/open`: cria job `open_from_source` para uma OS Fluig existente. O payload leva `maintenanceOrderId`; quando o agente finaliza, `/api/agent/jobs/[jobId]/result` grava numero Fluig, `NumLancW`, etapa, responsavel e evento na OS local.
