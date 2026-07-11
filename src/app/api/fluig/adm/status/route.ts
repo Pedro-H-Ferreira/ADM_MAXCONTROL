@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
-import { resolveCurrentAppUser } from "@/lib/db/app-repository";
-import { persistStatusItems, recordFluigOperationRun } from "@/lib/db/fluig-repository";
+import { createFluigJob, resolveCurrentAppUser, upsertFluigUserSyncState } from "@/lib/db/app-repository";
 import {
   getProcessMapForRequest,
   jsonError,
-  mergePersistence,
   normalizeRequestIds,
-  parseBoolean,
   readJsonBody,
 } from "@/lib/fluig/route-utils";
-import { getFluigRuntimeConfig, syncFluigStatus } from "@/lib/fluig/server-client";
+import type { FluigModuleSlug } from "@/lib/fluig-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,71 +19,63 @@ type StatusBody = {
   persist?: boolean;
 };
 
+function isStatusModule(value: string): value is Extract<FluigModuleSlug, "pagamentos" | "compras" | "manutencao"> {
+  return value === "pagamentos" || value === "compras" || value === "manutencao";
+}
+
 export async function POST(request: Request) {
-  const body = await readJsonBody<StatusBody>(request, {});
-  const runtimeConfig = getFluigRuntimeConfig();
-
   try {
-    await resolveCurrentAppUser();
-  } catch (error) {
-    const authResponse = appAuthErrorResponse(error);
-    if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao validar usuario.", 500);
-  }
-
-  try {
+    const actor = await resolveCurrentAppUser();
+    const body = await readJsonBody<StatusBody>(request, {});
     const processMap = getProcessMapForRequest(body.module || "pagamentos");
+    if (!isStatusModule(processMap.module)) {
+      return jsonError("Consulta de status Fluig esta disponivel para Pagamentos, Compras e Manutencao.", 400);
+    }
+
     const requestIds = normalizeRequestIds(body.requestIds);
 
     if (!requestIds.length) {
       return jsonError("Informe ao menos um numero Fluig em requestIds.");
     }
 
-    const result = await syncFluigStatus(requestIds, {
-      taskUserId: body.taskUserId || processMap.defaultTaskUserId,
-    });
-    const items = result.data?.items || [];
-    const shouldPersist = body.persist !== false;
-    const persistence = shouldPersist ? await persistStatusItems(processMap.module, items) : null;
-    const operationPersistence = await recordFluigOperationRun({
+    const job = await createFluigJob({
+      actor,
       module: processMap.module,
-      operation: "status",
-      status: "success",
-      sourceMode: runtimeConfig.mode,
+      operation: "sync_status",
+      reuseActive: true,
       requestPayload: {
-        module: processMap.module,
         requestIds,
+        taskUserId: body.taskUserId || processMap.defaultTaskUserId,
+        persist: body.persist !== false,
+        processMap: {
+          module: processMap.module,
+          processId: processMap.processId,
+          processVersions: processMap.processVersions,
+          processLabel: processMap.processLabel,
+          defaultTaskUserId: processMap.defaultTaskUserId,
+        },
       },
-      responsePayload: {
-        outputPath: result.outputPath,
-        processed: result.data?.processed || requestIds.length,
-        items: items.length,
-      },
+    });
+
+    await upsertFluigUserSyncState({
+      actor,
+      module: processMap.module,
+      syncType: "status_check",
+      status: "started",
+      cursor: { requestIds },
+      metadata: { jobId: job.id, operation: "sync_status" },
     });
 
     return NextResponse.json({
       success: true,
       generatedAt: new Date().toISOString(),
-      runtime: runtimeConfig,
       module: processMap.module,
       requestIds,
-      outputPath: result.outputPath,
-      items,
-      persistence: shouldPersist ? mergePersistence(persistence!, operationPersistence) : operationPersistence,
+      job,
     });
   } catch (error) {
-    await recordFluigOperationRun({
-      module: body.module === "pagamentos" || body.module === "compras" || body.module === "manutencao" ? body.module : null,
-      operation: "status",
-      status: "error",
-      sourceMode: runtimeConfig.mode,
-      requestPayload: body as Record<string, unknown>,
-      errorMessage: error instanceof Error ? error.message : String(error),
-    });
-
-    return jsonError(error instanceof Error ? error.message : String(error), runtimeConfig.configured ? 500 : 503, {
-      runtime: runtimeConfig,
-      persistRequested: parseBoolean(body.persist, true),
-    });
+    const authResponse = appAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    return jsonError(error instanceof Error ? error.message : String(error), 500);
   }
 }

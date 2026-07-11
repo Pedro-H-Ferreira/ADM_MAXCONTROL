@@ -281,6 +281,26 @@ describe("database and API contracts", () => {
     expect(integrationDoc).toContain("cria job `cancel_request`");
   });
 
+  it("executa consulta de status Fluig pelo agente local", async () => {
+    const statusRoute = await source("src/app/api/fluig/adm/status/route.ts");
+    const resultRoute = await source("src/app/api/agent/jobs/[jobId]/result/route.ts");
+    const chunkRoute = await source("src/app/api/agent/jobs/[jobId]/chunk/route.ts");
+    const fluigApi = await source("src/lib/fluig-api.ts");
+    const integrationDoc = await source("docs/FLUIG_INTEGRATION.md");
+
+    expect(statusRoute).toContain("createFluigJob");
+    expect(statusRoute).toContain('operation: "sync_status"');
+    expect(statusRoute).toContain("reuseActive: true");
+    expect(statusRoute).toContain("upsertFluigUserSyncState");
+    expect(statusRoute).not.toContain("syncFluigStatus");
+    expect(statusRoute).not.toContain("getFluigRuntimeConfig");
+    expect(resultRoute).toContain("shouldPersistJobResult");
+    expect(resultRoute).toContain('job.operation === "sync_status"');
+    expect(chunkRoute).toContain("shouldPersistJobResult");
+    expect(fluigApi).toContain("async syncStatus");
+    expect(integrationDoc).toContain("cria job `sync_status`");
+  });
+
   it("mantem expiracao, retry controlado e teste autenticado no agente Fluig", async () => {
     const migration = await source("supabase/migrations/20260625141131_harden_fluig_job_lifecycle.sql");
     const repository = await source("src/lib/db/app-repository.ts");

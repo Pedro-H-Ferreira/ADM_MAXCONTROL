@@ -292,6 +292,20 @@ export const fluigAdmApi = {
       job: FluigAdmJobSummary;
     }>(this.requestLookupPath, payload);
   },
+  async syncStatus(payload: {
+    module: Exclude<FluigModuleSlug, "fornecedores">;
+    requestIds: string[] | string;
+    taskUserId?: string;
+    persist?: boolean;
+  }) {
+    return this.post<{
+      success: true;
+      generatedAt: string;
+      module: Exclude<FluigModuleSlug, "fornecedores">;
+      requestIds: string[];
+      job: FluigAdmJobSummary;
+    }>(this.statusPath, payload);
+  },
   async cancelRequest(payload: {
     module: Exclude<FluigModuleSlug, "fornecedores">;
     requestIds: string[] | string;

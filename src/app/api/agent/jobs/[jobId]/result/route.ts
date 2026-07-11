@@ -121,6 +121,10 @@ function moduleFromStatusItem(item: FluigStatusItem, fallback: FluigModuleSlug) 
   return isFluigModuleSlug(moduleSlug) ? moduleSlug : fallback;
 }
 
+function shouldPersistJobResult(job: { requestPayload: Record<string, unknown> }) {
+  return job.requestPayload.persist !== false;
+}
+
 function batchDiscoveryCounts(resultPayload: Record<string, unknown>) {
   const output = (resultPayload.data && typeof resultPayload.data === "object"
     ? resultPayload.data
@@ -212,7 +216,11 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  if (status === "success" && (job.operation === "sync_status" || job.operation === "sync_request_by_number")) {
+  if (
+    status === "success" &&
+    (job.operation === "sync_status" || job.operation === "sync_request_by_number") &&
+    shouldPersistJobResult(job)
+  ) {
     persistenceResults.push(
       await persistStatusItems(job.module, extractStatusItems(resultPayload), {
         ownerUserId: job.requestedByUserId,
@@ -221,7 +229,7 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  if (status === "success" && job.operation === "cancel_request") {
+  if (status === "success" && job.operation === "cancel_request" && shouldPersistJobResult(job)) {
     persistenceResults.push(
       await persistStatusItems(job.module, extractCancelStatusItems(resultPayload), {
         ownerUserId: job.requestedByUserId,

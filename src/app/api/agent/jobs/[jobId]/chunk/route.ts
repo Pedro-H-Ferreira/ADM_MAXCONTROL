@@ -73,6 +73,10 @@ function moduleFromStatusItem(item: FluigStatusItem, fallback: FluigModuleSlug) 
   return isFluigModuleSlug(moduleSlug) ? moduleSlug : fallback;
 }
 
+function shouldPersistJobResult(job: { requestPayload: Record<string, unknown> }) {
+  return job.requestPayload.persist !== false;
+}
+
 export async function POST(request: Request, context: RouteContext) {
   const { agent, error } = await requireAgent(request);
   if (!agent) return error;
@@ -114,7 +118,7 @@ export async function POST(request: Request, context: RouteContext) {
     const statusItems = extractStatusItems(resultPayload);
     itemCount = statusItems.length;
 
-    if (job.operation === "sync_user_incremental_batch") {
+    if (shouldPersistJobResult(job) && job.operation === "sync_user_incremental_batch") {
       const itemsByModule = new Map<FluigModuleSlug, FluigStatusItem[]>();
 
       for (const item of statusItems) {
@@ -131,7 +135,7 @@ export async function POST(request: Request, context: RouteContext) {
           })
         );
       }
-    } else {
+    } else if (shouldPersistJobResult(job)) {
       persistenceResults.push(
         await persistStatusItems(job.module, statusItems, {
           ownerUserId: job.requestedByUserId,

@@ -80,9 +80,9 @@ Esse endpoint le o snapshot persistido no Supabase e mostra os dados nas paginas
 
 ## Backend operacional implementado
 
-O ADM agora possui um adaptador server-side para consultar o Fluig real usando seu runner interno em `scripts/fluig`.
+O ADM mantem os scripts tecnicos do Fluig dentro de `scripts/fluig`, mas as operacoes de producao que exigem login no Fluig sao executadas pelo `ADM Fluig Agent` na maquina do usuario. As rotas do Vercel criam jobs em `fluig_jobs`, gravam o andamento no Supabase e aguardam o callback autenticado do agente local.
 
-Configuracao local:
+Configuracao local para desenvolvimento controlado dos scripts:
 
 - `FLUIG_INTEGRATION_MODE=internal_runner`
 - `FLUIG_BASE_URL`, `FLUIG_USERNAME`, `FLUIG_PASSWORD` e seletores de login/formulario no `.env.local`.
@@ -102,7 +102,7 @@ Rotas novas:
 - `GET /api/fluig/adm/requests/my-open`: lista solicitacoes abertas conhecidas do usuario a partir do snapshot persistido e filtrado por permissao.
 - `POST /api/fluig/adm/request/lookup`: cria job de consulta sob demanda por numero Fluig, persistindo o status quando o agente retorna.
 - `GET /api/fluig/adm/request/lookup?fluigRequestId=1103651&module=pagamentos`: le o ultimo snapshot persistido do numero Fluig, inclusive quando a solicitacao ja esta finalizada e nao deve voltar para as listas de abertas.
-- `POST /api/fluig/adm/status`: consulta etapa, responsavel, SLA, vencimento e cancelabilidade por numero Fluig.
+- `POST /api/fluig/adm/status`: cria job `sync_status` para o agente local consultar etapa, responsavel, SLA, vencimento e cancelabilidade por numero Fluig. O resultado e persistido pelo callback do agente quando `persist` nao for `false`.
 - `POST /api/fluig/adm/open`: abre solicitacao a partir de `sourceRequestId`. Sem `confirm=true`, executa apenas dry-run. Em `mode=test`, abre e cancela em seguida; em `mode=production`, mantem aberta.
 - `POST /api/fluig/adm/cancel`: sem `confirm=true`, retorna dry-run. Com confirmacao, cria job `cancel_request` para o agente local do usuario cancelar no Fluig e persistir o status cancelado quando o resultado voltar.
 - `POST /api/fluig/adm/suppliers/preload`: varre historico e cria pre-cadastro de fornecedores por CNPJ/nome normalizado.
@@ -149,7 +149,7 @@ Abertura de OS Fluig:
 - O botao `Abrir no Fluig` chama `/api/manutencao/[id]/fluig/open`, que cria o job para o agente local do usuario.
 - O callback do agente atualiza a OS local com protocolo, etapa, responsavel e `NumLancW` quando o Fluig devolver esses campos.
 
-Validacoes executadas em 17/06/2026:
+Validacoes historicas executadas em 17/06/2026, antes da migracao de status para job do agente local:
 
 - `GET /api/fluig/adm/map`: runner detectado em modo `internal_runner`.
 - `POST /api/fluig/adm/status` para `1103651` e `1103369`: consulta real funcionou, retornando etapa `Realizar Pagamento`, responsavel `Administrativo CD`, vencimento `18/03/2026`, processo finalizado e nao cancelavel.
@@ -218,6 +218,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:3000/api/fluig/adm/open' -Method Post -
 
 - Operar a automacao real por usuario via `ADM Fluig Agent` local. Instalacao e fluxo em `docs/FLUIG_LOCAL_AGENT.md`.
 - Manter o agente online e concluir os jobs enfileirados de cada usuario.
+- Validar em producao uma consulta de status por numero Fluig acompanhando o job `sync_status` ate o callback do agente.
 - Preencher `fluig_username` e `fluig_user_id` nos perfis para complementar o escopo por filial com a identidade individual do Fluig.
 - Validar em producao uma abertura controlada de pagamento, compra e manutencao com anexos reais e protocolo retornado.
 - Evoluir a leitura de atividades do Fluig para preencher tarefa atual, responsavel e SLA de todas as solicitacoes abertas.
