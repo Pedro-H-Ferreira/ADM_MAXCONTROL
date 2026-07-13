@@ -233,6 +233,13 @@ export function FluigModuleOperationsPage({
   }
 
   async function syncThisModule() {
+    if (!onlineAgent) {
+      const message = "Pareie e inicie um agente Fluig para este usuario antes de sincronizar este modulo.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
     setSyncing(true);
     setError(null);
 
@@ -284,7 +291,7 @@ export function FluigModuleOperationsPage({
             <RotateCw className={cn("size-4", loading ? "animate-spin" : "")} />
             Atualizar
           </Button>
-          <Button type="button" className="stitch-soft-button" onClick={syncThisModule} disabled={syncing}>
+          <Button type="button" className="stitch-soft-button" onClick={syncThisModule} disabled={syncing || !onlineAgent}>
             {syncing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
             Sincronizar {moduleLabels[moduleSlug].toLowerCase()}
           </Button>

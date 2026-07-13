@@ -311,12 +311,29 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (status === "success" && job.operation === "health_check") {
     const currentFluigUserId = extractCurrentFluigUserId(resultPayload);
-    const profileUpdated = await recordDetectedFluigUserId({
+    const identity = await recordDetectedFluigUserId({
       userId: job.requestedByUserId,
       fluigUserId: currentFluigUserId,
     });
 
-    if (profileUpdated) {
+    if (!identity.matched) {
+      const identityError = identity.detected
+        ? "A credencial local pertence a outro usuario Fluig. Reinstale ou reconfigure o agente com a credencial correta deste usuario."
+        : "Nao foi possivel confirmar a identidade Fluig da credencial local.";
+      await completeFluigJob({
+        jobId,
+        agentId: agent.id,
+        status: "error",
+        resultPayload: { identityVerified: false },
+        errorMessage: identityError,
+      });
+      return NextResponse.json(
+        { success: false, error: identityError, code: "FLUIG_IDENTITY_MISMATCH" },
+        { status: 409 }
+      );
+    }
+
+    if (identity.updated) {
       await recordFluigJobEvent({
         jobId,
         agentId: agent.id,

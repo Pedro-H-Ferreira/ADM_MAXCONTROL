@@ -324,6 +324,14 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   }
 
   async function syncMyFluig() {
+    if (!onlineAgent) {
+      const message =
+        "Nenhum agente Fluig online esta pareado com este usuario. Gere o token em Pagamentos, Compras ou Manutencao e inicie o agente nesta maquina.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
     setSyncing(true);
     setError(null);
 
@@ -352,6 +360,13 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   }
 
   async function lookupFluigRequest() {
+    if (!onlineAgent) {
+      const message = "Inicie um agente Fluig pareado com este usuario antes de consultar uma solicitacao.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
     const fluigRequestId = lookupNumber.replace(/\D/g, "");
     if (!fluigRequestId) {
       toast.error("Informe o numero da solicitacao Fluig.");
@@ -431,6 +446,13 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   }
 
   async function cancelFluigRequest(record: FluigOpenRequestRecord) {
+    if (!onlineAgent) {
+      const message = "Inicie um agente Fluig pareado com este usuario antes de cancelar a solicitacao.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
     if (record.module === "fornecedores" || !isCancelableRequest(record)) {
       toast.error("Esta solicitacao nao esta disponivel para cancelamento pelo ADM.");
       return;
@@ -533,7 +555,12 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
               {testingAgent ? <Loader2 className="size-4 animate-spin" /> : <Laptop className="size-4" />}
               Testar agente
             </Button>
-            <Button type="button" className="stitch-soft-button" onClick={syncMyFluig} disabled={syncing || lookingUp || testingAgent}>
+            <Button
+              type="button"
+              className="stitch-soft-button"
+              onClick={syncMyFluig}
+              disabled={syncing || lookingUp || testingAgent || !onlineAgent}
+            >
               {syncing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
               Sincronizar meu Fluig
             </Button>
@@ -564,10 +591,16 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
                 className="pl-9"
                 inputMode="numeric"
                 placeholder="Consultar solicitacao por numero Fluig"
-                disabled={lookingUp}
+                disabled={lookingUp || !onlineAgent}
               />
             </div>
-            <Button type="button" variant="outline" className="stitch-soft-button" onClick={lookupFluigRequest} disabled={lookingUp || syncing}>
+            <Button
+              type="button"
+              variant="outline"
+              className="stitch-soft-button"
+              onClick={lookupFluigRequest}
+              disabled={lookingUp || syncing || !onlineAgent}
+            >
               {lookingUp ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
               Consultar numero
             </Button>

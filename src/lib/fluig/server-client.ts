@@ -42,6 +42,7 @@ export type FluigHistoryItem = {
   processVersion: string;
   status: string;
   startDate: string | null;
+  endDate?: string | null;
   requesterId: string | null;
   requesterName: string | null;
   formFields: Record<string, string>;

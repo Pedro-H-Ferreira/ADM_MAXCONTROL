@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ClipboardCheck, ClipboardList, Laptop, Loader2, RefreshCcw, RotateCw, UserCheck, Workflow } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -224,6 +225,14 @@ export function DashboardFluigOperations() {
   }
 
   async function syncMyFluig() {
+    if (!onlineAgent) {
+      const message =
+        "Nenhum agente Fluig online esta pareado com este usuario. Gere o token em uma pagina operacional e inicie o agente nesta maquina.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
     setSyncing(true);
     setError(null);
     setMessage(null);
@@ -321,7 +330,12 @@ export function DashboardFluigOperations() {
             {testingAgent ? <Loader2 className="size-4 animate-spin" /> : <Laptop className="size-4" />}
             Testar agente
           </Button>
-          <Button type="button" className="stitch-soft-button" onClick={syncMyFluig} disabled={syncing || testingAgent}>
+          <Button
+            type="button"
+            className="stitch-soft-button"
+            onClick={syncMyFluig}
+            disabled={syncing || testingAgent || !onlineAgent}
+          >
             {syncing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
             Sincronizar meu Fluig
           </Button>

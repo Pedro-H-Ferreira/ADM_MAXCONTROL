@@ -3,6 +3,7 @@ import {
   buildFluigHistoryRequestRow,
   buildFluigStatusRequestRow,
   buildSupplierCandidates,
+  normalizeFluigRequestLifecycle,
 } from "@/lib/db/fluig-repository";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 
@@ -33,6 +34,44 @@ function historyItem(
 }
 
 describe("buildSupplierCandidates", () => {
+  it("normaliza o ciclo de vida historico antes de montar listas operacionais", () => {
+    expect(normalizeFluigRequestLifecycle("OPEN", "2026-06-25T10:00:00.000Z")).toMatchObject({
+      normalizedStatus: "em_andamento",
+      isOpen: true,
+      closedAt: null,
+    });
+    expect(normalizeFluigRequestLifecycle("FINALIZED", "2026-06-25T10:00:00.000Z")).toMatchObject({
+      normalizedStatus: "finalizado",
+      isOpen: false,
+      finalizedAt: "2026-06-25T10:00:00.000Z",
+    });
+    expect(normalizeFluigRequestLifecycle("CANCELED", "2026-06-25T10:00:00.000Z")).toMatchObject({
+      normalizedStatus: "cancelado",
+      isOpen: false,
+      canceledAt: "2026-06-25T10:00:00.000Z",
+    });
+  });
+
+  it("grava o estado aberto diretamente durante a carga historica", () => {
+    expect(buildFluigHistoryRequestRow("pagamentos", historyItem("1164217"))).toMatchObject({
+      normalized_status: "em_andamento",
+      is_open: true,
+      finalized_at: null,
+      closed_at: null,
+      canceled_at: null,
+    });
+
+    const finalized = historyItem("1164216");
+    finalized.status = "FINALIZED";
+    finalized.endDate = "2026-06-15T12:00:00.000-0300";
+    expect(buildFluigHistoryRequestRow("pagamentos", finalized)).toMatchObject({
+      normalized_status: "finalizado",
+      is_open: false,
+      finalized_at: "2026-06-15T15:00:00.000Z",
+      closed_at: "2026-06-15T15:00:00.000Z",
+    });
+  });
+
   it("deduplica o mesmo fornecedor e preserva as solicitacoes de origem", () => {
     const candidates = buildSupplierCandidates([
       historyItem("1164218"),
@@ -104,6 +143,23 @@ describe("buildSupplierCandidates", () => {
         },
         statusSnapshot: statusItem,
       },
+    });
+  });
+
+  it("distingue cancelamento de finalizacao na consulta de status", () => {
+    const row = buildFluigStatusRequestRow("pagamentos", {
+      numeroFluig: "1164221",
+      statusProcesso: "cancelado",
+      active: false,
+      dataUltimaConsulta: "2026-06-25T11:00:00.000Z",
+    });
+
+    expect(row).toMatchObject({
+      normalized_status: "cancelado",
+      is_open: false,
+      finalized_at: null,
+      closed_at: "2026-06-25T11:00:00.000Z",
+      canceled_at: "2026-06-25T11:00:00.000Z",
     });
   });
 });

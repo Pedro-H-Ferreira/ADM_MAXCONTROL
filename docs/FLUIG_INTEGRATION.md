@@ -195,6 +195,7 @@ Operacao:
 
 - O botao `Atualizar pre-cadastros` em `/fornecedores` executa o backfill completo e e exibido somente para administradores.
 - Novos lotes de `sync_history`, `sync_initial_history` e `supplier_lookup_by_cnpj` materializam automaticamente apenas os candidatos afetados pelo lote.
+- A carga historica normaliza `OPEN`, `FINALIZED` e `CANCELED` em `is_open`, `normalized_status` e datas de encerramento. As filas de tarefas e solicitacoes abertas consultam somente `is_open = true`, portanto registros finalizados ou cancelados continuam disponiveis na consulta por numero, mas nao reaparecem no trabalho pendente.
 - A aprovacao de um candidato reutiliza o pre-cadastro existente, ativa o fornecedor e altera a origem para `LOCAL_FLUIG`, sem criar CNPJ duplicado.
 
 Comandos seguros de teste:

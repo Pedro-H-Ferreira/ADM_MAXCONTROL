@@ -298,6 +298,7 @@ async function main() {
                 processVersion: String(request.processVersion || processVersion),
                 status: String(request.status || ""),
                 startDate: request.startDate || null,
+                endDate: request.endDate || null,
                 requesterId: request.requesterId || request.requesterCode || null,
                 requesterName: request.requesterName || request.requester || null,
                 formFields: buildFieldsMap(formFields),

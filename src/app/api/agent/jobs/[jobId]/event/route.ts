@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { readJobForAgent, recordFluigJobEvent, type FluigJobStatus } from "@/lib/db/app-repository";
+import { z } from "zod";
+import { readJobForAgent, recordFluigJobEvent } from "@/lib/db/app-repository";
 import { updateOperationalLaunchJobProgress } from "@/lib/db/operational-launch-repository";
 import { requireAgent } from "@/app/api/agent/_utils";
 
@@ -12,13 +13,24 @@ type RouteContext = {
   }>;
 };
 
-type EventBody = {
-  eventType?: string;
-  stage?: string | null;
-  label?: string | null;
-  status?: FluigJobStatus;
-  payload?: Record<string, unknown>;
-};
+const eventSchema = z.object({
+  eventType: z.string().trim().min(1).max(80).optional(),
+  stage: z.string().trim().min(1).max(80).nullable().optional(),
+  label: z.string().trim().min(1).max(500).nullable().optional(),
+  status: z
+    .enum([
+      "agent_claimed",
+      "authenticating",
+      "opening_fluig",
+      "reading_page",
+      "filling_form",
+      "submitting",
+      "waiting_protocol",
+      "syncing_result",
+    ])
+    .optional(),
+  payload: z.record(z.string(), z.unknown()).optional(),
+});
 
 export async function POST(request: Request, context: RouteContext) {
   const { agent, error } = await requireAgent(request);
@@ -30,7 +42,14 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ success: false, error: "Job nao pertence a este agente." }, { status: 404 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as EventBody;
+  const parsed = eventSchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json(
+      { success: false, error: parsed.error.issues[0]?.message || "Evento de progresso invalido." },
+      { status: 400 }
+    );
+  }
+  const body = parsed.data;
   await recordFluigJobEvent({
     jobId,
     agentId: agent.id,

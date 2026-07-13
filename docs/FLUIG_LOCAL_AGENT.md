@@ -22,6 +22,16 @@ O portal ADM roda na Vercel, mas a automacao do Fluig roda na maquina Windows de
 - Endpoints especificos `/api/fluig/adm/sync/open-tasks` e `/api/fluig/adm/sync/my-requests`: continuam criando jobs separados quando for necessario diagnosticar ou executar somente uma parte da sincronizacao.
 - Consulta de status por numero Fluig: cria `sync_request_by_number`; o agente faz uma sessao e consulta todos os numeros enviados no mesmo job.
 - Abertura/cancelamento: criam `open_from_source` ou `cancel_request`; cada job usa a sessao do usuario local e devolve protocolo/status para a tela.
+
+## Isolamento e paralelismo por usuario
+
+- A tela lista somente agentes pareados com o usuario atualmente autenticado, inclusive quando o usuario tem perfil administrativo.
+- A lista operacional de jobs e a consulta de progresso tambem ficam sempre limitadas ao usuario atual. Uma visao administrativa global deve usar endpoint separado e explicito.
+- Um job so e criado quando existe heartbeat recente de ao menos um agente pareado com aquele mesmo usuario. Agente de outro usuario nunca assume o job, pois ele usa outra credencial Fluig local.
+- O mesmo usuario pode parear dois ou mais agentes. Cada agente assume no maximo um job ativo por vez, enquanto agentes adicionais podem reivindicar os proximos jobs da fila em paralelo.
+- O poll e a retomada validam simultaneamente o agente atribuido e o proprietario do job. Tokens vinculados a perfis inativos, rejeitados ou ainda nao aprovados nao autenticam o agente.
+- Quando nenhum agente proprio esta online, a API responde `409` com o codigo `FLUIG_AGENT_OFFLINE`; a interface orienta gerar o token no mesmo login e iniciar o agente antes de tentar novamente.
+- A partir da versao `0.1.3`, a tarefa agendada executa o Node diretamente e o instalador encerra processos antigos do mesmo script antes de iniciar. Isso evita deixar um agente orfao usando token anterior e bloqueando a porta `4777`.
 - Em `/manutencao`, `open_from_source` tambem carrega `maintenanceOrderId`; ao receber o resultado, a API atualiza `app_maintenance_orders` com numero Fluig, etapa, responsavel, `NumLancW` quando existir, e evento de auditoria.
 
 ## Controle contra jobs duplicados

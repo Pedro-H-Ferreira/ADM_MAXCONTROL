@@ -145,6 +145,10 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     if (!integration) {
       return;
     }
+    if (!onlineAgent) {
+      setError("Pareie e inicie um agente Fluig para este usuario antes de executar a consulta.");
+      return;
+    }
 
     setPendingAction(action);
     setError(null);
@@ -176,6 +180,10 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
 
   async function runUserIncrementalSync() {
     if (!integration) {
+      return;
+    }
+    if (!onlineAgent) {
+      setError("Pareie e inicie um agente Fluig para este usuario antes de sincronizar.");
       return;
     }
 
@@ -210,6 +218,10 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
 
   async function runRequestLookup() {
     if (!integration) {
+      return;
+    }
+    if (!onlineAgent) {
+      setLookupError("Pareie e inicie um agente Fluig para este usuario antes de consultar.");
       return;
     }
 
@@ -399,7 +411,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             type="button"
             className="stitch-soft-button"
             onClick={() => runUserIncrementalSync()}
-            disabled={fluigBusy}
+            disabled={fluigBusy || !onlineAgent}
           >
             <RefreshCcw className={cn("size-4", pendingUserSync ? "animate-spin" : "")} />
             {integration.syncAction}
@@ -409,7 +421,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
             variant="outline"
             className="stitch-soft-button"
             onClick={() => runSync("examples")}
-            disabled={fluigBusy}
+            disabled={fluigBusy || !onlineAgent}
           >
             <FileText className="size-4" />
             Consultar modelos reais
@@ -504,14 +516,14 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
                   onChange={(event) => setLookupRequestId(event.target.value)}
                   inputMode="numeric"
                   placeholder="Ex.: 1163476"
-                  disabled={fluigBusy}
+                  disabled={fluigBusy || !onlineAgent}
                   aria-label="Numero da solicitacao Fluig"
                 />
                 <Label className="h-8 rounded-md border bg-background px-3 text-xs text-muted-foreground">
                   <Checkbox
                     checked={lookupPersist}
                     onCheckedChange={(checked) => setLookupPersist(checked === true)}
-                    disabled={fluigBusy}
+                    disabled={fluigBusy || !onlineAgent}
                   />
                   Salvar no ADM
                 </Label>
@@ -551,7 +563,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
               ) : null}
               {lookupError ? <p className="font-medium text-destructive">{lookupError}</p> : null}
             </div>
-            <Button type="submit" className="stitch-soft-button self-start" disabled={fluigBusy}>
+            <Button type="submit" className="stitch-soft-button self-start" disabled={fluigBusy || !onlineAgent}>
               <Search className={cn("size-4", lookupPending ? "animate-pulse" : "")} />
               {lookupPending ? "Consultando" : "Consultar numero"}
             </Button>

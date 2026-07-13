@@ -1031,18 +1031,36 @@ export async function createAgentPairing(input: { actor: AppActor; displayName?:
 
 export async function listAgentsForActor(actor: AppActor) {
   const client = assertServiceClient();
-  let query = client
+  const query = client
     .from("fluig_user_agents")
     .select("id,user_id,display_name,machine_name,token_prefix,status,local_api_url,agent_version,last_heartbeat_at,paired_at,updated_at")
+    .eq("user_id", actor.id)
     .order("updated_at", { ascending: false });
-
-  if (!actor.isAdmin) {
-    query = query.eq("user_id", actor.id);
-  }
 
   const { data, error } = await query;
   if (error) throw error;
   return ((data || []) as DbAgentRow[]).map(mapAgent);
+}
+
+async function assertOnlineAgentForActor(client: SupabaseClient, actor: AppActor) {
+  const heartbeatCutoff = new Date(Date.now() - agentHeartbeatOnlineWindowMs).toISOString();
+  const { data, error } = await client
+    .from("fluig_user_agents")
+    .select("id")
+    .eq("user_id", actor.id)
+    .eq("status", "online")
+    .gte("last_heartbeat_at", heartbeatCutoff)
+    .order("last_heartbeat_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (data) return;
+
+  throw new AppAuthError(
+    "Nenhum agente Fluig online esta pareado com este usuario. Gere o token neste mesmo login, inicie o agente local e tente novamente.",
+    409,
+    "FLUIG_AGENT_OFFLINE"
+  );
 }
 
 export async function authenticateAgentToken(token: string) {
@@ -1056,6 +1074,14 @@ export async function authenticateAgentToken(token: string) {
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
+
+  const { data: owner, error: ownerError } = await client
+    .from("app_user_profiles")
+    .select("id,active,approval_status")
+    .eq("id", data.user_id)
+    .maybeSingle();
+  if (ownerError) throw ownerError;
+  if (!owner?.active || owner.approval_status !== "APPROVED") return null;
 
   const now = new Date().toISOString();
   const { error: heartbeatError } = await client
@@ -1100,9 +1126,30 @@ export async function recordDetectedFluigUserId(input: {
   fluigUserId?: string | null;
 }) {
   const fluigUserId = String(input.fluigUserId || "").trim();
-  if (!fluigUserId) return false;
+  if (!fluigUserId) {
+    return { detected: false, matched: false, updated: false };
+  }
 
   const client = assertServiceClient();
+  const { data: profile, error: profileError } = await client
+    .from("app_user_profiles")
+    .select("id,fluig_user_id")
+    .eq("id", input.userId)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile) {
+    return { detected: true, matched: false, updated: false };
+  }
+
+  const existingFluigUserId = String(profile.fluig_user_id || "").trim();
+  if (existingFluigUserId) {
+    return {
+      detected: true,
+      matched: existingFluigUserId === fluigUserId,
+      updated: false,
+    };
+  }
+
   const { data, error } = await client
     .from("app_user_profiles")
     .update({
@@ -1115,7 +1162,7 @@ export async function recordDetectedFluigUserId(input: {
     .maybeSingle();
   if (error) throw error;
 
-  return Boolean(data);
+  return { detected: true, matched: Boolean(data), updated: Boolean(data) };
 }
 
 export async function createFluigJob(input: {
@@ -1129,6 +1176,7 @@ export async function createFluigJob(input: {
 }) {
   const client = assertServiceClient();
   await reconcileFluigJobLifecycle(client, input.actor.id);
+  await assertOnlineAgentForActor(client, input.actor);
   const selectedBranch =
     input.branchCode && input.actor.branchCodes.includes(input.branchCode)
       ? input.actor.branches.find((branch) => branch.code === input.branchCode)
@@ -1280,12 +1328,13 @@ export async function listFluigUserSyncState(actor: AppActor, input: { userId?: 
 
 export async function listJobsForActor(actor: AppActor, limit = 20) {
   const client = assertServiceClient();
-  await reconcileFluigJobLifecycle(client, actor.isAdmin ? null : actor.id);
-  let query = client.from("fluig_jobs").select("*").order("created_at", { ascending: false }).limit(limit);
-
-  if (!actor.isAdmin) {
-    query = query.eq("requested_by_user_id", actor.id);
-  }
+  await reconcileFluigJobLifecycle(client, actor.id);
+  const query = client
+    .from("fluig_jobs")
+    .select("*")
+    .eq("requested_by_user_id", actor.id)
+    .order("created_at", { ascending: false })
+    .limit(limit);
 
   const { data, error } = await query;
   if (error) throw error;
@@ -1294,12 +1343,16 @@ export async function listJobsForActor(actor: AppActor, limit = 20) {
 
 export async function readJobForActor(actor: AppActor, jobId: string) {
   const client = assertServiceClient();
-  await reconcileFluigJobLifecycle(client, actor.isAdmin ? null : actor.id);
-  const { data, error } = await client.from("fluig_jobs").select("*").eq("id", jobId).maybeSingle();
+  await reconcileFluigJobLifecycle(client, actor.id);
+  const { data, error } = await client
+    .from("fluig_jobs")
+    .select("*")
+    .eq("id", jobId)
+    .eq("requested_by_user_id", actor.id)
+    .maybeSingle();
   if (error) throw error;
   if (!data) return null;
   const job = mapJob(data as DbJobRow);
-  if (!actor.isAdmin && job.requestedByUserId !== actor.id) return null;
 
   const { data: events, error: eventsError } = await client
     .from("fluig_job_events")
@@ -1321,6 +1374,7 @@ export async function pollNextAgentJob(agent: { id: string; userId: string }) {
     .from("fluig_jobs")
     .select("*")
     .eq("assigned_agent_id", agent.id)
+    .eq("requested_by_user_id", agent.userId)
     .in("status", [
       "agent_claimed",
       "authenticating",
@@ -1366,6 +1420,7 @@ export async function pollNextAgentJob(agent: { id: string; userId: string }) {
       updated_at: now,
     })
     .eq("id", queued.id)
+    .eq("requested_by_user_id", agent.userId)
     .eq("status", "queued")
     .select("*")
     .maybeSingle();

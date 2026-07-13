@@ -54,6 +54,14 @@ function Write-Utf8NoBom([string]$Path, [string]$Content) {
   [System.IO.File]::WriteAllText($Path, $Content, $Utf8NoBom)
 }
 
+function Stop-AgentProcesses([string]$AgentScriptPath) {
+  Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -and $_.CommandLine -like "*$AgentScriptPath*" } |
+    ForEach-Object {
+      Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+}
+
 Write-Host "ADM MaxControl - Instalador do Agente Fluig" -ForegroundColor Green
 Write-Host "Este instalador configura o agente somente para o usuario Windows atual."
 
@@ -108,7 +116,7 @@ $Config = [ordered]@{
   ADM_API_URL = $AdmApiUrl.TrimEnd("/")
   ADM_AGENT_TOKEN = $AgentToken.Trim()
   ADM_PROJECT_ROOT = $ProjectRoot
-  AGENT_VERSION = "0.1.2"
+  AGENT_VERSION = "0.1.3"
   LOCAL_AGENT_PORT = "$LocalPort"
   POLL_INTERVAL_MS = "3000"
   MACHINE_NAME = $env:COMPUTERNAME
@@ -174,9 +182,9 @@ if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
   Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
   Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
 }
+Stop-AgentProcesses -AgentScriptPath $AgentScript
 
-$ActionArgument = '/d /c "' + $RunFile + '"'
-$Action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument $ActionArgument
+$Action = New-ScheduledTaskAction -Execute $NodePath -Argument ('"' + $AgentScript + '"') -WorkingDirectory $ProjectRoot
 $Trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 $Principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
 $Settings = New-ScheduledTaskSettingsSet `

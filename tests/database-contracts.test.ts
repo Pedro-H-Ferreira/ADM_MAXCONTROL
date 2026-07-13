@@ -236,6 +236,8 @@ describe("database and API contracts", () => {
 
     expect(repository).toContain("buildFluigActorPostgrestFilter");
     expect(repository).toMatch(/if \(actorFilter\) query = query\.or\(actorFilter\)/);
+    expect(repository).toContain('.eq("is_open", true)');
+    expect(repository).not.toContain('is_open.eq.true,is_open.is.null');
     expect(repository).not.toContain("Math.max(limit * 5, 100)");
     expect(tasksRoute).toContain("onlyTasks: true");
     expect(dashboardRepository).toContain("buildFluigActorPostgrestFilter");
@@ -301,9 +303,28 @@ describe("database and API contracts", () => {
     expect(integrationDoc).toContain("cria job `sync_status`");
   });
 
+  it("isola agentes por usuario e exige heartbeat proprio antes de criar jobs", async () => {
+    const repository = await source("src/lib/db/app-repository.ts");
+    const dashboard = await source("src/components/shared/dashboard-fluig-operations.tsx");
+    const tasksPage = await source("src/components/pages/fluig-tasks-page.tsx");
+    const integrationPanel = await source("src/components/shared/fluig-integration-panel.tsx");
+
+    expect(repository).toMatch(/listAgentsForActor[\s\S]*?\.eq\("user_id", actor\.id\)/);
+    expect(repository).toContain("assertOnlineAgentForActor");
+    expect(repository).toContain('"FLUIG_AGENT_OFFLINE"');
+    expect(repository).toMatch(/pollNextAgentJob[\s\S]*?\.eq\("requested_by_user_id", agent\.userId\)/);
+    expect(repository).toMatch(/listJobsForActor[\s\S]*?\.eq\("requested_by_user_id", actor\.id\)/);
+    expect(repository).toMatch(/readJobForActor[\s\S]*?\.eq\("requested_by_user_id", actor\.id\)/);
+    expect(repository).toContain('owner.approval_status !== "APPROVED"');
+    expect(dashboard).toContain("syncing || testingAgent || !onlineAgent");
+    expect(tasksPage).toContain("syncing || lookingUp || testingAgent || !onlineAgent");
+    expect(integrationPanel).toContain("fluigBusy || !onlineAgent");
+  });
+
   it("mantem expiracao, retry controlado e teste autenticado no agente Fluig", async () => {
     const migration = await source("supabase/migrations/20260625141131_harden_fluig_job_lifecycle.sql");
     const repository = await source("src/lib/db/app-repository.ts");
+    const eventRoute = await source("src/app/api/agent/jobs/[jobId]/event/route.ts");
     const runner = await source("agent/fluig-agent/src/runner.js");
     const healthCheck = await source("scripts/fluig/healthCheck.js");
     const resultRoute = await source("src/app/api/agent/jobs/[jobId]/result/route.ts");
@@ -314,14 +335,32 @@ describe("database and API contracts", () => {
     expect(repository).toContain("reconcileFluigJobLifecycle");
     expect(repository).toContain("recordDetectedFluigUserId");
     expect(repository).toContain("fluig_user_id.is.null,fluig_user_id.eq.");
+    expect(repository).toContain("existingFluigUserId === fluigUserId");
     expect(repository).toContain("fluigUserIdFromJobPayload");
     expect(repository).toContain("payload.taskUserId || userMatch?.fluigUserId");
     expect(repository).toContain('.eq("assigned_agent_id", input.agentId)');
+    expect(eventRoute).toContain("eventSchema.safeParse");
+    expect(eventRoute).not.toContain('"success",');
+    expect(eventRoute).not.toContain('"error",');
     expect(resultRoute).toContain('job.operation === "health_check"');
     expect(resultRoute).toContain("extractCurrentFluigUserId");
     expect(resultRoute).toContain("recordDetectedFluigUserId");
+    expect(resultRoute).toContain("FLUIG_IDENTITY_MISMATCH");
     expect(runner).toContain('"scripts", "fluig", "healthCheck.js"');
     expect(healthCheck).toContain("loginWithBrowser");
     expect(healthCheck).toContain("/portal/api/rest/wcm/rest/admin/location/getCurrentUserId");
+  });
+
+  it("instala e remove o agente Windows sem deixar processo Node orfao", async () => {
+    const installer = await source("agent/fluig-agent/scripts/install-windows-agent.ps1");
+    const uninstaller = await source("agent/fluig-agent/scripts/uninstall-windows-agent.ps1");
+    const agentPackage = await source("agent/fluig-agent/package.json");
+
+    expect(installer).toContain("Stop-AgentProcesses -AgentScriptPath $AgentScript");
+    expect(installer).toContain("New-ScheduledTaskAction -Execute $NodePath");
+    expect(installer).toContain("-RunLevel Limited");
+    expect(installer).not.toContain('New-ScheduledTaskAction -Execute "cmd.exe"');
+    expect(uninstaller).toContain("Stop-AgentProcesses -AgentScriptPath $AgentScript");
+    expect(agentPackage).toContain('"version": "0.1.3"');
   });
 });

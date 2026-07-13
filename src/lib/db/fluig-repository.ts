@@ -163,6 +163,75 @@ function normalizeName(value: unknown) {
     .toUpperCase();
 }
 
+export function normalizeFluigRequestLifecycle(
+  status: unknown,
+  observedAt: string,
+  active?: boolean | null
+) {
+  const normalized = normalizeName(status);
+  const canceled = normalized.includes("CANCEL");
+  const finalized =
+    !canceled &&
+    (normalized.includes("FINALIZ") ||
+      normalized.includes("CONCLUID") ||
+      normalized.includes("ENCERRAD") ||
+      normalized.includes("FECHAD") ||
+      normalized === "COMPLETED" ||
+      normalized === "DONE" ||
+      active === false);
+  const open =
+    !canceled &&
+    !finalized &&
+    (active === true ||
+      normalized === "OPEN" ||
+      normalized.includes("ABERT") ||
+      normalized.includes("ANDAMENTO") ||
+      normalized.includes("PENDENT"));
+
+  if (canceled) {
+    return {
+      normalizedStatus: "cancelado" as const,
+      isOpen: false,
+      finalizedAt: null,
+      closedAt: observedAt,
+      canceledAt: observedAt,
+    };
+  }
+
+  if (finalized) {
+    return {
+      normalizedStatus: "finalizado" as const,
+      isOpen: false,
+      finalizedAt: observedAt,
+      closedAt: observedAt,
+      canceledAt: null,
+    };
+  }
+
+  if (open) {
+    return {
+      normalizedStatus: "em_andamento" as const,
+      isOpen: true,
+      finalizedAt: null,
+      closedAt: null,
+      canceledAt: null,
+    };
+  }
+
+  return {
+    normalizedStatus: null,
+    isOpen: null,
+    finalizedAt: null,
+    closedAt: null,
+    canceledAt: null,
+  };
+}
+
+function normalizedLifecycleTimestamp(value: unknown, fallback: string) {
+  const parsed = Date.parse(String(value || ""));
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : fallback;
+}
+
 function parseMoneyToCents(value: unknown) {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
@@ -819,6 +888,8 @@ export function buildFluigHistoryRequestRow(
   const branchLabel = extractBranchLabel(fields);
   const branchCode = extractBranchCode(fields);
   const syncedAt = new Date().toISOString();
+  const lifecycleObservedAt = normalizedLifecycleTimestamp(item.endDate || item.raw?.endDate, syncedAt);
+  const lifecycle = normalizeFluigRequestLifecycle(item.status, lifecycleObservedAt);
 
   return {
     module_slug: module,
@@ -841,21 +912,19 @@ export function buildFluigHistoryRequestRow(
     currency: "BRL",
     due_date: parseDateOnly(fields.vencPagNota || fields.vencimento || fields.dataPrevRetorno),
     opened_at: item.startDate,
+    normalized_status: lifecycle.normalizedStatus,
+    is_open: lifecycle.isOpen,
+    finalized_at: lifecycle.finalizedAt,
+    closed_at: lifecycle.closedAt,
     last_synced_at: syncedAt,
     updated_at: syncedAt,
-    canceled_at: String(item.status || "").toLowerCase().includes("cancel") ? syncedAt : null,
+    canceled_at: lifecycle.canceledAt,
     source_url: item.sourceUrl,
     raw_payload: {
       formFields: fields,
       raw: item.raw,
     },
   };
-}
-
-function isStatusOpen(item: FluigStatusItem) {
-  const status = String(item.statusProcesso || "").toLowerCase();
-  if (item.active === false || status.includes("finaliz") || status.includes("cancel")) return false;
-  return true;
 }
 
 export function buildFluigStatusRequestRow(
@@ -866,7 +935,8 @@ export function buildFluigStatusRequestRow(
 ) {
   const checkedAt = item.dataUltimaConsulta || new Date().toISOString();
   const syncedAt = new Date().toISOString();
-  const open = isStatusOpen(item);
+  const lifecycle = normalizeFluigRequestLifecycle(item.statusProcesso, checkedAt, item.active);
+  const open = lifecycle.isOpen === true;
   const currentTask = String(item.etapaAtual || "").trim() || existing?.current_task || null;
   const taskOwner =
     String(item.responsavelAtual || item.responsavelLogin || item.responsavelCodigo || "").trim() ||
@@ -880,8 +950,11 @@ export function buildFluigStatusRequestRow(
     current_task: currentTask,
     task_owner: taskOwner,
     due_date: item.vencimentoPagamento || existing?.due_date || null,
-    normalized_status: open ? "em_andamento" : "finalizado",
-    is_open: open,
+    normalized_status: lifecycle.normalizedStatus,
+    is_open: lifecycle.isOpen,
+    finalized_at: lifecycle.finalizedAt,
+    closed_at: lifecycle.closedAt,
+    canceled_at: lifecycle.canceledAt,
     last_status_check_at: checkedAt,
     last_seen_in_user_open_list_at: options.markSeenOpen && open ? checkedAt : undefined,
     sync_source: options.syncSource || "status_check",
@@ -1113,7 +1186,7 @@ export async function readKnownOpenFluigRequestsForActor(input: {
       .from("fluig_requests")
       .select(fluigRequestSelect)
       .in("module_slug", modules)
-      .or("is_open.eq.true,is_open.is.null")
+      .eq("is_open", true)
       .not("fluig_request_id", "is", null);
 
     if (actorFilter) query = query.or(actorFilter);
