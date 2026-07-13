@@ -251,7 +251,6 @@ export const moduleConfigs: Record<string, ModuleConfig> = {
     title: "Usuarios e Perfis",
     eyebrow: "RBAC",
     description: "Usuarios, perfis, vinculo com CD, status e permissoes operacionais.",
-    primaryAction: { label: "Convidar usuario", href: "/usuarios/novo" },
     icon: UsersRound,
     columns: ["Nome", "E-mail", "Cargo", "Perfil", "Status"],
     statuses: ["ATIVO", "INATIVO", "CONVIDADO"],

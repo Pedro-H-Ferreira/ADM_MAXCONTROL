@@ -68,6 +68,10 @@ export function ModulePage({
     return <BranchesPage config={clientConfig} initialOpenForm={mode === "new"} />;
   }
 
+  if (config.slug === "usuarios") {
+    return <UsersAccessPage config={clientConfig} />;
+  }
+
   if (config.slug === "tarefas" && mode === "list") {
     return <FluigTasksPage config={clientConfig} />;
   }
@@ -106,13 +110,25 @@ function ModuleListPage({ config }: { config: ModuleConfig }) {
         ))}
       </div>
       <FilterBar placeholder={`Buscar em ${config.title.toLowerCase()}`} />
-      {config.slug === "usuarios" ? <UserBranchAccessPanel /> : null}
       <FluigIntegrationPanel moduleSlug={config.slug} />
       {config.table.rows.length > 0 ? (
         <DataTable columns={config.table.columns} rows={config.table.rows} />
       ) : (
         <EmptyState />
       )}
+    </div>
+  );
+}
+
+function UsersAccessPage({ config }: { config: ModuleConfig }) {
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow={config.eyebrow}
+        title={config.title}
+        description={config.description}
+      />
+      <UserBranchAccessPanel />
     </div>
   );
 }
