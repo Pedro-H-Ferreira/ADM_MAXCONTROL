@@ -26,6 +26,7 @@ import {
   markOperationalLaunchFailure,
 } from "@/lib/db/operational-launch-repository";
 import { markSupplierFluigSyncResult, reconcileSupplierPreRegistrations } from "@/lib/db/suppliers-repository";
+import { syncProductsFromFluigHistoryRequestIds } from "@/lib/db/products-repository";
 import { mergePersistence } from "@/lib/fluig/route-utils";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
@@ -45,6 +46,9 @@ type ResultBody = {
   resultPayload?: Record<string, unknown>;
   errorMessage?: string | null;
 };
+
+const MISSING_OPEN_PROTOCOL_ERROR =
+  "O agente informou sucesso, mas nao retornou o protocolo da solicitacao Fluig.";
 
 function extractHistoryItems(payload: Record<string, unknown>) {
   const data = payload.data as Record<string, unknown> | undefined;
@@ -88,6 +92,45 @@ function extractCancelStatusItems(payload: Record<string, unknown>) {
 function extractCurrentFluigUserId(payload: Record<string, unknown>) {
   const data = payload.data as Record<string, unknown> | undefined;
   return String(data?.currentUserId || payload.currentUserId || "").trim();
+}
+
+function purchaseHistoryRequestIds(fallback: FluigModuleSlug, items: FluigHistoryItem[]) {
+  return Array.from(
+    new Set(
+      items
+        .filter((item) => (item.moduleSlug || fallback) === "compras")
+        .map((item) => String(item.processInstanceId || "").trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+async function persistProductsFromHistoryJob(
+  fallback: FluigModuleSlug,
+  items: FluigHistoryItem[],
+  actorId: string
+): Promise<PersistenceResult> {
+  const requestIds = purchaseHistoryRequestIds(fallback, items);
+  if (!requestIds.length) return { configured: true, saved: {}, errors: [] };
+
+  try {
+    const result = await syncProductsFromFluigHistoryRequestIds(actorId, requestIds);
+    return {
+      configured: true,
+      saved: {
+        productRequests: result.requestsScanned,
+        products: result.products,
+        productOccurrences: result.occurrences,
+      },
+      errors: [],
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      saved: {},
+      errors: [error instanceof Error ? error.message : String(error)],
+    };
+  }
 }
 
 function extractGeneratedRequest(payload: Record<string, unknown>) {
@@ -184,14 +227,23 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const body = (await request.json().catch(() => ({}))) as ResultBody;
-  const status = body.status || "success";
+  const reportedStatus = body.status || "success";
   const resultPayload = body.resultPayload || {};
+  const generatedRequestId =
+    reportedStatus === "success" && job.operation === "open_from_source"
+      ? extractGeneratedRequest(resultPayload).trim()
+      : "";
+  const missingOpenProtocol =
+    reportedStatus === "success" && job.operation === "open_from_source" && !generatedRequestId;
+  const status = missingOpenProtocol ? "error" : reportedStatus;
+  const errorMessage = missingOpenProtocol ? MISSING_OPEN_PROTOCOL_ERROR : body.errorMessage;
   const persistenceResults: PersistenceResult[] = [];
 
   if (status === "success" && (job.operation === "sync_history" || job.operation === "sync_initial_history")) {
     const historyItems = extractHistoryItems(resultPayload);
     const supplierCandidates = buildSupplierCandidates(historyItems);
     persistenceResults.push(await persistHistoryItemsInChunksByModule(job.module, historyItems, { id: job.requestedByUserId }));
+    persistenceResults.push(await persistProductsFromHistoryJob(job.module, historyItems, job.requestedByUserId));
     persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItemsByModule(job.module, historyItems)));
     persistenceResults.push(await persistSupplierCandidates(supplierCandidates));
     persistenceResults.push(
@@ -268,42 +320,39 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   if (status === "success" && job.operation === "open_from_source") {
-    const generatedRequestId = extractGeneratedRequest(resultPayload);
-    if (generatedRequestId) {
-      persistenceResults.push(
-        await persistStatusItems(job.module, [
-          {
-            numeroFluig: generatedRequestId,
-            statusProcesso: "aberto",
-            etapaAtual: "Solicitacao aberta pelo ADM",
-            active: true,
-            dataUltimaConsulta: new Date().toISOString(),
-          },
-        ])
-      );
-      await completeMaintenanceOrderFluigOpenJob({
-        job,
-        generatedRequestId,
-        resultPayload,
-      });
-      await completeOperationalLaunchJob({
-        job,
-        generatedRequestId,
-        resultPayload,
-      });
-    }
+    persistenceResults.push(
+      await persistStatusItems(job.module, [
+        {
+          numeroFluig: generatedRequestId,
+          statusProcesso: "aberto",
+          etapaAtual: "Solicitacao aberta pelo ADM",
+          active: true,
+          dataUltimaConsulta: new Date().toISOString(),
+        },
+      ])
+    );
+    await completeMaintenanceOrderFluigOpenJob({
+      job,
+      generatedRequestId,
+      resultPayload,
+    });
+    await completeOperationalLaunchJob({
+      job,
+      generatedRequestId,
+      resultPayload,
+    });
   }
 
   if (status !== "success" && job.operation === "open_from_source") {
     await recordMaintenanceOrderFluigJobFailure({
       job,
-      errorMessage: body.errorMessage,
+      errorMessage,
     });
     if (job.requestPayload.launchId) {
       await markOperationalLaunchFailure(
         String(job.requestPayload.launchId),
         job.requestedByUserId,
-        body.errorMessage || "Falha ao abrir solicitacao no Fluig.",
+        errorMessage || "Falha ao abrir solicitacao no Fluig.",
         job.id
       );
     }
@@ -357,7 +406,7 @@ export async function POST(request: Request, context: RouteContext) {
       status,
       historyItems: status === "success" ? extractHistoryItems(resultPayload) : [],
       resultPayload: finalPayload,
-      errorMessage: body.errorMessage,
+      errorMessage,
       persistence,
     });
   }
@@ -367,7 +416,7 @@ export async function POST(request: Request, context: RouteContext) {
     agentId: agent.id,
     status,
     resultPayload: finalPayload,
-    errorMessage: body.errorMessage,
+    errorMessage,
   });
 
   if (syncType) {
@@ -375,7 +424,7 @@ export async function POST(request: Request, context: RouteContext) {
       job,
       syncType,
       status: status === "success" ? "success" : "error",
-      errorMessage: body.errorMessage,
+      errorMessage,
       metadata: {
         persistence,
       },
@@ -388,7 +437,7 @@ export async function POST(request: Request, context: RouteContext) {
       module: batch.module,
       syncType: batch.syncType,
       status: status === "success" ? "success" : "error",
-      errorMessage: body.errorMessage,
+      errorMessage,
       metadata: {
         persistence,
         batched: true,

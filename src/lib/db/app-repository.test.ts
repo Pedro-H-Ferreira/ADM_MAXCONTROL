@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AppUserProfile } from "@/lib/db/app-repository";
+import type { AppActor, AppUserProfile } from "@/lib/db/app-repository";
 
 const serviceState = vi.hoisted(() => ({ client: null as unknown }));
 
@@ -9,6 +9,7 @@ vi.mock("@/lib/supabase/service", () => ({
 }));
 
 import {
+  createFluigJob,
   listActorBranches,
   listBranches,
   upsertAppUser,
@@ -18,10 +19,10 @@ type Response = { data: unknown; error: null; count?: number };
 
 function queryBuilder(response: Response, calls: Array<{ method: string; args: unknown[] }>) {
   const builder: Record<string, unknown> = {};
-  for (const method of ["select", "eq", "is", "in", "order", "maybeSingle"]) {
+  for (const method of ["select", "eq", "is", "in", "gte", "order", "limit", "insert", "single", "maybeSingle"]) {
     builder[method] = (...args: unknown[]) => {
       calls.push({ method, args });
-      return method === "maybeSingle" ? Promise.resolve(response) : builder;
+      return method === "single" || method === "maybeSingle" ? Promise.resolve(response) : builder;
     };
   }
   builder.then = (resolve: (value: Response) => unknown) => resolve(response);
@@ -59,6 +60,73 @@ const dbMaster = {
   rejected_at: null,
   rejection_reason: null,
 };
+
+const jobBranches: AppActor["branches"] = [
+  {
+    id: "22222222-2222-4222-8222-222222222222",
+    code: "1016",
+    name: "Santo Andre",
+    fluigLabel: "1016 - 1016-SAD",
+    active: true,
+  },
+  {
+    id: "33333333-3333-4333-8333-333333333333",
+    code: "1022",
+    name: "Campinas",
+    fluigLabel: "1022 - 1022-CA",
+    active: true,
+  },
+];
+
+function jobActor(isAdmin = false): AppActor {
+  return {
+    ...masterProfile,
+    role: isAdmin ? "ADMIN" : "ADMINISTRATIVO",
+    isAdmin,
+    branches: jobBranches,
+    branchCodes: jobBranches.map((branch) => branch.code),
+    pageSlugs: [],
+    pageAccess: [],
+  };
+}
+
+function successfulJobClient(branchCode: string, branchLabel: string) {
+  const calls: Array<{ method: string; args: unknown[] }> = [];
+  const jobRow = {
+    id: "44444444-4444-4444-8444-444444444444",
+    requested_by_user_id: masterProfile.id,
+    assigned_agent_id: null,
+    module_slug: "pagamentos",
+    operation: "sync_history",
+    status: "queued",
+    branch_code: branchCode,
+    branch_label: branchLabel,
+    fluig_username: null,
+    request_payload: {},
+    result_payload: {},
+    error_message: null,
+    progress_stage: null,
+    progress_label: null,
+    attempts: 0,
+    max_attempts: 3,
+    next_attempt_at: "2026-07-13T12:00:00.000Z",
+    last_attempt_at: null,
+    expires_at: "2026-07-13T12:10:00.000Z",
+    created_at: "2026-07-13T12:00:00.000Z",
+    updated_at: "2026-07-13T12:00:00.000Z",
+    finished_at: null,
+  };
+  const client = {
+    rpc: vi.fn().mockResolvedValue({ data: { expired: 0, retried: 0 }, error: null }),
+    from: vi.fn((table: string) =>
+      queryBuilder(
+        table === "fluig_user_agents" ? { data: { id: "agent-1" }, error: null } : { data: jobRow, error: null },
+        calls
+      )
+    ),
+  };
+  return { calls, client };
+}
 
 describe("app user branch access", () => {
   beforeEach(() => {
@@ -198,5 +266,88 @@ describe("upsertAppUser", () => {
       role: "LEITURA",
     })).rejects.toMatchObject({ code: "INVALID_BRANCH_MATRIX", status: 400 });
     expect(rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe("createFluigJob branch resolution", () => {
+  it("rejeita branchCode explicito fora das filiais acessiveis", async () => {
+    const from = vi.fn();
+    const rpc = vi.fn();
+    serviceState.client = { from, rpc };
+
+    await expect(createFluigJob({
+      actor: jobActor(),
+      module: "pagamentos",
+      operation: "sync_history",
+      branchCode: "9999",
+    })).rejects.toMatchObject({
+      code: "FLUIG_BRANCH_ACCESS_DENIED",
+      status: 403,
+      message: 'Usuario sem acesso a filial solicitada: codigo "9999".',
+    });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("rejeita branchLabel explicito fora do catalogo carregado para admin", async () => {
+    serviceState.client = { from: vi.fn(), rpc: vi.fn() };
+
+    await expect(createFluigJob({
+      actor: jobActor(true),
+      module: "pagamentos",
+      operation: "sync_history",
+      branchLabel: "9999 - FILIAL INEXISTENTE",
+    })).rejects.toMatchObject({
+      code: "FLUIG_BRANCH_ACCESS_DENIED",
+      status: 403,
+      message: 'Usuario sem acesso a filial solicitada: identificacao "9999 - FILIAL INEXISTENTE".',
+    });
+  });
+
+  it("rejeita codigo e identificacao de filiais acessiveis diferentes", async () => {
+    serviceState.client = { from: vi.fn(), rpc: vi.fn() };
+
+    await expect(createFluigJob({
+      actor: jobActor(),
+      module: "pagamentos",
+      operation: "sync_history",
+      branchCode: "1016",
+      branchLabel: "1022 - 1022-CA",
+    })).rejects.toMatchObject({ code: "FLUIG_BRANCH_MISMATCH", status: 400 });
+  });
+
+  it("resolve a filial pelo branchLabel explicito quando o codigo nao e informado", async () => {
+    const { calls, client } = successfulJobClient("1022", "1022 - 1022-CA");
+    serviceState.client = client;
+
+    await createFluigJob({
+      actor: jobActor(),
+      module: "pagamentos",
+      operation: "sync_history",
+      branchLabel: "1022 - 1022-CA",
+    });
+
+    expect(calls.find((call) => call.method === "insert")?.args[0]).toMatchObject({
+      branch_id: jobBranches[1].id,
+      branch_code: "1022",
+      branch_label: "1022 - 1022-CA",
+    });
+  });
+
+  it("preserva o fallback para a primeira filial quando nenhuma e explicita", async () => {
+    const { calls, client } = successfulJobClient("1016", "1016 - 1016-SAD");
+    serviceState.client = client;
+
+    await createFluigJob({
+      actor: jobActor(),
+      module: "pagamentos",
+      operation: "sync_history",
+    });
+
+    expect(calls.find((call) => call.method === "insert")?.args[0]).toMatchObject({
+      branch_id: jobBranches[0].id,
+      branch_code: "1016",
+      branch_label: "1016 - 1016-SAD",
+    });
   });
 });

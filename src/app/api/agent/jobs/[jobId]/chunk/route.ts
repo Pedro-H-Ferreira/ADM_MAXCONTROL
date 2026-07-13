@@ -10,6 +10,7 @@ import {
   persistSupplierCandidates,
 } from "@/lib/db/fluig-repository";
 import { reconcileSupplierPreRegistrations } from "@/lib/db/suppliers-repository";
+import { syncProductsFromFluigHistoryRequestIds } from "@/lib/db/products-repository";
 import { mergePersistence } from "@/lib/fluig/route-utils";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
@@ -77,6 +78,45 @@ function shouldPersistJobResult(job: { requestPayload: Record<string, unknown> }
   return job.requestPayload.persist !== false;
 }
 
+function purchaseHistoryRequestIds(fallback: FluigModuleSlug, items: FluigHistoryItem[]) {
+  return Array.from(
+    new Set(
+      items
+        .filter((item) => (item.moduleSlug || fallback) === "compras")
+        .map((item) => String(item.processInstanceId || "").trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+async function persistProductsFromHistoryChunk(
+  fallback: FluigModuleSlug,
+  items: FluigHistoryItem[],
+  actorId: string
+): Promise<PersistenceResult> {
+  const requestIds = purchaseHistoryRequestIds(fallback, items);
+  if (!requestIds.length) return { configured: true, saved: {}, errors: [] };
+
+  try {
+    const result = await syncProductsFromFluigHistoryRequestIds(actorId, requestIds);
+    return {
+      configured: true,
+      saved: {
+        productRequests: result.requestsScanned,
+        products: result.products,
+        productOccurrences: result.occurrences,
+      },
+      errors: [],
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      saved: {},
+      errors: [error instanceof Error ? error.message : String(error)],
+    };
+  }
+}
+
 export async function POST(request: Request, context: RouteContext) {
   const { agent, error } = await requireAgent(request);
   if (!agent) return error;
@@ -104,6 +144,7 @@ export async function POST(request: Request, context: RouteContext) {
     itemCount = historyItems.length;
 
     persistenceResults.push(await persistHistoryItemsInChunksByModule(job.module, historyItems, { id: job.requestedByUserId }));
+    persistenceResults.push(await persistProductsFromHistoryChunk(job.module, historyItems, job.requestedByUserId));
     persistenceResults.push(await persistFluigCatalogItems(buildFluigCatalogItemsByModule(job.module, historyItems)));
     persistenceResults.push(await persistSupplierCandidates(supplierCandidates));
     persistenceResults.push(

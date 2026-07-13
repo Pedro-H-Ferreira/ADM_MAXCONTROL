@@ -32,6 +32,9 @@ function shouldReuseActiveJob(operation: FluigJobOperation) {
   );
 }
 
+export const GENERIC_JOBS_OPEN_ERROR =
+  "A operacao open_from_source nao e aceita neste endpoint. Use /api/fluig/adm/launches para aberturas produtivas.";
+
 export async function GET(request: Request) {
   try {
     const actor = await resolveCurrentAppUser();
@@ -61,6 +64,10 @@ export async function POST(request: Request) {
     }
 
     const operation = body.operation || "sync_history";
+    if (operation === "open_from_source") {
+      return jsonError(GENERIC_JOBS_OPEN_ERROR);
+    }
+
     const map = requireFluigProcessMap(moduleSlug);
     const requestPayload = {
       ...(body.payload || {}),

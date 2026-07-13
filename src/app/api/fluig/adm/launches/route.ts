@@ -4,15 +4,13 @@ import { appAuthErrorResponse } from "@/lib/auth-response";
 import {
   canActorAccessPage,
   canActorPerformPageAction,
-  createFluigJob,
   resolveCurrentAppUser,
 } from "@/lib/db/app-repository";
 import {
   createValidatedOperationalLaunch,
+  enqueueOperationalLaunchJob,
   getOperationalLaunch,
   listOperationalLaunches,
-  markOperationalLaunchFailure,
-  markOperationalLaunchQueued,
 } from "@/lib/db/operational-launch-repository";
 import { requireFluigProcessMap } from "@/lib/fluig/process-map";
 import {
@@ -149,40 +147,24 @@ export async function POST(request: Request) {
     }
 
     const processMap = requireFluigProcessMap(launch.module);
-    let job;
-    try {
-      job = await createFluigJob({
-        actor,
-        module: launch.module,
-        operation: "open_from_source",
-        branchCode: launch.branchCode,
-        branchLabel: launch.branchLabel,
-        requestPayload: {
-          launchId: launch.id,
-          sourceRequestId: launch.sourceRequestId,
-          fieldOverrides: launch.fieldOverrides,
-          attachments: parsed.data.attachments,
-          attachmentCount: parsed.data.attachments.length,
-          confirm: true,
-          processMap: {
-            module: processMap.module,
-            processId: processMap.processId,
-            processVersions: processMap.processVersions,
-            processLabel: processMap.processLabel,
-            defaultTaskUserId: processMap.defaultTaskUserId,
-          },
+    const job = await enqueueOperationalLaunchJob({
+      actor,
+      launchId: launch.id,
+      requestPayload: {
+        attachments: parsed.data.attachments,
+        attachmentCount: parsed.data.attachments.length,
+        confirm: true,
+        processMap: {
+          module: processMap.module,
+          processId: processMap.processId,
+          processVersions: processMap.processVersions,
+          processLabel: processMap.processLabel,
+          defaultTaskUserId: processMap.defaultTaskUserId,
         },
-      });
-    } catch (jobError) {
-      await markOperationalLaunchFailure(
-        launch.id,
-        actor.id,
-        jobError instanceof Error ? jobError.message : "Falha ao criar job Fluig."
-      );
-      throw jobError;
-    }
-
-    const queuedLaunch = await markOperationalLaunchQueued(actor, launch.id, job);
+      },
+    });
+    const queuedLaunch = await getOperationalLaunch(actor, launch.id);
+    if (!queuedLaunch) return jsonError("Lancamento enfileirado, mas nao foi possivel recarrega-lo.", 500);
     return NextResponse.json({ success: true, launch: queuedLaunch, job });
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);

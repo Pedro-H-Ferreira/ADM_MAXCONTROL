@@ -12,6 +12,49 @@ function parseBooleanFlag(flag) {
   return process.argv.includes(`--${flag}`);
 }
 
+function positiveInt(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
+
+function emitProgress(stage, label, payload = {}) {
+  console.log(`ADM_FLUIG_OPEN_PROGRESS ${JSON.stringify({ stage, label, ...payload })}`);
+}
+
+function protocolFromRequest(request) {
+  return String(
+    (request && request.processInstanceId) ||
+      (request && request.requestId) ||
+      (request && request.id) ||
+      ""
+  ).trim();
+}
+
+async function confirmGeneratedRequest(fetchRequestFn, page, requestId, options = {}) {
+  const attempts = positiveInt(options.attempts, 6);
+  const delayMs = positiveInt(options.delayMs, 1500);
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const request = await fetchRequestFn(page, requestId);
+      if (protocolFromRequest(request) === String(requestId)) {
+        return request;
+      }
+      lastError = new Error("Reconsulta retornou protocolo divergente.");
+    } catch (error) {
+      lastError = error;
+    }
+
+    if (attempt < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  const detail = lastError && lastError.message ? ` ${lastError.message}` : "";
+  throw new Error(`Fluig nao confirmou o protocolo ${requestId} apos ${attempts} consultas.${detail}`);
+}
+
 function requireRunnerRoot() {
   const runnerRoot = parseArg("runner-root", path.resolve(__dirname, ".."));
   if (!runnerRoot) {
@@ -160,6 +203,7 @@ async function main() {
   const keepOpen = parseBooleanFlag("keep-open");
   const fieldOverrides = parseFieldOverrides();
   const attachmentOverrides = parseAttachmentOverrides();
+  emitProgress("opening_fluig", "Abrindo e autenticando no Fluig.");
   const session = await loginWithBrowser({ headless: true });
 
   try {
@@ -168,6 +212,7 @@ async function main() {
     const sourceFields = Object.fromEntries((source.formFields || []).map((item) => [item.field, item.value]));
     const taskUserId = sourceFields.matResponsavelEnvio || sourceFields.responsavelEnvio || taskUserIdOverride;
     const sourceDetails = await fetchDetails(page, sourceRequestId, taskUserId).catch(() => null);
+    emitProgress("filling_form", "Preenchendo formulario e anexos da nova solicitacao.");
 
     for (const override of fieldOverrides) {
       sourceFields[override.field] = override.value;
@@ -208,6 +253,7 @@ async function main() {
       currentState: 4,
     };
 
+    emitProgress("submitting", "Enviando nova solicitacao ao Fluig.");
     const sendResponse = await sendNewRequest(page, payload);
     const generatedRequestId = String(
       (sendResponse && sendResponse.content && sendResponse.content.processInstanceId) ||
@@ -215,12 +261,19 @@ async function main() {
         ""
     );
 
-    let finalDetails = null;
-    let cancelResponse = null;
-
-    if (generatedRequestId) {
-      finalDetails = await fetchDetails(page, generatedRequestId, taskUserId).catch(() => null);
+    if (!/^\d+$/.test(generatedRequestId) || Number(generatedRequestId) <= 0) {
+      throw new Error("Fluig nao retornou numero valido da solicitacao.");
     }
+
+    emitProgress("waiting_protocol", "Aguardando confirmacao do protocolo no Fluig.", {
+      requestId: generatedRequestId,
+    });
+    const confirmedRequest = await confirmGeneratedRequest(fetchRequest, page, generatedRequestId, {
+      attempts: positiveInt(process.env.FLUIG_PROTOCOL_CONFIRM_ATTEMPTS, 6),
+      delayMs: positiveInt(process.env.FLUIG_PROTOCOL_CONFIRM_DELAY_MS, 1500),
+    });
+    const finalDetails = await fetchDetails(page, generatedRequestId, taskUserId);
+    let cancelResponse = null;
 
     if (generatedRequestId && cancelAfter) {
       cancelResponse = await cancelRequest(page, generatedRequestId, taskUserId, "Cancelamento apos teste via ADM MaxControl.");
@@ -245,6 +298,7 @@ async function main() {
       fieldOverrideCount: fieldOverrides.length,
       attachmentCount: uploadedFileNames.length,
       sendResponse,
+      confirmedRequest,
       cancelResponse,
       finalDetails,
       processedAt: new Date().toISOString(),
@@ -255,9 +309,6 @@ async function main() {
     console.log(`ADM_FLUIG_OPEN_RESULT ${outputPath}`);
     console.log(`ADM_FLUIG_OPEN_REQUEST ${generatedRequestId || "NONE"}`);
 
-    if (!generatedRequestId) {
-      throw new Error("Fluig nao retornou numero da solicitacao.");
-    }
   } finally {
     if (!keepOpen) {
       await session.close();
@@ -265,8 +316,17 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error("ADM_FLUIG_OPEN_ERROR");
-  console.error(error && error.message ? error.message : String(error));
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error("ADM_FLUIG_OPEN_ERROR");
+    console.error(error && error.message ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  __test: {
+    confirmGeneratedRequest,
+    protocolFromRequest,
+  },
+};

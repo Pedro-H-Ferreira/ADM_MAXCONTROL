@@ -1200,20 +1200,46 @@ export async function createFluigJob(input: {
   reuseActive?: boolean;
 }) {
   const client = assertServiceClient();
-  await reconcileFluigJobLifecycle(client, input.actor.id);
-  await assertOnlineAgentForActor(client, input.actor);
-  const selectedBranch =
-    input.branchCode && input.actor.branchCodes.includes(input.branchCode)
-      ? input.actor.branches.find((branch) => branch.code === input.branchCode)
-      : input.actor.branches[0];
+  const requestedBranchCode = input.branchCode?.trim() || null;
+  const requestedBranchLabel = input.branchLabel?.trim() || null;
+  const branchByCode = requestedBranchCode
+    ? input.actor.branches.find((branch) => branch.code === requestedBranchCode)
+    : undefined;
+  const branchByLabel = requestedBranchLabel
+    ? input.actor.branches.find(
+        (branch) => branch.fluigLabel === requestedBranchLabel || branch.name === requestedBranchLabel
+      )
+    : undefined;
 
-  if (!input.actor.isAdmin && input.branchCode && !selectedBranch) {
-    throw new Error("Usuario sem acesso a filial solicitada.");
+  if (requestedBranchCode && !branchByCode) {
+    throw new AppAuthError(
+      `Usuario sem acesso a filial solicitada: codigo "${requestedBranchCode}".`,
+      403,
+      "FLUIG_BRANCH_ACCESS_DENIED"
+    );
+  }
+  if (requestedBranchLabel && !branchByLabel) {
+    throw new AppAuthError(
+      `Usuario sem acesso a filial solicitada: identificacao "${requestedBranchLabel}".`,
+      403,
+      "FLUIG_BRANCH_ACCESS_DENIED"
+    );
+  }
+  if (branchByCode && branchByLabel && branchByCode.id !== branchByLabel.id) {
+    throw new AppAuthError(
+      "O codigo e a identificacao informados correspondem a filiais diferentes.",
+      400,
+      "FLUIG_BRANCH_MISMATCH"
+    );
   }
 
+  const selectedBranch = branchByCode || branchByLabel || input.actor.branches[0];
+  await reconcileFluigJobLifecycle(client, input.actor.id);
+  await assertOnlineAgentForActor(client, input.actor);
+
   const requestPayload = input.requestPayload || {};
-  const branchCode = input.branchCode || selectedBranch?.code || null;
-  const branchLabel = input.branchLabel || selectedBranch?.fluigLabel || selectedBranch?.name || null;
+  const branchCode = requestedBranchCode || selectedBranch?.code || null;
+  const branchLabel = requestedBranchLabel || selectedBranch?.fluigLabel || selectedBranch?.name || null;
   const now = new Date();
   const maxAttempts = defaultFluigJobMaxAttempts(input.operation);
 

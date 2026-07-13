@@ -27,7 +27,7 @@ async function postJson(page, url, payload, timeoutMs = 30000) {
 }
 
 async function getJson(page, url, timeoutMs = 30000) {
-  return page.evaluate(async ({ targetUrl, requestTimeoutMs }) => {
+  const response = await page.evaluate(async ({ targetUrl, requestTimeoutMs }) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
 
@@ -40,8 +40,26 @@ async function getJson(page, url, timeoutMs = 30000) {
     });
 
     clearTimeout(timeoutId);
-    return response.json();
+    const text = await response.text();
+    return { status: response.status, text };
   }, { targetUrl: url, requestTimeoutMs: timeoutMs });
+
+  return parseHttpJson(response, `GET ${url}`);
+}
+
+function parseHttpJson(response, operation) {
+  const status = Number(response && response.status);
+  const text = String((response && response.text) || "");
+  if (!Number.isInteger(status) || status < 200 || status >= 300) {
+    const summary = text.replace(/\s+/g, " ").trim().slice(0, 500);
+    throw new Error(`${operation} falhou com HTTP ${status || "desconhecido"}${summary ? `: ${summary}` : ""}`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`${operation} retornou JSON invalido (HTTP ${status}).`);
+  }
 }
 
 async function fetchRequest(page, processInstanceId) {
@@ -58,7 +76,7 @@ async function fetchDetails(page, processInstanceId, taskUserId) {
     taskUserId
   });
 
-  return JSON.parse(response.text);
+  return parseHttpJson(response, "Consulta de detalhes da solicitacao Fluig");
 }
 
 async function uploadFile(page, filePath, uploadName, timeoutMs = 30000) {
@@ -162,7 +180,7 @@ function buildNewAttachment(fileName, taskUserId) {
 
 async function sendNewRequest(page, payload) {
   const response = await postJson(page, "/ecm/api/rest/ecm/workflowView/send", payload);
-  return JSON.parse(response.text);
+  return parseHttpJson(response, "Envio da nova solicitacao Fluig");
 }
 
 async function cancelRequest(page, processInstanceId, taskUserId, cancelText) {
@@ -172,7 +190,7 @@ async function cancelRequest(page, processInstanceId, taskUserId, cancelText) {
     cancelText
   });
 
-  return JSON.parse(response.text);
+  return parseHttpJson(response, "Cancelamento da solicitacao Fluig");
 }
 
 module.exports = {
@@ -184,5 +202,8 @@ module.exports = {
   buildFormData,
   buildNewAttachment,
   sendNewRequest,
-  cancelRequest
+  cancelRequest,
+  __test: {
+    parseHttpJson
+  }
 };

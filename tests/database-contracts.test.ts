@@ -283,6 +283,9 @@ describe("database and API contracts", () => {
 
   it("persiste lancamentos operacionais com itens, auditoria e escrita somente server-side", async () => {
     const migration = await source("supabase/migrations/20260624094623_operational_fluig_launches.sql");
+    const queueMigration = await source(
+      "supabase/migrations/20260713033631_transactional_operational_fluig_launch_queue.sql"
+    );
     const repository = await source("src/lib/db/operational-launch-repository.ts");
     const route = await source("src/app/api/fluig/adm/launches/route.ts");
     const resultRoute = await source("src/app/api/agent/jobs/[jobId]/result/route.ts");
@@ -294,7 +297,8 @@ describe("database and API contracts", () => {
     expect(migration).toContain("to service_role");
     expect(repository).toContain('eq("review_fingerprint", fingerprint)');
     expect(repository).toContain("completeOperationalLaunchJob");
-    expect(route).toContain('"open_from_source"');
+    expect(route).toContain("enqueueOperationalLaunchJob");
+    expect(queueMigration).toContain("'open_from_source'");
     expect(route).toContain("operationalLaunchFingerprint");
     expect(resultRoute).toContain("completeOperationalLaunchJob");
     expect(resultRoute).toContain("markOperationalLaunchFailure");

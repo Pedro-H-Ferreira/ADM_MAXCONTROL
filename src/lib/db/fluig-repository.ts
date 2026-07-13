@@ -778,8 +778,8 @@ function monthKey(value: string | null | undefined) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function templateDefaultFields(fields: Record<string, string>) {
-  const keep = [
+function templateDefaultFields(module: FluigModuleSlug, fields: Record<string, string>) {
+  const paymentFields = [
     "fornecedorC",
     "codCNPJ",
     "unidadeFilial",
@@ -789,6 +789,9 @@ function templateDefaultFields(fields: Record<string, string>) {
     "naturezaSalva",
     "formaPagamento",
     "contaCentroCusto",
+  ];
+  const otherModuleFields = [
+    ...paymentFields,
     "codFilialPedido",
     "responsavelPedido",
     "tipoTransacao",
@@ -796,10 +799,28 @@ function templateDefaultFields(fields: Record<string, string>) {
     "filialDestino",
     "zoomDemandaPara",
     "obsFiscal",
-    "descricaoDemandaEnvio",
   ];
+  const keep = module === "pagamentos" ? paymentFields : otherModuleFields;
 
   return Object.fromEntries(keep.map((fieldName) => [fieldName, fields[fieldName] || ""]).filter(([, value]) => value));
+}
+
+function requestTimestamp(row: FluigRequestDbRow) {
+  const value = row.opened_at || row.last_synced_at;
+  const timestamp = value ? new Date(value).getTime() : 0;
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function paymentTemplateFieldsAreComplete(fields: Record<string, string>) {
+  return Boolean(
+    firstStringField(fields, catalogFieldMap.natureza.fields) &&
+      firstStringField(fields, catalogFieldMap.cost_center.fields) &&
+      firstStringField(fields, catalogFieldMap.payment_method.fields)
+  );
+}
+
+function templateBranchKey(row: FluigRequestDbRow, fields: Record<string, string>) {
+  return normalizeName(row.branch_code || extractBranchCode(fields) || row.branch_label || extractBranchLabel(fields));
 }
 
 export function buildFluigLaunchTemplatesFromRequests(rows: FluigRequestDbRow[]): FluigLaunchTemplate[] {
@@ -814,10 +835,12 @@ export function buildFluigLaunchTemplatesFromRequests(rows: FluigRequestDbRow[])
   for (const row of rows) {
     const fields = formFieldsFromPayload(row.raw_payload || {});
     const supplier = supplierFromFields(fields);
-    const supplierKey = row.supplier_cnpj || supplier.cnpj || normalizeName(row.supplier_name || supplier.name);
-    if (!supplierKey || !row.fluig_request_id) continue;
+    const supplierNameKey = normalizeName(row.supplier_name || supplier.name);
+    const supplierCnpjKey = digitsOnly(row.supplier_cnpj || supplier.cnpj);
+    const branchKey = templateBranchKey(row, fields);
+    if (!supplierNameKey || !supplierCnpjKey || !branchKey || !row.fluig_request_id) continue;
 
-    const key = [row.module_slug, supplierKey].join(":");
+    const key = [row.module_slug, supplierNameKey, supplierCnpjKey, branchKey].join(":");
     const current = grouped.get(key) || { rows: [], months: new Set<string>() };
     current.rows.push(row);
     const itemMonth = monthKey(row.opened_at || row.last_synced_at);
@@ -827,11 +850,13 @@ export function buildFluigLaunchTemplatesFromRequests(rows: FluigRequestDbRow[])
 
   return Array.from(grouped.entries())
     .map(([key, group]) => {
-      const latest = [...group.rows].sort((a, b) => {
-        const left = new Date(a.last_synced_at || a.opened_at || 0).getTime();
-        const right = new Date(b.last_synced_at || b.opened_at || 0).getTime();
-        return right - left;
-      })[0];
+      const latest = [...group.rows]
+        .filter((row) => {
+          if (row.module_slug !== "pagamentos") return true;
+          return paymentTemplateFieldsAreComplete(formFieldsFromPayload(row.raw_payload || {}));
+        })
+        .sort((a, b) => requestTimestamp(b) - requestTimestamp(a))[0];
+      if (!latest) return null;
       const fields = formFieldsFromPayload(latest.raw_payload || {});
       const supplier = supplierFromFields(fields);
       const supplierName = latest.supplier_name || supplier.name || firstStringField(fields, catalogFieldMap.supplier.fields) || null;
@@ -847,12 +872,13 @@ export function buildFluigLaunchTemplatesFromRequests(rows: FluigRequestDbRow[])
         supplierCnpj: latest.supplier_cnpj || supplier.cnpj,
         branchCode: latest.branch_code || extractBranchCode(fields),
         branchLabel: latest.branch_label || extractBranchLabel(fields) || null,
-        defaultFields: templateDefaultFields(fields),
+        defaultFields: templateDefaultFields(latest.module_slug, fields),
         occurrenceCount: group.rows.length,
         monthCount: group.months.size,
         lastSeenAt: latest.last_synced_at || latest.opened_at,
       } satisfies FluigLaunchTemplate;
     })
+    .filter((template): template is FluigLaunchTemplate => Boolean(template))
     .sort((a, b) => {
       if (a.recurrence !== b.recurrence) return a.recurrence === "monthly" ? -1 : 1;
       if (b.occurrenceCount !== a.occurrenceCount) return b.occurrenceCount - a.occurrenceCount;
@@ -1434,6 +1460,32 @@ async function fetchAllSupplierCandidateRows(client: SupabaseClient) {
   return rows;
 }
 
+async function fetchAllPaymentTemplateRows(client: SupabaseClient, actor?: AppActor | null) {
+  const rows: FluigRequestDbRow[] = [];
+  const pageSize = 1000;
+
+  for (let offset = 0; ; offset += pageSize) {
+    let query = client
+      .from("fluig_requests")
+      .select(fluigRequestSelect)
+      .eq("module_slug", "pagamentos")
+      .not("fluig_request_id", "is", null);
+    const actorFilter = buildFluigActorPostgrestFilter(actor);
+    if (actorFilter) query = query.or(actorFilter);
+
+    const { data, error } = await query
+      .order("opened_at", { ascending: false, nullsFirst: false })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+
+    const page = (data || []) as unknown as FluigRequestDbRow[];
+    rows.push(...filterRowsForActor(actor, page));
+    if (page.length < pageSize) break;
+  }
+
+  return rows;
+}
+
 export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50, actor?: AppActor | null) {
   return runWithDb(async (client) => {
     const requestModules =
@@ -1480,7 +1532,13 @@ export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50,
       { data: requestRows, error: requestsError },
       supplierRows,
       catalogRows,
-    ] = await Promise.all([requestsQuery, fetchAllSupplierCandidateRows(client), fetchAllCatalogRows(client, module)]);
+      paymentTemplateRows,
+    ] = await Promise.all([
+      requestsQuery,
+      fetchAllSupplierCandidateRows(client),
+      fetchAllCatalogRows(client, module),
+      module === "pagamentos" ? fetchAllPaymentTemplateRows(client, actor) : Promise.resolve(null),
+    ]);
 
     if (requestsError) throw requestsError;
 
@@ -1494,7 +1552,7 @@ export async function readFluigSyncSnapshot(module: FluigModuleSlug, limit = 50,
       .map(mapRequestRowToExample);
     const supplierMatches = dedupeSupplierMatches(typedSupplierRows.map(mapSupplierCandidateToMatch));
     const catalogs = groupCatalogItems(typedCatalogRows.map(mapCatalogRow));
-    const launchTemplates = buildFluigLaunchTemplatesFromRequests(typedRequestRows);
+    const launchTemplates = buildFluigLaunchTemplatesFromRequests(paymentTemplateRows || typedRequestRows);
 
     return {
       rows,

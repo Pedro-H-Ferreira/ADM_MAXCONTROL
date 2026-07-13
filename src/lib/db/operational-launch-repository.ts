@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatCnpj, normalizeCnpj } from "@/lib/cnpj";
 import type { AppActor, FluigJobRecord, FluigJobStatus } from "@/lib/db/app-repository";
 import {
   operationalLaunchFingerprint,
@@ -11,6 +12,41 @@ import {
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 
 type JsonRecord = Record<string, unknown>;
+
+type OperationalSupplierDbRow = {
+  id: string;
+  razao_social: string;
+  cnpj_normalizado: string | null;
+  fluig_name: string | null;
+  fluig_code: string | null;
+  fluig_supplier_label: string | null;
+  default_payload: JsonRecord | null;
+};
+
+type EnqueuedJobDbRow = {
+  id: string;
+  requested_by_user_id: string;
+  assigned_agent_id: string | null;
+  module_slug: FluigJobRecord["module"];
+  operation: FluigJobRecord["operation"];
+  status: FluigJobRecord["status"];
+  branch_code: string | null;
+  branch_label: string | null;
+  fluig_username: string | null;
+  request_payload: JsonRecord | null;
+  result_payload: JsonRecord | null;
+  error_message: string | null;
+  progress_stage: string | null;
+  progress_label: string | null;
+  attempts: number | null;
+  max_attempts: number | null;
+  next_attempt_at: string | null;
+  last_attempt_at: string | null;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+  finished_at: string | null;
+};
 
 type LaunchDbRow = {
   id: string;
@@ -140,6 +176,133 @@ function mapLaunch(row: LaunchDbRow): OperationalLaunchRecord {
   };
 }
 
+function mapEnqueuedJob(row: EnqueuedJobDbRow): FluigJobRecord {
+  return {
+    id: row.id,
+    requestedByUserId: row.requested_by_user_id,
+    assignedAgentId: row.assigned_agent_id,
+    module: row.module_slug,
+    operation: row.operation,
+    status: row.status,
+    branchCode: row.branch_code,
+    branchLabel: row.branch_label,
+    fluigUsername: row.fluig_username,
+    requestPayload: row.request_payload || {},
+    resultPayload: row.result_payload || {},
+    errorMessage: row.error_message,
+    progressStage: row.progress_stage,
+    progressLabel: row.progress_label,
+    attempts: Number(row.attempts || 0),
+    maxAttempts: Number(row.max_attempts || 1),
+    nextAttemptAt: row.next_attempt_at,
+    lastAttemptAt: row.last_attempt_at,
+    expiresAt: row.expires_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    finishedAt: row.finished_at,
+  };
+}
+
+function cleanText(value: unknown) {
+  const normalized = String(value || "").trim();
+  return normalized || null;
+}
+
+export function resolveOperationalLaunchBranch(actor: AppActor, input: OperationalLaunchValidateInput) {
+  const requestedCode = cleanText(input.branchCode);
+  const requestedLabel = cleanText(input.branchLabel)?.toLocaleLowerCase("pt-BR") || null;
+  const byCode = requestedCode
+    ? actor.branches.find((branch) => branch.code === requestedCode) || null
+    : null;
+  const byLabel = requestedLabel
+    ? actor.branches.find((branch) =>
+        [branch.fluigLabel, branch.name]
+          .map((value) => cleanText(value)?.toLocaleLowerCase("pt-BR"))
+          .some((value) => value === requestedLabel)
+      ) || null
+    : null;
+
+  if ((requestedCode && !byCode) || (requestedLabel && !byLabel)) return null;
+  if (byCode && byLabel && byCode.id !== byLabel.id) return null;
+  return byCode || byLabel;
+}
+
+function canonicalSupplierOverrides(
+  module: OperationalLaunchModule,
+  overrides: Record<string, string>,
+  supplier: OperationalSupplierDbRow | null
+): Record<string, string> {
+  if (!supplier || module !== "pagamentos") return { ...overrides };
+
+  const defaults = supplier.default_payload || {};
+  const canonicalCnpj = normalizeCnpj(supplier.cnpj_normalizado);
+  if (!canonicalCnpj) {
+    throw new Error("Fornecedor oficial sem CNPJ valido para abertura no Fluig.");
+  }
+
+  const defaultCnpj = cleanText(defaults.codCNPJ);
+  const supplierLabel =
+    cleanText(defaults.fornecedorC) ||
+    cleanText(supplier.fluig_supplier_label) ||
+    cleanText(supplier.fluig_name) ||
+    (cleanText(supplier.fluig_code)
+      ? `${cleanText(supplier.fluig_code)} - ${supplier.razao_social}`
+      : supplier.razao_social);
+
+  return {
+    ...overrides,
+    fornecedorC: supplierLabel,
+    codCNPJ: defaultCnpj && normalizeCnpj(defaultCnpj) === canonicalCnpj ? defaultCnpj : formatCnpj(canonicalCnpj),
+  };
+}
+
+async function assertCatalogSelection(
+  client: SupabaseClient,
+  module: OperationalLaunchModule,
+  catalogType: "natureza" | "cost_center" | "payment_method" | "account",
+  fieldLabel: string,
+  rawValue: string | undefined
+) {
+  const value = cleanText(rawValue);
+  if (!value) return;
+
+  const { data, error } = await client
+    .from("fluig_catalog_items")
+    .select("code,label,value")
+    .eq("catalog_type", catalogType)
+    .or(`module_slug.eq.${module},module_slug.is.null`)
+    .limit(1000);
+  if (error) throw error;
+  if (!(data || []).length) return;
+
+  const normalized = value.toLocaleLowerCase("pt-BR");
+  const found = (data || []).some((item) =>
+    [item.code, item.label, item.value]
+      .map((candidate) => cleanText(candidate)?.toLocaleLowerCase("pt-BR"))
+      .some((candidate) => candidate === normalized)
+  );
+  if (!found) throw new Error(`${fieldLabel} nao pertence ao catalogo Fluig sincronizado.`);
+}
+
+async function assertLaunchCatalogSelections(
+  client: SupabaseClient,
+  module: OperationalLaunchModule,
+  overrides: Record<string, string>
+) {
+  const checks: Array<Promise<void>> = [
+    assertCatalogSelection(client, module, "cost_center", "Centro de custo", overrides.centroCusto),
+  ];
+  if (module === "pagamentos") {
+    checks.push(
+      assertCatalogSelection(client, module, "natureza", "Natureza financeira", overrides.codigonaturezaC),
+      assertCatalogSelection(client, module, "payment_method", "Forma de pagamento", overrides.formaPagamento)
+    );
+  } else {
+    checks.push(assertCatalogSelection(client, module, "account", "Conta contabil", overrides.contaCentroCusto));
+  }
+  await Promise.all(checks);
+}
+
 function actorCanViewLaunch(actor: AppActor, row: LaunchDbRow) {
   if (actor.isAdmin || row.created_by_user_id === actor.id) return true;
   return actor.branches.some(
@@ -211,30 +374,33 @@ export async function getOperationalLaunch(actor: AppActor, id: string) {
 
 export async function createValidatedOperationalLaunch(actor: AppActor, input: OperationalLaunchValidateInput) {
   const client = assertServiceClient();
-  const selectedBranch =
-    actor.branches.find((branch) => branch.code === input.branchCode) ||
-    actor.branches.find((branch) => branch.fluigLabel === input.branchLabel) ||
-    null;
+  const selectedBranch = resolveOperationalLaunchBranch(actor, input);
 
-  if (!actor.isAdmin && !selectedBranch) {
+  if (!selectedBranch) {
     throw new Error("Usuario sem acesso a filial informada.");
   }
 
-  let supplier: { id: string; razao_social: string; cnpj_normalizado: string | null } | null = null;
+  let supplier: OperationalSupplierDbRow | null = null;
   if (input.supplierId) {
     const { data, error } = await client
       .from("app_suppliers")
-      .select("id,razao_social,cnpj_normalizado")
+      .select("id,razao_social,cnpj_normalizado,fluig_name,fluig_code,fluig_supplier_label,default_payload")
       .eq("id", input.supplierId)
       .eq("status", "ATIVO")
       .is("deleted_at", null)
       .maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("Fornecedor oficial ativo nao encontrado.");
-    supplier = data as { id: string; razao_social: string; cnpj_normalizado: string | null };
+    supplier = data as OperationalSupplierDbRow;
   }
 
-  const fingerprint = operationalLaunchFingerprint(input);
+  const fieldOverrides = canonicalSupplierOverrides(input.module, input.fieldOverrides, supplier);
+  const canonicalBranchLabel = selectedBranch.fluigLabel || selectedBranch.name;
+  if (input.module === "pagamentos") fieldOverrides.unidadeFilial = canonicalBranchLabel;
+  if (input.module === "compras") fieldOverrides.codFilialPedido = canonicalBranchLabel;
+  await assertLaunchCatalogSelections(client, input.module, fieldOverrides);
+
+  const fingerprint = operationalLaunchFingerprint({ ...input, fieldOverrides });
   const { data: existingData, error: existingError } = await client
     .from("app_fluig_launches")
     .select("id")
@@ -259,15 +425,15 @@ export async function createValidatedOperationalLaunch(actor: AppActor, input: O
       title: input.title,
       description: input.description || null,
       app_supplier_id: supplier?.id || null,
-      supplier_name: input.supplierName || supplier?.razao_social || null,
-      supplier_cnpj: input.supplierCnpj || supplier?.cnpj_normalizado || null,
-      branch_id: selectedBranch?.id || null,
-      branch_code: input.branchCode || selectedBranch?.code || null,
-      branch_label: input.branchLabel || selectedBranch?.fluigLabel || selectedBranch?.name || null,
+      supplier_name: supplier?.razao_social || cleanText(input.supplierName),
+      supplier_cnpj: supplier?.cnpj_normalizado || normalizeCnpj(input.supplierCnpj) || null,
+      branch_id: selectedBranch.id,
+      branch_code: selectedBranch.code,
+      branch_label: canonicalBranchLabel,
       source_request_id: input.sourceRequestId,
       amount_cents: input.amountCents ?? null,
       due_date: input.dueDate || null,
-      field_overrides: input.fieldOverrides,
+      field_overrides: fieldOverrides,
       attachment_metadata: input.attachments,
       review_fingerprint: fingerprint,
       progress_stage: "validated",
@@ -314,6 +480,24 @@ export async function createValidatedOperationalLaunch(actor: AppActor, input: O
   });
 
   return (await getOperationalLaunch(actor, launch.id))!;
+}
+
+export async function enqueueOperationalLaunchJob(input: {
+  actor: AppActor;
+  launchId: string;
+  requestPayload: JsonRecord;
+}) {
+  const client = assertServiceClient();
+  const { data, error } = await client.rpc("enqueue_operational_fluig_launch", {
+    p_launch_id: input.launchId,
+    p_actor_user_id: input.actor.id,
+    p_request_payload: input.requestPayload,
+  });
+  if (error) throw error;
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error("O banco nao retornou o job Fluig enfileirado.");
+  return mapEnqueuedJob(row as EnqueuedJobDbRow);
 }
 
 export async function markOperationalLaunchQueued(

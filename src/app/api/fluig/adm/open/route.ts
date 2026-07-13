@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { resolveCurrentAppUser } from "@/lib/db/app-repository";
-import { persistStatusItems, recordFluigOperationRun } from "@/lib/db/fluig-repository";
+import { recordFluigOperationRun } from "@/lib/db/fluig-repository";
 import {
   getProcessMapForRequest,
   jsonError,
-  mergePersistence,
   normalizeFieldOverrides,
   readJsonBody,
 } from "@/lib/fluig/route-utils";
-import { getFluigRuntimeConfig, openFluigFromSource, type FluigStatusItem } from "@/lib/fluig/server-client";
+import { getFluigRuntimeConfig } from "@/lib/fluig/server-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,8 +24,10 @@ type OpenBody = {
   comment?: string;
   mode?: "test" | "production";
   confirm?: boolean;
-  persist?: boolean;
 };
+
+export const OPEN_PREVIEW_ONLY_ERROR =
+  "Este endpoint aceita apenas preview (dry-run). Para realizar uma abertura produtiva, use /api/fluig/adm/launches.";
 
 export async function POST(request: Request) {
   const body = await readJsonBody<OpenBody>(request, {});
@@ -41,6 +42,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (body.confirm === true) {
+      return jsonError(OPEN_PREVIEW_ONLY_ERROR);
+    }
+
     const processMap = getProcessMapForRequest(body.module || "pagamentos");
     const sourceRequestId = String(body.sourceRequestId || processMap.defaultSourceRequestIds[0] || "").trim();
     const fieldOverrides = {
@@ -57,95 +62,33 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!body.confirm) {
-      const dryRun = {
-        module: processMap.module,
-        processId: processMap.processId,
-        sourceRequestId,
-        mode,
-        willCancelAfterOpen: mode === "test",
-        fieldOverrides,
-        attachments: body.attachments || [],
-        requiredConfirmation: true,
-      };
-      const persistence = await recordFluigOperationRun({
-        module: processMap.module,
-        operation: "open",
-        status: "dry_run",
-        sourceMode: runtimeConfig.mode,
-        requestPayload: dryRun,
-        responsePayload: { message: "Dry-run. Envie confirm=true para executar no Fluig." },
-      });
-
-      return NextResponse.json({
-        success: true,
-        generatedAt: new Date().toISOString(),
-        runtime: runtimeConfig,
-        dryRun,
-        persistence,
-      });
-    }
-
-    const result = await openFluigFromSource({
-      processMap,
+    const dryRun = {
+      module: processMap.module,
+      processId: processMap.processId,
       sourceRequestId,
       fieldOverrides,
-      attachmentPaths: body.attachments,
+      attachments: body.attachments || [],
       targetState: body.targetState,
       taskUserId: body.taskUserId,
       comment: body.comment,
-      cancelAfter: mode === "test",
-      keepOpen: mode === "production",
-    });
-    const generatedRequestId = result.data?.generatedRequestId || "";
-    const finalDetails = result.data?.finalDetails as
-      | {
-          content?: {
-            stateDescription?: unknown;
-            colleagueName?: unknown;
-          };
-        }
-      | null
-      | undefined;
-    const statusItem: FluigStatusItem | null = generatedRequestId
-      ? {
-          numeroFluig: generatedRequestId,
-          etapaAtual: String(finalDetails?.content?.stateDescription || ""),
-          responsavelAtual: String(finalDetails?.content?.colleagueName || ""),
-          statusProcesso: mode === "test" ? "cancelado_teste" : "em_andamento",
-          active: mode !== "test",
-          cancelavel: mode !== "test",
-          dataUltimaConsulta: result.data?.processedAt || new Date().toISOString(),
-        }
-      : null;
-    const shouldPersist = body.persist !== false && Boolean(statusItem);
-    const requestPersistence = shouldPersist ? await persistStatusItems(processMap.module, [statusItem!]) : null;
-    const operationPersistence = await recordFluigOperationRun({
+      mode,
+      previewOnly: true,
+    };
+    const persistence = await recordFluigOperationRun({
       module: processMap.module,
       operation: "open",
-      status: "success",
+      status: "dry_run",
       sourceMode: runtimeConfig.mode,
-      requestPayload: {
-        module: processMap.module,
-        sourceRequestId,
-        fieldOverrideCount: Object.keys(fieldOverrides).length,
-        mode,
-      },
-      responsePayload: {
-        outputPath: result.outputPath,
-        generatedRequestId,
-        cancelAfter: result.data?.cancelAfter,
-      },
+      requestPayload: dryRun,
+      responsePayload: { message: "Preview gerado. Nenhuma solicitacao ou job foi criado ou executado." },
     });
 
     return NextResponse.json({
       success: true,
       generatedAt: new Date().toISOString(),
       runtime: runtimeConfig,
-      module: processMap.module,
-      outputPath: result.outputPath,
-      result: result.data,
-      persistence: requestPersistence ? mergePersistence(requestPersistence, operationPersistence) : operationPersistence,
+      dryRun,
+      persistence,
     });
   } catch (error) {
     await recordFluigOperationRun({

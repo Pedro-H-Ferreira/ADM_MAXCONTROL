@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildFluigLaunchTemplatesFromRequests,
   buildFluigHistoryRequestRow,
   buildFluigStatusRequestRow,
   buildSupplierCandidates,
@@ -31,6 +32,39 @@ function historyItem(
       ...overrides,
     },
   };
+}
+
+type TemplateRequestRow = Parameters<typeof buildFluigLaunchTemplatesFromRequests>[0][number];
+
+function templateRequest(
+  id: string,
+  openedAt: string,
+  overrides: Partial<TemplateRequestRow> & { fields?: Record<string, string> } = {}
+): TemplateRequestRow {
+  const { fields, ...rowOverrides } = overrides;
+  return {
+    id,
+    module_slug: "pagamentos",
+    fluig_request_id: id,
+    supplier_name: "FORNECEDOR MODELO",
+    supplier_cnpj: "00801587000138",
+    branch_code: "1016",
+    branch_label: "1016 - 1016-SAD",
+    opened_at: openedAt,
+    last_synced_at: openedAt,
+    raw_payload: {
+      formFields: {
+        fornecedorC: "2119453 - FORNECEDOR MODELO - 00801587000138",
+        codCNPJ: "00801587000138",
+        unidadeFilial: "1016 - 1016-SAD",
+        centroCusto: "3311003 - EXPANSAO MANUTENCAO",
+        codigonaturezaC: "5030101 - MANUTENCAO",
+        formaPagamento: "PIX",
+        ...fields,
+      },
+    },
+    ...rowOverrides,
+  } as TemplateRequestRow;
 }
 
 describe("buildSupplierCandidates", () => {
@@ -161,5 +195,90 @@ describe("buildSupplierCandidates", () => {
       closed_at: "2026-06-25T11:00:00.000Z",
       canceled_at: "2026-06-25T11:00:00.000Z",
     });
+  });
+});
+
+describe("buildFluigLaunchTemplatesFromRequests", () => {
+  it("reconhece recorrencia que ficaria fora das 50 solicitacoes mais recentes", () => {
+    const recentOneOffs = Array.from({ length: 50 }, (_, index) =>
+      templateRequest(`2000${index}`, `2026-07-${String((index % 28) + 1).padStart(2, "0")}T10:00:00.000Z`, {
+        supplier_name: `FORNECEDOR AVULSO ${index}`,
+        supplier_cnpj: String(10000000000000 + index),
+        fields: {
+          fornecedorC: `FORNECEDOR AVULSO ${index}`,
+          codCNPJ: String(10000000000000 + index),
+        },
+      })
+    );
+    const templates = buildFluigLaunchTemplatesFromRequests([
+      ...recentOneOffs,
+      templateRequest("1164200", "2026-04-01T10:00:00.000Z"),
+      templateRequest("1164201", "2026-05-01T10:00:00.000Z"),
+    ]);
+
+    expect(templates.find((template) => template.supplierCnpj === "00801587000138")).toMatchObject({
+      recurrence: "monthly",
+      monthCount: 2,
+    });
+  });
+
+  it("agrupa pagamentos por fornecedor, CNPJ e filial", () => {
+    const templates = buildFluigLaunchTemplatesFromRequests([
+      templateRequest("1164300", "2026-05-01T10:00:00.000Z"),
+      templateRequest("1164301", "2026-06-01T10:00:00.000Z"),
+      templateRequest("1164302", "2026-06-02T10:00:00.000Z", {
+        branch_code: "1022",
+        branch_label: "1022 - 1022-CA",
+        fields: { unidadeFilial: "1022 - 1022-CA" },
+      }),
+    ]);
+
+    expect(templates).toHaveLength(2);
+    expect(templates.find((template) => template.branchCode === "1016")).toMatchObject({
+      recurrence: "monthly",
+      occurrenceCount: 2,
+      monthCount: 2,
+    });
+  });
+
+  it("usa o registro completo mais recente e descarta campos da competencia", () => {
+    const templates = buildFluigLaunchTemplatesFromRequests([
+      templateRequest("1164400", "2026-05-01T10:00:00.000Z", {
+        fields: {
+          centroCusto: "ANTIGO",
+          codigonaturezaC: "NATUREZA ANTIGA",
+          formaPagamento: "BOLETO",
+        },
+      }),
+      templateRequest("1164401", "2026-06-01T10:00:00.000Z", {
+        fields: {
+          centroCusto: "NOVO",
+          codigonaturezaC: "NATUREZA NOVA",
+          formaPagamento: "PIX",
+          nNotaFiscal: "9988",
+          dataEmissaoNF: "01/06/2026",
+          vencPagNota: "10/06/2026",
+          valorNF: "1.234,56",
+          descricaoDemandaEnvio: "Competencia de junho",
+        },
+      }),
+      templateRequest("1164402", "2026-07-01T10:00:00.000Z", {
+        fields: { centroCusto: "INCOMPLETO", formaPagamento: "" },
+      }),
+    ]);
+
+    expect(templates[0]).toMatchObject({
+      sourceRequestId: "1164401",
+      defaultFields: {
+        centroCusto: "NOVO",
+        codigonaturezaC: "NATUREZA NOVA",
+        formaPagamento: "PIX",
+      },
+    });
+    expect(templates[0].defaultFields).not.toHaveProperty("nNotaFiscal");
+    expect(templates[0].defaultFields).not.toHaveProperty("dataEmissaoNF");
+    expect(templates[0].defaultFields).not.toHaveProperty("vencPagNota");
+    expect(templates[0].defaultFields).not.toHaveProperty("valorNF");
+    expect(templates[0].defaultFields).not.toHaveProperty("descricaoDemandaEnvio");
   });
 });

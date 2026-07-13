@@ -10,6 +10,7 @@ const historyChunkMaxBytes = positiveInt(process.env.ADM_FLUIG_HISTORY_CHUNK_BYT
 const historyFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_FIELD_MAX_CHARS, 6000);
 const historyAggressiveFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_AGGRESSIVE_FIELD_MAX_CHARS, 1000);
 const resultMaxBytes = positiveInt(process.env.ADM_FLUIG_RESULT_MAX_BYTES, 650000);
+const heartbeatIntervalMs = positiveInt(process.env.ADM_FLUIG_HEARTBEAT_INTERVAL_MS, 10000);
 const chunkableResultOperations = new Set([
   "sync_history",
   "sync_initial_history",
@@ -102,6 +103,28 @@ function heartbeatPayload() {
     machineName: config.machineName,
     agentVersion: config.agentVersion,
   };
+}
+
+function startJobHeartbeat() {
+  let requestInFlight = false;
+  const timer = setInterval(async () => {
+    if (requestInFlight || stopping) return;
+    requestInFlight = true;
+    try {
+      await apiFetch("/api/agent/heartbeat", {
+        ...heartbeatPayload(),
+        currentJobId: currentJob?.id || null,
+        currentJobStatus: currentJob?.status || null,
+      });
+      lastHeartbeatAt = new Date().toISOString();
+    } catch (error) {
+      lastError = error && error.message ? error.message : String(error);
+    } finally {
+      requestInFlight = false;
+    }
+  }, heartbeatIntervalMs);
+  timer.unref?.();
+  return () => clearInterval(timer);
 }
 
 async function sendEvent(jobId, input) {
@@ -444,6 +467,7 @@ async function processJob(job) {
     startedAt: new Date().toISOString(),
   };
   lastError = null;
+  const stopJobHeartbeat = startJobHeartbeat();
 
   try {
     await sendEvent(job.id, {
@@ -511,6 +535,7 @@ async function processJob(job) {
       },
     }).catch(() => {});
   } finally {
+    stopJobHeartbeat();
     setTimeout(() => {
       currentJob = null;
     }, 15000);

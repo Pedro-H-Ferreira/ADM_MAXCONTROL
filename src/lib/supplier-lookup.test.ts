@@ -58,6 +58,38 @@ describe("supplier lookup", () => {
     });
   });
 
+  it("remove campos da competencia dos defaults reutilizaveis", () => {
+    const defaults = normalizedLookupDefaults({
+      latestFields: {
+        unidadeFilial: "1022 - 1022-CA",
+        centroCusto: "4141001 - Fiscal Tributario",
+        codigonaturezaC: "5040108 - SERVICOS ADVOCATICIOS",
+        formaPagamento: "PIX",
+        nNotaFiscal: "9988",
+        dataEmissaoNF: "01/06/2026",
+        vencPagNota: "10/06/2026",
+        valorNF: "1.234,56",
+        descricaoDemandaEnvio: "Competencia de junho",
+      },
+      raw: {
+        formFields: [
+          { field: "nNotaFiscal", value: "9988" },
+          { field: "centroCusto", value: "4141001 - Fiscal Tributario" },
+        ],
+      },
+    });
+
+    expect(defaults.latestFields).toEqual({
+      unidadeFilial: "1022 - 1022-CA",
+      centroCusto: "4141001 - Fiscal Tributario",
+      codigonaturezaC: "5040108 - SERVICOS ADVOCATICIOS",
+      formaPagamento: "PIX",
+    });
+    expect((defaults as Record<string, unknown>).raw).toEqual({
+      formFields: [{ field: "centroCusto", value: "4141001 - Fiscal Tributario" }],
+    });
+  });
+
   it("mescla evidencia sem duplicar solicitacoes e sinaliza revisao manual", () => {
     const result = mergeSuggestionWithEvidence(
       {

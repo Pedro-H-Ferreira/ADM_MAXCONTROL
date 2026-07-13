@@ -31,6 +31,50 @@ function leadingCode(value: unknown) {
   return match?.[1]?.trim() || null;
 }
 
+const paymentCompetencyFields = new Set([
+  "nNotaFiscal",
+  "numeroNotaFiscal",
+  "numeroDocumento",
+  "dataEmissaoNF",
+  "dataPagamento",
+  "dataVencimento",
+  "vencPagNota",
+  "valorNF",
+  "valorNFT",
+  "valorTotalExibicao",
+  "descricaoDemandaEnvio",
+  "descricao",
+  "observacao",
+  "obsFiscal",
+]);
+
+function withoutPaymentCompetencyFields(record: JsonRecord): JsonRecord {
+  return Object.fromEntries(
+    Object.entries(record)
+      .filter(([key]) => !paymentCompetencyFields.has(key))
+      .map(([key, value]) => {
+        if (Array.isArray(value)) {
+          return [
+            key,
+            value
+              .filter((item) => {
+                if (!item || typeof item !== "object") return true;
+                const fieldName = cleanText((item as JsonRecord).field);
+                return !fieldName || !paymentCompetencyFields.has(fieldName);
+              })
+              .map((item) =>
+                item && typeof item === "object" ? withoutPaymentCompetencyFields(item as JsonRecord) : item
+              ),
+          ];
+        }
+        if (value && typeof value === "object") {
+          return [key, withoutPaymentCompetencyFields(value as JsonRecord)];
+        }
+        return [key, value];
+      })
+  );
+}
+
 export function historicalCnpjVariants(cnpj: string) {
   const variants = new Set([cnpj, formatCnpj(cnpj)]);
   const withoutLeadingZeros = cnpj.replace(/^0+/, "");
@@ -83,8 +127,9 @@ export function normalizedLookupDefaults(
   defaultPayload: JsonRecord,
   evidence?: SupplierRequestEvidence | null
 ) {
-  const fields = payloadFormFields(defaultPayload);
-  const merged = { ...fields, ...defaultPayload };
+  const fields = withoutPaymentCompetencyFields(payloadFormFields(defaultPayload));
+  const reusablePayload = withoutPaymentCompetencyFields(defaultPayload);
+  const merged = { ...fields, ...reusablePayload };
   const branchLabel =
     evidence?.branchLabel ||
     firstText(merged, ["branchLabel", "unidadeFilial", "filial", "filialOrigem"]) ||
@@ -95,7 +140,8 @@ export function normalizedLookupDefaults(
     leadingCode(branchLabel);
 
   return {
-    ...defaultPayload,
+    ...reusablePayload,
+    ...(reusablePayload.latestFields ? { latestFields: fields } : {}),
     branchCode,
     branchLabel,
     unidadeFilial: firstText(merged, ["unidadeFilial", "branchLabel", "filial"]) || branchLabel,

@@ -80,5 +80,11 @@ export default async function AdminCatchAllPage({ params }: PageProps) {
 
   const normalizedMode = mode === "novo" || mode === "nova" ? "new" : mode ? "detail" : "list";
 
-  return <ModulePage config={config!} mode={normalizedMode} />;
+  return (
+    <ModulePage
+      config={config!}
+      mode={normalizedMode}
+      recordId={normalizedMode === "detail" ? mode : null}
+    />
+  );
 }

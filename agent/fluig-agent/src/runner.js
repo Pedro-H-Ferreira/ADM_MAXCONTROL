@@ -60,6 +60,20 @@ async function runNodeScript(config, scriptPath, args, handlers = {}) {
     });
     let stdout = "";
     let stderr = "";
+    let settled = false;
+    let timedOut = false;
+    let forceKillTimer = null;
+    const timeoutMs = Number(handlers.timeoutMs);
+    const timeout = Number.isFinite(timeoutMs) && timeoutMs > 0
+      ? setTimeout(() => {
+          if (settled) return;
+          timedOut = true;
+          child.kill("SIGTERM");
+          forceKillTimer = setTimeout(() => child.kill("SIGKILL"), 5000);
+          forceKillTimer.unref?.();
+        }, timeoutMs)
+      : null;
+    timeout?.unref?.();
 
     child.stdout.on("data", (chunk) => {
       const text = chunk.toString();
@@ -77,8 +91,24 @@ async function runNodeScript(config, scriptPath, args, handlers = {}) {
       }
     });
 
-    child.on("error", reject);
+    child.on("error", (error) => {
+      if (settled) return;
+      settled = true;
+      if (timeout) clearTimeout(timeout);
+      if (forceKillTimer) clearTimeout(forceKillTimer);
+      reject(timedOut
+        ? new Error(`Script Fluig excedeu o timeout de ${Math.ceil(timeoutMs / 1000)} segundos.`)
+        : error);
+    });
     child.on("close", (code) => {
+      if (timeout) clearTimeout(timeout);
+      if (forceKillTimer) clearTimeout(forceKillTimer);
+      if (settled) return;
+      settled = true;
+      if (timedOut) {
+        reject(new Error(`Script Fluig excedeu o timeout de ${Math.ceil(timeoutMs / 1000)} segundos.`));
+        return;
+      }
       if (code === 0) {
         resolve({ stdout, stderr });
       } else {
@@ -242,36 +272,73 @@ function safeFileName(value) {
   return baseName || "anexo.pdf";
 }
 
+function positiveInt(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
+
+function decodeAttachmentBase64(value, maxBytes) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error("Anexo sem dataBase64 valido.");
+  }
+
+  const base64 = value.trim();
+  const maxBase64Chars = Math.ceil(maxBytes / 3) * 4;
+  if (value.length !== base64.length) {
+    throw new Error("Anexo contem dataBase64 invalido.");
+  }
+  if (base64.length > maxBase64Chars) {
+    throw new Error(`Anexo excede o limite de ${maxBytes} bytes.`);
+  }
+  if (base64.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(base64)) {
+    throw new Error("Anexo contem dataBase64 invalido.");
+  }
+
+  const buffer = Buffer.from(base64, "base64");
+  if (!buffer.length || buffer.length > maxBytes || buffer.toString("base64") !== base64) {
+    throw new Error(`Anexo dataBase64 invalido ou acima de ${maxBytes} bytes.`);
+  }
+  return buffer;
+}
+
 function writePayloadAttachments(config, job, attachments) {
-  if (!Array.isArray(attachments) || !attachments.length) return [];
+  if (!Array.isArray(attachments) || !attachments.length) return { items: [], root: null };
 
-  const attachmentRoot = path.join(config.projectRoot, ".adm-fluig-agent", "attachments", job.id);
-  fs.mkdirSync(attachmentRoot, { recursive: true });
+  const maxFileBytes = positiveInt(process.env.ADM_FLUIG_ATTACHMENT_MAX_BYTES, 15 * 1024 * 1024);
+  const maxTotalBytes = positiveInt(process.env.ADM_FLUIG_ATTACHMENTS_MAX_TOTAL_BYTES, 25 * 1024 * 1024);
+  const attachmentsRoot = path.join(config.projectRoot, ".adm-fluig-agent", "attachments");
+  fs.mkdirSync(attachmentsRoot, { recursive: true });
+  const jobPrefix = String(job.id || "job").replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 80) || "job";
+  const attachmentRoot = fs.mkdtempSync(path.join(attachmentsRoot, `${jobPrefix}-`));
+  let totalBytes = 0;
 
-  return attachments
-    .map((attachment, index) => {
+  try {
+    const items = attachments.map((attachment, index) => {
       const name = safeFileName(attachment?.name || `anexo-${index + 1}.pdf`);
 
-      if (attachment?.path) {
-        return {
-          path: String(attachment.path),
-          name,
-        };
+      if (attachment?.path != null) {
+        throw new Error(`Anexo ${index + 1}: attachments[].path nao e aceito pelo agente.`);
       }
 
-      if (!attachment?.dataBase64) {
-        return null;
+      const buffer = decodeAttachmentBase64(attachment?.dataBase64, maxFileBytes);
+      totalBytes += buffer.length;
+      if (totalBytes > maxTotalBytes) {
+        throw new Error(`Anexos excedem o limite total de ${maxTotalBytes} bytes.`);
       }
 
       const filePath = path.join(attachmentRoot, `${String(index + 1).padStart(2, "0")}-${name}`);
-      fs.writeFileSync(filePath, Buffer.from(String(attachment.dataBase64), "base64"));
+      fs.writeFileSync(filePath, buffer, { flag: "wx", mode: 0o600 });
 
       return {
         path: filePath,
         name,
       };
-    })
-    .filter(Boolean);
+    });
+    return { items, root: attachmentRoot };
+  } catch (error) {
+    fs.rmSync(attachmentRoot, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 async function executeJob(config, job, emitProgress) {
@@ -282,7 +349,8 @@ async function executeJob(config, job, emitProgress) {
   const onLine = (line) => {
     const historyProgress = parseTaggedJson(line, "ADM_FLUIG_HISTORY_PROGRESS");
     const statusProgress = parseTaggedJson(line, "SYNC_FLUIG_STATUS_PROGRESS");
-    const progress = historyProgress || statusProgress;
+    const openProgress = parseTaggedJson(line, "ADM_FLUIG_OPEN_PROGRESS");
+    const progress = historyProgress || statusProgress || openProgress;
     if (progress) {
       emitProgress({
         stage: progress.stage || "reading_page",
@@ -471,32 +539,42 @@ async function executeJob(config, job, emitProgress) {
     if (!sourceRequestId) {
       throw new Error("Modelo Fluig de origem nao informado.");
     }
-    const attachments = writePayloadAttachments(config, job, payload.attachments);
+    emitProgress({ stage: "opening_fluig", label: "Abrindo sessao segura no Fluig." });
+    const temporaryAttachments = writePayloadAttachments(config, job, payload.attachments);
     const fieldOverrides = Object.entries(payload.fieldOverrides || {}).flatMap(([field, value]) => [
       `--set=${field}=${value == null ? "" : String(value)}`,
     ]);
-    const attachmentArgs = attachments.flatMap((attachment) => [
+    const attachmentArgs = temporaryAttachments.items.flatMap((attachment) => [
       `--attachment-path=${attachment.path}`,
       `--attachment-name=${attachment.name}`,
     ]);
     const scriptPath = path.join(root, "scripts", "fluig-adm-open-from-source.cjs");
-    const { stdout } = await runNodeScript(
-      config,
-      scriptPath,
-      [
-        `--runner-root=${root}`,
-        `--source-request-id=${sourceRequestId}`,
-        `--task-user-id=${payload.taskUserId || processMap.defaultTaskUserId || config.fluig.taskUserId}`,
-        ...fieldOverrides,
-        ...attachmentArgs,
-      ],
-      { onLine }
-    );
-    const outputPath = parseTaggedPath(stdout, "ADM_FLUIG_OPEN_RESULT");
-    return {
-      outputPath,
-      data: readOutputJson(outputPath),
-    };
+    try {
+      const { stdout } = await runNodeScript(
+        config,
+        scriptPath,
+        [
+          `--runner-root=${root}`,
+          `--source-request-id=${sourceRequestId}`,
+          `--task-user-id=${payload.taskUserId || processMap.defaultTaskUserId || config.fluig.taskUserId}`,
+          ...fieldOverrides,
+          ...attachmentArgs,
+        ],
+        {
+          onLine,
+          timeoutMs: positiveInt(process.env.ADM_FLUIG_OPEN_TIMEOUT_MS, 15 * 60 * 1000),
+        }
+      );
+      const outputPath = parseTaggedPath(stdout, "ADM_FLUIG_OPEN_RESULT");
+      return {
+        outputPath,
+        data: readOutputJson(outputPath),
+      };
+    } finally {
+      if (temporaryAttachments.root) {
+        fs.rmSync(temporaryAttachments.root, { recursive: true, force: true });
+      }
+    }
   }
 
   if (job.operation === "health_check") {
@@ -533,4 +611,9 @@ async function executeJob(config, job, emitProgress) {
 
 module.exports = {
   executeJob,
+  __test: {
+    decodeAttachmentBase64,
+    runNodeScript,
+    writePayloadAttachments,
+  },
 };

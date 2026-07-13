@@ -19,6 +19,7 @@ import { BranchesPage } from "@/components/pages/branches-page";
 import { FluigModuleOperationsPage } from "@/components/pages/fluig-module-operations-page";
 import { FluigTasksPage } from "@/components/pages/fluig-tasks-page";
 import { MaintenancePage } from "@/components/pages/maintenance-page";
+import { ProductsPage } from "@/components/pages/products-page";
 import { SuppliersPage } from "@/components/pages/suppliers-page";
 import type { ModuleConfig } from "@/lib/admin-data";
 
@@ -54,9 +55,11 @@ function toClientModuleConfig(config: ModuleConfig): ModuleConfig {
 export function ModulePage({
   config,
   mode,
+  recordId = null,
 }: {
   config: ModuleConfig;
   mode: "list" | "new" | "detail";
+  recordId?: string | null;
 }) {
   const clientConfig = toClientModuleConfig(config);
 
@@ -78,6 +81,16 @@ export function ModulePage({
 
   if (config.slug === "manutencao") {
     return <MaintenancePage config={clientConfig} initialOpenForm={mode === "new"} />;
+  }
+
+  if (config.slug === "produtos") {
+    return (
+      <ProductsPage
+        config={clientConfig}
+        initialOpenForm={mode === "new"}
+        initialProductId={mode === "detail" ? recordId : null}
+      />
+    );
   }
 
   if ((config.slug === "pagamentos" || config.slug === "compras") && mode === "list") {
