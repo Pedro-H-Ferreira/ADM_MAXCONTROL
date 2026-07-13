@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Clock3, Save, ShieldCheck, UserCheck, UserRound, UserX } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -94,6 +95,13 @@ function normalizeDraftPageAccess(rows: UserPageAccess[]) {
   return Array.from(bySlug.values());
 }
 
+function pageAccessForRole(rows: UserPageAccess[], role: string | undefined) {
+  const normalized = normalizeDraftPageAccess(rows);
+  return role === "ADMIN_MASTER" || role === "ADMIN"
+    ? normalized
+    : normalized.filter((page) => page.pageSlug !== "usuarios");
+}
+
 export function UserBranchAccessPanel() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [pages, setPages] = useState<PageOption[]>([]);
@@ -141,10 +149,12 @@ export function UserBranchAccessPanel() {
   }
 
   function selectUser(user: UserProfile) {
+    const branchIds = user.branches.filter((branch) => branch.canView).map((branch) => branch.branchId);
     setSelectedUserId(user.id);
     setDraft({
       ...user,
-      branchIds: user.branches.filter((branch) => branch.canView).map((branch) => branch.branchId),
+      branchIds,
+      homeBranchId: user.homeBranchId && branchIds.includes(user.homeBranchId) ? user.homeBranchId : null,
       pageAccess: normalizeDraftPageAccess(user.pageAccess || []),
     });
   }
@@ -217,7 +227,7 @@ export function UserBranchAccessPanel() {
           fluigUserId: draft.fluigUserId,
           homeBranchId: draft.homeBranchId,
           branchIds: draft.branchIds,
-          pageAccess: normalizeDraftPageAccess(draft.pageAccess || []),
+          pageAccess: pageAccessForRole(draft.pageAccess || [], draft.role),
           active: draft.active,
           approvalStatus: draft.approvalStatus,
         }),
@@ -227,8 +237,11 @@ export function UserBranchAccessPanel() {
         throw new Error(data.error || "Falha ao salvar usuario");
       }
       await loadUsers();
+      toast.success("Acessos do usuario atualizados.");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Falha ao salvar usuario");
+      const message = saveError instanceof Error ? saveError.message : "Falha ao salvar usuario";
+      setError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -239,6 +252,10 @@ export function UserBranchAccessPanel() {
     void loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const roleHasGlobalBranchAccess = draft.role === "ADMIN_MASTER" || draft.role === "ADMIN";
+  const selectedBranches = branches.filter((branch) => draft.branchIds?.includes(branch.id));
+  const validBranchMatrix = roleHasGlobalBranchAccess || Boolean(draft.branchIds?.length && draft.homeBranchId);
 
   return (
     <Card className="stitch-animate-in stitch-hover-lift rounded-lg shadow-none">
@@ -407,6 +424,30 @@ export function UserBranchAccessPanel() {
                     );
                   })}
                 </div>
+                <div className="grid gap-2 border-t p-3 md:max-w-md">
+                  <Label>Filial principal</Label>
+                  <Select
+                    value={draft.homeBranchId || undefined}
+                    disabled={!selectedBranches.length}
+                    onValueChange={(value) => setDraft((current) => ({ ...current, homeBranchId: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={roleHasGlobalBranchAccess ? "Acesso global" : "Selecione a filial principal"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedBranches.map((branch) => (
+                        <SelectItem key={branch.id} value={branch.id}>
+                          {branch.code} - {branch.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {roleHasGlobalBranchAccess && !selectedBranches.length
+                      ? "Administradores sem filial marcada possuem acesso global."
+                      : "Usada como origem padrao nos lancamentos e consultas."}
+                  </p>
+                </div>
               </div>
 
               <div className="rounded-md border bg-background">
@@ -417,14 +458,15 @@ export function UserBranchAccessPanel() {
                 <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-3">
                   {pages.map((page) => {
                     const pageRow = draft.pageAccess?.find((access) => access.pageSlug === page.slug);
-                    const checked = Boolean(pageRow?.canView);
+                    const adminOnly = page.slug === "usuarios" && !roleHasGlobalBranchAccess;
+                    const checked = !adminOnly && Boolean(pageRow?.canView);
                     const required = page.required || page.slug === "dashboard";
                     return (
                       <div key={page.slug} className="space-y-3 rounded-md border bg-muted/20 p-3 text-sm">
                         <label className="flex items-start gap-3">
                           <Checkbox
                             checked={checked}
-                            disabled={required}
+                            disabled={required || adminOnly}
                             onCheckedChange={(value) => togglePage(page.slug, Boolean(value))}
                           />
                           <span className="min-w-0">
@@ -443,7 +485,7 @@ export function UserBranchAccessPanel() {
                             <label key={action} className="flex items-center gap-1.5 text-muted-foreground">
                               <Checkbox
                                 checked={Boolean(pageRow?.[action as "canCreate" | "canUpdate" | "canApprove"])}
-                                disabled={!checked}
+                                disabled={!checked || adminOnly}
                                 onCheckedChange={(value) =>
                                   togglePageAction(page.slug, action as "canCreate" | "canUpdate" | "canApprove", Boolean(value))
                                 }
@@ -459,7 +501,12 @@ export function UserBranchAccessPanel() {
               </div>
 
               <div className="flex justify-end">
-                <Button type="button" className="stitch-soft-button" onClick={saveUser} disabled={saving || !draft.displayName}>
+                <Button
+                  type="button"
+                  className="stitch-soft-button"
+                  onClick={saveUser}
+                  disabled={saving || !draft.displayName || !validBranchMatrix}
+                >
                   <Save className="size-4" />
                   {saving ? "Salvando..." : "Salvar acesso"}
                 </Button>

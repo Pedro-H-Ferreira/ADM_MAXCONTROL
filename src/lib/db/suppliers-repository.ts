@@ -407,17 +407,23 @@ async function fetchLinks(client: SupabaseClient, supplierIds: string[]) {
   return linksBySupplier;
 }
 
-async function fetchRequestCounts(client: SupabaseClient, supplierIds: string[]) {
+async function fetchRequestCounts(client: SupabaseClient, actor: AppActor, supplierIds: string[]) {
   const counts = new Map<string, number>();
   if (!supplierIds.length) return counts;
 
-  const { data, error } = await client
+  let query = client
     .from("fluig_requests")
-    .select("app_supplier_id")
+    .select(
+      "app_supplier_id,branch_code,created_by_user_id,sync_owner_user_id,fluig_requester_login,fluig_requester_code,requester"
+    )
     .in("app_supplier_id", supplierIds);
+  const actorFilter = buildFluigActorPostgrestFilter(actor);
+  if (actorFilter) query = query.or(actorFilter);
+  const { data, error } = await query;
   if (error) throw error;
 
-  for (const row of data || []) {
+  const visibleRows = filterRowsForActor(actor, (data || []) as unknown as SupplierLinkedRequestDbRow[]);
+  for (const row of visibleRows) {
     const supplierId = String((row as { app_supplier_id?: string }).app_supplier_id || "");
     if (supplierId) counts.set(supplierId, (counts.get(supplierId) || 0) + 1);
   }
@@ -435,7 +441,7 @@ async function fetchSupplierRequestSummaries(
   if (!supplierIds.length || perSupplier <= 0) return requestsBySupplier;
 
   for (const supplierIdBatch of chunksOf(supplierIds, 50)) {
-    const { data, error } = await client
+    let query = client
       .from("fluig_requests")
       .select(
         [
@@ -463,7 +469,10 @@ async function fetchSupplierRequestSummaries(
           "fluig_requester_code",
         ].join(",")
       )
-      .in("app_supplier_id", supplierIdBatch)
+      .in("app_supplier_id", supplierIdBatch);
+    const actorFilter = buildFluigActorPostgrestFilter(actor);
+    if (actorFilter) query = query.or(actorFilter);
+    const { data, error } = await query
       .order("last_status_check_at", { ascending: false, nullsFirst: false })
       .order("last_synced_at", { ascending: false, nullsFirst: false })
       .limit(Math.min(Math.max(supplierIdBatch.length * perSupplier * 3, perSupplier), 300));
@@ -538,7 +547,7 @@ export async function listSuppliers(
   const supplierIds = rows.map((row) => row.id);
   const [linksBySupplier, requestCounts] = await Promise.all([
     fetchLinks(client, supplierIds),
-    fetchRequestCounts(client, supplierIds),
+    fetchRequestCounts(client, actor, supplierIds),
   ]);
   const visibleRows = rows.filter((row) => supplierCanBeSeenByActor(actor, row.id, linksBySupplier)).slice(0, pageSize);
   const requestsBySupplier = await fetchSupplierRequestSummaries(client, actor, visibleRows.map((row) => row.id), 2);
@@ -969,7 +978,7 @@ export async function readSupplier(actor: AppActor, id: string) {
   const row = data as SupplierDbRow;
   const [linksBySupplier, requestCounts, requestsBySupplier] = await Promise.all([
     fetchLinks(client, [row.id]),
-    fetchRequestCounts(client, [row.id]),
+    fetchRequestCounts(client, actor, [row.id]),
     fetchSupplierRequestSummaries(client, actor, [row.id], 8),
   ]);
 

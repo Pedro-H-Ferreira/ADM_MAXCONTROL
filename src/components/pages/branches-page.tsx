@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
+  ChevronLeft,
+  ChevronRight,
   Edit3,
   Eye,
   Loader2,
   MapPin,
   Plus,
   RefreshCcw,
+  RotateCcw,
   Search,
   Trash2,
   X,
@@ -46,7 +49,6 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import type { ModuleConfig } from "@/lib/admin-data";
@@ -100,6 +102,12 @@ type PagePermissions = {
   canUpdate: boolean;
   canApprove: boolean;
 };
+
+type PendingAction =
+  | { type: "form" }
+  | { type: "toggle"; branchId: string }
+  | { type: "delete"; branchId: string }
+  | null;
 
 const initialForm: BranchFormState = {
   code: "",
@@ -160,7 +168,7 @@ function formFromBranch(branch: BranchRecord): BranchFormState {
   };
 }
 
-function buildBranchPayload(form: BranchFormState) {
+function buildBranchPayload(form: BranchFormState, currentMetadata?: Record<string, unknown>) {
   return {
     code: form.code.trim().toUpperCase(),
     name: form.name.trim(),
@@ -170,6 +178,7 @@ function buildBranchPayload(form: BranchFormState) {
     uf: nullable(form.uf)?.toUpperCase() || null,
     active: form.active,
     metadata: {
+      ...(currentMetadata || {}),
       fluigZoom: nullable(form.fluigZoom),
       fluigDataset: nullable(form.fluigDataset),
       externalCode: nullable(form.externalCode),
@@ -193,18 +202,19 @@ export function BranchesPage({
   const [permissions, setPermissions] = useState<PagePermissions>({ canView: true, canCreate: false, canUpdate: false, canApprove: false });
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(30);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<"ALL" | "true" | "false">("ALL");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(initialOpenForm);
   const [editing, setEditing] = useState<BranchRecord | null>(null);
   const [viewing, setViewing] = useState<BranchRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BranchRecord | null>(null);
   const [form, setForm] = useState<BranchFormState>(initialForm);
-  const pageSize = 30;
+  const requestSequence = useRef(0);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -215,6 +225,7 @@ export function BranchesPage({
   }, [search]);
 
   const loadBranches = useCallback(async () => {
+    const requestId = ++requestSequence.current;
     setLoading(true);
     setError(null);
     try {
@@ -229,18 +240,29 @@ export function BranchesPage({
         await fetch(`/api/admin/branches?${params.toString()}`, { cache: "no-store" }),
         "Falha ao listar filiais."
       );
+      if (requestId !== requestSequence.current) return;
+
+      const nextTotal = data.total || 0;
+      const nextTotalPages = Math.max(Math.ceil(nextTotal / pageSize), 1);
+      if (page > nextTotalPages) {
+        setItems([]);
+        setTotal(nextTotal);
+        setPage(nextTotalPages);
+        return;
+      }
       setItems(data.items || []);
       setPermissions(data.permissions || { canView: true, canCreate: false, canUpdate: false, canApprove: false });
-      setTotal(data.total || 0);
+      setTotal(nextTotal);
     } catch (loadError) {
+      if (requestId !== requestSequence.current) return;
       const message = loadError instanceof Error ? loadError.message : "Falha ao listar filiais.";
       setError(message);
       setItems([]);
       setTotal(0);
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) setLoading(false);
     }
-  }, [activeFilter, debouncedSearch, page]);
+  }, [activeFilter, debouncedSearch, page, pageSize]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -287,12 +309,12 @@ export function BranchesPage({
       return;
     }
 
-    setSaving(true);
+    setPendingAction({ type: "form" });
     try {
       const response = await fetch(editing ? `/api/admin/branches/${editing.id}` : "/api/admin/branches", {
         method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildBranchPayload(form)),
+        body: JSON.stringify(buildBranchPayload(form, editing?.metadata)),
       });
       await parseResponse(response, editing ? "Falha ao editar filial." : "Falha ao criar filial.");
       toast.success(editing ? "Filial atualizada." : "Filial criada.");
@@ -302,12 +324,12 @@ export function BranchesPage({
     } catch (saveError) {
       toast.error(saveError instanceof Error ? saveError.message : "Falha ao salvar filial.");
     } finally {
-      setSaving(false);
+      setPendingAction(null);
     }
   }
 
   async function toggleActive(branch: BranchRecord) {
-    setSaving(true);
+    setPendingAction({ type: "toggle", branchId: branch.id });
     try {
       await parseResponse(
         await fetch(`/api/admin/branches/${branch.id}`, {
@@ -322,13 +344,13 @@ export function BranchesPage({
     } catch (toggleError) {
       toast.error(toggleError instanceof Error ? toggleError.message : "Falha ao alterar status da filial.");
     } finally {
-      setSaving(false);
+      setPendingAction(null);
     }
   }
 
   async function deleteBranch() {
     if (!deleteTarget) return;
-    setSaving(true);
+    setPendingAction({ type: "delete", branchId: deleteTarget.id });
     try {
       const data = await parseResponse<{ success: true; deleted?: boolean; softDeleted?: boolean }>(
         await fetch(`/api/admin/branches/${deleteTarget.id}`, { method: "DELETE" }),
@@ -340,11 +362,18 @@ export function BranchesPage({
     } catch (deleteError) {
       toast.error(deleteError instanceof Error ? deleteError.message : "Falha ao excluir filial.");
     } finally {
-      setSaving(false);
+      setPendingAction(null);
     }
   }
 
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
+  const firstVisible = total ? (page - 1) * pageSize + 1 : 0;
+  const lastVisible = total ? Math.min(page * pageSize, total) : 0;
+  const searchPending = search !== debouncedSearch;
+  const formSaving = pendingAction?.type === "form";
+  const deleting = pendingAction?.type === "delete";
+  const isMutating = pendingAction !== null;
+  const hasFilters = Boolean(search.trim()) || activeFilter !== "ALL";
   const metrics = useMemo(
     () => [
       {
@@ -410,9 +439,23 @@ export function BranchesPage({
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                className="pl-8"
+                className="px-8"
                 placeholder="Buscar por codigo, nome ou label Fluig"
+                aria-label="Buscar filiais"
               />
+              {searchPending ? (
+                <Loader2 className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              ) : search ? (
+                <button
+                  type="button"
+                  className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  onClick={() => setSearch("")}
+                  title="Limpar busca"
+                  aria-label="Limpar busca"
+                >
+                  <X className="size-4" />
+                </button>
+              ) : null}
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Select
@@ -431,12 +474,12 @@ export function BranchesPage({
                   <SelectItem value="false">Somente inativas</SelectItem>
                 </SelectContent>
               </Select>
-              <Button type="button" variant="outline" className="stitch-soft-button" onClick={loadBranches} disabled={loading}>
+              <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => void loadBranches()} disabled={loading}>
                 <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
                 Atualizar
               </Button>
               {permissions.canCreate ? (
-                <Button type="button" className="stitch-soft-button" onClick={openCreateDialog}>
+                <Button type="button" className="stitch-soft-button" onClick={openCreateDialog} disabled={isMutating}>
                   <Plus className="size-4" />
                   Nova filial
                 </Button>
@@ -455,28 +498,40 @@ export function BranchesPage({
         </CardHeader>
         <CardContent className="p-0">
           {error ? (
-            <div className="p-4 text-sm font-medium text-destructive">{error}</div>
-          ) : loading ? (
-            <div className="flex min-h-56 items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              Carregando filiais reais...
+            <div className="flex min-h-56 flex-col items-center justify-center gap-3 p-6 text-center">
+              <div className="rounded-md bg-destructive/10 p-2 text-destructive">
+                <RotateCcw className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Nao foi possivel carregar as filiais</p>
+                <p className="mt-1 max-w-lg text-xs text-muted-foreground">{error}</p>
+              </div>
+              <Button type="button" variant="outline" onClick={() => void loadBranches()} disabled={loading}>
+                <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
+                Tentar novamente
+              </Button>
             </div>
+          ) : loading ? (
+            <BranchListSkeleton />
           ) : items.length ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Codigo</TableHead>
-                  <TableHead className="min-w-[260px]">Filial</TableHead>
-                  <TableHead>Label Fluig</TableHead>
-                  <TableHead>Usuarios</TableHead>
-                  <TableHead>Fornecedores</TableHead>
-                  <TableHead>Solicitacoes abertas</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Acoes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((branch) => (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Codigo</TableHead>
+                    <TableHead className="min-w-[260px]">Filial</TableHead>
+                    <TableHead>Label Fluig</TableHead>
+                    <TableHead>Usuarios</TableHead>
+                    <TableHead>Fornecedores</TableHead>
+                    <TableHead>Solicitacoes abertas</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Acoes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((branch) => {
+                    const toggling = pendingAction?.type === "toggle" && pendingAction.branchId === branch.id;
+                    return (
                   <TableRow key={branch.id}>
                     <TableCell className="font-mono text-xs">{branch.code}</TableCell>
                     <TableCell className="max-w-[320px] whitespace-normal">
@@ -504,7 +559,7 @@ export function BranchesPage({
                         </Button>
                         {permissions.canUpdate ? (
                           <>
-                            <Button type="button" variant="ghost" size="icon-sm" title="Editar" onClick={() => openEditDialog(branch)}>
+                            <Button type="button" variant="ghost" size="icon-sm" title="Editar" disabled={isMutating} onClick={() => openEditDialog(branch)}>
                               <Edit3 className="size-4" />
                             </Button>
                             <Button
@@ -512,12 +567,13 @@ export function BranchesPage({
                               variant="ghost"
                               size="sm"
                               title={branch.active ? "Inativar" : "Reativar"}
-                              disabled={saving}
+                              disabled={isMutating}
                               onClick={() => void toggleActive(branch)}
                             >
-                              {branch.active ? "Inativar" : "Reativar"}
+                              {toggling ? <Loader2 className="size-4 animate-spin" /> : null}
+                              {toggling ? (branch.active ? "Inativando" : "Reativando") : branch.active ? "Inativar" : "Reativar"}
                             </Button>
-                            <Button type="button" variant="ghost" size="icon-sm" title="Excluir" onClick={() => setDeleteTarget(branch)}>
+                            <Button type="button" variant="ghost" size="icon-sm" title="Excluir" disabled={isMutating} onClick={() => setDeleteTarget(branch)}>
                               <Trash2 className="size-4" />
                             </Button>
                           </>
@@ -525,27 +581,79 @@ export function BranchesPage({
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
-            <div className="p-4">
-              <EmptyState title="Nenhuma filial real encontrada para os filtros atuais" />
+            <div className="flex min-h-56 flex-col items-center justify-center gap-3 p-6 text-center">
+              <div className="rounded-md bg-muted p-2 text-muted-foreground">
+                <Building2 className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">{hasFilters ? "Nenhuma filial encontrada" : "Nenhuma filial cadastrada"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {hasFilters ? "Ajuste a busca ou os filtros para ver outros resultados." : "Crie a primeira filial para iniciar o cadastro."}
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                {hasFilters ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setSearch("");
+                      setActiveFilter("ALL");
+                      setPage(1);
+                    }}
+                  >
+                    <X className="size-4" />
+                    Limpar filtros
+                  </Button>
+                ) : null}
+                {!hasFilters && permissions.canCreate ? (
+                  <Button type="button" onClick={openCreateDialog} disabled={isMutating}>
+                    <Plus className="size-4" />
+                    Nova filial
+                  </Button>
+                ) : null}
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted-foreground">
-          Pagina {page} de {totalPages}
-        </p>
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" disabled={page <= 1 || loading} onClick={() => setPage((current) => Math.max(current - 1, 1))}>
-            Anterior
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <span>{firstVisible}-{lastVisible} de {total}</span>
+          <div className="flex items-center gap-2">
+            <span>Itens por pagina</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-7 w-20" aria-label="Itens por pagina">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="15">15</SelectItem>
+                <SelectItem value="30">30</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="mr-1 text-xs text-muted-foreground">Pagina {page} de {totalPages}</span>
+          <Button type="button" variant="outline" size="icon-sm" title="Pagina anterior" disabled={page <= 1 || loading} onClick={() => setPage((current) => Math.max(current - 1, 1))}>
+            <ChevronLeft className="size-4" />
           </Button>
-          <Button type="button" variant="outline" disabled={page >= totalPages || loading} onClick={() => setPage((current) => Math.min(current + 1, totalPages))}>
-            Proxima
+          <Button type="button" variant="outline" size="icon-sm" title="Proxima pagina" disabled={page >= totalPages || loading} onClick={() => setPage((current) => Math.min(current + 1, totalPages))}>
+            <ChevronRight className="size-4" />
           </Button>
         </div>
       </div>
@@ -553,32 +661,40 @@ export function BranchesPage({
       <BranchFormDialog
         open={dialogOpen}
         onOpenChange={(open) => {
+          if (formSaving) return;
           setDialogOpen(open);
           if (!open) resetForm();
         }}
         editing={editing}
         form={form}
-        saving={saving}
+        saving={formSaving}
         updateForm={updateForm}
         submitBranch={submitBranch}
       />
 
       <BranchViewDialog branch={viewing} onOpenChange={(open) => !open && setViewing(null)} />
 
-      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && !deleting && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir filial?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir {deleteTarget?.code} - {deleteTarget?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se houver usuarios, fornecedores ou solicitacoes vinculadas, o sistema remove a filial da operacao por soft delete.
-              Para apenas pausar uso, prefira inativar.
+              Esta acao e destrutiva. Se houver usuarios, fornecedores ou solicitacoes vinculadas, a filial sera removida da
+              operacao por soft delete. Para apenas pausar o uso, cancele e escolha inativar.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" disabled={saving} onClick={() => void deleteBranch()}>
-              {saving ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-              Confirmar
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleting}
+              onClick={(event) => {
+                event.preventDefault();
+                void deleteBranch();
+              }}
+            >
+              {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+              {deleting ? "Excluindo" : "Excluir filial"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -620,10 +736,12 @@ function BranchFormDialog({
               value={form.code}
               onChange={(event) => updateForm("code", event.target.value.toUpperCase())}
               placeholder="Ex.: 1060"
+              required
+              autoFocus={!editing}
             />
           </Field>
           <Field label="Nome">
-            <Input value={form.name} onChange={(event) => updateForm("name", event.target.value)} />
+            <Input value={form.name} onChange={(event) => updateForm("name", event.target.value)} required />
           </Field>
           <Field label="Label Fluig" className="md:col-span-2">
             <Input
@@ -639,7 +757,12 @@ function BranchFormDialog({
             <Input value={form.city} onChange={(event) => updateForm("city", event.target.value)} />
           </Field>
           <Field label="UF">
-            <Input value={form.uf} onChange={(event) => updateForm("uf", event.target.value.toUpperCase().slice(0, 2))} />
+            <Input
+              value={form.uf}
+              onChange={(event) => updateForm("uf", event.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2))}
+              maxLength={2}
+              placeholder="Ex.: SP"
+            />
           </Field>
           <label className="flex items-center gap-2 rounded-md border bg-muted/20 p-3 text-sm">
             <Checkbox checked={form.active} onCheckedChange={(checked) => updateForm("active", checked === true)} />
@@ -676,9 +799,9 @@ function BranchFormDialog({
             <X className="size-4" />
             Cancelar
           </Button>
-          <Button type="button" onClick={() => void submitBranch()} disabled={saving}>
+          <Button type="button" onClick={() => void submitBranch()} disabled={saving || !form.code.trim() || !form.name.trim()}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-            {editing ? "Salvar alteracoes" : "Criar filial"}
+            {saving ? "Salvando" : editing ? "Salvar alteracoes" : "Criar filial"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -708,8 +831,16 @@ function BranchViewDialog({ branch, onOpenChange }: { branch: BranchRecord | nul
             <Info label="Dataset Fluig" value={metadataText(branch.metadata, "fluigDataset") || "-"} />
             <Info label="Codigo externo" value={metadataText(branch.metadata, "externalCode") || "-"} />
             <Info label="Observacoes" value={metadataText(branch.metadata, "notes") || "-"} className="md:col-span-2" />
+            <Info label="Criada em" value={formatDateTime(branch.createdAt)} />
+            <Info label="Atualizada em" value={formatDateTime(branch.updatedAt)} />
           </div>
         ) : null}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <X className="size-4" />
+            Fechar
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -737,6 +868,35 @@ function Info({ label, value, className }: { label: string; value: string; class
     <div className={cn("rounded-md border bg-muted/20 p-3", className)}>
       <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
       <p className="mt-1 whitespace-normal text-sm font-medium">{value}</p>
+    </div>
+  );
+}
+
+function BranchListSkeleton() {
+  return (
+    <div className="overflow-hidden" aria-label="Carregando filiais" aria-busy="true">
+      <div className="grid grid-cols-[0.7fr_2fr_1.5fr_0.7fr_0.8fr_1fr_0.8fr] gap-4 border-b p-4">
+        {Array.from({ length: 7 }, (_, index) => (
+          <div key={index} className="h-3 animate-pulse rounded bg-muted" />
+        ))}
+      </div>
+      {Array.from({ length: 6 }, (_, index) => (
+        <div key={index} className="grid grid-cols-[0.7fr_2fr_1.5fr_0.7fr_0.8fr_1fr_0.8fr] gap-4 border-b p-4 last:border-b-0">
+          <div className="h-4 animate-pulse rounded bg-muted" />
+          <div className="space-y-2">
+            <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+          </div>
+          <div className="h-4 animate-pulse rounded bg-muted" />
+          <div className="h-4 animate-pulse rounded bg-muted" />
+          <div className="h-4 animate-pulse rounded bg-muted" />
+          <div className="h-6 w-16 animate-pulse rounded bg-muted" />
+        </div>
+      ))}
     </div>
   );
 }

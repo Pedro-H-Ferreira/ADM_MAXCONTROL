@@ -610,21 +610,25 @@ export async function listBranches(client = assertServiceClient()) {
   const { data, error } = await client
     .from("app_branches")
     .select("id,code,name,fluig_label,active")
+    .eq("active", true)
+    .is("deleted_at", null)
     .order("code", { ascending: true });
   if (error) throw error;
   return ((data || []) as DbBranchRow[]).map(mapBranch);
 }
 
-async function listActorBranches(client: SupabaseClient, profile: AppUserProfile) {
+export async function listActorBranches(client: SupabaseClient, profile: AppUserProfile) {
   if (isAdminRole(profile.role)) {
     return listBranches(client);
   }
 
   const { data, error } = await client
     .from("app_user_branch_access")
-    .select("branch:app_branches(id,code,name,fluig_label,active)")
+    .select("branch:app_branches!inner(id,code,name,fluig_label,active)")
     .eq("user_id", profile.id)
-    .eq("can_view", true);
+    .eq("can_view", true)
+    .eq("branch.active", true)
+    .is("branch.deleted_at", null);
   if (error) throw error;
 
   return (data || [])
@@ -722,6 +726,8 @@ export async function listUsersWithBranches() {
   if (accessResult.error) throw accessResult.error;
   if (pageAccessResult.error) throw pageAccessResult.error;
 
+  const activeBranchIds = new Set(branches.map((branch) => branch.id));
+
   const accessByUser = new Map<string, Array<Record<string, unknown>>>();
   for (const row of accessResult.data || []) {
     const userId = String(row.user_id);
@@ -739,12 +745,14 @@ export async function listUsersWithBranches() {
     pages: navigationPageOptionsForAdmin(),
     users: ((profilesResult.data || []) as DbProfileRow[]).map((row) => ({
       ...mapProfile(row),
-      branches: (accessByUser.get(row.id) || []).map((access) => ({
-        branchId: String(access.branch_id),
-        canView: Boolean(access.can_view),
-        canCreate: Boolean(access.can_create),
-        isHome: Boolean(access.is_home),
-      })),
+      branches: (accessByUser.get(row.id) || [])
+        .filter((access) => activeBranchIds.has(String(access.branch_id)))
+        .map((access) => ({
+          branchId: String(access.branch_id),
+          canView: Boolean(access.can_view),
+          canCreate: Boolean(access.can_create),
+          isHome: Boolean(access.is_home),
+        })),
       pageAccess: pageAccessRowsOrDefaults(pageAccessByUser.get(row.id), row.role),
     })),
   };
@@ -772,11 +780,12 @@ function pageAccessRowsOrDefaults(rows: DbPageAccessRow[] | undefined, role: App
   });
 }
 
-export async function upsertAppUser(input: {
+export type UpsertAppUserInput = {
+  actor: Pick<AppActor, "id" | "role">;
   id?: string;
   email?: string | null;
-  displayName: string;
-  role: AppRole;
+  displayName?: string;
+  role?: AppRole;
   fluigUsername?: string | null;
   fluigUserId?: string | null;
   homeBranchId?: string | null;
@@ -785,82 +794,168 @@ export async function upsertAppUser(input: {
   pageAccess?: AppUserPageAccess[];
   active?: boolean;
   approvalStatus?: ApprovalStatus;
-  approvedByUserId?: string | null;
   rejectionReason?: string | null;
-}) {
-  const client = assertServiceClient();
-  const active = input.active ?? (input.approvalStatus ? input.approvalStatus === "APPROVED" : true);
-  const approvalStatus = input.approvalStatus || (active ? "APPROVED" : "PENDING");
-  const now = new Date().toISOString();
-  const payload = {
-    email: normalizeEmail(input.email),
-    display_name: input.displayName.trim() || "Usuario ADM",
-    role: input.role,
-    fluig_username: input.fluigUsername?.trim() || null,
-    fluig_user_id: input.fluigUserId?.trim() || null,
-    home_branch_id: input.homeBranchId || input.branchIds?.[0] || null,
-    active,
-    approval_status: approvalStatus,
-    approved_at: approvalStatus === "APPROVED" ? now : null,
-    approved_by_user_id: approvalStatus === "APPROVED" ? input.approvedByUserId || null : null,
-    rejected_at: approvalStatus === "REJECTED" ? now : null,
-    rejection_reason: approvalStatus === "REJECTED" ? input.rejectionReason || "Acesso bloqueado pelo administrador." : null,
-    updated_at: now,
-  };
+};
 
-  const query = input.id
-    ? client.from("app_user_profiles").update(payload).eq("id", input.id)
-    : client.from("app_user_profiles").insert(payload);
-  const { data, error } = await query.select("*").single();
+function assignDefined(target: JsonRecord, key: string, value: unknown) {
+  if (value !== undefined) target[key] = value;
+}
+
+function normalizeNullableText(value: string | null | undefined) {
+  if (value === undefined) return undefined;
+  return value?.trim() || null;
+}
+
+async function readProfileForUserMutation(client: SupabaseClient, userId: string) {
+  const { data, error } = await client
+    .from("app_user_profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
   if (error) throw error;
-  const profile = mapProfile(data as DbProfileRow);
+  if (!data) throw new AppAuthError("Usuario nao encontrado.", 404, "USER_NOT_FOUND");
+  return mapProfile(data as DbProfileRow);
+}
 
-  if (input.branchIds) {
-    const branchIds = Array.from(new Set(input.branchIds.filter(Boolean)));
-    const { error: deleteError } = await client.from("app_user_branch_access").delete().eq("user_id", profile.id);
-    if (deleteError) throw deleteError;
+async function assertUserHierarchy(
+  client: SupabaseClient,
+  input: UpsertAppUserInput,
+  current: AppUserProfile | null
+) {
+  const actorIsMaster = input.actor.role === "ADMIN_MASTER";
+  const targetRole = input.role ?? current?.role ?? "LEITURA";
 
-    if (branchIds.length) {
-      const rows = branchIds.map((branchId) => ({
-        user_id: profile.id,
-        branch_id: branchId,
-        can_view: true,
-        can_create: true,
-        is_home: branchId === profile.homeBranchId,
-      }));
-      const { error: insertError } = await client.from("app_user_branch_access").insert(rows);
-      if (insertError) throw insertError;
+  if (!actorIsMaster && (current?.role === "ADMIN_MASTER" || targetRole === "ADMIN_MASTER")) {
+    throw new AppAuthError(
+      "Somente ADMIN_MASTER pode criar ou alterar outro ADMIN_MASTER.",
+      403,
+      "ADMIN_MASTER_REQUIRED"
+    );
+  }
+
+  const nextActive = input.active ?? current?.active ?? true;
+  const nextApprovalStatus = input.approvalStatus ?? current?.approvalStatus ?? "APPROVED";
+  const removesMaster =
+    current?.role === "ADMIN_MASTER" &&
+    (targetRole !== "ADMIN_MASTER" || !nextActive || nextApprovalStatus !== "APPROVED");
+
+  if (removesMaster) {
+    const { count, error } = await client
+      .from("app_user_profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "ADMIN_MASTER")
+      .eq("active", true)
+      .eq("approval_status", "APPROVED");
+    if (error) throw error;
+    if ((count || 0) <= 1) {
+      throw new AppAuthError(
+        "Nao e permitido remover o ultimo ADMIN_MASTER ativo e aprovado.",
+        409,
+        "LAST_ADMIN_MASTER"
+      );
     }
   }
 
-  if (input.pageAccess || input.pageSlugs) {
-    const pageAccess = input.pageAccess
-      ? normalizePageAccessRows(input.pageAccess, profile.role)
-      : normalizePageSlugs(input.pageSlugs).map((pageSlug) => ({
-          pageSlug,
-          canView: true,
-          canCreate: false,
-          canUpdate: false,
-          canApprove: false,
-        }));
-    const { error: deleteError } = await client.from("app_user_page_access").delete().eq("user_id", profile.id);
-    if (deleteError) throw deleteError;
+  if (
+    current?.id === input.actor.id &&
+    (!adminRoles.has(targetRole) || !nextActive || nextApprovalStatus !== "APPROVED")
+  ) {
+    throw new AppAuthError(
+      "O administrador logado nao pode remover a propria liberacao administrativa.",
+      409,
+      "SELF_ADMIN_LOCKOUT"
+    );
+  }
+}
 
-    if (pageAccess.length) {
-      const rows = pageAccess.map((page) => ({
-        user_id: profile.id,
-        page_slug: page.pageSlug,
-        can_view: page.canView,
-        can_create: page.canCreate,
-        can_update: page.canUpdate,
-        can_approve: page.canApprove,
-      }));
-      const { error: insertError } = await client.from("app_user_page_access").insert(rows);
-      if (insertError) throw insertError;
+async function assertActiveBranchMatrix(
+  client: SupabaseClient,
+  input: UpsertAppUserInput,
+  current: AppUserProfile | null
+) {
+  const targetRole = input.role ?? current?.role ?? "LEITURA";
+  if (input.branchIds === undefined && input.homeBranchId === undefined) {
+    if (!current && !adminRoles.has(targetRole)) {
+      throw new AppAuthError(
+        "Informe as filiais e exatamente uma filial principal.",
+        400,
+        "INVALID_BRANCH_MATRIX"
+      );
     }
+    if (current && adminRoles.has(current.role) && !adminRoles.has(targetRole)) {
+      throw new AppAuthError(
+        "Ao remover o acesso global, informe as filiais e a filial principal.",
+        400,
+        "INVALID_BRANCH_MATRIX"
+      );
+    }
+    return;
+  }
+  if (adminRoles.has(targetRole) && input.branchIds?.length === 0 && !input.homeBranchId) return;
+  if (!input.branchIds?.length || !input.homeBranchId) {
+    throw new AppAuthError(
+      "Informe as filiais e exatamente uma filial principal.",
+      400,
+      "INVALID_BRANCH_MATRIX"
+    );
   }
 
-  return profile;
+  const branchIds = Array.from(new Set(input.branchIds));
+  if (branchIds.length !== input.branchIds.length || !branchIds.includes(input.homeBranchId)) {
+    throw new AppAuthError(
+      "A filial principal deve pertencer a lista de filiais, sem filiais duplicadas.",
+      400,
+      "INVALID_HOME_BRANCH"
+    );
+  }
+
+  const { data, error } = await client
+    .from("app_branches")
+    .select("id")
+    .in("id", branchIds)
+    .eq("active", true)
+    .is("deleted_at", null);
+  if (error) throw error;
+  if ((data || []).length !== branchIds.length) {
+    throw new AppAuthError(
+      "Uma ou mais filiais informadas estao inativas, excluidas ou nao existem.",
+      400,
+      "INVALID_BRANCH"
+    );
+  }
+}
+
+function buildAppUserAccessPayload(input: UpsertAppUserInput) {
+  const payload: JsonRecord = {};
+  assignDefined(payload, "id", input.id);
+  assignDefined(payload, "email", input.email === undefined ? undefined : normalizeEmail(input.email));
+  assignDefined(payload, "display_name", input.displayName?.trim());
+  assignDefined(payload, "role", input.role);
+  assignDefined(payload, "fluig_username", normalizeNullableText(input.fluigUsername));
+  assignDefined(payload, "fluig_user_id", normalizeNullableText(input.fluigUserId));
+  assignDefined(payload, "home_branch_id", input.homeBranchId);
+  assignDefined(payload, "branch_ids", input.branchIds);
+  assignDefined(payload, "page_slugs", input.pageSlugs);
+  assignDefined(payload, "page_access", input.pageAccess);
+  assignDefined(payload, "active", input.active);
+  assignDefined(payload, "approval_status", input.approvalStatus);
+  assignDefined(payload, "rejection_reason", normalizeNullableText(input.rejectionReason));
+  return payload;
+}
+
+export async function upsertAppUser(input: UpsertAppUserInput) {
+  const client = assertServiceClient();
+  const current = input.id ? await readProfileForUserMutation(client, input.id) : null;
+  await assertUserHierarchy(client, input, current);
+  await assertActiveBranchMatrix(client, input, current);
+
+  const { data, error } = await client.rpc("save_app_user_access", {
+    p_actor_id: input.actor.id,
+    p_payload: buildAppUserAccessPayload(input),
+  });
+  if (error) throw error;
+  if (!data) throw new Error("Supabase nao retornou o usuario salvo.");
+  return mapProfile(data as DbProfileRow);
 }
 
 export async function createSignupUser(input: { email: string; password: string }) {

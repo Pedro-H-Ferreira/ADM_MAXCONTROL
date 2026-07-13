@@ -1,22 +1,50 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
+import { branchErrorResponse } from "@/lib/branch-errors";
 import { createBranch, listAdminBranches, type BranchInput } from "@/lib/db/branches-repository";
 import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
-import { parseBoolean } from "@/lib/fluig/route-utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const brazilianUfSchema = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim().toUpperCase() || null : value),
+  z.enum([
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
+    "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+  ], "UF invalida.").nullable()
+);
+
+const nullableText = (maximum: number, message: string) =>
+  z.string().trim().max(maximum, message).nullable().optional();
+
 const branchSchema = z.object({
-  code: z.string().trim().min(1, "Codigo da filial e obrigatorio."),
-  name: z.string().trim().min(1, "Nome da filial e obrigatorio."),
-  fluigLabel: z.string().nullable().optional(),
-  region: z.string().nullable().optional(),
-  city: z.string().nullable().optional(),
-  uf: z.string().nullable().optional(),
+  code: z.string()
+    .trim()
+    .min(1, "Codigo da filial e obrigatorio.")
+    .max(64, "Codigo da filial deve ter no maximo 64 caracteres.")
+    .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/, "Codigo da filial invalido.")
+    .transform((value) => value.toUpperCase()),
+  name: z.string()
+    .trim()
+    .min(1, "Nome da filial e obrigatorio.")
+    .max(160, "Nome da filial deve ter no maximo 160 caracteres."),
+  fluigLabel: nullableText(240, "Identificacao Fluig deve ter no maximo 240 caracteres."),
+  region: nullableText(100, "Regiao deve ter no maximo 100 caracteres."),
+  city: nullableText(120, "Cidade deve ter no maximo 120 caracteres."),
+  uf: brazilianUfSchema.optional(),
   active: z.boolean().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+}).strict();
+
+const branchListSchema = z.object({
+  search: z.string().trim().max(200, "Busca deve ter no maximo 200 caracteres.").nullable(),
+  active: z.enum(["true", "false"], "Situacao da filial invalida.")
+    .transform((value) => value === "true")
+    .nullable(),
+  page: z.coerce.number().int("Pagina invalida.").min(1, "Pagina invalida.").default(1),
+  pageSize: z.coerce.number().int("Tamanho da pagina invalido.").min(1, "Tamanho da pagina invalido.").max(200, "Tamanho da pagina deve ser no maximo 200.").default(50),
 });
 
 function jsonError(error: string, status = 400) {
@@ -33,15 +61,8 @@ function branchPermissions(actor: Awaited<ReturnType<typeof resolveCurrentAppUse
   };
 }
 
-const supplierWriteRoles = new Set(["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO"]);
-
 function canListBranchesForSupplierForm(actor: AppActor) {
-  return (
-    canActorAccessPage(actor, "fornecedores") &&
-    (supplierWriteRoles.has(actor.role) ||
-      canActorPerformPageAction(actor, "fornecedores", "canCreate") ||
-      canActorPerformPageAction(actor, "fornecedores", "canUpdate"))
-  );
+  return canActorAccessPage(actor, "fornecedores");
 }
 
 function actorBranchesPayload(actor: AppActor) {
@@ -90,19 +111,23 @@ export async function GET(request: Request) {
     }
 
     const url = new URL(request.url);
-    const activeParam = url.searchParams.get("active");
-    const payload = await listAdminBranches({
+    const parsed = branchListSchema.safeParse({
       search: url.searchParams.get("q") || url.searchParams.get("search"),
-      active: activeParam == null ? null : parseBoolean(activeParam, true),
-      page: Number(url.searchParams.get("page") || 1),
-      pageSize: Number(url.searchParams.get("pageSize") || 50),
+      active: url.searchParams.get("active"),
+      page: url.searchParams.get("page") || 1,
+      pageSize: url.searchParams.get("pageSize") || 50,
     });
+    if (!parsed.success) {
+      return jsonError(parsed.error.issues[0]?.message || "Filtros de filiais invalidos.");
+    }
+
+    const payload = await listAdminBranches(actor, parsed.data);
 
     return NextResponse.json({ success: true, permissions: branchPermissions(actor), ...payload });
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao listar filiais.", 500);
+    return branchErrorResponse(error, "Falha ao listar filiais.");
   }
 }
 
@@ -124,6 +149,6 @@ export async function POST(request: Request) {
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao criar filial.", 500);
+    return branchErrorResponse(error, "Falha ao criar filial.");
   }
 }
