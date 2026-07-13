@@ -45,8 +45,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PriorityBadge } from "@/components/shared/priority-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import type { ModuleConfig } from "@/lib/admin-data";
-import { fluigAdmApi } from "@/lib/fluig-api";
+import type { FluigAdmJobSummary } from "@/lib/fluig-api";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useFluigJobState } from "@/lib/use-fluig-job-state";
 import { cn } from "@/lib/utils";
 
 type MaintenanceOrderSource = "manual" | "fluig";
@@ -378,7 +379,20 @@ export function MaintenancePage({
   const [photoUploads, setPhotoUploads] = useState<PhotoUploadDraft[]>([]);
   const [photoViewer, setPhotoViewer] = useState<{ order: MaintenanceOrderRecord; photos: MaintenancePhotoRecord[] } | null>(null);
   const [photoViewerLoading, setPhotoViewerLoading] = useState(false);
-  const [activeFluigJob, setActiveFluigJob] = useState<ActiveFluigJob | null>(null);
+  const matchesMaintenanceJob = useCallback(
+    (job: FluigAdmJobSummary) =>
+      job.module === "manutencao" &&
+      job.operation === "open_from_source" &&
+      Boolean(job.requestPayload?.maintenanceOrderId),
+    []
+  );
+  const fluigJobTracker = useFluigJobState({ matches: matchesMaintenanceJob });
+  const activeFluigJob = useMemo<ActiveFluigJob | null>(() => {
+    const job = fluigJobTracker.job;
+    const orderId = String(job?.requestPayload?.maintenanceOrderId || "");
+    if (!job || !orderId) return null;
+    return { orderId, id: job.id, status: job.status, progressLabel: job.progressLabel };
+  }, [fluigJobTracker.job]);
 
   const visibleMobileOrders = useMemo(
     () => orders.filter((order) => order.status !== "FINALIZADA" && order.status !== "CANCELADA").slice(0, 6),
@@ -612,29 +626,8 @@ export function MaintenancePage({
     }
   }
 
-  async function pollFluigJob(orderId: string, jobId: string) {
-    const terminal = new Set(["success", "error", "cancelled", "expired"]);
-
-    for (let attempt = 0; attempt < 120; attempt += 1) {
-      const data = await fluigAdmApi.getJob(jobId);
-      setActiveFluigJob({
-        orderId,
-        id: data.job.id,
-        status: data.job.status,
-        progressLabel: data.job.progressLabel,
-      });
-
-      if (terminal.has(data.job.status)) {
-        if (data.job.status !== "success") {
-          throw new Error(data.job.errorMessage || `Job Fluig finalizado com status ${data.job.status}`);
-        }
-        return;
-      }
-
-      await new Promise((resolve) => window.setTimeout(resolve, 2000));
-    }
-
-    throw new Error("Tempo limite aguardando o agente local abrir a OS no Fluig.");
+  async function pollFluigJob(jobId: string) {
+    return fluigJobTracker.wait(jobId);
   }
 
   async function openOrderInFluig(order: MaintenanceOrderRecord) {
@@ -653,18 +646,13 @@ export function MaintenancePage({
       });
       const data = await parseResponse<{
         success: true;
-        job: { id: string; status: string; progressLabel: string | null };
+        job: FluigAdmJobSummary;
       }>(response, "Falha ao criar job de abertura Fluig.");
 
-      setActiveFluigJob({
-        orderId: order.id,
-        id: data.job.id,
-        status: data.job.status,
-        progressLabel: data.job.progressLabel,
-      });
-      await pollFluigJob(order.id, data.job.id);
+      fluigJobTracker.track(data.job);
+      await pollFluigJob(data.job.id);
       toast.success(`OS ${order.code} aberta no Fluig.`);
-      setActiveFluigJob(null);
+      fluigJobTracker.clear();
       await loadOrders();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao abrir OS no Fluig.");

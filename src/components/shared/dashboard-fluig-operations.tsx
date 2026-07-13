@@ -15,6 +15,7 @@ import {
   type FluigUserSyncStateRecord,
 } from "@/lib/fluig-api";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
+import { waitForFluigJobs } from "@/lib/use-fluig-job-state";
 import { cn } from "@/lib/utils";
 
 const terminalJobStatuses = new Set(["success", "error", "cancelled", "expired"]);
@@ -60,11 +61,7 @@ function isRecentJobFailure(job: DashboardJob) {
 }
 
 function isCurrentSyncStateError(state: FluigUserSyncStateRecord) {
-  if (!state.lastErrorAt && !state.lastErrorMessage) return false;
-  const errorAt = timestampMs(state.lastErrorAt || state.updatedAt);
-  const successAt = timestampMs(state.lastSuccessAt);
-  if (errorAt != null && successAt != null && successAt >= errorAt) return false;
-  return isRecentTimestamp(state.lastErrorAt || state.updatedAt);
+  return state.status === "error" && isRecentTimestamp(state.lastErrorAt || state.updatedAt);
 }
 
 function normalizeStatus(value: string | null | undefined, fallback = "ABERTO") {
@@ -186,42 +183,25 @@ export function DashboardFluigOperations() {
   }, [refresh]);
 
   async function pollJobsUntilDone(seedJobs: DashboardJob[]) {
-    const jobIds = seedJobs.map((job) => job.id);
-    const seedById = new Map(seedJobs.map((job) => [job.id, job]));
-    if (!jobIds.length) return;
-
-    for (let attempt = 0; attempt < 120; attempt += 1) {
-      const statuses = await Promise.all(jobIds.map((jobId) => fluigAdmApi.getJob(jobId)));
-      const nextJobs = statuses.map(({ job }) => ({
-        id: job.id,
-        module: seedById.get(job.id)?.module || "pagamentos",
-        operation: seedById.get(job.id)?.operation || "sync_status",
-        status: job.status,
-        progressLabel: job.progressLabel,
-        errorMessage: job.errorMessage || null,
-        updatedAt: seedById.get(job.id)?.updatedAt,
-        finishedAt: seedById.get(job.id)?.finishedAt || null,
-      })) satisfies DashboardJob[];
-
-      setJobs((current) =>
-        current.map((job) => {
-          const replacement = nextJobs.find((nextJob) => nextJob.id === job.id);
-          return replacement ? { ...job, ...replacement } : job;
-        })
-      );
-
-      if (nextJobs.every((job) => terminalJobStatuses.has(job.status))) {
-        const failed = nextJobs.find((job) => job.status !== "success");
-        if (failed) {
-          throw new Error(failed.errorMessage || `Sincronizacao Fluig finalizada com status ${failed.status}.`);
-        }
-        return;
-      }
-
-      await new Promise((resolve) => window.setTimeout(resolve, 2000));
-    }
-
-    throw new Error("Tempo limite aguardando o agente local sincronizar o Fluig.");
+    await waitForFluigJobs(seedJobs, {
+      onUpdate: (job) => {
+        const nextJob: DashboardJob = {
+          id: job.id,
+          module: job.module,
+          operation: job.operation,
+          status: job.status,
+          progressLabel: job.progressLabel,
+          errorMessage: job.errorMessage || null,
+          updatedAt: job.updatedAt,
+          finishedAt: job.finishedAt,
+        };
+        setJobs((current) =>
+          current.some((currentJob) => currentJob.id === nextJob.id)
+            ? current.map((currentJob) => currentJob.id === nextJob.id ? nextJob : currentJob)
+            : [nextJob, ...current]
+        );
+      },
+    });
   }
 
   async function syncMyFluig() {
@@ -283,13 +263,13 @@ export function DashboardFluigOperations() {
       const data = await fluigAdmApi.testAgentConnection({ module: "pagamentos" });
       const testJob = {
         id: data.job.id,
-        module: "pagamentos" as FluigModuleSlug,
-        operation: "health_check" as const,
+        module: data.job.module,
+        operation: data.job.operation,
         status: data.job.status,
         progressLabel: data.job.progressLabel,
-        errorMessage: null,
-        updatedAt: new Date().toISOString(),
-        finishedAt: null,
+        errorMessage: data.job.errorMessage || null,
+        updatedAt: data.job.updatedAt,
+        finishedAt: data.job.finishedAt,
       };
 
       setJobs((current) => [testJob, ...current.filter((job) => job.id !== testJob.id)]);
@@ -352,7 +332,7 @@ export function DashboardFluigOperations() {
           <MetricTile
             icon={RefreshCcw}
             label="Ultima sync"
-            value={latestState ? formatDateTime(latestState.lastSuccessAt || latestState.updatedAt) : "-"}
+            value={latestState?.lastSuccessAt ? formatDateTime(latestState.lastSuccessAt) : "-"}
             detail={latestState ? `${moduleLabels[latestState.module]} - ${syncTypeLabels[latestState.syncType]}` : "Sem sincronizacao registrada"}
           />
         </div>

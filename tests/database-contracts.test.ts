@@ -155,6 +155,41 @@ describe("database and API contracts", () => {
     expect(migration).toContain("to service_role");
   });
 
+  it("projeta jobs Fluig com retomada apos reload e sem timeout artificial", async () => {
+    const repository = await source("src/lib/db/app-repository.ts");
+    const api = await source("src/lib/fluig-api.ts");
+    const projection = await source("src/lib/fluig-job-state.ts");
+    const tracker = await source("src/lib/use-fluig-job-state.ts");
+    const dashboard = await source("src/components/shared/dashboard-fluig-operations.tsx");
+    const tasks = await source("src/components/pages/fluig-tasks-page.tsx");
+    const moduleOperations = await source("src/components/pages/fluig-module-operations-page.tsx");
+    const integrationPanel = await source("src/components/shared/fluig-integration-panel.tsx");
+    const launchForm = await source("src/components/shared/fluig-launch-form.tsx");
+    const suppliers = await source("src/components/pages/suppliers-page.tsx");
+    const maintenance = await source("src/components/pages/maintenance-page.tsx");
+
+    expect(repository).toContain("const loadActiveJobs = async");
+    expect(repository).toContain(".range(from, from + pageSize - 1)");
+    expect(repository).toContain('status: "started" | "success" | "error"');
+    expect(api).toContain('status: "started" | "success" | "error"');
+    expect(projection).toContain("projectFluigJobState");
+    expect(tracker).toContain("waitForFluigJobs");
+    expect(tracker).toContain("listJobs(50)");
+    expect(dashboard).toContain("waitForFluigJobs");
+    expect(tasks).toContain("waitForFluigJobs");
+    expect(moduleOperations).toContain("waitForFluigJobs");
+    expect(integrationPanel).toContain("useFluigJobState");
+    expect(launchForm).toContain("useFluigJobState");
+    expect(suppliers).toContain("useFluigJobState");
+    expect(maintenance).toContain("useFluigJobState");
+    for (const consumer of [dashboard, tasks, moduleOperations, integrationPanel, launchForm, suppliers, maintenance]) {
+      expect(consumer).not.toContain("attempt < 120");
+    }
+    expect(dashboard).not.toContain("lastSuccessAt || latestState.updatedAt");
+    expect(tasks).not.toContain("lastSuccessAt || latestState.updatedAt");
+    expect(moduleOperations).not.toContain("lastSuccessAt || latestState.updatedAt");
+  });
+
   it("normaliza filiais Fluig antes de persistir historico e catalogos", async () => {
     const repository = await source("src/lib/db/fluig-repository.ts");
     const migration = await source("supabase/migrations/20260624091741_normalize_fluig_branch_codes.sql");

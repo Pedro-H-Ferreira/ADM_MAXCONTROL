@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DatabaseZap,
   ExternalLink,
@@ -32,6 +32,7 @@ import {
   type FluigSyncRow,
 } from "@/lib/fluig-data";
 import { cn } from "@/lib/utils";
+import { useFluigJobState } from "@/lib/use-fluig-job-state";
 
 type FluigIntegrationPanelProps = {
   moduleSlug: string;
@@ -113,13 +114,6 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const [lookupPending, setLookupPending] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [lookupResult, setLookupResult] = useState<FluigSyncRow | null>(null);
-  const [activeJob, setActiveJob] = useState<{
-    id: string;
-    status: string;
-    progressStage: string | null;
-    progressLabel: string | null;
-    events: Array<{ id: string; event_type: string; stage: string | null; label: string | null; created_at: string }>;
-  } | null>(null);
   const [pairToken, setPairToken] = useState<string | null>(null);
 
   const rows = useMemo(() => syncData?.rows ?? [], [syncData?.rows]);
@@ -139,6 +133,12 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     [catalogs, syncData]
   );
   const integrationSlug = integration?.slug;
+  const matchesJob = useCallback(
+    (job: { module: FluigModuleSlug }) => Boolean(integrationSlug && job.module === integrationSlug),
+    [integrationSlug]
+  );
+  const jobTracker = useFluigJobState({ matches: matchesJob });
+  const activeJob = jobTracker.job ? { ...jobTracker.job, events: jobTracker.events } : null;
   const onlineAgent = useMemo(() => agents.find((agent) => agent.status === "online") || null, [agents]);
 
   async function runSync(action: FluigAdmSyncAction) {
@@ -267,29 +267,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   }
 
   async function pollJobUntilDone(jobId: string) {
-    const terminal = new Set(["success", "error", "cancelled", "expired"]);
-
-    for (let attempt = 0; attempt < 120; attempt += 1) {
-      const data = await fluigAdmApi.getJob(jobId);
-      setActiveJob({
-        id: data.job.id,
-        status: data.job.status,
-        progressStage: data.job.progressStage,
-        progressLabel: data.job.progressLabel,
-        events: data.events || [],
-      });
-
-      if (terminal.has(data.job.status)) {
-        if (data.job.status !== "success") {
-          throw new Error(data.job.errorMessage || `Job Fluig finalizado com status ${data.job.status}`);
-        }
-        return;
-      }
-
-      await new Promise((resolve) => window.setTimeout(resolve, 2000));
-    }
-
-    throw new Error("Tempo limite aguardando o agente local executar a tarefa Fluig.");
+    return jobTracker.wait(jobId);
   }
 
   async function pairAgent() {
@@ -379,7 +357,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const monthlyTemplateCount =
     syncData?.launchTemplates?.filter((template) => template.module === integration.slug && template.recurrence === "monthly")
       .length || 0;
-  const fluigBusy = Boolean(pendingAction) || pendingUserSync || lookupPending || testingAgent;
+  const fluigBusy = Boolean(pendingAction) || pendingUserSync || lookupPending || testingAgent || jobTracker.active;
 
   return (
     <Card className="stitch-animate-in stitch-hover-lift rounded-lg shadow-none">

@@ -41,20 +41,24 @@ export type FluigAdmAgent = {
 
 export type FluigAdmJobSummary = {
   id: string;
+  requestedByUserId?: string;
+  assignedAgentId?: string | null;
   module: FluigModuleSlug;
   operation: FluigJobOperation;
   status: string;
   progressStage: string | null;
   progressLabel: string | null;
   errorMessage?: string | null;
-  attempts?: number;
-  maxAttempts?: number;
-  nextAttemptAt?: string | null;
-  lastAttemptAt?: string | null;
-  expiresAt?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-  finishedAt?: string | null;
+  requestPayload?: Record<string, unknown>;
+  resultPayload?: Record<string, unknown>;
+  attempts: number;
+  maxAttempts: number;
+  nextAttemptAt: string | null;
+  lastAttemptAt: string | null;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+  finishedAt: string | null;
 };
 
 export type FluigOpenRequestRecord = {
@@ -93,6 +97,7 @@ export type FluigUserSyncStateRecord = {
   lastErrorMessage: string | null;
   cursor: Record<string, unknown>;
   metadata: Record<string, unknown>;
+  status: "started" | "success" | "error";
   createdAt: string;
   updatedAt: string;
 };
@@ -123,15 +128,9 @@ export type FluigUserSyncResponse = {
   }>;
 };
 
-type FluigJobStatusResponse = {
+export type FluigJobStatusResponse = {
   success: true;
-  job: {
-    id: string;
-    status: string;
-    progressStage: string | null;
-    progressLabel: string | null;
-    errorMessage?: string | null;
-  };
+  job: FluigAdmJobSummary;
   events: Array<{
     id: string;
     event_type: string;
@@ -208,12 +207,7 @@ export const fluigAdmApi = {
   }) {
     return this.post<{
       success: true;
-      job: {
-        id: string;
-        status: string;
-        progressStage: string | null;
-        progressLabel: string | null;
-      };
+      job: FluigAdmJobSummary;
     }>(this.jobsPath, payload);
   },
   async testAgentConnection(payload: { module?: FluigModuleSlug } = {}) {
@@ -376,12 +370,7 @@ export const fluigAdmApi = {
     return this.post<{
       success: true;
       launch: OperationalLaunchRecord;
-      job: {
-        id: string;
-        status: string;
-        progressStage: string | null;
-        progressLabel: string | null;
-      };
+      job: FluigAdmJobSummary;
     }>(this.operationalLaunchesPath, {
       action: "submit",
       launchId,

@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   FileCheck2,
@@ -37,6 +37,7 @@ import {
   type OperationalLaunchRecord,
 } from "@/lib/operational-launch";
 import { cn } from "@/lib/utils";
+import { useFluigJobState } from "@/lib/use-fluig-job-state";
 
 type LaunchModule = Exclude<FluigModuleSlug, "fornecedores">;
 
@@ -48,12 +49,6 @@ type LaunchField = {
   required?: boolean;
   placeholder?: string;
   wide?: boolean;
-};
-
-type JobState = {
-  id: string;
-  status: string;
-  progressLabel: string | null;
 };
 
 type AttachmentPayload = {
@@ -381,11 +376,17 @@ export function FluigLaunchForm({
   const [launchPermissions, setLaunchPermissions] = useState<{ canView: boolean; canCreate: boolean } | null>(null);
   const [loadingLaunches, setLoadingLaunches] = useState(isOperationalLaunchModule);
   const [review, setReview] = useState<LaunchReview | null>(null);
-  const [jobState, setJobState] = useState<JobState | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [validating, setValidating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const matchesLaunchJob = useCallback(
+    (job: { module: FluigModuleSlug; operation: string }) =>
+      job.module === moduleSlug && job.operation === "open_from_source",
+    [moduleSlug]
+  );
+  const jobTracker = useFluigJobState({ matches: matchesLaunchJob });
+  const jobState = jobTracker.job;
 
   const catalogs = useMemo(() => {
     const sourceCatalogs = syncData?.catalogs || {};
@@ -611,27 +612,7 @@ export function FluigLaunchForm({
   }
 
   async function pollJobUntilDone(jobId: string) {
-    const terminal = new Set(["success", "error", "cancelled", "expired"]);
-
-    for (let attempt = 0; attempt < 120; attempt += 1) {
-      const data = await fluigAdmApi.getJob(jobId);
-      setJobState({
-        id: data.job.id,
-        status: data.job.status,
-        progressLabel: data.job.progressLabel,
-      });
-
-      if (terminal.has(data.job.status)) {
-        if (data.job.status !== "success") {
-          throw new Error(data.job.errorMessage || `Job Fluig finalizado com status ${data.job.status}`);
-        }
-        return data;
-      }
-
-      await new Promise((resolve) => window.setTimeout(resolve, 2000));
-    }
-
-    throw new Error("Tempo limite aguardando o agente local executar a tarefa Fluig.");
+    return jobTracker.wait(jobId);
   }
 
   function buildFieldOverrides(items: OperationalLaunchItemInput[] = []) {
@@ -801,11 +782,7 @@ export function FluigLaunchForm({
         });
       }
 
-      setJobState({
-        id: created.job.id,
-        status: created.job.status,
-        progressLabel: created.job.progressLabel,
-      });
+      jobTracker.track(created.job);
       await pollJobUntilDone(created.job.id);
       if (moduleSlug === "pagamentos" || moduleSlug === "compras") {
         const completed = await fluigAdmApi.getOperationalLaunch(review.launchId!);
@@ -1119,11 +1096,11 @@ export function FluigLaunchForm({
               setAttachments([]);
               setPurchaseItems([initialPurchaseItem()]);
               setReview(null);
-              setJobState(null);
+              jobTracker.clear();
               setMessage(null);
               setError(null);
             }}
-            disabled={submitting || validating}
+            disabled={submitting || validating || jobTracker.active}
           >
             Limpar
           </Button>
@@ -1134,6 +1111,7 @@ export function FluigLaunchForm({
             disabled={
               submitting ||
               validating ||
+              jobTracker.active ||
               loadingLaunches ||
               (isOperationalLaunchModule && launchPermissions?.canCreate === false)
             }
@@ -1147,6 +1125,7 @@ export function FluigLaunchForm({
             disabled={
               submitting ||
               validating ||
+              jobTracker.active ||
               !review ||
               (isOperationalLaunchModule && launchPermissions?.canCreate === false)
             }

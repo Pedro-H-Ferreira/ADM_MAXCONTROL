@@ -57,6 +57,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import type { ModuleConfig } from "@/lib/admin-data";
 import { formatCnpj, isValidCnpj, onlyDigits } from "@/lib/cnpj";
+import type { FluigAdmJobSummary } from "@/lib/fluig-api";
+import { useFluigJobState } from "@/lib/use-fluig-job-state";
 import { cn } from "@/lib/utils";
 
 type SupplierStatus = "ATIVO" | "PENDENTE_REVISAO" | "INATIVO";
@@ -392,7 +394,7 @@ export function SuppliersPage({
   const [saving, setSaving] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [reconciling, setReconciling] = useState(false);
-  const [syncingSupplierId, setSyncingSupplierId] = useState<string | null>(null);
+  const [requestedSyncingSupplierId, setRequestedSyncingSupplierId] = useState<string | null>(null);
   const [approvingSupplierId, setApprovingSupplierId] = useState<string | null>(null);
   const [statusChangingSupplierId, setStatusChangingSupplierId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -404,6 +406,17 @@ export function SuppliersPage({
   const [lookupResult, setLookupResult] = useState<LookupResult | null>(null);
   const [form, setForm] = useState<SupplierFormState>(initialForm);
   const pageSize = 25;
+  const matchesSupplierJob = useCallback(
+    (job: FluigAdmJobSummary) =>
+      job.module === "fornecedores" &&
+      job.operation === "supplier_lookup_by_cnpj" &&
+      Boolean(job.requestPayload?.supplierId),
+    []
+  );
+  const supplierJobTracker = useFluigJobState({ matches: matchesSupplierJob });
+  const syncingSupplierId = supplierJobTracker.active
+    ? String(supplierJobTracker.job?.requestPayload?.supplierId || "")
+    : requestedSyncingSupplierId;
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -790,9 +803,9 @@ export function SuppliersPage({
       return;
     }
 
-    setSyncingSupplierId(supplier.id);
+    setRequestedSyncingSupplierId(supplier.id);
     try {
-      const data = await parseResponse<{ success: true; job: { id: string; status: string }; supplier?: SupplierRecord | null }>(
+      const data = await parseResponse<{ success: true; job: FluigAdmJobSummary; supplier?: SupplierRecord | null }>(
         await fetch(`/api/fornecedores/${supplier.id}/sync-fluig`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -800,12 +813,15 @@ export function SuppliersPage({
         }),
         "Falha ao sincronizar fornecedor no Fluig."
       );
-      toast.success(`Consulta enviada ao agente Fluig. Job ${data.job.id.slice(0, 8)}.`);
+      supplierJobTracker.track(data.job);
+      toast.info(`Consulta enviada ao agente Fluig. Job ${data.job.id.slice(0, 8)}.`);
+      await supplierJobTracker.wait(data.job);
+      toast.success("Fornecedor sincronizado com o Fluig.");
       await loadSuppliers();
     } catch (syncError) {
       toast.error(syncError instanceof Error ? syncError.message : "Falha ao sincronizar fornecedor no Fluig.");
     } finally {
-      setSyncingSupplierId(null);
+      setRequestedSyncingSupplierId(null);
     }
   }
 

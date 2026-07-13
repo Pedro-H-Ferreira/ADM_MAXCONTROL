@@ -43,6 +43,7 @@ import {
 } from "@/lib/fluig-api";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
 import type { ModuleConfig } from "@/lib/admin-data";
+import { waitForFluigJobs } from "@/lib/use-fluig-job-state";
 import { cn } from "@/lib/utils";
 
 type ModuleFilter = "all" | FluigModuleSlug;
@@ -112,11 +113,7 @@ function isRecentJobFailure(job: Pick<FluigAdmJobSummary, "status" | "updatedAt"
 }
 
 function isCurrentSyncStateError(state: FluigUserSyncStateRecord) {
-  if (!state.lastErrorAt && !state.lastErrorMessage) return false;
-  const errorAt = timestampMs(state.lastErrorAt || state.updatedAt);
-  const successAt = timestampMs(state.lastSuccessAt);
-  if (errorAt != null && successAt != null && successAt >= errorAt) return false;
-  return isRecentTimestamp(state.lastErrorAt || state.updatedAt);
+  return state.status === "error" && isRecentTimestamp(state.lastErrorAt || state.updatedAt);
 }
 
 function isVisibleRecentJob(job: FluigAdmJobSummary) {
@@ -280,47 +277,15 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   }, [refresh]);
 
   async function pollJobsUntilDone(seedJobs: FluigAdmJobSummary[]) {
-    const jobIds = seedJobs.map((job) => job.id);
-    const seedById = new Map(seedJobs.map((job) => [job.id, job]));
-
-    if (!jobIds.length) return;
-
-    for (let attempt = 0; attempt < 120; attempt += 1) {
-      const statuses = await Promise.all(jobIds.map((jobId) => fluigAdmApi.getJob(jobId)));
-      const nextJobs = statuses.map(({ job }) => {
-        const seed = seedById.get(job.id);
-        const fallback = seed || seedJobs[0];
-
-        return {
-          ...fallback,
-          id: job.id,
-          status: job.status,
-          progressStage: job.progressStage,
-          progressLabel: job.progressLabel,
-          errorMessage: job.errorMessage || null,
-          updatedAt: seed?.updatedAt,
-          finishedAt: seed?.finishedAt,
-        };
-      });
-
-      setJobs((current) => {
-        const nextById = new Map(current.map((job) => [job.id, job]));
-        nextJobs.forEach((job) => nextById.set(job.id, { ...(nextById.get(job.id) || job), ...job }));
-        return Array.from(nextById.values());
-      });
-
-      if (nextJobs.every((job) => terminalJobStatuses.has(job.status))) {
-        const failed = nextJobs.find((job) => job.status !== "success");
-        if (failed) {
-          throw new Error(failed.errorMessage || `Execucao Fluig finalizada com status ${failed.status}.`);
-        }
-        return;
-      }
-
-      await new Promise((resolve) => window.setTimeout(resolve, 2000));
-    }
-
-    throw new Error("Tempo limite aguardando o agente local concluir o job Fluig.");
+    await waitForFluigJobs(seedJobs, {
+      onUpdate: (job) => {
+        setJobs((current) => {
+          const nextById = new Map(current.map((currentJob) => [currentJob.id, currentJob]));
+          nextById.set(job.id, { ...(nextById.get(job.id) || job), ...job });
+          return Array.from(nextById.values());
+        });
+      },
+    });
   }
 
   async function syncMyFluig() {
@@ -420,17 +385,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
       const data = await fluigAdmApi.testAgentConnection({
         module: jobModule,
       });
-      const testJob: FluigAdmJobSummary = {
-        id: data.job.id,
-        module: jobModule,
-        operation: "health_check",
-        status: data.job.status,
-        progressStage: data.job.progressStage,
-        progressLabel: data.job.progressLabel,
-        errorMessage: null,
-        updatedAt: new Date().toISOString(),
-        finishedAt: null,
-      };
+      const testJob: FluigAdmJobSummary = data.job;
 
       setJobs((current) => [testJob, ...current.filter((job) => job.id !== testJob.id)]);
       await pollJobsUntilDone([testJob]);
@@ -512,7 +467,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
         <MetricTile
           icon={RefreshCcw}
           label="Ultima sync"
-          value={latestState ? formatDateTime(latestState.lastSuccessAt || latestState.updatedAt) : "-"}
+          value={latestState?.lastSuccessAt ? formatDateTime(latestState.lastSuccessAt) : "-"}
           detail={latestState ? `${moduleLabels[latestState.module]} - ${syncTypeLabels[latestState.syncType]}` : "Sem sync registrada"}
         />
       </div>
@@ -898,7 +853,7 @@ function SyncStatePanel({ states, loading }: { states: FluigUserSyncStateRecord[
                   <p className="truncate text-sm font-medium">{moduleLabels[state.module]}</p>
                   <p className="mt-1 truncate text-xs text-muted-foreground">{syncTypeLabels[state.syncType]}</p>
                 </div>
-                <StatusBadge status={isCurrentSyncStateError(state) ? "FALHA" : "SINCRONIZADO"} />
+                <StatusBadge status={state.status === "error" ? "FALHA" : state.status === "success" ? "SINCRONIZADO" : "PENDENTE"} />
               </div>
               <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
                 <span>Sucesso: {formatDateTime(state.lastSuccessAt)}</span>

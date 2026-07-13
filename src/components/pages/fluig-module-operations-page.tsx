@@ -27,6 +27,7 @@ import {
 } from "@/lib/fluig-api";
 import { getFluigIntegrationForModule, type FluigModuleSlug } from "@/lib/fluig-data";
 import type { ModuleConfig } from "@/lib/admin-data";
+import { waitForFluigJobs } from "@/lib/use-fluig-job-state";
 import { cn } from "@/lib/utils";
 
 type OperationalModuleSlug = Extract<FluigModuleSlug, "pagamentos" | "compras">;
@@ -63,11 +64,7 @@ function isRecentJobFailure(job: Pick<FluigAdmJobSummary, "status" | "updatedAt"
 }
 
 function isCurrentSyncStateError(state: FluigUserSyncStateRecord) {
-  if (!state.lastErrorAt && !state.lastErrorMessage) return false;
-  const errorAt = timestampMs(state.lastErrorAt || state.updatedAt);
-  const successAt = timestampMs(state.lastSuccessAt);
-  if (errorAt != null && successAt != null && successAt >= errorAt) return false;
-  return isRecentTimestamp(state.lastErrorAt || state.updatedAt);
+  return state.status === "error" && isRecentTimestamp(state.lastErrorAt || state.updatedAt);
 }
 
 function normalizeStatus(value: string | null | undefined, fallback = "ABERTO") {
@@ -192,44 +189,15 @@ export function FluigModuleOperationsPage({
   }, [refresh]);
 
   async function pollJobsUntilDone(seedJobs: FluigAdmJobSummary[]) {
-    const jobIds = seedJobs.map((job) => job.id);
-    const seedById = new Map(seedJobs.map((job) => [job.id, job]));
-
-    if (!jobIds.length) return;
-
-    for (let attempt = 0; attempt < 120; attempt += 1) {
-      const statuses = await Promise.all(jobIds.map((jobId) => fluigAdmApi.getJob(jobId)));
-      const nextJobs = statuses.map(({ job }) => {
-        const seed = seedById.get(job.id);
-        const fallback = seed || seedJobs[0];
-        return {
-          ...fallback,
-          id: job.id,
-          status: job.status,
-          progressStage: job.progressStage,
-          progressLabel: job.progressLabel,
-          errorMessage: job.errorMessage || null,
-        };
-      });
-
-      setJobs((current) => {
-        const nextById = new Map(current.map((job) => [job.id, job]));
-        nextJobs.forEach((job) => nextById.set(job.id, { ...(nextById.get(job.id) || job), ...job }));
-        return Array.from(nextById.values());
-      });
-
-      if (nextJobs.every((job) => terminalJobStatuses.has(job.status))) {
-        const failed = nextJobs.find((job) => job.status !== "success");
-        if (failed) {
-          throw new Error(failed.errorMessage || `Execucao Fluig finalizada com status ${failed.status}.`);
-        }
-        return;
-      }
-
-      await new Promise((resolve) => window.setTimeout(resolve, 2000));
-    }
-
-    throw new Error("Tempo limite aguardando o agente local concluir a sincronizacao.");
+    await waitForFluigJobs(seedJobs, {
+      onUpdate: (job) => {
+        setJobs((current) => {
+          const nextById = new Map(current.map((currentJob) => [currentJob.id, currentJob]));
+          nextById.set(job.id, { ...(nextById.get(job.id) || job), ...job });
+          return Array.from(nextById.values());
+        });
+      },
+    });
   }
 
   async function syncThisModule() {
@@ -319,7 +287,7 @@ export function FluigModuleOperationsPage({
         <MetricTile
           icon={RefreshCcw}
           label="Ultima sync"
-          value={latestState ? formatDateTime(latestState.lastSuccessAt || latestState.updatedAt) : "-"}
+          value={latestState?.lastSuccessAt ? formatDateTime(latestState.lastSuccessAt) : "-"}
           detail={latestState ? syncTypeLabels[latestState.syncType] : "Sem sync registrada"}
         />
       </div>

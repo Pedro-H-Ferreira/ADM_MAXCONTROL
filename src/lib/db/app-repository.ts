@@ -314,6 +314,18 @@ async function reconcileFluigJobLifecycle(client: SupabaseClient, userId?: strin
 }
 
 function mapSyncState(row: DbSyncStateRow) {
+  const lastSyncAt = Date.parse(row.last_sync_at || "");
+  const lastSuccessAt = Date.parse(row.last_success_at || "");
+  const lastErrorAt = Date.parse(row.last_error_at || "");
+  const status: "started" | "success" | "error" =
+    Number.isFinite(lastErrorAt) &&
+    (!Number.isFinite(lastSuccessAt) || lastErrorAt >= lastSuccessAt) &&
+    (!Number.isFinite(lastSyncAt) || lastErrorAt >= lastSyncAt)
+      ? "error"
+      : Number.isFinite(lastSuccessAt) && (!Number.isFinite(lastSyncAt) || lastSuccessAt >= lastSyncAt)
+        ? "success"
+        : "started";
+
   return {
     id: row.id,
     userId: row.user_id,
@@ -327,6 +339,7 @@ function mapSyncState(row: DbSyncStateRow) {
     lastErrorMessage: row.last_error_message,
     cursor: row.cursor || {},
     metadata: row.metadata || {},
+    status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -1246,16 +1259,37 @@ export async function listFluigUserSyncState(actor: AppActor, input: { userId?: 
 export async function listJobsForActor(actor: AppActor, limit = 20) {
   const client = assertServiceClient();
   await reconcileFluigJobLifecycle(client, actor.id);
-  const query = client
-    .from("fluig_jobs")
-    .select("*")
-    .eq("requested_by_user_id", actor.id)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const loadActiveJobs = async () => {
+    const pageSize = 1_000;
+    const rows: DbJobRow[] = [];
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data || []) as DbJobRow[]).map(mapJob);
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await client
+        .from("fluig_jobs")
+        .select("*")
+        .eq("requested_by_user_id", actor.id)
+        .in("status", reusableJobStatuses)
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      rows.push(...((data || []) as DbJobRow[]));
+      if ((data || []).length < pageSize) return rows;
+    }
+  };
+
+  const [activeJobs, recentResult] = await Promise.all([
+    loadActiveJobs(),
+    client
+      .from("fluig_jobs")
+      .select("*")
+      .eq("requested_by_user_id", actor.id)
+      .in("status", ["success", "error", "cancelled", "expired"])
+      .order("created_at", { ascending: false })
+      .limit(limit),
+  ]);
+  if (recentResult.error) throw recentResult.error;
+
+  return [...activeJobs, ...((recentResult.data || []) as DbJobRow[])].map(mapJob);
 }
 
 export async function readJobForActor(actor: AppActor, jobId: string) {

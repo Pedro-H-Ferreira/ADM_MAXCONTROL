@@ -84,6 +84,8 @@ O ADM mantem os scripts tecnicos do Fluig dentro de `scripts/fluig`, mas as oper
 
 A fila usa RPCs transacionais no Supabase. O claim aplica `FOR UPDATE SKIP LOCKED`, permitindo mais de um agente do mesmo usuario sem entregar o mesmo job duas vezes. Claim, progresso e conclusao atualizam o job e gravam o evento na mesma transacao. O reaper devolve execucoes interrompidas para a fila quando o retry e seguro, expira operacoes esgotadas e propaga o erro para `fluig_user_sync_state` e para o sync de fornecedor associado.
 
+O frontend usa uma projecao unica de estado (`idle`, fila, execucao, retry e estados terminais) e recupera jobs ativos do usuario ao recarregar as telas. O parametro `limit` da listagem restringe somente os terminais recentes; todos os ativos sao paginados. O polling continua enquanto o backend considerar o job ativo, sem encerrar artificialmente em quatro minutos. Um sync iniciado sem `last_success_at` aparece como pendente, nunca como sincronizado.
+
 Configuracao local para desenvolvimento controlado dos scripts:
 
 - `FLUIG_INTEGRATION_MODE=internal_runner`
