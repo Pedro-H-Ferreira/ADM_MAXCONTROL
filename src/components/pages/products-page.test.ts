@@ -4,9 +4,16 @@ import {
   isGenericProductDescription,
   normalizeProductApiItem,
   normalizeProductCatalogsResponse,
+  productCatalogPageNumbers,
 } from "@/components/pages/products-page";
 
 describe("ProductsPage domain", () => {
+  it("carrega todas as paginas do catalogo quando a API limita cada lote", () => {
+    expect(productCatalogPageNumbers(548)).toEqual([2, 3, 4, 5, 6]);
+    expect(productCatalogPageNumbers(100)).toEqual([]);
+    expect(productCatalogPageNumbers(101)).toEqual([2]);
+  });
+
   it("preserva categoria financeira, classificacao e links com papeis distintos", () => {
     const product = normalizeProductApiItem({
       id: "product-1",

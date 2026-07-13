@@ -55,6 +55,7 @@ import { cn } from "@/lib/utils";
 
 const FLUIG_HOST = "https://nossaempresa.fluig.cloudtotvs.com.br";
 const PAGE_SIZE = 20;
+const PRODUCT_API_PAGE_SIZE = 100;
 
 export type ProductKind = "MATERIAL" | "SERVICO" | "MISTO" | "INDEFINIDO";
 export type ProductStatus = "ATIVO" | "REVISAR" | "INATIVO";
@@ -429,6 +430,13 @@ function responseError(value: unknown, fallback: string) {
   return firstString(record, ["error", "message", "erro"]) || fallback;
 }
 
+export function productCatalogPageNumbers(total: number, pageSize = PRODUCT_API_PAGE_SIZE) {
+  const safeTotal = Number.isFinite(total) ? Math.max(0, Math.floor(total)) : 0;
+  const safePageSize = Number.isFinite(pageSize) ? Math.max(1, Math.floor(pageSize)) : PRODUCT_API_PAGE_SIZE;
+  const pageCount = Math.ceil(safeTotal / safePageSize);
+  return Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => index + 2);
+}
+
 function catalogOptions(value: unknown) {
   const source = Array.isArray(value)
     ? value
@@ -606,7 +614,7 @@ export function ProductsPage({
     setMessage(null);
 
     try {
-      const response = await fetch("/api/produtos?page=1&pageSize=100", { cache: "no-store" });
+      const response = await fetch(`/api/produtos?page=1&pageSize=${PRODUCT_API_PAGE_SIZE}`, { cache: "no-store" });
       if (response.status === 404) {
         const operational = await fluigAdmApi.listOperationalLaunches("compras", 100);
         setProducts(productsFromOperationalLaunches(operational.launches));
@@ -614,7 +622,23 @@ export function ProductsPage({
       } else {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(responseError(data, "Falha ao carregar o catalogo de produtos."));
-        setProducts(responseItems(data).map((item, index) => normalizeProductApiItem(item, index)));
+        const firstPageItems = responseItems(data);
+        const total = Math.max(Number(asRecord(data).total) || 0, firstPageItems.length);
+        const remainingPages = await Promise.all(
+          productCatalogPageNumbers(total).map(async (pageNumber) => {
+            const pageResponse = await fetch(
+              `/api/produtos?page=${pageNumber}&pageSize=${PRODUCT_API_PAGE_SIZE}`,
+              { cache: "no-store" }
+            );
+            const pageData = await pageResponse.json().catch(() => ({}));
+            if (!pageResponse.ok) {
+              throw new Error(responseError(pageData, `Falha ao carregar a pagina ${pageNumber} do catalogo.`));
+            }
+            return responseItems(pageData);
+          })
+        );
+        const allItems = [firstPageItems, ...remainingPages].flat();
+        setProducts(allItems.map((item, index) => normalizeProductApiItem(item, index)));
         const permissionData = asRecord(asRecord(data).permissions);
         setPermissions({
           canCreate: permissionData.canCreate !== false,
