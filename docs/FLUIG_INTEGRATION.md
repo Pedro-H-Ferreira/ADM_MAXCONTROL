@@ -82,6 +82,8 @@ Esse endpoint le o snapshot persistido no Supabase e mostra os dados nas paginas
 
 O ADM mantem os scripts tecnicos do Fluig dentro de `scripts/fluig`, mas as operacoes de producao que exigem login no Fluig sao executadas pelo `ADM Fluig Agent` na maquina do usuario. As rotas do Vercel criam jobs em `fluig_jobs`, gravam o andamento no Supabase e aguardam o callback autenticado do agente local.
 
+A fila usa RPCs transacionais no Supabase. O claim aplica `FOR UPDATE SKIP LOCKED`, permitindo mais de um agente do mesmo usuario sem entregar o mesmo job duas vezes. Claim, progresso e conclusao atualizam o job e gravam o evento na mesma transacao. O reaper devolve execucoes interrompidas para a fila quando o retry e seguro, expira operacoes esgotadas e propaga o erro para `fluig_user_sync_state` e para o sync de fornecedor associado.
+
 Configuracao local para desenvolvimento controlado dos scripts:
 
 - `FLUIG_INTEGRATION_MODE=internal_runner`

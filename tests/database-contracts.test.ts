@@ -139,6 +139,22 @@ describe("database and API contracts", () => {
     expect(agent).toContain("isPayloadTooLargeError");
   });
 
+  it("mantem claim, progresso, conclusao e reaper Fluig transacionais", async () => {
+    const repository = await source("src/lib/db/app-repository.ts");
+    const migration = await source("supabase/migrations/20260713014131_transactional_fluig_job_queue.sql");
+
+    expect(repository).toContain('rpc("claim_next_fluig_job"');
+    expect(repository).toContain('rpc("transition_fluig_job"');
+    expect(repository).toContain('rpc("complete_fluig_job"');
+    expect(repository).toContain('rpc("reconcile_fluig_job_lifecycle"');
+    expect(migration).toContain("for update skip locked");
+    expect(migration).toContain("insert into public.fluig_job_events");
+    expect(migration).toContain("update public.fluig_user_sync_state");
+    expect(migration).toContain("security invoker");
+    expect(migration).toContain("from public, anon, authenticated");
+    expect(migration).toContain("to service_role");
+  });
+
   it("normaliza filiais Fluig antes de persistir historico e catalogos", async () => {
     const repository = await source("src/lib/db/fluig-repository.ts");
     const migration = await source("supabase/migrations/20260624091741_normalize_fluig_branch_codes.sql");
@@ -305,6 +321,7 @@ describe("database and API contracts", () => {
 
   it("isola agentes por usuario e exige heartbeat proprio antes de criar jobs", async () => {
     const repository = await source("src/lib/db/app-repository.ts");
+    const transactionalMigration = await source("supabase/migrations/20260713014131_transactional_fluig_job_queue.sql");
     const dashboard = await source("src/components/shared/dashboard-fluig-operations.tsx");
     const tasksPage = await source("src/components/pages/fluig-tasks-page.tsx");
     const integrationPanel = await source("src/components/shared/fluig-integration-panel.tsx");
@@ -312,7 +329,8 @@ describe("database and API contracts", () => {
     expect(repository).toMatch(/listAgentsForActor[\s\S]*?\.eq\("user_id", actor\.id\)/);
     expect(repository).toContain("assertOnlineAgentForActor");
     expect(repository).toContain('"FLUIG_AGENT_OFFLINE"');
-    expect(repository).toMatch(/pollNextAgentJob[\s\S]*?\.eq\("requested_by_user_id", agent\.userId\)/);
+    expect(repository).toMatch(/pollNextAgentJob[\s\S]*?rpc\("claim_next_fluig_job"/);
+    expect(transactionalMigration).toContain("j.requested_by_user_id = v_user_id");
     expect(repository).toMatch(/listJobsForActor[\s\S]*?\.eq\("requested_by_user_id", actor\.id\)/);
     expect(repository).toMatch(/readJobForActor[\s\S]*?\.eq\("requested_by_user_id", actor\.id\)/);
     expect(repository).toContain('owner.approval_status !== "APPROVED"');
@@ -338,7 +356,7 @@ describe("database and API contracts", () => {
     expect(repository).toContain("existingFluigUserId === fluigUserId");
     expect(repository).toContain("fluigUserIdFromJobPayload");
     expect(repository).toContain("payload.taskUserId || userMatch?.fluigUserId");
-    expect(repository).toContain('.eq("assigned_agent_id", input.agentId)');
+    expect(repository).toContain("p_agent_id: input.agentId");
     expect(eventRoute).toContain("eventSchema.safeParse");
     expect(eventRoute).not.toContain('"success",');
     expect(eventRoute).not.toContain('"error",');
