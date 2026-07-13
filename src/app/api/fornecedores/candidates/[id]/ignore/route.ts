@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { ignoreSupplierCandidate } from "@/lib/db/suppliers-repository";
-import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
+import { resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
+import { canActorPerformSupplierAction } from "@/lib/supplier-permissions";
+import { supplierErrorResponse } from "@/lib/supplier-errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,14 +14,12 @@ type RouteContext = {
   }>;
 };
 
-const writeRoles = new Set(["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO"]);
-
 function jsonError(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
 }
 
 function canWriteSuppliers(actor: AppActor) {
-  return canActorAccessPage(actor, "fornecedores") && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canUpdate"));
+  return canActorPerformSupplierAction(actor, "canApprove");
 }
 
 export async function POST(_request: Request, context: RouteContext) {
@@ -35,6 +35,6 @@ export async function POST(_request: Request, context: RouteContext) {
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao ignorar candidato Fluig.", 500);
+    return supplierErrorResponse(error, "Falha ao ignorar candidato Fluig.");
   }
 }

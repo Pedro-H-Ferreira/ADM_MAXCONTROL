@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import {
-  canActorAccessPage,
-  canActorPerformPageAction,
   createFluigJob,
   resolveCurrentAppUser,
   upsertFluigUserSyncState,
@@ -12,6 +10,8 @@ import { markSupplierFluigSyncQueued, readSupplier } from "@/lib/db/suppliers-re
 import { isValidCnpj, normalizeCnpj } from "@/lib/cnpj";
 import { requireFluigProcessMap } from "@/lib/fluig/process-map";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
+import { canActorPerformSupplierAction } from "@/lib/supplier-permissions";
+import { supplierErrorResponse } from "@/lib/supplier-errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,14 +28,12 @@ type SyncBody = {
   maxPages?: number;
 };
 
-const writeRoles = new Set(["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO"]);
-
 function jsonError(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
 }
 
 function canSyncSuppliers(actor: AppActor) {
-  return canActorAccessPage(actor, "fornecedores") && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canUpdate"));
+  return canActorPerformSupplierAction(actor, "canUpdate");
 }
 
 function parseNumber(value: unknown, fallback: number, min: number, max: number) {
@@ -176,6 +174,6 @@ export async function POST(request: Request, context: RouteContext) {
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao sincronizar fornecedor no Fluig.", 500);
+    return supplierErrorResponse(error, "Falha ao sincronizar fornecedor no Fluig.");
   }
 }

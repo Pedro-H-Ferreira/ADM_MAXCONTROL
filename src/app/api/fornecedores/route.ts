@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { createSupplier, listSuppliers, type SupplierInput } from "@/lib/db/suppliers-repository";
-import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
+import { canActorAccessPage, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
 import { supplierListFiltersSchema, supplierListFilterValues } from "@/lib/supplier-list-filters";
+import { supplierErrorResponse } from "@/lib/supplier-errors";
+import { canActorPerformSupplierAction } from "@/lib/supplier-permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const writeRoles = new Set(["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO"]);
 
 const supplierSchema = z.object({
   cnpj: z.string().nullable().optional(),
@@ -46,16 +46,16 @@ function jsonError(error: string, status = 400) {
 }
 
 function canWriteSuppliers(actor: AppActor) {
-  return canActorAccessPage(actor, "fornecedores") && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canCreate"));
+  return canActorPerformSupplierAction(actor, "canCreate");
 }
 
 function supplierPermissions(actor: AppActor) {
   const canView = canActorAccessPage(actor, "fornecedores");
   return {
     canView,
-    canCreate: canView && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canCreate")),
-    canUpdate: canView && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canUpdate")),
-    canApprove: canView && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canApprove")),
+    canCreate: canActorPerformSupplierAction(actor, "canCreate"),
+    canUpdate: canActorPerformSupplierAction(actor, "canUpdate"),
+    canApprove: canActorPerformSupplierAction(actor, "canApprove"),
     canReconcile: canView && actor.isAdmin,
   };
 }
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao listar fornecedores.", 500);
+    return supplierErrorResponse(error, "Falha ao listar fornecedores.");
   }
 }
 
@@ -109,6 +109,6 @@ export async function POST(request: Request) {
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao criar fornecedor.", 500);
+    return supplierErrorResponse(error, "Falha ao criar fornecedor.");
   }
 }

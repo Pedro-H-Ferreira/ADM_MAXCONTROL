@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   CheckCircle2,
@@ -101,11 +101,14 @@ type SupplierRecord = {
   cnpjFormatado: string | null;
   razaoSocial: string;
   nomeFantasia: string | null;
+  inscricaoEstadual: string | null;
+  inscricaoMunicipal: string | null;
   categoria: string | null;
   status: SupplierStatus;
   email: string | null;
   telefone: string | null;
   contatoPrincipal: string | null;
+  contatos: SupplierContact[];
   endereco?: {
     cep?: string | null;
     endereco?: string | null;
@@ -134,6 +137,12 @@ type SupplierRecord = {
   deletedAt: string | null;
 };
 
+type SupplierContact = {
+  nome: string;
+  tipo: string;
+  valor: string;
+};
+
 type BranchRecord = {
   id: string;
   code: string;
@@ -146,11 +155,14 @@ type SupplierFormState = {
   cnpj: string;
   razaoSocial: string;
   nomeFantasia: string;
+  inscricaoEstadual: string;
+  inscricaoMunicipal: string;
   categoria: string;
   status: SupplierStatus;
   email: string;
   telefone: string;
   contatoPrincipal: string;
+  contatos: SupplierContact[];
   cep: string;
   endereco: string;
   numero: string;
@@ -241,11 +253,14 @@ const initialForm: SupplierFormState = {
   cnpj: "",
   razaoSocial: "",
   nomeFantasia: "",
+  inscricaoEstadual: "",
+  inscricaoMunicipal: "",
   categoria: "",
   status: "ATIVO",
   email: "",
   telefone: "",
   contatoPrincipal: "",
+  contatos: [],
   cep: "",
   endereco: "",
   numero: "",
@@ -268,6 +283,18 @@ const initialForm: SupplierFormState = {
 function nullable(value: string) {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function normalizeContacts(contacts: unknown): SupplierContact[] {
+  if (!Array.isArray(contacts)) return [];
+  return contacts.map((contact) => {
+    const value = contact && typeof contact === "object" ? contact as Record<string, unknown> : {};
+    return {
+      nome: String(value.nome || value.name || ""),
+      tipo: String(value.tipo || value.type || ""),
+      valor: String(value.valor || value.value || value.email || value.telefone || ""),
+    };
+  });
 }
 
 function formatDateTime(value: string | null | undefined) {
@@ -312,11 +339,14 @@ function formFromSupplier(supplier: SupplierRecord): SupplierFormState {
     cnpj: supplier.cnpjNormalizado || supplier.cnpj || "",
     razaoSocial: supplier.razaoSocial || "",
     nomeFantasia: supplier.nomeFantasia || "",
+    inscricaoEstadual: supplier.inscricaoEstadual || "",
+    inscricaoMunicipal: supplier.inscricaoMunicipal || "",
     categoria: supplier.categoria || "",
     status: supplier.status || "ATIVO",
     email: supplier.email || "",
     telefone: supplier.telefone || "",
     contatoPrincipal: supplier.contatoPrincipal || "",
+    contatos: normalizeContacts(supplier.contatos),
     cep: supplier.endereco?.cep || "",
     endereco: supplier.endereco?.endereco || "",
     numero: supplier.endereco?.numero || "",
@@ -342,11 +372,20 @@ function buildSupplierPayload(form: SupplierFormState) {
     cnpj: nullable(form.cnpj),
     razaoSocial: form.razaoSocial.trim(),
     nomeFantasia: nullable(form.nomeFantasia),
+    inscricaoEstadual: nullable(form.inscricaoEstadual),
+    inscricaoMunicipal: nullable(form.inscricaoMunicipal),
     categoria: nullable(form.categoria),
     status: form.status,
     email: nullable(form.email),
     telefone: nullable(form.telefone),
     contatoPrincipal: nullable(form.contatoPrincipal),
+    contatos: form.contatos
+      .map((contact) => ({
+        nome: contact.nome.trim(),
+        tipo: contact.tipo.trim(),
+        valor: contact.valor.trim(),
+      }))
+      .filter((contact) => contact.nome || contact.tipo || contact.valor),
     cep: nullable(form.cep),
     endereco: nullable(form.endereco),
     numero: nullable(form.numero),
@@ -403,8 +442,11 @@ export function SuppliersPage({
   const [viewing, setViewing] = useState<SupplierRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SupplierRecord | null>(null);
   const [inactivateTarget, setInactivateTarget] = useState<SupplierRecord | null>(null);
+  const [ignoreCandidateId, setIgnoreCandidateId] = useState<string | null>(null);
   const [lookupResult, setLookupResult] = useState<LookupResult | null>(null);
   const [form, setForm] = useState<SupplierFormState>(initialForm);
+  const lastAutomaticLookupRef = useRef("");
+  const lookupCnpjRef = useRef<(rawCnpj?: string) => Promise<void>>(async () => undefined);
   const pageSize = 25;
   const matchesSupplierJob = useCallback(
     (job: FluigAdmJobSummary) =>
@@ -487,6 +529,8 @@ export function SuppliersPage({
   function resetForm() {
     setEditing(null);
     setLookupResult(null);
+    setIgnoreCandidateId(null);
+    lastAutomaticLookupRef.current = "";
     setForm(initialForm);
   }
 
@@ -574,6 +618,22 @@ export function SuppliersPage({
       ...current,
       cnpj: String(suggestions.cnpj || current.cnpj || ""),
       razaoSocial: String(suggestions.razaoSocial || current.razaoSocial || ""),
+      nomeFantasia: String(suggestions.nomeFantasia || current.nomeFantasia || ""),
+      inscricaoEstadual: String(suggestions.inscricaoEstadual || current.inscricaoEstadual || ""),
+      inscricaoMunicipal: String(suggestions.inscricaoMunicipal || current.inscricaoMunicipal || ""),
+      categoria: String(suggestions.categoria || current.categoria || ""),
+      email: String(suggestions.email || current.email || ""),
+      telefone: String(suggestions.telefone || current.telefone || ""),
+      contatoPrincipal: String(suggestions.contatoPrincipal || current.contatoPrincipal || ""),
+      contatos: suggestions.contatos?.length ? normalizeContacts(suggestions.contatos) : current.contatos,
+      cep: String(suggestions.cep || current.cep || ""),
+      endereco: String(suggestions.endereco || current.endereco || ""),
+      numero: String(suggestions.numero || current.numero || ""),
+      complemento: String(suggestions.complemento || current.complemento || ""),
+      bairro: String(suggestions.bairro || current.bairro || ""),
+      cidade: String(suggestions.cidade || current.cidade || ""),
+      uf: String(suggestions.uf || current.uf || ""),
+      pais: String(suggestions.pais || current.pais || "BR"),
       fluigName: String(suggestions.fluigName || current.fluigName || ""),
       fluigCode: String(suggestions.fluigCode || current.fluigCode || ""),
       fluigSupplierLabel: String(suggestions.fluigSupplierLabel || suggestions.fluigName || current.fluigSupplierLabel || ""),
@@ -595,6 +655,7 @@ export function SuppliersPage({
     }
 
     setLookupLoading(true);
+    lastAutomaticLookupRef.current = cnpj;
     setLookupResult(null);
     try {
       const data = await parseResponse<{ success: true } & LookupResult>(
@@ -622,6 +683,20 @@ export function SuppliersPage({
       setLookupLoading(false);
     }
   }
+
+  useEffect(() => {
+    lookupCnpjRef.current = lookupCnpj;
+  });
+
+  useEffect(() => {
+    const cnpj = onlyDigits(form.cnpj);
+    if (!dialogOpen || !isValidCnpj(cnpj) || cnpj === lastAutomaticLookupRef.current) return;
+
+    const timeout = window.setTimeout(() => {
+      void lookupCnpjRef.current(cnpj);
+    }, 500);
+    return () => window.clearTimeout(timeout);
+  }, [dialogOpen, form.cnpj]);
 
   async function submitSupplier() {
     if (!form.razaoSocial.trim()) {
@@ -659,8 +734,13 @@ export function SuppliersPage({
 
     setSaving(true);
     try {
+      const reviewedSupplier = buildSupplierPayload(form);
       await parseResponse(
-        await fetch(`/api/fornecedores/candidates/${candidateId}/approve`, { method: "POST" }),
+        await fetch(`/api/fornecedores/candidates/${candidateId}/approve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...reviewedSupplier, branchIds: form.branchIds }),
+        }),
         "Falha ao converter candidato Fluig."
       );
       toast.success("Candidato Fluig convertido em fornecedor.");
@@ -675,7 +755,7 @@ export function SuppliersPage({
   }
 
   async function ignoreCandidate() {
-    const candidateId = lookupResult?.suggestions?.candidateId;
+    const candidateId = ignoreCandidateId;
     if (!candidateId) return;
 
     setSaving(true);
@@ -685,6 +765,7 @@ export function SuppliersPage({
         "Falha ao ignorar candidato Fluig."
       );
       toast.success("Candidato Fluig ignorado para novas conversoes.");
+      setIgnoreCandidateId(null);
       setLookupResult(null);
       setForm((current) => ({
         ...current,
@@ -700,7 +781,7 @@ export function SuppliersPage({
   }
 
   async function approvePreRegistration(supplier: SupplierRecord) {
-    if (!permissions.canUpdate) {
+    if (!permissions.canApprove) {
       toast.error("Usuario sem permissao para aprovar pre-cadastros.");
       return;
     }
@@ -994,12 +1075,18 @@ export function SuppliersPage({
         </CardHeader>
         <CardContent className="p-0">
           {error ? (
-            <div className="p-4 text-sm font-medium text-destructive">{error}</div>
-          ) : loading ? (
-            <div className="flex min-h-56 items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              Carregando fornecedores reais...
+            <div className="flex min-h-48 flex-col items-center justify-center gap-3 p-6 text-center">
+              <div>
+                <p className="text-sm font-medium text-destructive">Nao foi possivel carregar os fornecedores.</p>
+                <p className="mt-1 text-xs text-muted-foreground">{error}</p>
+              </div>
+              <Button type="button" variant="outline" onClick={() => void loadSuppliers()} disabled={loading}>
+                <RefreshCcw className={cn("size-4", loading && "animate-spin")} />
+                Tentar novamente
+              </Button>
             </div>
+          ) : loading ? (
+            <SupplierListSkeleton />
           ) : items.length ? (
             <Table>
               <TableHeader>
@@ -1069,7 +1156,7 @@ export function SuppliersPage({
                             <Edit3 className="size-4" />
                           </Button>
                         ) : null}
-                        {permissions.canUpdate && needsReview ? (
+                        {permissions.canApprove && needsReview && supplier.sourceSystem === "PRE_CADASTRO_FLUIG" ? (
                           <Button
                             type="button"
                             variant="ghost"
@@ -1188,12 +1275,30 @@ export function SuppliersPage({
         lookupCnpj={lookupCnpj}
         submitSupplier={submitSupplier}
         approveCandidate={approveCandidate}
-        ignoreCandidate={ignoreCandidate}
+        requestIgnoreCandidate={setIgnoreCandidateId}
         openEditDialog={openEditDialog}
         permissions={permissions}
       />
 
       <SupplierViewDialog supplier={viewing} onOpenChange={(open) => !open && setViewing(null)} />
+
+      <AlertDialog open={Boolean(ignoreCandidateId)} onOpenChange={(open) => !open && setIgnoreCandidateId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ignorar candidato Fluig?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O candidato deixara de aparecer para conversao. O formulario revisado nao sera salvo como fornecedor.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" disabled={saving} onClick={() => void ignoreCandidate()}>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+              Ignorar candidato
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={Boolean(inactivateTarget)} onOpenChange={(open) => !open && setInactivateTarget(null)}>
         <AlertDialogContent>
@@ -1252,7 +1357,7 @@ function SupplierFormDialog({
   lookupCnpj,
   submitSupplier,
   approveCandidate,
-  ignoreCandidate,
+  requestIgnoreCandidate,
   openEditDialog,
   permissions,
 }: {
@@ -1269,7 +1374,7 @@ function SupplierFormDialog({
   lookupCnpj: (rawCnpj?: string) => Promise<void>;
   submitSupplier: () => Promise<void>;
   approveCandidate: () => Promise<void>;
-  ignoreCandidate: () => Promise<void>;
+  requestIgnoreCandidate: (candidateId: string) => void;
   openEditDialog: (supplier: SupplierRecord) => void;
   permissions: PagePermissions;
 }) {
@@ -1288,26 +1393,40 @@ function SupplierFormDialog({
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-4">
-            <section className="rounded-md border p-3">
-              <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                <Field label="CNPJ">
-                  <Input
-                    value={form.cnpj}
-                    onChange={(event) => updateForm("cnpj", event.target.value)}
-                    onBlur={() => updateForm("cnpj", formatCnpj(form.cnpj))}
-                    placeholder="00.000.000/0000-00"
-                  />
-                </Field>
-                <div className="flex items-end">
-                  <Button type="button" variant="outline" className="w-full" onClick={() => void lookupCnpj()} disabled={lookupLoading}>
-                    {lookupLoading ? <Loader2 className="size-4 animate-spin" /> : <FileSearch className="size-4" />}
-                    Consultar CNPJ
-                  </Button>
+            <section className="grid gap-3 rounded-md border p-3 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div>
+                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                  <Field label="CNPJ">
+                    <Input
+                      value={form.cnpj}
+                      onChange={(event) => updateForm("cnpj", event.target.value)}
+                      onBlur={() => updateForm("cnpj", formatCnpj(form.cnpj))}
+                      placeholder="00.000.000/0000-00"
+                    />
+                  </Field>
+                  <div className="flex items-end">
+                    <Button type="button" variant="outline" className="w-full" onClick={() => void lookupCnpj()} disabled={lookupLoading}>
+                      {lookupLoading ? <Loader2 className="size-4 animate-spin" /> : <FileSearch className="size-4" />}
+                      Consultar CNPJ
+                    </Button>
+                  </div>
                 </div>
+                {form.cnpj && !isValidCnpj(form.cnpj) ? (
+                  <p className="mt-2 text-xs font-medium text-destructive">CNPJ invalido.</p>
+                ) : isValidCnpj(form.cnpj) && lookupLoading ? (
+                  <p className="mt-2 text-xs text-muted-foreground">Consultando automaticamente o cadastro local e o historico Fluig...</p>
+                ) : null}
               </div>
-              {form.cnpj && !isValidCnpj(form.cnpj) ? (
-                <p className="mt-2 text-xs font-medium text-destructive">CNPJ invalido.</p>
-              ) : null}
+              <LookupResultPanel
+                lookupResult={lookupResult}
+                lookupLoading={lookupLoading}
+                saving={saving}
+                candidateId={candidateId}
+                permissions={permissions}
+                approveCandidate={approveCandidate}
+                requestIgnoreCandidate={requestIgnoreCandidate}
+                openEditDialog={openEditDialog}
+              />
             </section>
 
             <section className="grid gap-3 rounded-md border p-3 md:grid-cols-2">
@@ -1316,6 +1435,12 @@ function SupplierFormDialog({
               </Field>
               <Field label="Nome fantasia">
                 <Input value={form.nomeFantasia} onChange={(event) => updateForm("nomeFantasia", event.target.value)} />
+              </Field>
+              <Field label="Inscricao estadual">
+                <Input value={form.inscricaoEstadual} onChange={(event) => updateForm("inscricaoEstadual", event.target.value)} />
+              </Field>
+              <Field label="Inscricao municipal">
+                <Input value={form.inscricaoMunicipal} onChange={(event) => updateForm("inscricaoMunicipal", event.target.value)} />
               </Field>
               <Field label="Categoria">
                 <Input value={form.categoria} onChange={(event) => updateForm("categoria", event.target.value)} placeholder="Ex.: SERVICOS, INSUMOS" />
@@ -1341,6 +1466,60 @@ function SupplierFormDialog({
               <Field label="Contato principal">
                 <Input value={form.contatoPrincipal} onChange={(event) => updateForm("contatoPrincipal", event.target.value)} />
               </Field>
+              <div className="space-y-2 md:col-span-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <Label>Contatos adicionais</Label>
+                    <p className="text-xs text-muted-foreground">Registre financeiro, comercial ou outro canal relevante.</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateForm("contatos", [...form.contatos, { nome: "", tipo: "", valor: "" }])}
+                  >
+                    <Plus className="size-4" />
+                    Adicionar
+                  </Button>
+                </div>
+                {form.contatos.length ? (
+                  <div className="space-y-2">
+                    {form.contatos.map((contact, index) => (
+                      <div key={index} className="grid gap-2 rounded-md border bg-muted/20 p-2 sm:grid-cols-[1fr_140px_1fr_auto]">
+                        <Input
+                          aria-label={`Nome do contato adicional ${index + 1}`}
+                          value={contact.nome}
+                          placeholder="Nome"
+                          onChange={(event) => updateForm("contatos", form.contatos.map((item, itemIndex) => itemIndex === index ? { ...item, nome: event.target.value } : item))}
+                        />
+                        <Input
+                          aria-label={`Tipo do contato adicional ${index + 1}`}
+                          value={contact.tipo}
+                          placeholder="Tipo"
+                          onChange={(event) => updateForm("contatos", form.contatos.map((item, itemIndex) => itemIndex === index ? { ...item, tipo: event.target.value } : item))}
+                        />
+                        <Input
+                          aria-label={`Canal do contato adicional ${index + 1}`}
+                          value={contact.valor}
+                          placeholder="E-mail ou telefone"
+                          onChange={(event) => updateForm("contatos", form.contatos.map((item, itemIndex) => itemIndex === index ? { ...item, valor: event.target.value } : item))}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          title="Remover contato"
+                          onClick={() => updateForm("contatos", form.contatos.filter((_, itemIndex) => itemIndex !== index))}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">Nenhum contato adicional informado.</p>
+                )}
+              </div>
             </section>
 
             <section className="grid gap-3 rounded-md border p-3 md:grid-cols-4">
@@ -1364,6 +1543,9 @@ function SupplierFormDialog({
               </Field>
               <Field label="UF">
                 <Input value={form.uf} onChange={(event) => updateForm("uf", event.target.value.toUpperCase().slice(0, 2))} />
+              </Field>
+              <Field label="Pais">
+                <Input value={form.pais} onChange={(event) => updateForm("pais", event.target.value.toUpperCase())} placeholder="BR" />
               </Field>
             </section>
 
@@ -1438,91 +1620,6 @@ function SupplierFormDialog({
               </div>
             </section>
 
-            <section className="rounded-md border p-3">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold">Resultado do CNPJ</h3>
-                {lookupResult ? <Badge variant="outline">{lookupSourceLabels[lookupResult.source]}</Badge> : null}
-              </div>
-              {lookupResult ? (
-                <div className="mt-3 space-y-3 text-xs">
-                  {lookupResult.warnings.map((warning) => (
-                    <p key={warning} className="rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
-                      {warning}
-                    </p>
-                  ))}
-                  {lookupResult.supplier ? (
-                    <div className="rounded-md border bg-muted/20 p-2">
-                      <p className="font-semibold">{lookupResult.supplier.razaoSocial}</p>
-                      <p className="text-muted-foreground">{lookupResult.supplier.cnpjFormatado}</p>
-                      <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => openEditDialog(lookupResult.supplier as SupplierRecord)}>
-                        Abrir cadastro existente
-                      </Button>
-                    </div>
-                  ) : null}
-                  {lookupResult.source !== "local" && lookupResult.source !== "not_found" ? (
-                    <div className="rounded-md border bg-muted/20 p-2">
-                      <p className="font-semibold">{lookupResult.suggestions.razaoSocial || lookupResult.suggestions.fluigName || "Sugestao Fluig"}</p>
-                      <p className="text-muted-foreground">
-                        Modelo {lookupResult.suggestions.defaultSourceRequestId || "historico"}
-                        {typeof lookupResult.suggestions.confidence === "number"
-                          ? ` - confianca ${Math.round(
-                              lookupResult.suggestions.confidence <= 1
-                                ? lookupResult.suggestions.confidence * 100
-                                : lookupResult.suggestions.confidence
-                            )}%`
-                          : ""}
-                      </p>
-                      {lookupResult.suggestions.latestRequestId ? (
-                        <p className="mt-1 text-muted-foreground">
-                          Ultima solicitacao: {lookupResult.suggestions.latestRequestId}
-                        </p>
-                      ) : null}
-                      {lookupResult.suggestions.branchLabel ? (
-                        <p className="mt-1 text-muted-foreground">
-                          Filial mais usada: {lookupResult.suggestions.branchLabel}
-                        </p>
-                      ) : null}
-                      {lookupResult.suggestions.autoFilledFields?.length ? (
-                        <div className="mt-3">
-                          <p className="font-medium text-foreground">Preenchido automaticamente</p>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {lookupResult.suggestions.autoFilledFields.map((field) => (
-                              <Badge key={field} variant="secondary">{field}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                      {lookupResult.suggestions.reviewFields?.length ? (
-                        <div className="mt-3">
-                          <p className="font-medium text-foreground">Revisar manualmente</p>
-                          <p className="mt-1 text-muted-foreground">
-                            {lookupResult.suggestions.reviewFields.join(", ")}
-                          </p>
-                        </div>
-                      ) : null}
-                      {candidateId && (permissions.canApprove || permissions.canUpdate) ? (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {permissions.canApprove ? (
-                            <Button type="button" variant="outline" size="sm" onClick={() => void approveCandidate()} disabled={saving}>
-                              Converter candidato
-                            </Button>
-                          ) : null}
-                          {permissions.canUpdate ? (
-                            <Button type="button" variant="ghost" size="sm" onClick={() => void ignoreCandidate()} disabled={saving}>
-                              Ignorar candidato
-                            </Button>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Digite um CNPJ e consulte para preencher com dados locais ou do historico Fluig.
-                </p>
-              )}
-            </section>
           </aside>
         </div>
 
@@ -1543,6 +1640,118 @@ function SupplierFormDialog({
   );
 }
 
+function LookupResultPanel({
+  lookupResult,
+  lookupLoading,
+  saving,
+  candidateId,
+  permissions,
+  approveCandidate,
+  requestIgnoreCandidate,
+  openEditDialog,
+}: {
+  lookupResult: LookupResult | null;
+  lookupLoading: boolean;
+  saving: boolean;
+  candidateId?: string;
+  permissions: PagePermissions;
+  approveCandidate: () => Promise<void>;
+  requestIgnoreCandidate: (candidateId: string) => void;
+  openEditDialog: (supplier: SupplierRecord) => void;
+}) {
+  return (
+    <div className="rounded-md border bg-muted/10 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Resultado do CNPJ</h3>
+        {lookupLoading ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : null}
+        {!lookupLoading && lookupResult ? <Badge variant="outline">{lookupSourceLabels[lookupResult.source]}</Badge> : null}
+      </div>
+      {lookupResult ? (
+        <div className="mt-3 space-y-3 text-xs">
+          {lookupResult.warnings.map((warning) => (
+            <p key={warning} className="rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
+              {warning}
+            </p>
+          ))}
+          {lookupResult.supplier ? (
+            <div className="rounded-md border bg-background p-2">
+              <p className="font-semibold">{lookupResult.supplier.razaoSocial}</p>
+              <p className="text-muted-foreground">{lookupResult.supplier.cnpjFormatado}</p>
+              <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => openEditDialog(lookupResult.supplier as SupplierRecord)}>
+                Abrir cadastro existente
+              </Button>
+            </div>
+          ) : null}
+          {lookupResult.source !== "local" && lookupResult.source !== "not_found" ? (
+            <div className="rounded-md border bg-background p-2">
+              <p className="font-semibold">{lookupResult.suggestions.razaoSocial || lookupResult.suggestions.fluigName || "Sugestao Fluig"}</p>
+              <p className="text-muted-foreground">
+                Modelo {lookupResult.suggestions.defaultSourceRequestId || "historico"}
+                {typeof lookupResult.suggestions.confidence === "number"
+                  ? ` - confianca ${Math.round(lookupResult.suggestions.confidence <= 1 ? lookupResult.suggestions.confidence * 100 : lookupResult.suggestions.confidence)}%`
+                  : ""}
+              </p>
+              {lookupResult.suggestions.latestRequestId ? <p className="mt-1 text-muted-foreground">Ultima solicitacao: {lookupResult.suggestions.latestRequestId}</p> : null}
+              {lookupResult.suggestions.branchLabel ? <p className="mt-1 text-muted-foreground">Filial mais usada: {lookupResult.suggestions.branchLabel}</p> : null}
+              {lookupResult.suggestions.autoFilledFields?.length ? (
+                <div className="mt-3">
+                  <p className="font-medium text-foreground">Preenchido automaticamente</p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {lookupResult.suggestions.autoFilledFields.map((field) => <Badge key={field} variant="secondary">{field}</Badge>)}
+                  </div>
+                </div>
+              ) : null}
+              {lookupResult.suggestions.reviewFields?.length ? (
+                <div className="mt-3">
+                  <p className="font-medium text-foreground">Revisar manualmente</p>
+                  <p className="mt-1 text-muted-foreground">{lookupResult.suggestions.reviewFields.join(", ")}</p>
+                </div>
+              ) : null}
+              {candidateId && permissions.canApprove ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {permissions.canApprove ? (
+                    <Button type="button" variant="outline" size="sm" onClick={() => void approveCandidate()} disabled={saving}>
+                      Converter candidato
+                    </Button>
+                  ) : null}
+                  {permissions.canApprove ? (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => requestIgnoreCandidate(candidateId)} disabled={saving}>
+                      Ignorar candidato
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {lookupResult.source === "not_found" ? <p className="text-muted-foreground">Nenhum cadastro local ou referencia Fluig foi encontrado.</p> : null}
+        </div>
+      ) : (
+        <p className="mt-3 text-xs text-muted-foreground">
+          {lookupLoading ? "Consultando dados locais e Fluig..." : "A consulta inicia automaticamente quando o CNPJ for valido."}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SupplierListSkeleton() {
+  return (
+    <div className="overflow-hidden" aria-label="Carregando fornecedores">
+      <div className="grid grid-cols-[2fr_1fr_1.5fr_1fr] gap-4 border-b p-4">
+        {["a", "b", "c", "d"].map((key) => <div key={key} className="h-3 animate-pulse rounded bg-muted" />)}
+      </div>
+      {Array.from({ length: 6 }, (_, index) => (
+        <div key={index} className="grid grid-cols-[2fr_1fr_1.5fr_1fr] gap-4 border-b p-4 last:border-b-0">
+          <div className="space-y-2"><div className="h-4 w-4/5 animate-pulse rounded bg-muted" /><div className="h-3 w-1/2 animate-pulse rounded bg-muted" /></div>
+          <div className="h-4 animate-pulse rounded bg-muted" />
+          <div className="space-y-2"><div className="h-4 w-3/4 animate-pulse rounded bg-muted" /><div className="h-3 w-1/2 animate-pulse rounded bg-muted" /></div>
+          <div className="h-7 w-20 animate-pulse rounded bg-muted" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SupplierViewDialog({ supplier, onOpenChange }: { supplier: SupplierRecord | null; onOpenChange: (open: boolean) => void }) {
   return (
     <Dialog open={Boolean(supplier)} onOpenChange={onOpenChange}>
@@ -1555,6 +1764,10 @@ function SupplierViewDialog({ supplier, onOpenChange }: { supplier: SupplierReco
           <div className="space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
               <Info label="CNPJ" value={supplier.cnpjFormatado || supplier.cnpjNormalizado || "-"} />
+              <Info label="Nome fantasia" value={supplier.nomeFantasia || "-"} />
+              <Info label="Inscricao estadual" value={supplier.inscricaoEstadual || "-"} />
+              <Info label="Inscricao municipal" value={supplier.inscricaoMunicipal || "-"} />
+              <Info label="Categoria" value={supplier.categoria || "-"} />
               <Info label="Status" value={supplier.status.replaceAll("_", " ")} />
               <Info label="Origem" value={sourceLabels[supplier.sourceSystem]} />
               <Info label="Sincronizacao" value={syncLabels[supplier.syncStatus]} />
@@ -1564,6 +1777,29 @@ function SupplierViewDialog({ supplier, onOpenChange }: { supplier: SupplierReco
               <Info label="Ultima sync" value={formatDateTime(supplier.fluig.lastSyncAt)} />
               <Info label="Filiais" value={supplier.branches.map((branch) => branch.code || branch.name).join(", ") || "-"} className="md:col-span-2" />
               <Info label="Contato" value={[supplier.contatoPrincipal, supplier.email, supplier.telefone].filter(Boolean).join(" / ") || "-"} className="md:col-span-2" />
+              <Info
+                label="Contatos adicionais"
+                value={normalizeContacts(supplier.contatos).map((contact) => [contact.nome, contact.tipo, contact.valor].filter(Boolean).join(" - ")).filter(Boolean).join(" | ") || "-"}
+                className="md:col-span-2"
+              />
+              <Info
+                label="Endereco completo"
+                value={[
+                  supplier.endereco?.endereco,
+                  supplier.endereco?.numero,
+                  supplier.endereco?.complemento,
+                  supplier.endereco?.bairro,
+                  supplier.endereco?.cidade,
+                  supplier.endereco?.uf,
+                  supplier.endereco?.cep,
+                  supplier.endereco?.pais,
+                ].filter(Boolean).join(", ") || "-"}
+                className="md:col-span-2"
+              />
+              <Info label="Label Fluig" value={supplier.fluig.supplierLabel || "-"} />
+              <Info label="Solicitacao modelo" value={supplier.fluig.defaultSourceRequestId || "-"} />
+              <Info label="Atualizado em" value={formatDateTime(supplier.updatedAt)} />
+              <Info label="Situacao do registro" value={supplier.deletedAt ? `Excluido em ${formatDateTime(supplier.deletedAt)}` : "Registro vigente"} />
               <Info label="Observacoes" value={supplier.observacoes || "-"} className="md:col-span-2" />
             </div>
 

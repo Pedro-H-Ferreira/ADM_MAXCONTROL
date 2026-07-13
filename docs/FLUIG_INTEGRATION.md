@@ -202,6 +202,15 @@ Operacao:
 - A carga historica normaliza `OPEN`, `FINALIZED` e `CANCELED` em `is_open`, `normalized_status` e datas de encerramento. As filas de tarefas e solicitacoes abertas consultam somente `is_open = true`, portanto registros finalizados ou cancelados continuam disponiveis na consulta por numero, mas nao reaparecem no trabalho pendente.
 - A aprovacao de um candidato reutiliza o pre-cadastro existente, ativa o fornecedor e altera a origem para `LOCAL_FLUIG`, sem criar CNPJ duplicado.
 
+Seguranca e ciclo de vida de fornecedores verificados em `PORTAL ADM CD` em 13/07/2026:
+
+- As migrations `20260713023625_secure_supplier_lifecycle.sql` e `20260713023805_index_fluig_supplier_adm_supplier.sql` eliminam a recursao das policies e restringem leitura de fornecedor, contato e vinculo as filiais liberadas para o usuario. Fornecedores sem filial ficam visiveis somente para `ADMIN_MASTER` e `ADMIN`.
+- `ADMINISTRATIVO` nao recebe mais escrita por perfil. Criacao, edicao e aprovacao dependem das permissoes explicitas `canCreate`, `canUpdate` e `canApprove` da pagina `fornecedores`.
+- Criacao e edicao usam `save_app_supplier`; fornecedor, filiais e auditoria sao gravados na mesma transacao. Exclusao usa `delete_app_supplier` e vira exclusao logica quando existe solicitacao, lancamento, vinculo Fluig, filial ou contato.
+- CNPJ e normalizado pelo banco, permanece unico mesmo depois de exclusao logica e a filial padrao possui unicidade por fornecedor.
+- O lookup por CNPJ aplica o escopo Fluig do ator antes de devolver solicitacoes, defaults ou candidatos; o catalogo inteiro e percorrido por paginas, sem o limite silencioso de 1.000 registros.
+- Uma sessao real `ADMINISTRATIVO` com duas filiais retornou `76` fornecedores, `87` vinculos e `0` fornecedores sem filial. O teste transacional de criacao, filial padrao, auditoria e exclusao logica foi executado com rollback.
+
 Comandos seguros de teste:
 
 ```powershell

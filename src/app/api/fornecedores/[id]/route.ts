@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { deleteSupplier, readSupplier, updateSupplier, type SupplierInput } from "@/lib/db/suppliers-repository";
-import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
+import { canActorAccessPage, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
+import { canActorPerformSupplierAction } from "@/lib/supplier-permissions";
+import { supplierErrorResponse } from "@/lib/supplier-errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,8 +14,6 @@ type RouteContext = {
     id: string;
   }>;
 };
-
-const writeRoles = new Set(["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO"]);
 
 const supplierPatchSchema = z.object({
   cnpj: z.string().nullable().optional(),
@@ -51,7 +51,7 @@ function jsonError(error: string, status = 400) {
 }
 
 function canUpdateSuppliers(actor: AppActor) {
-  return canActorAccessPage(actor, "fornecedores") && (writeRoles.has(actor.role) || canActorPerformPageAction(actor, "fornecedores", "canUpdate"));
+  return canActorPerformSupplierAction(actor, "canUpdate");
 }
 
 export async function GET(_request: Request, context: RouteContext) {
@@ -68,7 +68,7 @@ export async function GET(_request: Request, context: RouteContext) {
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao consultar fornecedor.", 500);
+    return supplierErrorResponse(error, "Falha ao consultar fornecedor.");
   }
 }
 
@@ -92,7 +92,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao editar fornecedor.", 500);
+    return supplierErrorResponse(error, "Falha ao editar fornecedor.");
   }
 }
 
@@ -109,6 +109,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao excluir fornecedor.", 500);
+    return supplierErrorResponse(error, "Falha ao excluir fornecedor.");
   }
 }

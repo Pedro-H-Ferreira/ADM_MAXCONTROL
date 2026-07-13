@@ -78,6 +78,26 @@ describe("database and API contracts", () => {
     expect(route).toContain("Usuario sem permissao para consultar fornecedores desta filial.");
   });
 
+  it("protege o ciclo de vida do fornecedor no repository e no banco", async () => {
+    const repository = await source("src/lib/db/suppliers-repository.ts");
+    const migration = await source("supabase/migrations/20260713023625_secure_supplier_lifecycle.sql");
+
+    expect(repository).toContain("assertSupplierMutationScope");
+    expect(repository).toContain("validateSupplierBranchScope");
+    expect(repository).toContain('rpc("save_app_supplier"');
+    expect(repository).toContain('rpc("delete_app_supplier"');
+    expect(repository).toContain("buildFluigActorPostgrestFilter");
+    expect(repository).toContain("findSupplierCatalogByCnpj");
+    expect(migration).toContain("create policy \"authenticated_read_app_suppliers\"");
+    expect(migration).toContain("app_supplier_branch_one_default_idx");
+    expect(migration).toContain("normalize_app_supplier_cnpj");
+    expect(migration).toContain("prevent_linked_app_supplier_delete");
+    expect(migration).toContain("create or replace function public.save_app_supplier");
+    expect(migration).toContain("create or replace function public.delete_app_supplier");
+    expect(migration).toContain("from public, anon, authenticated");
+    expect(migration).toContain("to service_role");
+  });
+
   it("materializa pre-cadastros e relacionamentos do historico sem reabrir candidatos aprovados", async () => {
     const supplierRepository = await source("src/lib/db/suppliers-repository.ts");
     const fluigRepository = await source("src/lib/db/fluig-repository.ts");

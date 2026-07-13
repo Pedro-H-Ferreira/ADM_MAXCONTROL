@@ -1,9 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { canonicalHistoricalCnpj, formatCnpj, isValidCnpj, normalizeCnpj, onlyDigits } from "@/lib/cnpj";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
-import { filterRowsForActor, type AppActor } from "@/lib/db/app-repository";
+import { AppAuthError, filterRowsForActor, type AppActor } from "@/lib/db/app-repository";
 import type { FluigHistoryItem } from "@/lib/fluig/server-client";
+import { buildFluigActorPostgrestFilter } from "@/lib/fluig-visibility";
 import type { SupplierListFilters } from "@/lib/supplier-list-filters";
+import { canActorAccessSupplierBranches } from "@/lib/supplier-permissions";
 import {
   historicalCnpjMatches,
   historicalCnpjVariants,
@@ -242,11 +244,64 @@ function normalizeSupplierInput(input: SupplierInput, actor: AppActor) {
 }
 
 function supplierCanBeSeenByActor(actor: AppActor, supplierId: string, linksBySupplier: Map<string, BranchLinkRow[]>) {
-  if (actor.isAdmin) return true;
   const links = linksBySupplier.get(supplierId) || [];
-  if (!links.length) return true;
-  const branchCodes = new Set(actor.branchCodes);
-  return links.some((link) => link.branch?.code && branchCodes.has(link.branch.code));
+  return canActorAccessSupplierBranches(actor, links.map((link) => link.branch?.code));
+}
+
+async function validateSupplierBranchScope(
+  client: SupabaseClient,
+  actor: AppActor,
+  branchIds: string[] | undefined,
+  options: { requiredForScopedActor?: boolean } = {}
+) {
+  if (branchIds === undefined) return undefined;
+  const uniqueBranchIds = Array.from(new Set(branchIds.filter(Boolean)));
+
+  if (!actor.isAdmin && options.requiredForScopedActor && uniqueBranchIds.length === 0) {
+    throw new AppAuthError(
+      "Selecione ao menos uma filial permitida para o fornecedor.",
+      403,
+      "SUPPLIER_BRANCH_REQUIRED"
+    );
+  }
+
+  if (!uniqueBranchIds.length) return [];
+  const { data, error } = await client
+    .from("app_branches")
+    .select("id,code,active")
+    .in("id", uniqueBranchIds)
+    .is("deleted_at", null);
+  if (error) throw error;
+
+  const existing = new Set((data || []).filter((branch) => branch.active).map((branch) => String(branch.id)));
+  if (existing.size !== uniqueBranchIds.length) {
+    throw new Error("Uma ou mais filiais selecionadas nao existem ou estao inativas.");
+  }
+
+  if (!actor.isAdmin) {
+    const allowed = new Set(actor.branches.filter((branch) => branch.active).map((branch) => branch.id));
+    if (uniqueBranchIds.some((branchId) => !allowed.has(branchId))) {
+      throw new AppAuthError(
+        "Usuario sem permissao para vincular fornecedor a uma das filiais selecionadas.",
+        403,
+        "SUPPLIER_BRANCH_FORBIDDEN"
+      );
+    }
+  }
+
+  return uniqueBranchIds;
+}
+
+async function assertSupplierMutationScope(client: SupabaseClient, actor: AppActor, supplierId: string) {
+  if (actor.isAdmin) return;
+  const links = await fetchLinks(client, [supplierId]);
+  if (!supplierCanBeSeenByActor(actor, supplierId, links)) {
+    throw new AppAuthError(
+      "Usuario sem permissao para alterar fornecedor desta filial.",
+      403,
+      "SUPPLIER_SCOPE_FORBIDDEN"
+    );
+  }
 }
 
 function requestActivityTimestamp(row: SupplierLinkedRequestDbRow) {
@@ -438,7 +493,11 @@ export async function listSuppliers(
   const from = (page - 1) * pageSize;
   const branchScoped = Boolean(input.branchId);
   const actorBranchIds = actor.branches.map((branch) => branch.id).filter(Boolean);
-  const actorBranchScoped = !actor.isAdmin && !branchScoped && actorBranchIds.length > 0;
+  if (!actor.isAdmin && actorBranchIds.length === 0) {
+    return { page, pageSize, total: 0, items: [] };
+  }
+
+  const actorBranchScoped = !actor.isAdmin && !branchScoped;
   const branchFiltered = branchScoped || actorBranchScoped;
 
   let query = client
@@ -472,8 +531,7 @@ export async function listSuppliers(
   }
   if (input.attention === "ERROR") query = query.eq("sync_status", "ERRO_SYNC");
 
-  const queryLimitMultiplier = actor.isAdmin || branchScoped || actorBranchScoped ? 1 : 5;
-  const { data, error, count } = await query.range(from, from + pageSize * queryLimitMultiplier - 1);
+  const { data, error, count } = await query.range(from, from + pageSize - 1);
   if (error) throw error;
 
   const rows = (data || []) as unknown as SupplierDbRow[];
@@ -488,7 +546,7 @@ export async function listSuppliers(
   return {
     page,
     pageSize,
-    total: actor.isAdmin || branchScoped || actorBranchScoped ? count || 0 : visibleRows.length,
+    total: count || 0,
     items: visibleRows.map((row) =>
       mapSupplier(
         row,
@@ -513,24 +571,6 @@ async function assertNoDuplicateCnpj(client: SupabaseClient, cnpj: string | null
   if (error) throw error;
   if (data) {
     throw new Error(`Fornecedor ja cadastrado para o CNPJ ${formatCnpj(cnpj)}.`);
-  }
-}
-
-async function replaceBranchLinks(client: SupabaseClient, supplierId: string, branchIds: string[] | undefined) {
-  if (!branchIds) return;
-  const uniqueBranchIds = Array.from(new Set(branchIds.filter(Boolean)));
-  const { error: deleteError } = await client.from("app_supplier_branch_links").delete().eq("supplier_id", supplierId);
-  if (deleteError) throw deleteError;
-
-  if (uniqueBranchIds.length) {
-    const { error: insertError } = await client.from("app_supplier_branch_links").insert(
-      uniqueBranchIds.map((branchId, index) => ({
-        supplier_id: supplierId,
-        branch_id: branchId,
-        default_branch: index === 0,
-      }))
-    );
-    if (insertError) throw insertError;
   }
 }
 
@@ -842,42 +882,87 @@ export async function reconcileSupplierPreRegistrations(input: {
   };
 }
 
-export async function createSupplier(actor: AppActor, input: SupplierInput) {
-  const client = assertServiceClient();
-  const payload = normalizeSupplierInput(input, actor);
-  await assertNoDuplicateCnpj(client, payload.cnpj_normalizado);
+type SupplierMutationOptions = {
+  systemManaged?: boolean;
+  eventType?: string;
+  metadata?: JsonRecord;
+};
 
-  const { data, error } = await client
-    .from("app_suppliers")
-    .insert({
-      ...payload,
-      created_by_user_id: actor.id,
-    })
-    .select("*")
-    .single();
+async function saveSupplierTransaction(input: {
+  client: SupabaseClient;
+  supplierId: string | null;
+  actor: AppActor;
+  payload: JsonRecord;
+  branchIds: string[] | undefined;
+  eventType: string;
+  metadata?: JsonRecord;
+}) {
+  const { data, error } = await input.client.rpc("save_app_supplier", {
+    p_supplier_id: input.supplierId,
+    p_actor_id: input.actor.id,
+    p_payload: input.payload,
+    p_branch_ids: input.branchIds ?? null,
+    p_event_type: input.eventType,
+    p_metadata: input.metadata || {},
+  });
   if (error) throw error;
+  return String(data || input.supplierId || "");
+}
 
-  const supplier = data as SupplierDbRow;
-  await replaceBranchLinks(client, supplier.id, input.branchIds);
+export async function createSupplier(
+  actor: AppActor,
+  input: SupplierInput,
+  options: SupplierMutationOptions = {}
+) {
+  const client = assertServiceClient();
+  const managedInput = options.systemManaged
+    ? input
+    : {
+        ...input,
+        status: input.status === "INATIVO" ? ("INATIVO" as const) : ("ATIVO" as const),
+        sourceSystem: "LOCAL" as const,
+        syncStatus: "NAO_SINCRONIZADO" as const,
+      };
+  const payload = normalizeSupplierInput(managedInput, actor);
+  await assertNoDuplicateCnpj(client, payload.cnpj_normalizado);
+  const branchIds = await validateSupplierBranchScope(client, actor, input.branchIds, {
+    requiredForScopedActor: !actor.isAdmin,
+  });
+
+  const supplierId = await saveSupplierTransaction({
+    client,
+    supplierId: null,
+    actor,
+    payload,
+    branchIds,
+    eventType: options.eventType || "created",
+    metadata: options.metadata,
+  });
   const fluigLinks = await linkSupplierFluigReferences(client, {
-    supplierId: supplier.id,
-    cnpj: supplier.cnpj_normalizado,
-    supplierName: supplier.razao_social,
+    supplierId,
+    cnpj: payload.cnpj_normalizado,
+    supplierName: payload.razao_social,
   });
-  await recordSupplierAudit(client, {
-    supplierId: supplier.id,
-    actorId: actor.id,
-    eventType: "created",
-    afterPayload: supplier,
-    metadata: { fluigLinks },
-  });
+  if (Object.values(fluigLinks).some((value) => Number(value) > 0)) {
+    await recordSupplierAudit(client, {
+      supplierId,
+      actorId: actor.id,
+      eventType: "fluig_relations_linked",
+      metadata: { fluigLinks },
+    });
+  }
 
-  return readSupplier(actor, supplier.id);
+  return readSupplier(actor, supplierId);
 }
 
 export async function readSupplier(actor: AppActor, id: string) {
   const client = assertServiceClient();
-  const { data, error } = await client.from("app_suppliers").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await client
+    .from("app_suppliers")
+    .select("*")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
   if (error) throw error;
   if (!data) return null;
 
@@ -897,13 +982,35 @@ export async function readSupplier(actor: AppActor, id: string) {
   );
 }
 
-export async function updateSupplier(actor: AppActor, id: string, input: Partial<SupplierInput>) {
+export async function updateSupplier(
+  actor: AppActor,
+  id: string,
+  input: Partial<SupplierInput>,
+  options: SupplierMutationOptions = {}
+) {
   const client = assertServiceClient();
-  const { data: before, error: beforeError } = await client.from("app_suppliers").select("*").eq("id", id).maybeSingle();
+  const { data: before, error: beforeError } = await client
+    .from("app_suppliers")
+    .select("*")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
   if (beforeError) throw beforeError;
   if (!before) return null;
+  await assertSupplierMutationScope(client, actor, id);
 
   const current = before as SupplierDbRow;
+  const controlledInput = options.systemManaged
+    ? input
+    : {
+        ...input,
+        status:
+          input.status === "ATIVO" || input.status === "INATIVO"
+            ? input.status
+            : current.status,
+        sourceSystem: current.source_system,
+        syncStatus: current.sync_status,
+      };
   const payload = normalizeSupplierInput(
     {
       cnpj: current.cnpj_normalizado,
@@ -933,29 +1040,37 @@ export async function updateSupplier(actor: AppActor, id: string, input: Partial
       defaultPayload: current.default_payload || {},
       sourceSystem: current.source_system,
       syncStatus: current.sync_status,
-      ...input,
+      ...controlledInput,
     },
     actor
   );
   await assertNoDuplicateCnpj(client, payload.cnpj_normalizado, id);
+  const branchIds = await validateSupplierBranchScope(client, actor, input.branchIds, {
+    requiredForScopedActor: !actor.isAdmin,
+  });
 
-  const { data, error } = await client.from("app_suppliers").update(payload).eq("id", id).select("*").single();
-  if (error) throw error;
-  await replaceBranchLinks(client, id, input.branchIds);
-  const updated = data as SupplierDbRow;
+  await saveSupplierTransaction({
+    client,
+    supplierId: id,
+    actor,
+    payload: { ...payload, last_fluig_sync_at: current.last_fluig_sync_at },
+    branchIds,
+    eventType: options.eventType || "updated",
+    metadata: options.metadata,
+  });
   const fluigLinks = await linkSupplierFluigReferences(client, {
     supplierId: id,
-    cnpj: updated.cnpj_normalizado,
-    supplierName: updated.razao_social,
+    cnpj: payload.cnpj_normalizado,
+    supplierName: payload.razao_social,
   });
-  await recordSupplierAudit(client, {
-    supplierId: id,
-    actorId: actor.id,
-    eventType: "updated",
-    beforePayload: before,
-    afterPayload: data,
-    metadata: { fluigLinks },
-  });
+  if (Object.values(fluigLinks).some((value) => Number(value) > 0)) {
+    await recordSupplierAudit(client, {
+      supplierId: id,
+      actorId: actor.id,
+      eventType: "fluig_relations_linked",
+      metadata: { fluigLinks },
+    });
+  }
   return readSupplier(actor, id);
 }
 
@@ -974,10 +1089,7 @@ export async function approveSupplierPreRegistration(actor: AppActor, id: string
   const linksBySupplier = await fetchLinks(client, [current.id]);
   if (!supplierCanBeSeenByActor(actor, current.id, linksBySupplier)) return null;
 
-  const isPreRegistration =
-    current.source_system === "PRE_CADASTRO_FLUIG" ||
-    current.status === "PENDENTE_REVISAO" ||
-    current.sync_status === "PENDENTE_REVISAO";
+  const isPreRegistration = current.source_system === "PRE_CADASTRO_FLUIG";
   if (!isPreRegistration) {
     throw new Error("Fornecedor nao esta pendente de revisao Fluig.");
   }
@@ -1047,53 +1159,31 @@ export async function approveSupplierPreRegistration(actor: AppActor, id: string
 
 export async function deleteSupplier(actor: AppActor, id: string) {
   const client = assertServiceClient();
-  const { count: requestCount, error: requestError } = await client
-    .from("fluig_requests")
-    .select("id", { count: "exact", head: true })
-    .eq("app_supplier_id", id);
-  if (requestError) throw requestError;
+  const { data: supplier, error: supplierError } = await client
+    .from("app_suppliers")
+    .select("id")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (supplierError) throw supplierError;
+  if (!supplier) throw new Error("Fornecedor nao encontrado.");
+  await assertSupplierMutationScope(client, actor, id);
 
-  const { count: linkCount, error: linkError } = await client
-    .from("fluig_supplier_links")
-    .select("id", { count: "exact", head: true })
-    .eq("app_supplier_id", id);
-  if (linkError) throw linkError;
-
-  if ((requestCount || 0) > 0 || (linkCount || 0) > 0) {
-    const { data, error } = await client
-      .from("app_suppliers")
-      .update({
-        status: "INATIVO",
-        deleted_at: new Date().toISOString(),
-        updated_by_user_id: actor.id,
-      })
-      .eq("id", id)
-      .select("*")
-      .single();
-    if (error) throw error;
-    await recordSupplierAudit(client, {
-      supplierId: id,
-      actorId: actor.id,
-      eventType: "soft_deleted",
-      afterPayload: data,
-      metadata: { requestCount, linkCount },
-    });
-    return { deleted: false, softDeleted: true };
-  }
-
-  await recordSupplierAudit(client, {
-    supplierId: id,
-    actorId: actor.id,
-    eventType: "deleted",
-    metadata: { requestCount, linkCount },
+  const { data, error } = await client.rpc("delete_app_supplier", {
+    p_supplier_id: id,
+    p_actor_id: actor.id,
   });
-  const { error } = await client.from("app_suppliers").delete().eq("id", id);
   if (error) throw error;
-  return { deleted: true, softDeleted: false };
+  return (data || { deleted: false, softDeleted: false }) as {
+    deleted: boolean;
+    softDeleted: boolean;
+    links?: JsonRecord;
+  };
 }
 
 export async function markSupplierFluigSyncQueued(actor: AppActor, id: string, metadata: JsonRecord = {}) {
   const client = assertServiceClient();
+  await assertSupplierMutationScope(client, actor, id);
   const now = new Date().toISOString();
   const { data, error } = await client
     .from("app_suppliers")
@@ -1213,14 +1303,20 @@ function suggestionFromCandidate(row: Record<string, unknown>) {
 
 async function loadSupplierRequestEvidence(
   client: SupabaseClient,
-  cnpjVariants: string[]
+  cnpjVariants: string[],
+  actor: AppActor
 ): Promise<SupplierRequestEvidence | null> {
-  const { data, error } = await client
+  let query = client
     .from("fluig_requests")
-    .select("fluig_request_id,supplier_name,branch_code,branch_label,raw_payload,last_synced_at")
+    .select(
+      "fluig_request_id,supplier_name,branch_code,branch_label,raw_payload,last_synced_at,created_by_user_id,sync_owner_user_id,fluig_requester_login,fluig_requester_code,requester"
+    )
     .in("supplier_cnpj", cnpjVariants)
     .order("last_synced_at", { ascending: false, nullsFirst: false })
     .limit(200);
+  const actorFilter = buildFluigActorPostgrestFilter(actor);
+  if (actorFilter) query = query.or(actorFilter);
+  const { data, error } = await query;
   if (error) throw error;
 
   const rows = (data || []) as Array<Record<string, unknown>>;
@@ -1307,6 +1403,28 @@ function suggestionFromSupplierLink(
   }, evidence);
 }
 
+async function findSupplierCatalogByCnpj(client: SupabaseClient, cnpj: string) {
+  const pageSize = 1000;
+  for (let page = 0; page < 20; page += 1) {
+    const from = page * pageSize;
+    const { data, error } = await client
+      .from("fluig_catalog_items")
+      .select("label,value,code,source_request_id,metadata,last_seen_at")
+      .eq("catalog_type", "supplier")
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+
+    const found = (data || []).find((row) => {
+      const metadata = ((row as { metadata?: JsonRecord }).metadata || {}) as JsonRecord;
+      return historicalCnpjMatches(metadata.cnpj, cnpj) || historicalCnpjMatches((row as { value?: string }).value, cnpj);
+    });
+    if (found) return found as Record<string, unknown>;
+    if ((data || []).length < pageSize) return null;
+  }
+
+  return null;
+}
+
 export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
   const client = assertServiceClient();
   const cnpj = normalizeCnpj(rawCnpj);
@@ -1323,12 +1441,14 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
   if (localError) throw localError;
   if (local) {
     const supplier = await readSupplier(actor, String(local.id));
-    return {
-      source: "local" as const,
-      supplier,
-      suggestions: {},
-      warnings: ["Fornecedor ja cadastrado. Deseja abrir o cadastro existente?"],
-    };
+    if (supplier) {
+      return {
+        source: "local" as const,
+        supplier,
+        suggestions: {},
+        warnings: ["Fornecedor ja cadastrado. Deseja abrir o cadastro existente?"],
+      };
+    }
   }
 
   const cnpjVariants = historicalCnpjVariants(cnpj);
@@ -1345,7 +1465,7 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
   if (supplierLinkError) throw supplierLinkError;
   if (supplierLink) {
     const link = supplierLink as Record<string, unknown>;
-    const evidence = await loadSupplierRequestEvidence(client, cnpjVariants);
+    const evidence = await loadSupplierRequestEvidence(client, cnpjVariants, actor);
     const linkedSupplierId = cleanText(link.app_supplier_id) || cleanText(link.adm_supplier_id);
 
     if (linkedSupplierId) {
@@ -1376,15 +1496,17 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
       }
     }
 
-    return {
-      source: linkedCandidate ? ("fluig_candidate" as const) : ("fluig_catalog" as const),
-      supplier: null,
-      suggestions: suggestionFromSupplierLink(link, linkedCandidate, evidence),
-      warnings: [],
-    };
+    if (actor.isAdmin || evidence) {
+      return {
+        source: linkedCandidate ? ("fluig_candidate" as const) : ("fluig_catalog" as const),
+        supplier: null,
+        suggestions: suggestionFromSupplierLink(link, linkedCandidate, evidence),
+        warnings: [],
+      };
+    }
   }
 
-  const requestEvidence = await loadSupplierRequestEvidence(client, cnpjVariants);
+  const requestEvidence = await loadSupplierRequestEvidence(client, cnpjVariants, actor);
   const { data: candidate, error: candidateError } = await client
     .from("fluig_supplier_candidates")
     .select("*")
@@ -1394,7 +1516,7 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
     .limit(1)
     .maybeSingle();
   if (candidateError) throw candidateError;
-  if (candidate) {
+  if (candidate && (actor.isAdmin || requestEvidence)) {
     return {
       source: "fluig_candidate" as const,
       supplier: null,
@@ -1406,16 +1528,7 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
     };
   }
 
-  const { data: catalogRows, error: catalogError } = await client
-    .from("fluig_catalog_items")
-    .select("label,value,code,source_request_id,metadata,last_seen_at")
-    .eq("catalog_type", "supplier")
-    .limit(1000);
-  if (catalogError) throw catalogError;
-  const catalog = (catalogRows || []).find((row) => {
-    const metadata = ((row as { metadata?: JsonRecord }).metadata || {}) as JsonRecord;
-    return historicalCnpjMatches(metadata.cnpj, cnpj) || historicalCnpjMatches((row as { value?: string }).value, cnpj);
-  }) as Record<string, unknown> | undefined;
+  const catalog = actor.isAdmin || requestEvidence ? await findSupplierCatalogByCnpj(client, cnpj) : null;
   if (catalog) {
     const metadata = (catalog.metadata || {}) as JsonRecord;
     return {
@@ -1459,15 +1572,71 @@ export async function lookupSupplierByCnpj(actor: AppActor, rawCnpj: string) {
   };
 }
 
-export async function approveSupplierCandidate(actor: AppActor, candidateId: string) {
+async function resolveCandidateBranchIds(
+  client: SupabaseClient,
+  actor: AppActor,
+  suggestions: JsonRecord,
+  requestedBranchIds: string[] | undefined
+) {
+  if (requestedBranchIds !== undefined) {
+    return validateSupplierBranchScope(client, actor, requestedBranchIds, {
+      requiredForScopedActor: !actor.isAdmin,
+    });
+  }
+
+  const branchCode = cleanText(suggestions.branchCode);
+  const branchLabel = cleanText(suggestions.branchLabel)?.toLocaleLowerCase("pt-BR") || null;
+  const { data, error } = await client
+    .from("app_branches")
+    .select("id,code,name,fluig_label,active")
+    .eq("active", true)
+    .is("deleted_at", null);
+  if (error) throw error;
+
+  const branch = (data || []).find((item) => {
+    if (branchCode && String(item.code || "").trim() === branchCode) return true;
+    if (!branchLabel) return false;
+    return [item.fluig_label, item.name]
+      .map((value) => String(value || "").trim().toLocaleLowerCase("pt-BR"))
+      .some((value) => value === branchLabel);
+  });
+
+  if (!branch) {
+    if (actor.isAdmin) return [];
+    throw new AppAuthError(
+      "O candidato Fluig nao possui uma filial permitida. Selecione a filial antes de aprovar.",
+      403,
+      "SUPPLIER_CANDIDATE_BRANCH_REQUIRED"
+    );
+  }
+
+  return validateSupplierBranchScope(client, actor, [String(branch.id)], {
+    requiredForScopedActor: !actor.isAdmin,
+  });
+}
+
+export async function approveSupplierCandidate(
+  actor: AppActor,
+  candidateId: string,
+  reviewedInput?: SupplierInput
+) {
   const client = assertServiceClient();
   const { data: candidate, error } = await client.from("fluig_supplier_candidates").select("*").eq("id", candidateId).maybeSingle();
   if (error) throw error;
   if (!candidate) throw new Error("Candidato Fluig nao encontrado.");
 
   const row = candidate as Record<string, unknown>;
+  if (!["PRE_CADASTRO", "EM_REVISAO"].includes(String(row.status || ""))) {
+    throw new Error("Candidato Fluig ja foi revisado e nao pode ser aprovado novamente.");
+  }
   const suggestions = suggestionFromCandidate(row);
-  const canonicalCnpj = canonicalHistoricalCnpj(row.cnpj);
+  const canonicalCnpj = canonicalHistoricalCnpj(reviewedInput?.cnpj || row.cnpj);
+  const branchIds = await resolveCandidateBranchIds(
+    client,
+    actor,
+    suggestions as JsonRecord,
+    reviewedInput?.branchIds
+  );
   const { data: existingSupplier, error: existingSupplierError } = canonicalCnpj
     ? await client
         .from("app_suppliers")
@@ -1479,26 +1648,44 @@ export async function approveSupplierCandidate(actor: AppActor, candidateId: str
   if (existingSupplierError) throw existingSupplierError;
 
   const approvedInput: SupplierInput = {
+    ...reviewedInput,
     cnpj: canonicalCnpj || String(row.cnpj || ""),
-    razaoSocial: supplierLegalName(
-      row.supplier_name || row.fluig_name || "Fornecedor Fluig",
-      canonicalCnpj || row.cnpj,
-      row.fluig_code
-    ),
+    razaoSocial:
+      cleanText(reviewedInput?.razaoSocial) ||
+      supplierLegalName(
+        row.supplier_name || row.fluig_name || "Fornecedor Fluig",
+        canonicalCnpj || row.cnpj,
+        row.fluig_code
+      ),
     status: "ATIVO",
-    fluigName: String(row.fluig_name || row.supplier_name || ""),
-    fluigCode: String(row.fluig_code || ""),
-    fluigSupplierLabel: String(row.fluig_name || row.supplier_name || ""),
-    defaultSourceRequestId: String(suggestions.defaultSourceRequestId || ""),
-    defaultPayload: suggestions.defaultPayload as JsonRecord,
+    fluigName: cleanText(reviewedInput?.fluigName) || String(row.fluig_name || row.supplier_name || ""),
+    fluigCode: cleanText(reviewedInput?.fluigCode) || String(row.fluig_code || ""),
+    fluigSupplierLabel:
+      cleanText(reviewedInput?.fluigSupplierLabel) || String(row.fluig_name || row.supplier_name || ""),
+    defaultSourceRequestId:
+      cleanText(reviewedInput?.defaultSourceRequestId) || String(suggestions.defaultSourceRequestId || ""),
+    defaultPayload: reviewedInput?.defaultPayload || (suggestions.defaultPayload as JsonRecord),
     sourceSystem: "LOCAL_FLUIG",
     syncStatus: "SINCRONIZADO",
+    branchIds,
   };
   const supplier = existingSupplier
-    ? await updateSupplier(actor, String(existingSupplier.id), approvedInput)
-    : await createSupplier(actor, approvedInput);
+    ? await updateSupplier(actor, String(existingSupplier.id), approvedInput, {
+        systemManaged: true,
+        eventType: "candidate_approved",
+        metadata: { candidateId },
+      })
+    : await createSupplier(actor, approvedInput, {
+        systemManaged: true,
+        eventType: "candidate_approved",
+        metadata: { candidateId },
+      });
 
-  const { error: updateError } = await client.from("fluig_supplier_candidates").update({ status: "APROVADO" }).eq("id", candidateId);
+  const { error: updateError } = await client
+    .from("fluig_supplier_candidates")
+    .update({ status: "APROVADO", updated_at: new Date().toISOString() })
+    .eq("id", candidateId)
+    .in("status", ["PRE_CADASTRO", "EM_REVISAO"]);
   if (updateError) throw updateError;
 
   const createdSupplier = supplier;
@@ -1537,19 +1724,39 @@ export async function approveSupplierCandidate(actor: AppActor, candidateId: str
 
 export async function ignoreSupplierCandidate(actor: AppActor, candidateId: string) {
   const client = assertServiceClient();
+  const { data: candidate, error: candidateError } = await client
+    .from("fluig_supplier_candidates")
+    .select("*")
+    .eq("id", candidateId)
+    .maybeSingle();
+  if (candidateError) throw candidateError;
+  if (!candidate) throw new Error("Candidato Fluig nao encontrado.");
+  if (!["PRE_CADASTRO", "EM_REVISAO"].includes(String(candidate.status || ""))) {
+    throw new Error("Candidato Fluig ja foi revisado e nao pode ser ignorado.");
+  }
+  await resolveCandidateBranchIds(
+    client,
+    actor,
+    suggestionFromCandidate(candidate as Record<string, unknown>) as JsonRecord,
+    undefined
+  );
+
   const { data, error } = await client
     .from("fluig_supplier_candidates")
-    .update({ status: "IGNORADO" })
+    .update({ status: "IGNORADO", updated_at: new Date().toISOString() })
     .eq("id", candidateId)
+    .in("status", ["PRE_CADASTRO", "EM_REVISAO"])
     .select("*")
-    .single();
+    .maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error("Candidato Fluig ja foi revisado e nao pode ser ignorado.");
 
-  await client.from("app_supplier_audit_events").insert({
+  const { error: auditError } = await client.from("app_supplier_audit_events").insert({
     actor_user_id: actor.id,
     event_type: "candidate_ignored",
     after_payload: data,
   });
+  if (auditError) throw auditError;
 
   return data;
 }

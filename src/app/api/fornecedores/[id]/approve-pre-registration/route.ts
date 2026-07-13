@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
-import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
+import { resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
 import { approveSupplierPreRegistration } from "@/lib/db/suppliers-repository";
+import { supplierErrorResponse } from "@/lib/supplier-errors";
+import { canActorPerformSupplierAction } from "@/lib/supplier-permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,19 +14,12 @@ type RouteContext = {
   }>;
 };
 
-const writeRoles = new Set(["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO"]);
-
 function jsonError(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
 }
 
 function canApprovePreRegistration(actor: AppActor) {
-  return (
-    canActorAccessPage(actor, "fornecedores") &&
-    (writeRoles.has(actor.role) ||
-      canActorPerformPageAction(actor, "fornecedores", "canApprove") ||
-      canActorPerformPageAction(actor, "fornecedores", "canUpdate"))
-  );
+  return canActorPerformSupplierAction(actor, "canApprove");
 }
 
 export async function POST(_request: Request, context: RouteContext) {
@@ -41,6 +36,6 @@ export async function POST(_request: Request, context: RouteContext) {
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao aprovar pre-cadastro Fluig.", 500);
+    return supplierErrorResponse(error, "Falha ao aprovar pre-cadastro Fluig.");
   }
 }

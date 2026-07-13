@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { lookupSupplierByCnpj } from "@/lib/db/suppliers-repository";
 import { canActorAccessPage, resolveCurrentAppUser } from "@/lib/db/app-repository";
+import { supplierErrorResponse } from "@/lib/supplier-errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,6 @@ export async function GET(request: Request) {
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao consultar CNPJ.", 500);
+    return supplierErrorResponse(error, "Falha ao consultar CNPJ.");
   }
 }
