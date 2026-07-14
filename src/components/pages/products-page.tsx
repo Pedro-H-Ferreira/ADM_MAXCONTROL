@@ -91,6 +91,8 @@ export type ProductOccurrence = {
   id: string;
   fluigRequestId: string;
   fluigRequestUrl: string | null;
+  sourceTable: string | null;
+  sourceLine: string | null;
   branchLabel: string | null;
   quantity: string | null;
   unit: string | null;
@@ -206,6 +208,14 @@ function normalizeStatus(value: string): ProductStatus {
   return "REVISAR";
 }
 
+export function productOccurrenceSourceLabel(sourceTable: string | null) {
+  const normalized = normalizeText(sourceTable || "").replace(/[^a-z0-9]+/g, "");
+  if (normalized === "observacaopedido") return "Observacao do pedido";
+  if (normalized === "soltabelaprodutos") return "Itens solicitados";
+  if (normalized === "tabelaprodutos") return "Cotacao";
+  return "Fluig";
+}
+
 function safeExternalUrl(value: string) {
   if (!value) return null;
   try {
@@ -231,6 +241,7 @@ export function buildFluigRequestUrl(requestId: string) {
 
 function normalizeOccurrence(value: unknown, index: number): ProductOccurrence | null {
   const record = asRecord(value);
+  const sourcePayload = asRecord(record.sourcePayload ?? record.source_payload);
   const requestId = firstString(record, ["fluigRequestId", "fluig_request_id", "requestId"]);
   if (!requestId) return null;
   const explicitUrl = safeExternalUrl(firstString(record, ["fluigRequestUrl", "fluig_request_url"]));
@@ -238,6 +249,8 @@ function normalizeOccurrence(value: unknown, index: number): ProductOccurrence |
     id: firstString(record, ["id", "occurrenceId"]) || `${requestId}-${index}`,
     fluigRequestId: requestId,
     fluigRequestUrl: explicitUrl || buildFluigRequestUrl(requestId),
+    sourceTable: firstString(record, ["sourceTable", "source_table"]) || null,
+    sourceLine: firstString(sourcePayload, ["originalLine", "rawLine", "sourceLine"]) || null,
     branchLabel: firstString(record, ["branchLabel", "branch_label", "filial"]) || null,
     quantity: firstString(record, ["quantity", "quantidade"]) || null,
     unit: firstString(record, ["unit", "unidade"]) || null,
@@ -357,6 +370,8 @@ export function productsFromOperationalLaunches(launches: OperationalLaunchRecor
           ? [{
               id: item.id,
               fluigRequestId: launch.fluigRequestId,
+              sourceTable: null,
+              sourceLine: null,
               branchLabel: launch.branchLabel,
               quantity: String(item.quantity),
               unit: item.unit,
@@ -1457,12 +1472,22 @@ function OccurrenceHistory({ product, loading }: { product: ProductCatalogRow; l
           {product.occurrences.map((occurrence) => (
             <div key={occurrence.id} className="grid gap-2 px-3 py-2 text-xs sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
               <div className="min-w-0">
-                <p className="truncate font-medium">Fluig {occurrence.fluigRequestId}{occurrence.branchLabel ? ` - ${occurrence.branchLabel}` : ""}</p>
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <p className="truncate font-medium">Fluig {occurrence.fluigRequestId}{occurrence.branchLabel ? ` - ${occurrence.branchLabel}` : ""}</p>
+                  <Badge variant="outline" className="shrink-0 text-[10px] font-normal">
+                    {productOccurrenceSourceLabel(occurrence.sourceTable)}
+                  </Badge>
+                </div>
                 <p className="mt-1 truncate text-muted-foreground">
                   {[occurrence.quantity, occurrence.unit].filter(Boolean).join(" ") || "Quantidade nao informada"}
                   {occurrence.unitPriceCents !== null ? ` - ${formatMoney(occurrence.unitPriceCents)}` : ""}
                   {occurrence.observedAt ? ` - ${formatDate(occurrence.observedAt)}` : ""}
                 </p>
+                {occurrence.sourceLine ? (
+                  <p className="mt-1 line-clamp-2 text-muted-foreground" title={occurrence.sourceLine}>
+                    {occurrence.sourceLine}
+                  </p>
+                ) : null}
               </div>
               {occurrence.fluigRequestUrl ? (
                 <Button asChild type="button" variant="ghost" size="sm">

@@ -697,7 +697,7 @@ async function persistProductsFromFluigRequests(
           p_classification_source: occurrence.classificationSource,
           p_review_required: occurrence.reviewRequired,
           p_source_payload: occurrence.sourcePayload,
-          p_metadata: { extractionVersion: "products-v1" },
+          p_metadata: { extractionVersion: "products-v2", observationParser: "order-observation-v1" },
           p_actor_user_id: actorId,
         });
         if (error) throw error;
@@ -710,6 +710,7 @@ async function persistProductsFromFluigRequests(
     requestsWithProducts: new Set(occurrences.map((item) => item.fluigRequestId)).size,
     products: new Set(occurrences.map((item) => `${item.itemType}:${item.dedupeKey}`)).size,
     occurrences: occurrences.length,
+    observationOccurrences: occurrences.filter((item) => item.sourceTable === "observacaoPedido").length,
   };
 }
 

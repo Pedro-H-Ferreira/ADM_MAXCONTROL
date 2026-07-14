@@ -4,6 +4,7 @@ import {
   isGenericProductDescription,
   normalizeProductApiItem,
   normalizeProductCatalogsResponse,
+  productOccurrenceSourceLabel,
   productCatalogPageNumbers,
 } from "@/components/pages/products-page";
 
@@ -32,6 +33,8 @@ describe("ProductsPage domain", () => {
         {
           id: "occurrence-1",
           fluig_request_id: "1103651",
+          source_table: "observacaoPedido",
+          source_payload: { originalLine: "2 UNIDADES - OLEO BSE32" },
           branch_label: "CD Principal",
           quantity: "2",
           unit: "UN",
@@ -54,6 +57,11 @@ describe("ProductsPage domain", () => {
     expect(product.latestFluigRequestUrl).toContain("1103651");
     expect(product.latestFluigRequestUrl).not.toBe(product.externalUrl);
     expect(product.occurrences).toHaveLength(1);
+    expect(product.occurrences[0]).toMatchObject({
+      sourceTable: "observacaoPedido",
+      sourceLine: "2 UNIDADES - OLEO BSE32",
+    });
+    expect(productOccurrenceSourceLabel(product.occurrences[0].sourceTable)).toBe("Observacao do pedido");
   });
 
   it("marca descricoes genericas como indefinidas e pendentes de revisao", () => {
