@@ -98,12 +98,12 @@ Rotas novas:
 - `GET /api/fluig/adm/map`: retorna o mapa completo por aba e, com `?persist=true`, grava em `fluig_process_mappings`.
 - `POST /api/fluig/adm/history`: consulta historico real por modulo, gera candidatos de fornecedor e grava em `fluig_requests`/`fluig_supplier_candidates` quando Supabase estiver configurado.
 - `POST /api/fluig/adm/sync/historical`: cria jobs de carga historica inicial pelo agente local. Para `fornecedores`, agenda pagamentos, compras e manutencao.
-- `POST /api/fluig/adm/sync/user`: cria um job incremental em lote (`sync_user_incremental_batch`) para o usuario logado, agrupando tarefas e solicitacoes abertas conhecidas em uma unica execucao do agente, sem varrer historico completo.
+- `POST /api/fluig/adm/sync/user`: cria um job incremental em lote (`sync_user_incremental_batch`) para o usuario logado; o agente consulta diretamente o resumo, as tarefas pendentes e as solicitacoes abertas da Central de Tarefas, sem varrer o historico completo.
 - `POST /api/fluig/adm/sync/open-tasks`: cria job incremental `sync_user_open_tasks` para consultar status Fluig somente de solicitacoes abertas conhecidas.
 - `POST /api/fluig/adm/sync/my-requests`: cria job incremental `sync_user_open_requests` para consultar status Fluig somente de solicitacoes abertas conhecidas.
 - `GET /api/fluig/adm/sync/state`: retorna `lastSync`, `lastSuccess` e `lastError` por usuario, modulo e tipo de sync.
-- `GET /api/fluig/adm/tasks/my`: lista tarefas Fluig conhecidas do usuario a partir do snapshot persistido e filtrado por permissao.
-- `GET /api/fluig/adm/requests/my-open`: lista solicitacoes abertas conhecidas do usuario a partir do snapshot persistido e filtrado por permissao.
+- `GET /api/fluig/adm/tasks/my`: lista tarefas cujo `open_task_fluig_user_id` corresponde ao codigo Fluig do usuario e devolve separadamente o total oficial da Central de Tarefas.
+- `GET /api/fluig/adm/requests/my-open`: lista solicitacoes cujo `my_request_fluig_user_id` corresponde ao codigo Fluig do usuario e devolve separadamente o total oficial da Central de Tarefas.
 - `POST /api/fluig/adm/request/lookup`: cria job de consulta sob demanda por numero Fluig, persistindo o status quando o agente retorna.
 - `GET /api/fluig/adm/request/lookup?fluigRequestId=1103651&module=pagamentos`: le o ultimo snapshot persistido do numero Fluig, inclusive quando a solicitacao ja esta finalizada e nao deve voltar para as listas de abertas.
 - `POST /api/fluig/adm/status`: cria job `sync_status` para o agente local consultar etapa, responsavel, SLA, vencimento e cancelabilidade por numero Fluig. O resultado e persistido pelo callback do agente quando `persist` nao for `false`.
@@ -135,14 +135,14 @@ Scripts locais usados pelo adaptador dentro deste repositorio:
 Sincronizacao por usuario:
 
 - O dashboard chama `/api/fluig/adm/sync/user`.
-- A API le as solicitacoes abertas conhecidas por modulo e monta lotes internos para `open_tasks` e `my_requests`.
+- A API monta lotes de classificacao dos processos para `open_tasks` e `my_requests`.
 - A API cria um unico job `sync_user_incremental_batch` em `fluig_jobs`.
 - Antes de criar o job, a API procura um job ativo equivalente para o mesmo usuario/modulo/operacao/payload. Se encontrar, reaproveita esse job em vez de gerar outra execucao e outro login no agente.
-- O agente executa `scripts/fluig/syncFluigStatus.js` uma unica vez com todos os numeros Fluig deduplicados.
-- O resultado volta com `moduleSlug` e tipos de sync para que a API salve cada solicitacao no modulo correto e atualize `fluig_user_sync_state` por usuario/modulo/tipo.
+- O agente executa `scripts/fluig/syncUserIncremental.js`, confirma o codigo do colaborador autenticado e consulta `getResumedTasks`, `findWorkflowTasks` e `findMyRequests` na mesma sessao.
+- O resultado volta com `moduleSlug`, identidade e tipos de sync para que a API salve cada solicitacao no modulo correto, remova participacoes antigas e atualize `fluig_user_sync_state` por usuario/modulo/tipo.
 - Os endpoints `/sync/open-tasks` e `/sync/my-requests` permanecem para execucoes isoladas e diagnostico.
 - A visibilidade e aplicada no Supabase antes de ordenar e limitar os registros. Usuario comum recebe somente registros da filial, criados por ele, sincronizados por ele ou identificados pelos seus dados Fluig; administradores recebem todas as filiais.
-- `GET /api/fluig/adm/tasks/my` exige tarefa ou responsavel atual preenchido e nao mistura solicitacoes abertas sem atividade atribuida.
+- `GET /api/fluig/adm/tasks/my` usa a lista de tarefas pendentes do proprio Fluig e nao infere responsabilidade apenas pela existencia de etapa ou responsavel no snapshot.
 - O status incremental atualiza etapa, responsavel, vencimento e estado aberto/finalizado sem apagar `formFields` e anexos do historico. A resposta mais recente fica em `raw_payload.statusSnapshot`.
 - Historicos antigos recuperam solicitante e matricula pelos campos `responsavelEnvio` e `matResponsavelEnvio` quando a API do Fluig nao devolve o solicitante no cabecalho.
 
@@ -235,5 +235,4 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:3000/api/fluig/adm/open' -Method Post -
 - Validar em producao uma consulta de status por numero Fluig acompanhando o job `sync_status` ate o callback do agente.
 - Preencher `fluig_username` e `fluig_user_id` nos perfis para complementar o escopo por filial com a identidade individual do Fluig.
 - Validar em producao uma abertura controlada de pagamento, compra e manutencao com anexos reais e protocolo retornado.
-- Evoluir a leitura de atividades do Fluig para preencher tarefa atual, responsavel e SLA de todas as solicitacoes abertas.
 - Configurar observabilidade com retencao suficiente para correlacionar digests de erro do Next.js com os logs de runtime da Vercel.

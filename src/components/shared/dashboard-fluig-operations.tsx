@@ -17,6 +17,7 @@ import {
 import type { FluigModuleSlug } from "@/lib/fluig-data";
 import { waitForFluigJobs } from "@/lib/use-fluig-job-state";
 import { useVisibleRefresh } from "@/lib/use-visible-refresh";
+import { actionableRecentFluigJobFailures } from "@/lib/fluig-job-errors";
 import { cn } from "@/lib/utils";
 
 const terminalJobStatuses = new Set(["success", "error", "cancelled", "expired"]);
@@ -55,10 +56,6 @@ function timestampMs(value: string | null | undefined) {
 function isRecentTimestamp(value: string | null | undefined) {
   const timestamp = timestampMs(value);
   return timestamp != null && Date.now() - timestamp <= recentFailureWindowMs;
-}
-
-function isRecentJobFailure(job: DashboardJob) {
-  return (job.status === "error" || job.status === "expired") && isRecentTimestamp(job.finishedAt || job.updatedAt);
 }
 
 function isCurrentSyncStateError(state: FluigUserSyncStateRecord) {
@@ -125,6 +122,8 @@ export function DashboardFluigOperations() {
   const [agents, setAgents] = useState<FluigAdmAgent[]>([]);
   const [tasks, setTasks] = useState<FluigOpenRequestRecord[]>([]);
   const [requests, setRequests] = useState<FluigOpenRequestRecord[]>([]);
+  const [taskTotal, setTaskTotal] = useState(0);
+  const [requestTotal, setRequestTotal] = useState(0);
   const [states, setStates] = useState<FluigUserSyncStateRecord[]>([]);
   const [jobs, setJobs] = useState<DashboardJob[]>([]);
   const [supplierReviewSummary, setSupplierReviewSummary] = useState<SupplierReviewSummary>({ total: 0 });
@@ -139,7 +138,7 @@ export function DashboardFluigOperations() {
   const visibleTasks = tasks.slice(0, 5);
   const visibleRequests = sortedRequests.slice(0, 5);
   const pendingJobs = jobs.filter((job) => !terminalJobStatuses.has(job.status));
-  const failedJobs = jobs.filter(isRecentJobFailure);
+  const failedJobs = actionableRecentFluigJobFailures(jobs);
   const syncStatesWithErrors = states.filter(isCurrentSyncStateError);
   const syncErrorCount = failedJobs.length + syncStatesWithErrors.length;
 
@@ -164,6 +163,8 @@ export function DashboardFluigOperations() {
       setAgents(nextAgents);
       setTasks(taskData.tasks || []);
       setRequests(requestData.requests || []);
+      setTaskTotal(Number(taskData.total || 0));
+      setRequestTotal(Number(requestData.total || 0));
       setStates(syncStateData.states || []);
       setJobs(jobData.jobs || []);
       setSupplierReviewSummary(nextSupplierReviewSummary);
@@ -318,9 +319,9 @@ export function DashboardFluigOperations() {
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
           <MetricTile icon={Laptop} label="Agente local" value={onlineAgent ? "Online" : "Pendente"} detail={describeAgent(onlineAgent)} />
-          <MetricTile icon={ClipboardList} label="Minhas tarefas" value={String(tasks.length)} detail="Pendencias sob responsabilidade do usuario" />
-          <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requests.length)} detail="Pagamentos, compras e manutencoes" />
-          <MetricTile icon={ClipboardCheck} label="Aguardando acao" value={String(tasks.length)} detail="Itens do Fluig que dependem do usuario logado" />
+          <MetricTile icon={ClipboardList} label="Minhas tarefas" value={String(taskTotal)} detail="Pendencias sob responsabilidade do usuario" />
+          <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requestTotal)} detail="Pagamentos, compras e manutencoes" />
+          <MetricTile icon={ClipboardCheck} label="Aguardando acao" value={String(taskTotal)} detail="Itens do Fluig que dependem do usuario logado" />
           <MetricTile icon={UserCheck} label="Fornecedores em revisao" value={String(supplierReviewSummary.total)} detail="Pre-cadastros Fluig pendentes de validacao" />
           <MetricTile icon={AlertTriangle} label="Erros de sync" value={String(syncErrorCount)} detail="Falhas acionaveis das ultimas 24h" tone={syncErrorCount ? "danger" : "default"} />
           <MetricTile

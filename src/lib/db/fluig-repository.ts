@@ -43,6 +43,10 @@ type FluigRequestDbRow = {
   normalized_status?: string | null;
   last_status_check_at?: string | null;
   last_seen_in_user_open_list_at?: string | null;
+  open_task_fluig_user_id?: string | null;
+  my_request_fluig_user_id?: string | null;
+  last_seen_in_user_task_list_at?: string | null;
+  last_seen_in_user_request_list_at?: string | null;
   sync_owner_user_id?: string | null;
   sync_source?: string | null;
   raw_payload?: JsonRecord;
@@ -137,6 +141,10 @@ const fluigRequestSelect = [
   "normalized_status",
   "last_status_check_at",
   "last_seen_in_user_open_list_at",
+  "open_task_fluig_user_id",
+  "my_request_fluig_user_id",
+  "last_seen_in_user_task_list_at",
+  "last_seen_in_user_request_list_at",
   "sync_owner_user_id",
   "sync_source",
   "raw_payload",
@@ -168,6 +176,10 @@ const fluigRequestSummarySelect = [
   "normalized_status",
   "last_status_check_at",
   "last_seen_in_user_open_list_at",
+  "open_task_fluig_user_id",
+  "my_request_fluig_user_id",
+  "last_seen_in_user_task_list_at",
+  "last_seen_in_user_request_list_at",
   "sync_owner_user_id",
   "sync_source",
 ].join(",");
@@ -1033,8 +1045,26 @@ export function buildFluigHistoryRequestRow(
 export function buildFluigStatusRequestRow(
   module: FluigModuleSlug,
   item: FluigStatusItem,
-  options: { ownerUserId?: string | null; syncSource?: string | null; markSeenOpen?: boolean } = {},
-  existing?: Pick<FluigRequestDbRow, "status" | "current_task" | "task_owner" | "due_date" | "raw_payload"> | null
+  options: {
+    ownerUserId?: string | null;
+    syncSource?: string | null;
+    markSeenOpen?: boolean;
+    fluigUserId?: string | null;
+  } = {},
+  existing?: Partial<
+    Pick<
+      FluigRequestDbRow,
+      | "process_id"
+      | "status"
+      | "current_task"
+      | "task_owner"
+      | "requester"
+      | "fluig_requester_code"
+      | "due_date"
+      | "opened_at"
+      | "raw_payload"
+    >
+  > | null
 ) {
   const checkedAt = item.dataUltimaConsulta || new Date().toISOString();
   const syncedAt = new Date().toISOString();
@@ -1045,14 +1075,22 @@ export function buildFluigStatusRequestRow(
     String(item.responsavelAtual || item.responsavelLogin || item.responsavelCodigo || "").trim() ||
     existing?.task_owner ||
     null;
+  const syncTypes = Array.isArray(item.syncTypes) ? item.syncTypes : [];
+  const fluigUserId = String(item.syncFluigUserId || options.fluigUserId || "").trim() || null;
+  const seenAsTask = open && Boolean(fluigUserId) && syncTypes.includes("open_tasks");
+  const seenAsRequest = open && Boolean(fluigUserId) && syncTypes.includes("my_requests");
 
   return {
     module_slug: module,
+    process_id: item.processId || existing?.process_id || undefined,
     fluig_request_id: item.numeroFluig,
     status: item.statusProcesso || existing?.status || (item.active === false ? "finalizado" : "em_andamento"),
     current_task: currentTask,
     task_owner: taskOwner,
-    due_date: item.vencimentoPagamento || existing?.due_date || null,
+    requester: item.requesterName || existing?.requester || undefined,
+    fluig_requester_code: item.requesterId || existing?.fluig_requester_code || undefined,
+    due_date: item.dueDate || item.vencimentoPagamento || existing?.due_date || null,
+    opened_at: item.openedAt || existing?.opened_at || undefined,
     normalized_status: lifecycle.normalizedStatus,
     is_open: lifecycle.isOpen,
     finalized_at: lifecycle.finalizedAt,
@@ -1060,6 +1098,10 @@ export function buildFluigStatusRequestRow(
     canceled_at: lifecycle.canceledAt,
     last_status_check_at: checkedAt,
     last_seen_in_user_open_list_at: options.markSeenOpen && open ? checkedAt : undefined,
+    open_task_fluig_user_id: seenAsTask ? fluigUserId : undefined,
+    my_request_fluig_user_id: seenAsRequest ? fluigUserId : undefined,
+    last_seen_in_user_task_list_at: seenAsTask ? checkedAt : undefined,
+    last_seen_in_user_request_list_at: seenAsRequest ? checkedAt : undefined,
     sync_source: options.syncSource || "status_check",
     sync_owner_user_id: options.ownerUserId || null,
     last_synced_at: checkedAt,
@@ -1238,7 +1280,12 @@ export function buildFluigCatalogItemsByModule(fallback: FluigModuleSlug, items:
 export async function persistStatusItems(
   module: FluigModuleSlug,
   items: FluigStatusItem[],
-  options: { ownerUserId?: string | null; syncSource?: string | null; markSeenOpen?: boolean } = {}
+  options: {
+    ownerUserId?: string | null;
+    syncSource?: string | null;
+    markSeenOpen?: boolean;
+    fluigUserId?: string | null;
+  } = {}
 ) {
   return runWithDb(async (client) => {
     const statusItems = items.filter(
@@ -1249,14 +1296,26 @@ export async function persistStatusItems(
     const requestIds = Array.from(new Set(statusItems.map((item) => String(item.numeroFluig))));
     const { data: existingRows, error: existingError } = await client
       .from("fluig_requests")
-      .select("fluig_request_id,status,current_task,task_owner,due_date,raw_payload")
+      .select("fluig_request_id,process_id,status,current_task,task_owner,requester,fluig_requester_code,due_date,opened_at,raw_payload")
       .eq("module_slug", module)
       .in("fluig_request_id", requestIds);
     if (existingError) throw existingError;
 
     const existingByRequestId = new Map(
       ((existingRows || []) as Array<
-        Pick<FluigRequestDbRow, "fluig_request_id" | "status" | "current_task" | "task_owner" | "due_date" | "raw_payload">
+        Pick<
+          FluigRequestDbRow,
+          | "fluig_request_id"
+          | "process_id"
+          | "status"
+          | "current_task"
+          | "task_owner"
+          | "requester"
+          | "fluig_requester_code"
+          | "due_date"
+          | "opened_at"
+          | "raw_payload"
+        >
       >).map((row) => [String(row.fluig_request_id || ""), row])
     );
     const rows = statusItems.map((item) =>
@@ -1268,6 +1327,37 @@ export async function persistStatusItems(
     return rows.length;
   }).then(({ result, persistence }) => {
     if (result !== null) persistence.saved.requests = result;
+    return persistence;
+  });
+}
+
+export async function clearStaleFluigUserTaskMemberships(input: {
+  fluigUserId: string;
+  syncStartedAt: string;
+}) {
+  return runWithDb(async (client) => {
+    const fluigUserId = String(input.fluigUserId || "").trim();
+    if (!fluigUserId || !input.syncStartedAt) return 0;
+
+    const { data: staleTasks, error: staleTasksError } = await client
+      .from("fluig_requests")
+      .update({ open_task_fluig_user_id: null, last_seen_in_user_task_list_at: null })
+      .eq("open_task_fluig_user_id", fluigUserId)
+      .or(`last_seen_in_user_task_list_at.is.null,last_seen_in_user_task_list_at.lt.${input.syncStartedAt}`)
+      .select("id");
+    if (staleTasksError) throw staleTasksError;
+
+    const { data: staleRequests, error: staleRequestsError } = await client
+      .from("fluig_requests")
+      .update({ my_request_fluig_user_id: null, last_seen_in_user_request_list_at: null })
+      .eq("my_request_fluig_user_id", fluigUserId)
+      .or(`last_seen_in_user_request_list_at.is.null,last_seen_in_user_request_list_at.lt.${input.syncStartedAt}`)
+      .select("id");
+    if (staleRequestsError) throw staleRequestsError;
+
+    return (staleTasks || []).length + (staleRequests || []).length;
+  }).then(({ result, persistence }) => {
+    if (result !== null) persistence.saved.staleUserMembershipsCleared = result;
     return persistence;
   });
 }
@@ -1284,31 +1374,44 @@ export async function readKnownOpenFluigRequestsForActor(input: {
       ? ([input.module] satisfies FluigModuleSlug[])
       : (["pagamentos", "compras", "manutencao", "fornecedores"] satisfies FluigModuleSlug[]);
     const modules = requestedModules.filter((moduleSlug) => allowedModules.has(moduleSlug));
-    if (!modules.length) return [];
+    if (!modules.length) return { requests: [], total: 0 };
     const limit = Math.min(Math.max(Number(input.limit || 50), 1), 200);
-    const actorFilter = buildFluigActorPostgrestFilter(input.actor);
     let query = client
       .from("fluig_requests")
-      .select(fluigRequestSelect)
+      .select(fluigRequestSelect, { count: "exact" })
       .in("module_slug", modules)
       .eq("is_open", true)
       .not("fluig_request_id", "is", null);
 
-    if (actorFilter) query = query.or(actorFilter);
-    if (input.onlyTasks) query = query.or("current_task.not.is.null,task_owner.not.is.null");
+    const fluigUserId = String(input.actor.fluigUserId || "").trim();
+    if (fluigUserId) {
+      query = input.onlyTasks
+        ? query.eq("open_task_fluig_user_id", fluigUserId)
+        : query.or(
+            `my_request_fluig_user_id.eq.${JSON.stringify(fluigUserId)},open_task_fluig_user_id.eq.${JSON.stringify(fluigUserId)}`
+          );
+    } else {
+      query = query.eq("sync_owner_user_id", input.actor.id);
+      const actorFilter = buildFluigActorPostgrestFilter(input.actor);
+      if (actorFilter) query = query.or(actorFilter);
+      if (input.onlyTasks) query = query.or("current_task.not.is.null,task_owner.not.is.null");
+    }
 
-    const { data, error } = await query
+    const { data, error, count } = await query
       .order("last_status_check_at", { ascending: true, nullsFirst: true })
       .order("last_synced_at", { ascending: false, nullsFirst: false })
       .limit(limit);
     if (error) throw error;
 
-    return filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[])
-      .sort(compareOpenRequestPriority)
-      .slice(0, limit)
-      .map(mapFluigRequestRecord);
+    const rows = (data || []) as unknown as FluigRequestDbRow[];
+    const visibleRows = fluigUserId ? rows : filterRowsForActor(input.actor, rows);
+    return {
+      requests: visibleRows.sort(compareOpenRequestPriority).slice(0, limit).map(mapFluigRequestRecord),
+      total: count || 0,
+    };
   }).then(({ result, persistence }) => ({
-    requests: result || [],
+    requests: result?.requests || [],
+    total: result?.total || 0,
     persistence,
   }));
 }

@@ -47,6 +47,7 @@ import type { FluigModuleSlug } from "@/lib/fluig-data";
 import type { ModuleConfig } from "@/lib/admin-data";
 import { waitForFluigJobs } from "@/lib/use-fluig-job-state";
 import { useVisibleRefresh } from "@/lib/use-visible-refresh";
+import { actionableRecentFluigJobFailures } from "@/lib/fluig-job-errors";
 import { cn } from "@/lib/utils";
 
 type ModuleFilter = "all" | FluigModuleSlug;
@@ -209,6 +210,8 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   const [agents, setAgents] = useState<FluigAdmAgent[]>([]);
   const [tasks, setTasks] = useState<FluigOpenRequestRecord[]>([]);
   const [requests, setRequests] = useState<FluigOpenRequestRecord[]>([]);
+  const [taskTotal, setTaskTotal] = useState(0);
+  const [requestTotal, setRequestTotal] = useState(0);
   const [states, setStates] = useState<FluigUserSyncStateRecord[]>([]);
   const [jobs, setJobs] = useState<FluigAdmJobSummary[]>([]);
   const [lookupNumber, setLookupNumber] = useState("");
@@ -226,7 +229,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   const sortedTasks = useMemo(() => [...tasks].sort(sortByRecentActivity), [tasks]);
   const sortedRequests = useMemo(() => [...requests].sort(sortByRecentActivity), [requests]);
   const pendingJobs = useMemo(() => jobs.filter((job) => !terminalJobStatuses.has(job.status)), [jobs]);
-  const failedJobs = useMemo(() => jobs.filter(isRecentJobFailure), [jobs]);
+  const failedJobs = useMemo(() => actionableRecentFluigJobFailures(jobs), [jobs]);
   const syncErrors = useMemo(() => states.filter(isCurrentSyncStateError), [states]);
   const latestState = useMemo(
     () => [...states].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0] || null,
@@ -256,6 +259,8 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
         setAgents(nextAgents);
         setTasks(taskData.tasks || []);
         setRequests(requestData.requests || []);
+        setTaskTotal(Number(taskData.total || 0));
+        setRequestTotal(Number(requestData.total || 0));
         setStates(syncStateData.states || []);
         setJobs(jobData.jobs || []);
       } catch (refreshError) {
@@ -455,8 +460,8 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
 
       <div className="stitch-animate-in grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <MetricTile icon={Laptop} label="Agente local" value={onlineAgent ? "Online" : "Pendente"} detail={describeAgent(onlineAgent)} />
-        <MetricTile icon={ClipboardList} label="Minhas tarefas" value={String(tasks.length)} detail="Pendencias abertas no Fluig" />
-        <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requests.length)} detail="Itens ainda acompanhados pelo ADM" />
+        <MetricTile icon={ClipboardList} label="Minhas tarefas" value={String(taskTotal)} detail="Pendencias abertas no Fluig" />
+        <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requestTotal)} detail="Itens ainda acompanhados pelo ADM" />
         <MetricTile icon={Activity} label="Jobs em andamento" value={String(pendingJobs.length)} detail="Execucoes aguardando agente local" />
         <MetricTile icon={AlertTriangle} label="Erros recentes" value={String(failedJobs.length + syncErrors.length)} detail="Falhas acionaveis das ultimas 24h" tone={failedJobs.length + syncErrors.length ? "danger" : "default"} />
         <MetricTile

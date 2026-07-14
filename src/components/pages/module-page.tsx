@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { UploadField } from "@/components/shared/upload-field";
 import { UserBranchAccessPanel } from "@/components/shared/user-branch-access-panel";
 import { BranchesPage } from "@/components/pages/branches-page";
+import { AdfControlPage } from "@/components/pages/adf-control-page";
 import { FluigModuleOperationsPage } from "@/components/pages/fluig-module-operations-page";
 import { FluigTasksPage } from "@/components/pages/fluig-tasks-page";
 import { MaintenancePage } from "@/components/maintenance/maintenance-workspace-page";
@@ -73,6 +74,10 @@ export function ModulePage({
 
   if (config.slug === "usuarios") {
     return <UsersAccessPage config={clientConfig} />;
+  }
+
+  if (config.slug === "adfs") {
+    return <AdfControlPage />;
   }
 
   if (config.slug === "tarefas" && mode === "list") {

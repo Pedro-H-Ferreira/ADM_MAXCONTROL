@@ -42,6 +42,7 @@ import { getFluigIntegrationForModule, type FluigModuleSlug } from "@/lib/fluig-
 import type { ModuleConfig } from "@/lib/admin-data";
 import { waitForFluigJobs } from "@/lib/use-fluig-job-state";
 import { useVisibleRefresh } from "@/lib/use-visible-refresh";
+import { actionableRecentFluigJobFailures } from "@/lib/fluig-job-errors";
 import { cn } from "@/lib/utils";
 
 type OperationalModuleSlug = Extract<FluigModuleSlug, "pagamentos" | "compras">;
@@ -71,10 +72,6 @@ function timestampMs(value: string | null | undefined) {
 function isRecentTimestamp(value: string | null | undefined) {
   const timestamp = timestampMs(value);
   return timestamp != null && Date.now() - timestamp <= recentFailureWindowMs;
-}
-
-function isRecentJobFailure(job: Pick<FluigAdmJobSummary, "status" | "updatedAt" | "finishedAt">) {
-  return (job.status === "error" || job.status === "expired") && isRecentTimestamp(job.finishedAt || job.updatedAt);
 }
 
 function isCurrentSyncStateError(state: FluigUserSyncStateRecord) {
@@ -144,6 +141,7 @@ export function FluigModuleOperationsPage({
   const integration = getFluigIntegrationForModule(moduleSlug);
   const [agents, setAgents] = useState<FluigAdmAgent[]>([]);
   const [tasks, setTasks] = useState<FluigOpenRequestRecord[]>([]);
+  const [taskTotal, setTaskTotal] = useState(0);
   const [requests, setRequests] = useState<FluigOpenRequestRecord[]>([]);
   const [requestTotal, setRequestTotal] = useState(0);
   const [requestPage, setRequestPage] = useState(1);
@@ -162,6 +160,7 @@ export function FluigModuleOperationsPage({
   const [activeTab, setActiveTab] = useState("requests");
   const [selectedRequest, setSelectedRequest] = useState<FluigOpenRequestRecord | null>(null);
   const [technicalOpen, setTechnicalOpen] = useState(false);
+  const [workspaceView, setWorkspaceView] = useState<"launch" | "tools">("launch");
   const [requestRefreshing, setRequestRefreshing] = useState(false);
   const [referenceTime, setReferenceTime] = useState(0);
   const initialLoadCompleted = useRef(false);
@@ -171,7 +170,7 @@ export function FluigModuleOperationsPage({
   const sortedRequests = useMemo(() => [...requests].sort(sortByRecentActivity), [requests]);
   const moduleJobs = useMemo(() => jobs.filter((job) => job.module === moduleSlug), [jobs, moduleSlug]);
   const pendingJobs = useMemo(() => moduleJobs.filter((job) => !terminalJobStatuses.has(job.status)), [moduleJobs]);
-  const failedJobs = useMemo(() => moduleJobs.filter(isRecentJobFailure), [moduleJobs]);
+  const failedJobs = useMemo(() => actionableRecentFluigJobFailures(moduleJobs), [moduleJobs]);
   const syncErrors = useMemo(() => states.filter(isCurrentSyncStateError), [states]);
   const latestState = useMemo(
     () => [...states].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0] || null,
@@ -252,6 +251,7 @@ export function FluigModuleOperationsPage({
 
         setAgents(nextAgents);
         setTasks(taskData.tasks || []);
+        setTaskTotal(Number(taskData.total || 0));
         setRequests(requestData.items || []);
         setRequestTotal(requestData.total || 0);
         setStates(syncStateData.states || []);
@@ -336,6 +336,11 @@ export function FluigModuleOperationsPage({
     }
   }
 
+  function openFluigWorkspace(view: "launch" | "tools") {
+    setWorkspaceView(view);
+    setTechnicalOpen(true);
+  }
+
   if (!integration) {
     return null;
   }
@@ -360,7 +365,7 @@ export function FluigModuleOperationsPage({
             <RotateCw className={cn("size-4", loading ? "animate-spin" : "")} />
             Atualizar
           </Button>
-          <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => setTechnicalOpen(true)}>
+          <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => openFluigWorkspace("launch")}>
             <Plus className="size-4" />
             Nova solicitacao
           </Button>
@@ -379,8 +384,8 @@ export function FluigModuleOperationsPage({
 
       <div className="stitch-animate-in grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <MetricTile icon={Laptop} label="Agente local" value={onlineAgent ? "Online" : "Pendente"} detail={describeAgent(onlineAgent)} />
-        <MetricTile icon={ClipboardList} label="Tarefas abertas" value={String(tasks.length)} detail="Pendencias do usuario neste modulo" />
-        <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requests.length)} detail="Itens acompanhados pelo ADM" />
+        <MetricTile icon={ClipboardList} label="Tarefas abertas" value={String(taskTotal)} detail="Pendencias do usuario neste modulo" />
+        <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requestTotal)} detail="Total acompanhado pelo ADM, nao apenas a pagina atual" />
         <MetricTile icon={RefreshCcw} label="Jobs em andamento" value={String(pendingJobs.length)} detail="Execucoes aguardando agente local" />
         <MetricTile
           icon={AlertTriangle}
@@ -409,7 +414,7 @@ export function FluigModuleOperationsPage({
         </div>
 
         <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setRequestPage(1); }}>
-          <div className="overflow-x-auto border-b"><TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0"><TabsTrigger className="rounded-none px-4 py-3" value="tasks">Minhas tarefas ({tasks.length})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="requests">Minhas solicitacoes ({requestTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="errors">Com erro</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="finished">Finalizadas</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="jobs">Jobs e sincronizacoes</TabsTrigger></TabsList></div>
+          <div className="overflow-x-auto border-b"><TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0"><TabsTrigger className="rounded-none px-4 py-3" value="tasks">Minhas tarefas ({taskTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="requests">Minhas solicitacoes ({requestTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="errors">Com erro</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="finished">Finalizadas</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="jobs">Jobs e sincronizacoes</TabsTrigger></TabsList></div>
           {activeTab === "jobs" ? <TabsContent value="jobs" className="m-0"><JobsTable jobs={moduleJobs} states={states} loading={loading} /></TabsContent> : <TabsContent value={activeTab} className="m-0"><RequestTable title={activeTab === "tasks" ? "Tarefas sob sua responsabilidade" : activeTab === "errors" ? "Solicitacoes com erro ou canceladas" : activeTab === "finished" ? "Solicitacoes finalizadas" : `Solicitacoes de ${moduleLabels[moduleSlug].toLowerCase()}`} emptyText={loading || requestsLoading ? "Carregando dados persistidos..." : "Nenhum registro encontrado para os filtros informados."} rows={visibleRows} onSelect={setSelectedRequest} /></TabsContent>}
         </Tabs>
         {requestTabActive ? (
@@ -430,9 +435,57 @@ export function FluigModuleOperationsPage({
         ) : null}
       </section>
 
-      <Button type="button" variant="ghost" className="text-muted-foreground" onClick={() => setTechnicalOpen(true)}><Settings2 className="size-4" />Agente, lancamento e ferramentas Fluig</Button>
+      <Button type="button" variant="ghost" className="text-muted-foreground" onClick={() => openFluigWorkspace("tools")}><Settings2 className="size-4" />Agente, sincronizacao e ferramentas Fluig</Button>
 
-      <Sheet open={technicalOpen} onOpenChange={setTechnicalOpen}><SheetContent className="w-full overflow-y-auto sm:max-w-5xl"><SheetHeader><SheetTitle>Fluig - {moduleLabels[moduleSlug]}</SheetTitle><SheetDescription>Novo lancamento, consulta individual e configuracao tecnica do agente local.</SheetDescription></SheetHeader><div className="px-4 pb-6">{technicalOpen ? <FluigIntegrationPanel moduleSlug={moduleSlug} agents={agents} onAgentsChange={setAgents} recoverJobs={false} /> : null}</div></SheetContent></Sheet>
+      <Sheet open={technicalOpen} onOpenChange={setTechnicalOpen}>
+        <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:max-w-none sm:data-[side=right]:w-[min(1180px,calc(100vw-2rem))] sm:data-[side=right]:max-w-none">
+          <SheetHeader className="shrink-0 border-b bg-background/95 pr-14 supports-backdrop-filter:backdrop-blur">
+            <SheetTitle>
+              {workspaceView === "launch" ? `Nova solicitacao de ${moduleLabels[moduleSlug].toLowerCase()}` : `Ferramentas Fluig - ${moduleLabels[moduleSlug]}`}
+            </SheetTitle>
+            <SheetDescription>
+              {workspaceView === "launch"
+                ? "Preencha, valide e envie a solicitacao sem sair desta pagina."
+                : "Sincronize dados, consulte solicitacoes e configure o agente local."}
+            </SheetDescription>
+            <div className="mt-3 flex w-fit rounded-lg border bg-muted/40 p-1" role="group" aria-label="Area de trabalho Fluig">
+              <Button
+                type="button"
+                size="sm"
+                variant={workspaceView === "launch" ? "secondary" : "ghost"}
+                className="h-8"
+                aria-pressed={workspaceView === "launch"}
+                onClick={() => setWorkspaceView("launch")}
+              >
+                <Plus className="size-4" />
+                Preencher solicitacao
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={workspaceView === "tools" ? "secondary" : "ghost"}
+                className="h-8"
+                aria-pressed={workspaceView === "tools"}
+                onClick={() => setWorkspaceView("tools")}
+              >
+                <Settings2 className="size-4" />
+                Sincronizacao e agente
+              </Button>
+            </div>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto bg-muted/10 px-4 py-4 sm:px-6 sm:py-6">
+            {technicalOpen ? (
+              <FluigIntegrationPanel
+                moduleSlug={moduleSlug}
+                agents={agents}
+                onAgentsChange={setAgents}
+                recoverJobs={false}
+                workspaceView={workspaceView}
+              />
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Sheet open={Boolean(selectedRequest)} onOpenChange={(open) => { if (!open) setSelectedRequest(null); }}><SheetContent className="w-full sm:max-w-2xl"><SheetHeader><SheetTitle>{selectedRequest ? `Fluig ${selectedRequest.fluigRequestId}` : "Solicitacao Fluig"}</SheetTitle><SheetDescription>{selectedRequest?.supplierName || selectedRequest?.requester || "Detalhes sincronizados"}</SheetDescription></SheetHeader>{selectedRequest ? <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pb-6"><div className="grid gap-3 rounded-md border p-3 sm:grid-cols-2"><RequestDetail label="Referencia ADM" value={selectedRequest.admReference || "-"} /><RequestDetail label="Modulo" value={moduleLabels[moduleSlug]} /><RequestDetail label="Status" value={normalizeStatus(selectedRequest.normalizedStatus || selectedRequest.status)} /><RequestDetail label="Etapa atual" value={selectedRequest.currentTask || "-"} /><RequestDetail label="Responsavel" value={selectedRequest.taskOwner || "-"} /><RequestDetail label="Solicitante" value={selectedRequest.requester || "-"} /><RequestDetail label="Fornecedor" value={selectedRequest.supplierName || "-"} /><RequestDetail label="CNPJ" value={selectedRequest.supplierCnpj || "-"} /><RequestDetail label="Filial" value={selectedRequest.branchLabel || selectedRequest.branchCode || "-"} /><RequestDetail label="Prazo" value={formatDateTime(selectedRequest.dueDate)} /><RequestDetail label="Aberta em" value={formatDateTime(selectedRequest.openedAt)} /><RequestDetail label="Ultima sincronizacao" value={formatDateTime(selectedRequest.lastStatusCheckAt || selectedRequest.lastSyncedAt)} /></div><div className="flex flex-wrap gap-2"><Button type="button" onClick={() => void refreshSelectedRequest()} disabled={requestRefreshing}>{requestRefreshing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}Atualizar status</Button><Button type="button" variant="outline" onClick={() => { void navigator.clipboard.writeText(selectedRequest.fluigRequestId); toast.success("Numero Fluig copiado."); }}><Copy className="size-4" />Copiar numero</Button><Button type="button" variant="outline" asChild><a href={integration.openUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" />Abrir no Fluig</a></Button></div><section><h3 className="mb-2 font-medium">Historico operacional</h3><div className="rounded-md border p-3 text-sm text-muted-foreground"><p>Registro persistido em {formatDateTime(selectedRequest.lastSyncedAt)}.</p><p className="mt-1">Ultima consulta de status em {formatDateTime(selectedRequest.lastStatusCheckAt)}.</p>{selectedRequest.syncSource ? <p className="mt-1">Origem: {selectedRequest.syncSource.replaceAll("_", " ")}.</p> : null}</div></section></div> : null}</SheetContent></Sheet>
     </div>

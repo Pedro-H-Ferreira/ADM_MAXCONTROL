@@ -6,12 +6,51 @@ const test = require("node:test");
 
 const { __test } = require("../src/runner");
 const agentRuntime = require("../src/index").__test;
+const attachmentRuntime = require("../../../scripts/fluig/attachToRequest").__test;
 
 test("pollDelayMs keeps normal cadence and backs off transient failures", () => {
   assert.equal(agentRuntime.pollDelayMs(8000, 0, () => 0.5), 8000);
   assert.equal(agentRuntime.pollDelayMs(8000, 1, () => 0), 8000);
   assert.equal(agentRuntime.pollDelayMs(8000, 2, () => 0), 16000);
   assert.equal(agentRuntime.pollDelayMs(8000, 5, () => 0), 60000);
+});
+
+test("chunk compaction preserves Fluig task central identity, totals, and memberships", () => {
+  const metadata = {
+    directTaskCentral: true,
+    currentFluigUser: { id: "132", code: "00130", email: "administrativo@dvaatacados.com.br" },
+    centralTaskTotals: { openTasks: 45, myRequests: 600 },
+    membership: {
+      global: { openTasks: 45, myRequests: 600 },
+      modules: [{ module: "pagamentos", openTasks: 32, myRequests: 567 }],
+    },
+    syncStartedAt: "2026-07-14T15:00:00.000Z",
+    items: [{ numeroFluig: "1160447" }],
+  };
+  const result = { outputPath: "result.json", data: metadata };
+
+  for (const compacted of [
+    agentRuntime.compactHistoryResult(result, { itemCount: 1, chunkCount: 1 }),
+    agentRuntime.compactResultPayload(result),
+    agentRuntime.minimalResultPayload(result, "test"),
+  ]) {
+    assert.equal(compacted.data.directTaskCentral, true);
+    assert.equal(compacted.data.currentFluigUser.code, "00130");
+    assert.deepEqual(compacted.data.centralTaskTotals, { openTasks: 45, myRequests: 600 });
+    assert.deepEqual(compacted.data.membership.global, { openTasks: 45, myRequests: 600 });
+    assert.equal(compacted.data.syncStartedAt, "2026-07-14T15:00:00.000Z");
+  }
+
+  const compactedItem = agentRuntime.minimalChunkItem({
+    numeroFluig: "1160447",
+    moduleSlug: "pagamentos",
+    syncFluigUserId: "00130",
+    syncTypes: ["open_tasks", "my_requests"],
+    responsavelAtual: "Administrativo CD",
+  });
+  assert.equal(compactedItem.syncFluigUserId, "00130");
+  assert.deepEqual(compactedItem.syncTypes, ["open_tasks", "my_requests"]);
+  assert.equal(compactedItem.responsavelAtual, "Administrativo CD");
 });
 
 test("decodeAttachmentBase64 accepts canonical base64 and validates decoded size", () => {
@@ -23,6 +62,19 @@ test("decodeAttachmentBase64 accepts canonical base64 and validates decoded size
   );
   assert.throws(() => __test.decodeAttachmentBase64("AAAA===", 100), /dataBase64 invalido/);
   assert.throws(() => __test.decodeAttachmentBase64(" QUJD ", 100), /dataBase64 invalido/);
+});
+
+test("attachment confirmation normalizes the Fluig response names", () => {
+  assert.deepEqual(
+    attachmentRuntime.attachmentNames({
+      items: [
+        { documentName: "ADF-2026-000001 Assinada.PDF" },
+        { fileName: "cotacao.pdf" },
+      ],
+    }),
+    ["adf-2026-000001 assinada.pdf", "cotacao.pdf"]
+  );
+  assert.equal(attachmentRuntime.normalizedName("  ADF.PDF "), "adf.pdf");
 });
 
 test("writePayloadAttachments rejects job-provided paths and removes its temporary directory", () => {

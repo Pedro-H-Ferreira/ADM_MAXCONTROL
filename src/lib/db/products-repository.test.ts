@@ -43,6 +43,30 @@ const branchActor = {
     },
   ],
   branchCodes: ["1017"],
+  pageSlugs: ["produtos"],
+  pageAccess: [
+    {
+      pageSlug: "produtos",
+      canView: true,
+      canCreate: false,
+      canUpdate: false,
+      canApprove: false,
+    },
+  ],
+} as AppActor;
+
+const catalogApproverActor = {
+  ...branchActor,
+  pageSlugs: ["produtos"],
+  pageAccess: [
+    {
+      pageSlug: "produtos",
+      canView: true,
+      canCreate: true,
+      canUpdate: true,
+      canApprove: true,
+    },
+  ],
 } as AppActor;
 
 const product = {
@@ -130,6 +154,34 @@ describe("products repository branch scope", () => {
     const scope = callsByTable.app_products.find((call) => call.method === "or");
     expect(scope?.args[0]).toContain(`created_by_user_id.eq.${branchActor.id}`);
     expect(scope?.args[0]).toContain(`id.in.(${product.id})`);
+  });
+
+  it("libera o catalogo consolidado para quem pode aprovar produtos", async () => {
+    const callsByTable: Record<string, Array<{ method: string; args: unknown[] }>> = {};
+    const responses: Record<string, QueryResponse[]> = {
+      app_products: [
+        { data: [product], error: null, count: 829 },
+        { data: [], error: null, count: 829 },
+        { data: [], error: null, count: 0 },
+        { data: [], error: null, count: 829 },
+        { data: [], error: null, count: 829 },
+      ],
+    };
+    serviceState.client = {
+      from(table: string) {
+        const calls = (callsByTable[table] ||= []);
+        const response = responses[table]?.shift();
+        if (!response) throw new Error(`Consulta inesperada para ${table}`);
+        return queryBuilder(response, calls);
+      },
+    };
+
+    const result = await listProducts(catalogApproverActor, { page: 1, pageSize: 25 });
+
+    expect(result.total).toBe(829);
+    expect(result.summary).toEqual({ total: 829, services: 0, review: 829, fluig: 829 });
+    expect(callsByTable.app_product_occurrences).toBeUndefined();
+    expect(callsByTable.app_products.flatMap((call) => (call.method === "or" ? call.args : []))).toEqual([]);
   });
 });
 

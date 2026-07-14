@@ -1,4 +1,5 @@
-import { filterRowsForActor, type AppActor } from "@/lib/db/app-repository";
+import { filterRowsForActor, listFluigUserSyncState, type AppActor } from "@/lib/db/app-repository";
+import { resolveFluigUserSyncTotal } from "@/lib/fluig-user-sync-total";
 import { buildFluigActorPostgrestFilter } from "@/lib/fluig-visibility";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 
@@ -188,6 +189,7 @@ function operationLabel(operation: string) {
     sync_user_incremental_batch: "sync incremental",
     sync_request_by_number: "consulta por numero",
     open_from_source: "abertura de solicitacao",
+    attach_to_request: "anexo em solicitacao",
     cancel_request: "cancelamento",
     health_check: "teste do agente",
   };
@@ -343,7 +345,7 @@ async function loadFluigSummary(actor: AppActor): Promise<FluigDashboardSummary>
     return query;
   }
 
-  const [openResult, paymentsOpenResult, paymentsOverdueResult, paymentsMonthResult, maintenanceResult, tasksResult] = await Promise.all([
+  const [openResult, paymentsOpenResult, paymentsOverdueResult, paymentsMonthResult, maintenanceResult, tasksResult, syncStates] = await Promise.all([
     countQuery().eq("is_open", true),
     countQuery().eq("module_slug", "pagamentos").eq("is_open", true),
     countQuery().eq("module_slug", "pagamentos").eq("is_open", true).lt("due_date", todayStart),
@@ -352,6 +354,7 @@ async function loadFluigSummary(actor: AppActor): Promise<FluigDashboardSummary>
       .or(`opened_at.gte.${monthStart},and(opened_at.is.null,last_synced_at.gte.${monthStart})`),
     countQuery().eq("module_slug", "manutencao").eq("is_open", true),
     countQuery().eq("is_open", true).not("current_task", "is", null).lt("due_date", todayStart),
+    listFluigUserSyncState(actor),
   ]);
   const error = [openResult, paymentsOpenResult, paymentsOverdueResult, paymentsMonthResult, maintenanceResult, tasksResult]
     .map((result) => result.error)
@@ -364,7 +367,7 @@ async function loadFluigSummary(actor: AppActor): Promise<FluigDashboardSummary>
     paymentsOverdue: paymentsOverdueResult.count || 0,
     openMaintenance: maintenanceResult.count || 0,
     tasksOverdue: tasksResult.count || 0,
-    openRequests: openResult.count || 0,
+    openRequests: resolveFluigUserSyncTotal(syncStates, "my_requests", openResult.count || 0),
   };
 }
 

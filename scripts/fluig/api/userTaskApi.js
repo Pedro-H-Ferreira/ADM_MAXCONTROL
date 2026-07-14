@@ -1,0 +1,275 @@
+function normalizeText(value) {
+  return String(value || "").trim();
+}
+
+function normalizeKey(value) {
+  return normalizeText(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+async function fetchJson(page, url, timeoutMs = 600000) {
+  const response = await page.evaluate(
+    async ({ targetUrl, requestTimeoutMs }) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+      try {
+        const result = await fetch(targetUrl, {
+          credentials: "include",
+          cache: "no-store",
+          headers: { accept: "application/json" },
+          signal: controller.signal,
+        });
+        return {
+          status: result.status,
+          statusText: result.statusText,
+          text: await result.text(),
+        };
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    },
+    { targetUrl: url, requestTimeoutMs: timeoutMs }
+  );
+
+  if (!response || response.status < 200 || response.status >= 300) {
+    const summary = normalizeText(response?.text).replace(/\s+/g, " ").slice(0, 500);
+    throw new Error(
+      `Consulta Fluig ${url} falhou com HTTP ${response?.status || "desconhecido"}${summary ? `: ${summary}` : ""}`
+    );
+  }
+
+  try {
+    return response.text ? JSON.parse(response.text) : {};
+  } catch {
+    throw new Error(`Consulta Fluig ${url} retornou JSON invalido.`);
+  }
+}
+
+function contentItems(payload) {
+  const content = payload && typeof payload === "object" ? payload.content : null;
+  if (Array.isArray(content)) return content;
+  return content && typeof content === "object" ? [content] : [];
+}
+
+function currentUserIdentity(payload) {
+  const content = payload && typeof payload === "object" ? payload.content : null;
+  if (!content || typeof content !== "object") return null;
+
+  const code = normalizeText(content.code);
+  if (!code) return null;
+
+  return {
+    id: normalizeText(content.id) || null,
+    code,
+    login: normalizeText(content.login) || null,
+    email: normalizeText(content.email) || null,
+    fullName: normalizeText(content.fullName) || null,
+  };
+}
+
+function totalsFromSummary(payload) {
+  const totals = Object.fromEntries(
+    contentItems(payload)
+      .map((item) => [normalizeText(item.type), Number(item.totalTask || 0)])
+      .filter(([type]) => Boolean(type))
+  );
+
+  return {
+    openTasks: Math.max(0, Number(totals.open || 0)),
+    myRequests: Math.max(0, Number(totals.requests || 0)),
+  };
+}
+
+function processModuleIndex(batches) {
+  const index = new Map();
+  for (const batch of batches || []) {
+    const processId = normalizeKey(batch?.processMap?.processId);
+    const moduleSlug = normalizeText(batch?.module);
+    if (processId && moduleSlug) index.set(processId, moduleSlug);
+  }
+  return index;
+}
+
+function knownRequestModuleIndex(batches) {
+  const index = new Map();
+  for (const batch of batches || []) {
+    const moduleSlug = normalizeText(batch?.module);
+    for (const requestId of batch?.requestIds || []) {
+      if (requestId && moduleSlug) index.set(String(requestId), moduleSlug);
+    }
+  }
+  return index;
+}
+
+function inferModule(item, processModules, knownRequestModules) {
+  const requestId = normalizeText(item.processInstanceId);
+  const processKey = normalizeKey(item.processId || item.processDescription);
+  const exact = processModules.get(processKey);
+  if (exact) return exact;
+  if (knownRequestModules.has(requestId)) return knownRequestModules.get(requestId);
+  if (processKey.includes("central de lancamento")) return "pagamentos";
+  if (processKey.includes("compra administrativa")) return "compras";
+  if (processKey.includes("ativo fixo") || processKey.includes("transferencia baixas ativo")) return "manutencao";
+  return null;
+}
+
+function normalizeDate(value) {
+  const raw = normalizeText(value);
+  if (!raw) return null;
+  const sqlDate = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if (sqlDate) {
+    return `${sqlDate[1]}-${sqlDate[2]}-${sqlDate[3]}T${sqlDate[4]}:${sqlDate[5]}:${sqlDate[6]}-03:00`;
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function mapCentralTaskItem(item, input) {
+  const moduleSlug = inferModule(item, input.processModules, input.knownRequestModules);
+  if (!moduleSlug) return null;
+
+  return {
+    numeroFluig: normalizeText(item.processInstanceId),
+    moduleSlug,
+    processId: normalizeText(item.processId) || null,
+    processDescription: normalizeText(item.processDescription) || null,
+    requesterId: normalizeText(item.requesterId) || null,
+    requesterName: normalizeText(item.requesterName) || null,
+    openedAt: normalizeDate(item.movementHour),
+    etapaAtual: normalizeText(item.stateDescription),
+    responsavelAtual: normalizeText(item.colleagueName),
+    responsavelCodigo: input.syncType === "open_tasks" ? input.fluigUser.code : "",
+    stateSequence: item.stateId == null ? null : Number(item.stateId),
+    movementSequence: item.movementSequence == null ? null : Number(item.movementSequence),
+    statusProcesso: item.active === false ? "finalizado" : "em_andamento",
+    active: item.active !== false,
+    slaExpirado: Boolean(item.expired),
+    prazoTexto: normalizeText(item.deadlineText || item.deadlineDate),
+    dueDate: normalizeDate(item.deadlineDate),
+    dataUltimaConsulta: input.syncStartedAt,
+    syncFluigUserId: input.fluigUser.code,
+    syncTypes: [input.syncType],
+    syncOperations: [input.operation],
+    syncSource: "fluig_task_central",
+  };
+}
+
+function mergeCentralItems(items) {
+  const byRequest = new Map();
+
+  for (const item of items) {
+    if (!item?.numeroFluig || !item?.moduleSlug) continue;
+    const key = `${item.moduleSlug}:${item.numeroFluig}`;
+    const current = byRequest.get(key);
+    if (!current) {
+      byRequest.set(key, item);
+      continue;
+    }
+
+    byRequest.set(key, {
+      ...current,
+      ...item,
+      etapaAtual: item.etapaAtual || current.etapaAtual,
+      responsavelAtual: item.responsavelAtual || current.responsavelAtual,
+      responsavelCodigo: item.responsavelCodigo || current.responsavelCodigo,
+      syncTypes: Array.from(new Set([...(current.syncTypes || []), ...(item.syncTypes || [])])),
+      syncOperations: Array.from(new Set([...(current.syncOperations || []), ...(item.syncOperations || [])])),
+    });
+  }
+
+  return Array.from(byRequest.values());
+}
+
+function membershipSummary(items, centralTaskTotals) {
+  const modules = new Map();
+  for (const item of items) {
+    const current = modules.get(item.moduleSlug) || { module: item.moduleSlug, openTasks: 0, myRequests: 0 };
+    if (item.syncTypes.includes("open_tasks")) current.openTasks += 1;
+    if (item.syncTypes.includes("my_requests") || item.syncTypes.includes("open_tasks")) current.myRequests += 1;
+    modules.set(item.moduleSlug, current);
+  }
+
+  return {
+    global: centralTaskTotals,
+    modules: Array.from(modules.values()),
+  };
+}
+
+async function fetchUserTaskCentral(page, batches, options = {}) {
+  const syncStartedAt = new Date().toISOString();
+  const currentUserPayload = await fetchJson(page, "/api/public/2.0/users/getCurrent", options.timeoutMs);
+  const fluigUser = currentUserIdentity(currentUserPayload);
+  if (!fluigUser) {
+    throw new Error("O Fluig nao retornou o codigo do colaborador autenticado.");
+  }
+
+  const encodedUserCode = encodeURIComponent(fluigUser.code);
+  const [summaryPayload, tasksPayload, requestsPayload] = await Promise.all([
+    fetchJson(page, `/api/public/2.0/tasks/getResumedTasks/${encodedUserCode}`, options.timeoutMs),
+    fetchJson(page, `/api/public/2.0/tasks/findWorkflowTasks/${encodedUserCode}`, options.timeoutMs),
+    fetchJson(page, `/api/public/2.0/tasks/findMyRequests/${encodedUserCode}`, options.timeoutMs),
+  ]);
+
+  const centralTaskTotals = totalsFromSummary(summaryPayload);
+  const processModules = processModuleIndex(batches);
+  const knownRequestModules = knownRequestModuleIndex(batches);
+  const rawTasks = contentItems(tasksPayload);
+  const rawRequests = contentItems(requestsPayload);
+  const mappedItems = [
+    ...rawTasks.map((item) =>
+      mapCentralTaskItem(item, {
+        processModules,
+        knownRequestModules,
+        fluigUser,
+        syncStartedAt,
+        syncType: "open_tasks",
+        operation: "sync_user_open_tasks",
+      })
+    ),
+    ...rawRequests.map((item) =>
+      mapCentralTaskItem(item, {
+        processModules,
+        knownRequestModules,
+        fluigUser,
+        syncStartedAt,
+        syncType: "my_requests",
+        operation: "sync_user_open_requests",
+      })
+    ),
+  ].filter(Boolean);
+  const items = mergeCentralItems(mappedItems);
+
+  return {
+    currentFluigUser: fluigUser,
+    centralTaskTotals,
+    membership: membershipSummary(items, centralTaskTotals),
+    sourceCounts: {
+      openTasks: rawTasks.length,
+      myRequests: rawRequests.length,
+      mapped: mappedItems.length,
+      unmapped: rawTasks.length + rawRequests.length - mappedItems.length,
+    },
+    syncStartedAt,
+    processedAt: new Date().toISOString(),
+    items,
+  };
+}
+
+module.exports = {
+  fetchUserTaskCentral,
+  __test: {
+    currentUserIdentity,
+    inferModule,
+    mapCentralTaskItem,
+    membershipSummary,
+    mergeCentralItems,
+    normalizeDate,
+    normalizeKey,
+    totalsFromSummary,
+  },
+};

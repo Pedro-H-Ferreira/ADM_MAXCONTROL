@@ -324,13 +324,13 @@ describe("database and API contracts", () => {
     expect(dashboardRepository).toContain("recentFailureWindowMs");
     expect(dashboardRepository).toContain("shouldShowRecentActivity");
     expect(dashboardRepository).toContain("finished_at");
-    expect(dashboardOperations).toContain("isRecentJobFailure");
+    expect(dashboardOperations).toContain("actionableRecentFluigJobFailures");
     expect(dashboardOperations).toContain("isCurrentSyncStateError");
     expect(dashboardOperations).toContain("Falhas acionaveis das ultimas 24h");
     expect(fluigTasksPage).toContain("isVisibleRecentJob");
     expect(fluigTasksPage).toContain("isCurrentSyncStateError");
     expect(fluigTasksPage).toContain("Falhas acionaveis das ultimas 24h");
-    expect(fluigModuleOperationsPage).toContain("isRecentJobFailure");
+    expect(fluigModuleOperationsPage).toContain("actionableRecentFluigJobFailures");
     expect(fluigModuleOperationsPage).toContain("isCurrentSyncStateError");
     expect(fluigModuleOperationsPage).toContain("Falhas acionaveis das ultimas 24h");
   });
@@ -480,7 +480,8 @@ describe("database and API contracts", () => {
     expect(repository).toContain("reconcileFluigJobLifecycle");
     expect(repository).toContain("recordDetectedFluigUserId");
     expect(repository).toContain("fluig_user_id.is.null,fluig_user_id.eq.");
-    expect(repository).toContain("existingFluigUserId === fluigUserId");
+    expect(repository).toContain("identityMatchesProfile");
+    expect(repository).toContain("legacyFluigUserIds.has(existingFluigUserId)");
     expect(repository).toContain("fluigUserIdFromJobPayload");
     expect(repository).toContain("payload.taskUserId || userMatch?.fluigUserId");
     expect(repository).toContain("p_agent_id: input.agentId");
@@ -488,12 +489,12 @@ describe("database and API contracts", () => {
     expect(eventRoute).not.toContain('"success",');
     expect(eventRoute).not.toContain('"error",');
     expect(resultRoute).toContain('job.operation === "health_check"');
-    expect(resultRoute).toContain("extractCurrentFluigUserId");
+    expect(resultRoute).toContain("extractCurrentFluigUser");
     expect(resultRoute).toContain("recordDetectedFluigUserId");
     expect(resultRoute).toContain("FLUIG_IDENTITY_MISMATCH");
     expect(runner).toContain('"scripts", "fluig", "healthCheck.js"');
     expect(healthCheck).toContain("loginWithBrowser");
-    expect(healthCheck).toContain("/portal/api/rest/wcm/rest/admin/location/getCurrentUserId");
+    expect(healthCheck).toContain("/api/public/2.0/users/getCurrent");
   });
 
   it("instala e remove o agente Windows sem deixar processo Node orfao", async () => {
@@ -506,6 +507,6 @@ describe("database and API contracts", () => {
     expect(installer).toContain("-RunLevel Limited");
     expect(installer).not.toContain('New-ScheduledTaskAction -Execute "cmd.exe"');
     expect(uninstaller).toContain("Stop-AgentProcesses -AgentScriptPath $AgentScript");
-    expect(agentPackage).toContain('"version": "0.1.4"');
+    expect(agentPackage).toContain('"version": "0.1.5"');
   });
 });

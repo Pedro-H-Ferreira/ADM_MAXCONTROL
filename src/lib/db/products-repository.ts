@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AppAuthError, type AppActor } from "@/lib/db/app-repository";
+import { AppAuthError, canActorPerformPageAction, type AppActor } from "@/lib/db/app-repository";
 import {
   buildProductDedupeKey,
   buildProductSku,
@@ -326,8 +326,12 @@ async function mapProductsWithSignedImages(rows: ProductDbRow[]) {
   return rows.map((row) => mapProduct(row, row.image_path ? signedByPath.get(row.image_path) || null : null));
 }
 
+function actorHasGlobalProductScope(actor: AppActor) {
+  return actor.isAdmin || canActorPerformPageAction(actor, "produtos", "canApprove");
+}
+
 async function accessibleProductIds(client: SupabaseClient, actor: AppActor) {
-  if (actor.isAdmin) return null;
+  if (actorHasGlobalProductScope(actor)) return null;
   const ids = new Set<string>();
   const branches = actor.branches.filter((branch) => branch.active);
   for (const batch of chunksOf(branches.map((branch) => branch.id).filter(Boolean), 100)) {
@@ -348,7 +352,7 @@ async function accessibleProductIds(client: SupabaseClient, actor: AppActor) {
 }
 
 function applyProductScope<T>(query: T, actor: AppActor, visibleIds: Set<string> | null) {
-  if (actor.isAdmin) return query;
+  if (actorHasGlobalProductScope(actor)) return query;
   const scoped = query as T & { eq(column: string, value: unknown): T; or(filter: string): T };
   const ids = Array.from(visibleIds || []);
   return ids.length
@@ -455,7 +459,7 @@ export async function readProduct(actor: AppActor, id: string) {
     .eq("product_id", id)
     .order("observed_at", { ascending: false })
     .limit(100);
-  if (!actor.isAdmin && row.created_by_user_id !== actor.id) {
+  if (!actorHasGlobalProductScope(actor) && row.created_by_user_id !== actor.id) {
     const branches = actor.branches.filter((branch) => branch.active);
     const branchIds = branches.map((branch) => branch.id).filter(Boolean);
     const branchCodes = branches.map((branch) => branch.code).filter(Boolean);

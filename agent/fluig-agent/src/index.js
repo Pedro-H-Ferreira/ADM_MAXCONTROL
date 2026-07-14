@@ -259,13 +259,23 @@ function minimalChunkItem(item) {
       "endDate",
       "requesterId",
       "requesterName",
+      "responsavelAtual",
+      "responsavelLogin",
+      "responsavelCodigo",
       "active",
       "stateDescription",
       "etapaAtual",
       "currentTask",
       "taskOwner",
+      "openedAt",
+      "dueDate",
       "dataUltimaConsulta",
+      "syncFluigUserId",
+      "syncStartedAt",
     ]),
+    syncTypes: Array.isArray(payload.syncTypes)
+      ? payload.syncTypes.map((value) => truncateValue(value, 100)).filter(Boolean)
+      : [],
     formFields: compactFormFields(payload.formFields, 200),
     raw: null,
     itemCompactedByAgent: true,
@@ -305,6 +315,27 @@ function copyScalarFields(source, keys) {
   return target;
 }
 
+function copyTaskCentralMetadata(source) {
+  const payload = plainObject(source);
+  const target = copyScalarFields(payload, [
+    "directTaskCentral",
+    "syncStartedAt",
+    "processedAt",
+    "processed",
+    "taskUserId",
+    "batchCount",
+    "batched",
+  ]);
+
+  for (const key of ["currentFluigUser", "centralTaskTotals", "membership", "sourceCounts"]) {
+    if (payload[key] && typeof payload[key] === "object") {
+      target[key] = payload[key];
+    }
+  }
+
+  return target;
+}
+
 function compactResultPayload(result) {
   const payload = plainObject(result);
   const data = plainObject(payload.data);
@@ -326,8 +357,10 @@ function compactResultPayload(result) {
 
   return {
     ...copyScalarFields(payload, scalarKeys),
+    ...copyTaskCentralMetadata(payload),
     data: {
       ...copyScalarFields(data, scalarKeys),
+      ...copyTaskCentralMetadata(data),
       itemsOmitted: true,
       itemCount,
       compactedByAgent: true,
@@ -347,8 +380,10 @@ function minimalResultPayload(result, reason) {
 
   return {
     ...copyScalarFields(payload, ["outputPath", "ok", "success", "status", "message", "error"]),
+    ...copyTaskCentralMetadata(payload),
     data: {
       ...copyScalarFields(data, ["outputPath", "ok", "success", "status", "message", "error"]),
+      ...copyTaskCentralMetadata(data),
       itemsOmitted: true,
       itemCount,
       compactedByAgent: true,
@@ -418,8 +453,10 @@ function compactHistoryResult(result, input) {
 
   return {
     ...copyScalarFields(payload, ["outputPath", "ok", "success", "status", "message", "error"]),
+    ...copyTaskCentralMetadata(payload),
     data: {
       ...copyScalarFields(data, ["outputPath", "ok", "success", "status", "message", "error"]),
+      ...copyTaskCentralMetadata(data),
       itemsChunked: true,
       itemCount: input.itemCount,
       chunkCount: input.chunkCount,
@@ -656,6 +693,7 @@ module.exports = {
     compactHistoryResult,
     compactResultPayload,
     historyChunkPayload,
+    minimalChunkItem,
     minimalResultPayload,
     payloadBytes,
     pollDelayMs,

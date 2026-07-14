@@ -40,6 +40,7 @@ type FluigIntegrationPanelProps = {
   agents?: FluigAdmAgent[];
   onAgentsChange?: (agents: FluigAdmAgent[]) => void;
   recoverJobs?: boolean;
+  workspaceView?: "all" | "launch" | "tools";
 };
 
 const catalogOrder: FluigCatalogType[] = ["supplier", "branch", "natureza", "cost_center", "payment_method", "account"];
@@ -103,7 +104,14 @@ function describeHeartbeatAge(seconds: number | null | undefined) {
   return `${Math.floor(minutes / 60)} h atras`;
 }
 
-export function FluigIntegrationPanel({ moduleSlug, compact = false, agents: externalAgents, onAgentsChange, recoverJobs = true }: FluigIntegrationPanelProps) {
+export function FluigIntegrationPanel({
+  moduleSlug,
+  compact = false,
+  agents: externalAgents,
+  onAgentsChange,
+  recoverJobs = true,
+  workspaceView = "all",
+}: FluigIntegrationPanelProps) {
   const integration = getFluigIntegrationForModule(moduleSlug);
   const [syncData, setSyncData] = useState<FluigAdmSyncResponse | null>(null);
   const [pendingAction, setPendingAction] = useState<FluigAdmSyncAction | null>(null);
@@ -388,6 +396,81 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false, agents: ext
       .length || 0;
   const fluigBusy = Boolean(pendingAction) || pendingUserSync || historicalPending || lookupPending || testingAgent || jobTracker.active;
 
+  if (workspaceView === "launch") {
+    return (
+      <div className="stitch-animate-in min-w-0 space-y-4">
+        <div className="flex flex-col gap-3 rounded-lg border bg-background p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+              <Laptop className="size-4" />
+              Agente local
+              <StatusBadge status={onlineAgent ? "ONLINE" : agents.length ? "OFFLINE" : "NAO_PAREADO"} />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {onlineAgent
+                ? `${onlineAgent.display_name} pronto para validar e enviar a solicitacao.`
+                : "O preenchimento esta disponivel, mas o agente precisa ficar online para consultar modelos e enviar ao Fluig."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="stitch-soft-button"
+              onClick={() => runSync("examples")}
+              disabled={fluigBusy || !onlineAgent}
+            >
+              <RefreshCcw className={cn("size-4", pendingAction === "examples" ? "animate-spin" : "")} />
+              Atualizar listas e modelos
+            </Button>
+            {!onlineAgent ? (
+              <Button type="button" variant="outline" className="stitch-soft-button" onClick={pairAgent} disabled={fluigBusy}>
+                <KeyRound className="size-4" />
+                Parear agente
+              </Button>
+            ) : null}
+            <Button type="button" variant="outline" className="stitch-soft-button" asChild>
+              <a href={integration.openUrl} target="_blank" rel="noreferrer">
+                <ExternalLink className="size-4" />
+                Abrir no Fluig
+              </a>
+            </Button>
+          </div>
+        </div>
+
+        {activeJob ? (
+          <div className="rounded-lg border bg-background p-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2 font-medium">
+              Execucao Fluig
+              <StatusBadge status={activeJob.status.toUpperCase()} />
+              <span className="font-mono text-muted-foreground">{activeJob.id.slice(0, 8)}</span>
+            </div>
+            <p className="mt-1 text-muted-foreground">{activeJob.progressLabel || "Aguardando agente local assumir a tarefa."}</p>
+          </div>
+        ) : null}
+        {pairToken ? (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="font-semibold">Token gerado uma unica vez</p>
+            <p className="mt-1 break-all font-mono">{pairToken}</p>
+            <p className="mt-2">
+              Execute <span className="font-mono">INSTALAR-AGENTE-FLUIG.bat</span> e cole este token quando solicitado.
+            </p>
+          </div>
+        ) : null}
+        {notice ? <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-800">{notice}</p> : null}
+        {error ? <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-900">{error}</p> : null}
+
+        <FluigLaunchForm
+          moduleSlug={integration.slug}
+          integration={integration}
+          syncData={displaySyncData}
+          onSynced={setSyncData}
+          focused
+        />
+      </div>
+    );
+  }
+
   return (
     <Card className="stitch-animate-in stitch-hover-lift min-w-0 rounded-lg shadow-none">
       <CardHeader className="min-w-0 space-y-4">
@@ -608,12 +691,14 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false, agents: ext
           <InfoTile icon={Workflow} label="Registros sincronizados" value={String(rows.length)} />
         </div>
 
-        <FluigLaunchForm
-          moduleSlug={integration.slug}
-          integration={integration}
-          syncData={displaySyncData}
-          onSynced={setSyncData}
-        />
+        {workspaceView !== "tools" ? (
+          <FluigLaunchForm
+            moduleSlug={integration.slug}
+            integration={integration}
+            syncData={displaySyncData}
+            onSynced={setSyncData}
+          />
+        ) : null}
 
         <div className={cn("grid gap-4", compact ? "" : "xl:grid-cols-[1.15fr_0.85fr]")}>
           <section className="rounded-md border bg-muted/20">

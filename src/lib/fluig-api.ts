@@ -24,6 +24,7 @@ export type FluigJobOperation =
   | "sync_history"
   | "sync_status"
   | "open_from_source"
+  | "attach_to_request"
   | "cancel_request"
   | "health_check"
   | "sync_initial_history"
@@ -417,6 +418,7 @@ export const fluigAdmApi = {
     return this.get<{
       success: true;
       tasks: FluigOpenRequestRecord[];
+      total: number;
       persistence?: unknown;
     }>(`${this.myTasksPath}?${params.toString()}`);
   },
@@ -426,6 +428,7 @@ export const fluigAdmApi = {
     return this.get<{
       success: true;
       requests: FluigOpenRequestRecord[];
+      total: number;
       persistence?: unknown;
     }>(`${this.myOpenRequestsPath}?${params.toString()}`);
   },

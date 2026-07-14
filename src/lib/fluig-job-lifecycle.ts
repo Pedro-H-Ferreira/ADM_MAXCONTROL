@@ -38,7 +38,7 @@ export type FluigLifecycleDecision =
 const minute = 60 * 1000;
 
 export function defaultFluigJobMaxAttempts(operation: string) {
-  if (operation === "open_from_source" || operation === "cancel_request") return 1;
+  if (operation === "open_from_source" || operation === "attach_to_request" || operation === "cancel_request") return 1;
   if (operation === "health_check") return 2;
   return 3;
 }
@@ -48,7 +48,7 @@ export function fluigJobQueueLifetimeMs(operation: string) {
     return 6 * 60 * minute;
   }
   if (operation === "sync_user_incremental_batch") return 2 * 60 * minute;
-  if (operation === "open_from_source" || operation === "cancel_request") return 60 * minute;
+  if (operation === "open_from_source" || operation === "attach_to_request" || operation === "cancel_request") return 60 * minute;
   if (operation === "health_check") return 15 * minute;
   return 90 * minute;
 }
@@ -57,7 +57,7 @@ export function fluigJobLeaseTimeoutMs(operation: string) {
   if (operation === "sync_history" || operation === "sync_initial_history" || operation === "supplier_lookup_by_cnpj") {
     return 30 * minute;
   }
-  if (operation === "open_from_source") return 20 * minute;
+  if (operation === "open_from_source" || operation === "attach_to_request") return 20 * minute;
   return 15 * minute;
 }
 
@@ -95,7 +95,7 @@ export function evaluateFluigJobLifecycle(
 
   if (job.attempts >= job.maxAttempts) {
     const mutationWarning =
-      job.operation === "open_from_source" || job.operation === "cancel_request"
+      job.operation === "open_from_source" || job.operation === "attach_to_request" || job.operation === "cancel_request"
         ? " O reenvio automatico foi bloqueado para evitar duplicidade; confira o Fluig antes de tentar novamente."
         : "";
     return {

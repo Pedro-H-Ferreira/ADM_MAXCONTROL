@@ -5,6 +5,7 @@ const path = require("node:path");
 const appData = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
 const configDir = process.env.ADM_FLUIG_AGENT_CONFIG_DIR || path.join(appData, "ADM MaxControl", "fluig-agent");
 const configFile = process.env.ADM_FLUIG_AGENT_CONFIG || path.join(configDir, "config.json");
+const packageConfig = readJson(path.resolve(__dirname, "..", "package.json"));
 
 function readJson(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -47,7 +48,7 @@ function buildConfig() {
     token: optional(fileConfig, "ADM_AGENT_TOKEN"),
     localPort: Number(optional(fileConfig, "LOCAL_AGENT_PORT", "4777")),
     pollIntervalMs: Number(optional(fileConfig, "POLL_INTERVAL_MS", "8000")),
-    agentVersion: optional(fileConfig, "AGENT_VERSION", "0.1.4"),
+    agentVersion: String(process.env.AGENT_VERSION || packageConfig.version || fileConfig.AGENT_VERSION || "0.1.5").trim(),
     machineName: optional(fileConfig, "MACHINE_NAME", os.hostname()),
     machineId: optional(fileConfig, "MACHINE_ID", `${os.hostname()}-${os.userInfo().username}`),
     fluig: {

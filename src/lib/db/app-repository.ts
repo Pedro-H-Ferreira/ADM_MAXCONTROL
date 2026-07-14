@@ -90,6 +90,7 @@ export type FluigJobOperation =
   | "sync_history"
   | "sync_status"
   | "open_from_source"
+  | "attach_to_request"
   | "cancel_request"
   | "health_check"
   | "sync_initial_history"
@@ -1063,6 +1064,7 @@ export async function createAgentPairing(input: { actor: AppActor; displayName?:
         "sync_history",
         "sync_status",
         "open_from_source",
+        "attach_to_request",
         "cancel_request",
         "health_check",
         "sync_initial_history",
@@ -1178,6 +1180,9 @@ export async function recordAgentHeartbeat(input: {
 export async function recordDetectedFluigUserId(input: {
   userId: string;
   fluigUserId?: string | null;
+  fluigUsername?: string | null;
+  fluigEmail?: string | null;
+  legacyFluigUserIds?: Array<string | null | undefined>;
 }) {
   const fluigUserId = String(input.fluigUserId || "").trim();
   if (!fluigUserId) {
@@ -1187,7 +1192,7 @@ export async function recordDetectedFluigUserId(input: {
   const client = assertServiceClient();
   const { data: profile, error: profileError } = await client
     .from("app_user_profiles")
-    .select("id,fluig_user_id")
+    .select("id,email,fluig_user_id,fluig_username")
     .eq("id", input.userId)
     .maybeSingle();
   if (profileError) throw profileError;
@@ -1196,22 +1201,50 @@ export async function recordDetectedFluigUserId(input: {
   }
 
   const existingFluigUserId = String(profile.fluig_user_id || "").trim();
-  if (existingFluigUserId) {
+  const fluigUsername = String(input.fluigUsername || "").trim() || null;
+  const fluigEmail = String(input.fluigEmail || "").trim().toLowerCase() || null;
+  const legacyFluigUserIds = new Set(
+    (input.legacyFluigUserIds || []).map((value) => String(value || "").trim()).filter(Boolean)
+  );
+  const detectedIdentityValues = new Set(
+    [fluigUsername, fluigEmail].map((value) => String(value || "").trim().toLowerCase()).filter(Boolean)
+  );
+  const profileIdentityValues = [profile.fluig_username, profile.email]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean);
+  const identityMatchesProfile = profileIdentityValues.some((value) => detectedIdentityValues.has(value));
+  const canReplaceLegacyId = Boolean(
+    existingFluigUserId &&
+      legacyFluigUserIds.has(existingFluigUserId) &&
+      (identityMatchesProfile || !String(profile.fluig_username || "").trim())
+  );
+
+  if (existingFluigUserId && existingFluigUserId !== fluigUserId && !canReplaceLegacyId) {
     return {
       detected: true,
-      matched: existingFluigUserId === fluigUserId,
+      matched: false,
       updated: false,
     };
   }
 
-  const { data, error } = await client
+  const shouldUpdateUserId = !existingFluigUserId || canReplaceLegacyId;
+  const shouldUpdateUsername = Boolean(fluigUsername && !String(profile.fluig_username || "").trim());
+  if (!shouldUpdateUserId && !shouldUpdateUsername) {
+    return { detected: true, matched: true, updated: false };
+  }
+
+  let updateQuery = client
     .from("app_user_profiles")
     .update({
-      fluig_user_id: fluigUserId,
+      ...(shouldUpdateUserId ? { fluig_user_id: fluigUserId } : {}),
+      ...(shouldUpdateUsername ? { fluig_username: fluigUsername } : {}),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", input.userId)
-    .or("fluig_user_id.is.null,fluig_user_id.eq.")
+    .eq("id", input.userId);
+  updateQuery = existingFluigUserId
+    ? updateQuery.eq("fluig_user_id", existingFluigUserId)
+    : updateQuery.or("fluig_user_id.is.null,fluig_user_id.eq.");
+  const { data, error } = await updateQuery
     .select("id")
     .maybeSingle();
   if (error) throw error;
@@ -1360,13 +1393,14 @@ export async function completeFluigUserSyncStateForJob(input: {
   status: "success" | "error";
   errorMessage?: string | null;
   metadata?: JsonRecord;
+  fluigUserId?: string | null;
 }) {
   const client = assertServiceClient();
   const now = new Date().toISOString();
   const payload = {
     user_id: input.job.requestedByUserId,
     fluig_username: input.job.fluigUsername,
-    fluig_user_id: fluigUserIdFromJobPayload(input.job.requestPayload),
+    fluig_user_id: input.fluigUserId || fluigUserIdFromJobPayload(input.job.requestPayload),
     module_slug: input.module || input.job.module,
     sync_type: input.syncType,
     last_sync_at: now,
@@ -1394,12 +1428,18 @@ export async function listFluigUserSyncState(actor: AppActor, input: { userId?: 
   const allowedModules = fluigModuleSlugsForActor(actor);
   if (input.module && !allowedModules.includes(input.module)) return [];
   if (!allowedModules.length) return [];
-  const targetUserId = actor.isAdmin && input.userId ? input.userId : actor.id;
   let query = client
     .from("fluig_user_sync_state")
     .select("*")
-    .eq("user_id", targetUserId)
     .order("updated_at", { ascending: false });
+
+  if (actor.isAdmin && input.userId) {
+    query = query.eq("user_id", input.userId);
+  } else if (actor.fluigUserId) {
+    query = query.eq("fluig_user_id", actor.fluigUserId);
+  } else {
+    query = query.eq("user_id", actor.id);
+  }
 
   if (input.module) {
     query = query.eq("module_slug", input.module);
