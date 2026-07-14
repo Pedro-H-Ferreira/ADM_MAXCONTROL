@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AlertTriangle, ClipboardCheck, ClipboardList, Laptop, Loader2, RefreshCcw, RotateCw, UserCheck, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 } from "@/lib/fluig-api";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
 import { waitForFluigJobs } from "@/lib/use-fluig-job-state";
+import { useVisibleRefresh } from "@/lib/use-visible-refresh";
 import { cn } from "@/lib/utils";
 
 const terminalJobStatuses = new Set(["success", "error", "cancelled", "expired"]);
@@ -173,14 +174,7 @@ export function DashboardFluigOperations() {
     }
   }, []);
 
-  useEffect(() => {
-    const initialLoad = window.setTimeout(() => void refresh(), 0);
-    const interval = window.setInterval(() => void refresh(true), 30000);
-    return () => {
-      window.clearTimeout(initialLoad);
-      window.clearInterval(interval);
-    };
-  }, [refresh]);
+  useVisibleRefresh(refresh);
 
   async function pollJobsUntilDone(seedJobs: DashboardJob[]) {
     await waitForFluigJobs(seedJobs, {

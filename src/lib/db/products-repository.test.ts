@@ -99,7 +99,13 @@ describe("products repository branch scope", () => {
         { data: [{ product_id: product.id }], error: null },
         { data: [], error: null },
       ],
-      app_products: [{ data: [product], error: null, count: 1 }],
+      app_products: [
+        { data: [product], error: null, count: 1 },
+        { data: [], error: null, count: 1 },
+        { data: [], error: null, count: 0 },
+        { data: [], error: null, count: 1 },
+        { data: [], error: null, count: 1 },
+      ],
     };
     serviceState.client = {
       from(table: string) {
@@ -113,6 +119,7 @@ describe("products repository branch scope", () => {
     const result = await listProducts(branchActor, { page: 1, pageSize: 25 });
 
     expect(result.total).toBe(1);
+    expect(result.summary).toEqual({ total: 1, services: 0, review: 1, fluig: 1 });
     expect(result.items[0].id).toBe(product.id);
     expect(callsByTable.app_product_occurrences).toEqual(
       expect.arrayContaining([

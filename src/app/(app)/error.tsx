@@ -55,7 +55,7 @@ export default function AdminRouteError({
               Recarregar tela
             </Button>
             <Button type="button" variant="outline" asChild className="stitch-soft-button">
-              <Link href="/dashboard" prefetch={false}>
+              <Link href="/dashboard">
                 <Home className="size-4" />
                 Ir para o dashboard
               </Link>

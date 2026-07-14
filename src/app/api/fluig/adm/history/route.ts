@@ -116,6 +116,9 @@ export async function POST(request: Request) {
 
   try {
     actor = await resolveCurrentAppUser();
+    if (!actor.isAdmin) {
+      return jsonError("Somente administradores podem executar consulta historica Fluig.", 403);
+    }
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;

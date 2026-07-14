@@ -5,6 +5,14 @@ const path = require("node:path");
 const test = require("node:test");
 
 const { __test } = require("../src/runner");
+const agentRuntime = require("../src/index").__test;
+
+test("pollDelayMs keeps normal cadence and backs off transient failures", () => {
+  assert.equal(agentRuntime.pollDelayMs(8000, 0, () => 0.5), 8000);
+  assert.equal(agentRuntime.pollDelayMs(8000, 1, () => 0), 8000);
+  assert.equal(agentRuntime.pollDelayMs(8000, 2, () => 0), 16000);
+  assert.equal(agentRuntime.pollDelayMs(8000, 5, () => 0), 60000);
+});
 
 test("decodeAttachmentBase64 accepts canonical base64 and validates decoded size", () => {
   const input = Buffer.from("arquivo seguro");

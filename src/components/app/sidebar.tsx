@@ -53,10 +53,12 @@ export function AppSidebar({
   collapsed,
   mobile = false,
   sections = navigationSections,
+  onNavigate,
 }: {
   collapsed: boolean;
   mobile?: boolean;
   sections?: NavigationSection[];
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const showLabels = !collapsed || mobile;
@@ -65,12 +67,12 @@ export function AppSidebar({
     <aside
       data-expanded={showLabels}
       className={cn(
-        "flex h-full flex-col overflow-hidden bg-sidebar text-sidebar-foreground transition-[width,box-shadow] duration-300 ease-in-out",
+        "flex h-full flex-col overflow-hidden bg-sidebar text-sidebar-foreground transition-[width,box-shadow] duration-300 ease-in-out motion-reduce:transition-none",
         mobile ? "w-full" : collapsed ? "w-[76px] shadow-lg" : "w-60 shadow-xl",
       )}
     >
       <div className="flex h-16 items-center px-4">
-        <Link href="/dashboard" prefetch={false} className="flex min-w-0 items-center gap-2">
+        <Link href="/dashboard" className="flex min-w-0 items-center gap-2" onClick={onNavigate}>
           <div
             className={cn(
               "grid size-9 shrink-0 place-items-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground transition-transform duration-300",
@@ -109,8 +111,8 @@ export function AppSidebar({
                 const link = (
                   <Link
                     href={item.href}
-                    prefetch={false}
                     aria-label={item.title}
+                    onClick={onNavigate}
                     className={cn(
                       "group/nav flex h-9 items-center gap-2 rounded-md px-2 text-sm transition-all duration-200 ease-in-out active:scale-[0.98]",
                       active

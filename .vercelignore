@@ -5,6 +5,10 @@
 node_modules
 logs
 storage
+data
+output
+tmp
+scripts/__pycache__
 FLUIG-EXPORT
 stitch-export
 tsconfig.tsbuildinfo

@@ -1,8 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
   Clock,
   Eye,
@@ -14,11 +17,11 @@ import {
   RefreshCcw,
   SendHorizontal,
   Smartphone,
-  Trash2,
   Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -37,26 +40,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FluigIntegrationPanel } from "@/components/shared/fluig-integration-panel";
-import { PageHeader } from "@/components/shared/page-header";
 import { PriorityBadge } from "@/components/shared/priority-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
-import type { ModuleConfig } from "@/lib/admin-data";
 import type { FluigAdmJobSummary } from "@/lib/fluig-api";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useFluigJobState } from "@/lib/use-fluig-job-state";
 import { cn } from "@/lib/utils";
+import { MaintenanceOrderExecutionPanel } from "@/components/maintenance/maintenance-order-execution-panel";
 
-type MaintenanceOrderSource = "manual" | "fluig";
+type MaintenanceOrderSource = "manual" | "fluig" | "preventiva" | "checklist" | "alerta";
 type MaintenanceOrderPriority = "CRITICA" | "ALTA" | "MEDIA" | "BAIXA";
+type MaintenanceOrderWorkType = "CORRETIVA" | "PREVENTIVA" | "INSPECAO" | "MELHORIA" | "EMERGENCIA";
 type MaintenanceOrderStatus =
   | "ABERTA"
+  | "EM_TRIAGEM"
+  | "PLANEJADA"
+  | "AGUARDANDO_APROVACAO"
   | "INICIADA"
+  | "EM_EXECUCAO"
   | "AGUARDANDO_MATERIAL"
+  | "MATERIAL_RESERVADO"
   | "AGUARDANDO_TERCEIRO"
+  | "PROGRAMADA"
+  | "PAUSADA"
+  | "CONCLUIDA"
+  | "AGUARDANDO_VALIDACAO"
   | "FINALIZADA"
   | "CANCELADA";
 
@@ -91,7 +104,7 @@ type MaintenanceMaterialFormRow = {
   value: string;
 };
 
-type MaintenanceOrderRecord = {
+export type MaintenanceOrderRecord = {
   id: string;
   code: string;
   source: MaintenanceOrderSource;
@@ -100,6 +113,11 @@ type MaintenanceOrderRecord = {
   area: string;
   priority: MaintenanceOrderPriority;
   status: MaintenanceOrderStatus;
+  workType: MaintenanceOrderWorkType;
+  assetId: string | null;
+  asset: { id: string; internal_code: string; asset_tag: string | null; name: string; status: string; physical_location: string | null } | null;
+  serviceProviderId: string | null;
+  serviceProvider: { id: string; name: string; tax_id: string | null } | null;
   requester: string | null;
   technician: string | null;
   branch: {
@@ -115,6 +133,21 @@ type MaintenanceOrderRecord = {
   materials: MaintenanceMaterialRecord[];
   photos: MaintenancePhotoRecord[];
   pendingReason: string | null;
+  slaMinutes: number | null;
+  diagnosis: string | null;
+  rootCause: string | null;
+  executedSolution: string | null;
+  downtimeMinutes: number;
+  laborCostCents: number;
+  otherCostCents: number;
+  totalCostCents: number;
+  completionNotes: string | null;
+  approvalStatus: string;
+  approval: {
+    approvedBy: string | null;
+    approvedAt: string | null;
+    notes: string | null;
+  };
   fluig: {
     requestId: string | null;
     numLancW: string | null;
@@ -131,7 +164,10 @@ type MaintenancePayload = {
   success: true;
   items: MaintenanceOrderRecord[];
   branches: MaintenanceBranch[];
+  page: number;
+  pageSize: number;
   total: number;
+  capabilities: Record<string, boolean>;
   counts: {
     open: number;
     started: number;
@@ -142,6 +178,15 @@ type MaintenancePayload = {
   };
 };
 
+type MaintenanceAssetOption = {
+  id: string;
+  branch_id: string;
+  internal_code: string;
+  asset_tag: string | null;
+  name: string;
+  status: string;
+};
+
 type FormState = {
   source: MaintenanceOrderSource;
   title: string;
@@ -149,6 +194,8 @@ type FormState = {
   area: string;
   priority: MaintenanceOrderPriority;
   status: MaintenanceOrderStatus;
+  workType: MaintenanceOrderWorkType;
+  assetId: string;
   requester: string;
   technician: string;
   branchId: string;
@@ -157,6 +204,15 @@ type FormState = {
   materialCost: string;
   materials: MaintenanceMaterialFormRow[];
   pendingReason: string;
+  slaMinutes: string;
+  diagnosis: string;
+  rootCause: string;
+  executedSolution: string;
+  downtimeMinutes: string;
+  laborCost: string;
+  otherCost: string;
+  completionNotes: string;
+  completionApprovalRequired: boolean;
   fluigRequestId: string;
   fluigSourceRequestId: string;
   fluigNumLancW: string;
@@ -172,6 +228,8 @@ const emptyForm: FormState = {
   area: "",
   priority: "MEDIA",
   status: "ABERTA",
+  workType: "CORRETIVA",
+  assetId: "",
   requester: "",
   technician: "",
   branchId: "",
@@ -180,6 +238,15 @@ const emptyForm: FormState = {
   materialCost: "",
   materials: [],
   pendingReason: "",
+  slaMinutes: "",
+  diagnosis: "",
+  rootCause: "",
+  executedSolution: "",
+  downtimeMinutes: "",
+  laborCost: "",
+  otherCost: "",
+  completionNotes: "",
+  completionApprovalRequired: false,
   fluigRequestId: "",
   fluigSourceRequestId: "",
   fluigNumLancW: "",
@@ -190,16 +257,44 @@ const emptyForm: FormState = {
 
 const statusOptions: MaintenanceOrderStatus[] = [
   "ABERTA",
-  "INICIADA",
+  "EM_TRIAGEM",
+  "PLANEJADA",
+  "AGUARDANDO_APROVACAO",
   "AGUARDANDO_MATERIAL",
+  "MATERIAL_RESERVADO",
   "AGUARDANDO_TERCEIRO",
+  "PROGRAMADA",
+  "INICIADA",
+  "EM_EXECUCAO",
+  "PAUSADA",
+  "CONCLUIDA",
+  "AGUARDANDO_VALIDACAO",
   "FINALIZADA",
   "CANCELADA",
 ];
 const priorityOptions: MaintenanceOrderPriority[] = ["CRITICA", "ALTA", "MEDIA", "BAIXA"];
+const workTypeOptions: MaintenanceOrderWorkType[] = ["CORRETIVA", "PREVENTIVA", "INSPECAO", "MELHORIA", "EMERGENCIA"];
+const statusTransitions: Record<MaintenanceOrderStatus, MaintenanceOrderStatus[]> = {
+  ABERTA: ["EM_TRIAGEM", "PLANEJADA", "AGUARDANDO_APROVACAO", "INICIADA", "EM_EXECUCAO", "CANCELADA"],
+  EM_TRIAGEM: ["PLANEJADA", "AGUARDANDO_APROVACAO", "AGUARDANDO_MATERIAL", "PROGRAMADA", "EM_EXECUCAO", "CANCELADA"],
+  PLANEJADA: ["AGUARDANDO_APROVACAO", "AGUARDANDO_MATERIAL", "MATERIAL_RESERVADO", "PROGRAMADA", "EM_EXECUCAO", "CANCELADA"],
+  AGUARDANDO_APROVACAO: ["PLANEJADA", "AGUARDANDO_MATERIAL", "PROGRAMADA", "CANCELADA"],
+  AGUARDANDO_MATERIAL: ["MATERIAL_RESERVADO", "PLANEJADA", "CANCELADA"],
+  MATERIAL_RESERVADO: ["PROGRAMADA", "INICIADA", "EM_EXECUCAO", "AGUARDANDO_MATERIAL", "CANCELADA"],
+  AGUARDANDO_TERCEIRO: ["PROGRAMADA", "EM_EXECUCAO", "PAUSADA", "CANCELADA"],
+  PROGRAMADA: ["INICIADA", "EM_EXECUCAO", "AGUARDANDO_MATERIAL", "AGUARDANDO_TERCEIRO", "CANCELADA"],
+  INICIADA: ["EM_EXECUCAO", "PAUSADA", "AGUARDANDO_MATERIAL", "AGUARDANDO_TERCEIRO", "CONCLUIDA", "AGUARDANDO_VALIDACAO", "FINALIZADA", "CANCELADA"],
+  EM_EXECUCAO: ["PAUSADA", "AGUARDANDO_MATERIAL", "AGUARDANDO_TERCEIRO", "CONCLUIDA", "AGUARDANDO_VALIDACAO", "FINALIZADA", "CANCELADA"],
+  PAUSADA: ["EM_EXECUCAO", "AGUARDANDO_MATERIAL", "AGUARDANDO_TERCEIRO", "CANCELADA"],
+  CONCLUIDA: ["AGUARDANDO_VALIDACAO", "FINALIZADA", "EM_EXECUCAO"],
+  AGUARDANDO_VALIDACAO: ["FINALIZADA", "EM_EXECUCAO"],
+  FINALIZADA: [],
+  CANCELADA: [],
+};
 const areaOptions = ["Docas", "Camara fria", "Cobertura", "Empilhadeiras", "Administrativo", "Patio", "Portaria"];
 const photoMimeTypes = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
 const maxPhotoBytes = 10 * 1024 * 1024;
+const maintenancePageSizes = [20, 50, 100] as const;
 
 function parseResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
   return response.json().then((data: { success?: boolean; error?: string }) => {
@@ -254,6 +349,17 @@ function metadataText(metadata: Record<string, unknown> | null | undefined, key:
   return typeof value === "string" || typeof value === "number" ? String(value) : "";
 }
 
+function maintenanceSourceLabel(source: MaintenanceOrderSource) {
+  const labels: Record<MaintenanceOrderSource, string> = {
+    manual: "Ferramenta",
+    fluig: "Fluig",
+    preventiva: "Preventiva",
+    checklist: "Checklist",
+    alerta: "Alerta",
+  };
+  return labels[source];
+}
+
 function formFromOrder(order: MaintenanceOrderRecord): FormState {
   return {
     source: order.source,
@@ -262,6 +368,8 @@ function formFromOrder(order: MaintenanceOrderRecord): FormState {
     area: order.area,
     priority: order.priority,
     status: order.status,
+    workType: order.workType,
+    assetId: order.assetId || "",
     requester: order.requester || "",
     technician: order.technician || "",
     branchId: order.branch.id || "",
@@ -274,6 +382,15 @@ function formFromOrder(order: MaintenanceOrderRecord): FormState {
       value: moneyInputFromCents(material.valueCents),
     })),
     pendingReason: order.pendingReason || "",
+    slaMinutes: order.slaMinutes == null ? "" : String(order.slaMinutes),
+    diagnosis: order.diagnosis || "",
+    rootCause: order.rootCause || "",
+    executedSolution: order.executedSolution || "",
+    downtimeMinutes: order.downtimeMinutes ? String(order.downtimeMinutes) : "",
+    laborCost: moneyInputFromCents(order.laborCostCents),
+    otherCost: moneyInputFromCents(order.otherCostCents),
+    completionNotes: order.completionNotes || "",
+    completionApprovalRequired: order.approvalStatus !== "NOT_REQUIRED",
     fluigRequestId: order.fluig.requestId || "",
     fluigSourceRequestId: metadataText(order.metadata, "fluigSourceRequestId"),
     fluigNumLancW: order.fluig.numLancW || "",
@@ -300,6 +417,8 @@ function buildPayload(form: FormState) {
     area: form.area.trim(),
     priority: form.priority,
     status: form.status,
+    workType: form.workType,
+    assetId: form.assetId || null,
     requester: form.requester.trim() || null,
     technician: form.technician.trim() || null,
     branchId: form.branchId || null,
@@ -308,6 +427,15 @@ function buildPayload(form: FormState) {
     materialCostCents: materials.length ? materialsTotal : centsFromMoney(form.materialCost),
     materials,
     pendingReason: form.pendingReason.trim() || null,
+    slaMinutes: form.slaMinutes ? Math.max(0, Math.round(Number(form.slaMinutes))) : null,
+    diagnosis: form.diagnosis.trim() || null,
+    rootCause: form.rootCause.trim() || null,
+    executedSolution: form.executedSolution.trim() || null,
+    downtimeMinutes: form.downtimeMinutes ? Math.max(0, Math.round(Number(form.downtimeMinutes))) : 0,
+    laborCostCents: centsFromMoney(form.laborCost),
+    otherCostCents: centsFromMoney(form.otherCost),
+    completionNotes: form.completionNotes.trim() || null,
+    completionApprovalRequired: form.completionApprovalRequired,
     fluigRequestId: form.source === "fluig" ? form.fluigRequestId.trim() || null : null,
     fluigNumLancW: form.source === "fluig" ? form.fluigNumLancW.trim() || null : null,
     fluigCurrentTask: form.source === "fluig" ? form.fluigCurrentTask.trim() || null : null,
@@ -351,15 +479,19 @@ type PhotoListResponse = {
   photos: MaintenancePhotoRecord[];
 };
 
-export function MaintenancePage({
-  config,
+export function MaintenanceOrdersPanel({
   initialOpenForm = false,
 }: {
-  config: ModuleConfig;
   initialOpenForm?: boolean;
 }) {
+  const initialSearchParams = useSearchParams();
+  const initialStatus = initialSearchParams.get("status");
+  const initialSource = initialSearchParams.get("source");
+  const initialPageSize = Number(initialSearchParams.get("pageSize") || 20);
   const [orders, setOrders] = useState<MaintenanceOrderRecord[]>([]);
   const [branches, setBranches] = useState<MaintenanceBranch[]>([]);
+  const [assets, setAssets] = useState<MaintenanceAssetOption[]>([]);
+  const [capabilities, setCapabilities] = useState<Record<string, boolean>>({});
   const [counts, setCounts] = useState<MaintenancePayload["counts"]>({
     open: 0,
     started: 0,
@@ -368,9 +500,23 @@ export function MaintenancePage({
     fluig: 0,
     manual: 0,
   });
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<MaintenanceOrderStatus | "ALL">("ALL");
-  const [source, setSource] = useState<MaintenanceOrderSource | "ALL">("ALL");
+  const [search, setSearch] = useState(() => initialSearchParams.get("q") || "");
+  const [debouncedSearch, setDebouncedSearch] = useState(() => initialSearchParams.get("q") || "");
+  const [status, setStatus] = useState<MaintenanceOrderStatus | "ALL">(() =>
+    initialStatus && (statusOptions as string[]).includes(initialStatus) ? initialStatus as MaintenanceOrderStatus : "ALL"
+  );
+  const [source, setSource] = useState<MaintenanceOrderSource | "ALL">(() =>
+    initialSource && ["manual", "fluig", "preventiva", "checklist", "alerta"].includes(initialSource)
+      ? initialSource as MaintenanceOrderSource
+      : "ALL"
+  );
+  const [page, setPage] = useState(() => Math.max(1, Number(initialSearchParams.get("page") || 1) || 1));
+  const [pageSize, setPageSize] = useState<(typeof maintenancePageSizes)[number]>(() =>
+    maintenancePageSizes.includes(initialPageSize as (typeof maintenancePageSizes)[number])
+      ? initialPageSize as (typeof maintenancePageSizes)[number]
+      : 20
+  );
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(initialOpenForm);
@@ -379,6 +525,9 @@ export function MaintenancePage({
   const [photoUploads, setPhotoUploads] = useState<PhotoUploadDraft[]>([]);
   const [photoViewer, setPhotoViewer] = useState<{ order: MaintenanceOrderRecord; photos: MaintenancePhotoRecord[] } | null>(null);
   const [photoViewerLoading, setPhotoViewerLoading] = useState(false);
+  const [transitionDialog, setTransitionDialog] = useState<{ order: MaintenanceOrderRecord; nextStatus: MaintenanceOrderStatus; comment: string } | null>(null);
+  const [reviewDialog, setReviewDialog] = useState<{ order: MaintenanceOrderRecord; decision: "APPROVE" | "REJECT"; notes: string } | null>(null);
+  const [savingAction, setSavingAction] = useState(false);
   const matchesMaintenanceJob = useCallback(
     (job: FluigAdmJobSummary) =>
       job.module === "manutencao" &&
@@ -399,35 +548,84 @@ export function MaintenancePage({
     [orders]
   );
 
-  const loadOrders = useCallback(async () => {
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
+  const loadOrders = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
-        pageSize: "100",
+        page: String(page),
+        pageSize: String(pageSize),
       });
-      if (search.trim()) params.set("q", search.trim());
+      if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
       if (status !== "ALL") params.set("status", status);
       if (source !== "ALL") params.set("source", source);
 
       const data = await parseResponse<MaintenancePayload>(
-        await fetch(`/api/manutencao?${params.toString()}`, { cache: "no-store" }),
+        await fetch(`/api/manutencao?${params.toString()}`, { cache: "no-store", signal }),
         "Falha ao carregar OS de manutencao."
       );
       setOrders(data.items || []);
       setBranches(data.branches || []);
+      setCapabilities(data.capabilities || {});
       setCounts(data.counts);
+      setTotal(data.total || 0);
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       toast.error(error instanceof Error ? error.message : "Falha ao carregar OS de manutencao.");
       setOrders([]);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, [search, source, status]);
+  }, [debouncedSearch, page, pageSize, source, status]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => void loadOrders(), 250);
+    if (!dialogOpen) return;
+    const controller = new AbortController();
+    const frame = window.requestAnimationFrame(() => {
+      const params = new URLSearchParams({ page: "1", pageSize: "100" });
+      if (form.branchId) params.set("branchId", form.branchId);
+      void fetch(`/api/manutencao/assets?${params}`, { cache: "no-store", signal: controller.signal })
+        .then((response) => parseResponse<{ success: true; items: MaintenanceAssetOption[] }>(response, "Falha ao carregar ativos da filial."))
+        .then((data) => setAssets(data.items || [])).catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        toast.error(error instanceof Error ? error.message : "Falha ao carregar ativos da filial.");
+      });
+    });
+    return () => { window.cancelAnimationFrame(frame); controller.abort(); };
+  }, [dialogOpen, form.branchId]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
     return () => window.clearTimeout(timeout);
+  }, [search]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const frame = window.requestAnimationFrame(() => void loadOrders(controller.signal));
+    return () => {
+      window.cancelAnimationFrame(frame);
+      controller.abort();
+    };
   }, [loadOrders]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const setOrDelete = (key: string, value: string, fallback: string) => {
+      if (value === fallback) params.delete(key);
+      else params.set(key, value);
+    };
+    setOrDelete("q", debouncedSearch, "");
+    setOrDelete("status", status, "ALL");
+    setOrDelete("source", source, "ALL");
+    setOrDelete("page", String(page), "1");
+    setOrDelete("pageSize", String(pageSize), "20");
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }, [debouncedSearch, page, pageSize, source, status]);
 
   function openCreate(sourceType: MaintenanceOrderSource = "manual") {
     setEditing(null);
@@ -454,29 +652,6 @@ export function MaintenancePage({
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
-  }
-
-  function addMaterial() {
-    setForm((current) => ({
-      ...current,
-      materials: [...current.materials, { item: "", quantity: "", value: "" }],
-    }));
-  }
-
-  function updateMaterial(index: number, key: keyof MaintenanceMaterialFormRow, value: string) {
-    setForm((current) => ({
-      ...current,
-      materials: current.materials.map((material, currentIndex) =>
-        currentIndex === index ? { ...material, [key]: value } : material
-      ),
-    }));
-  }
-
-  function removeMaterial(index: number) {
-    setForm((current) => ({
-      ...current,
-      materials: current.materials.filter((_, currentIndex) => currentIndex !== index),
-    }));
   }
 
   function handlePhotoFiles(files: FileList | null) {
@@ -609,20 +784,55 @@ export function MaintenancePage({
     }
   }
 
-  async function quickStatus(order: MaintenanceOrderRecord, nextStatus: MaintenanceOrderStatus) {
+  async function confirmStatusTransition() {
+    if (!transitionDialog) return;
+    if (["CANCELADA", "FINALIZADA", "CONCLUIDA"].includes(transitionDialog.nextStatus) && !transitionDialog.comment.trim()) {
+      toast.error("Informe um comentario para esta transicao.");
+      return;
+    }
+    setSavingAction(true);
     try {
       await parseResponse(
-        await fetch(`/api/manutencao/${order.id}`, {
+        await fetch(`/api/manutencao/${transitionDialog.order.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: nextStatus }),
+          body: JSON.stringify({ status: transitionDialog.nextStatus, transitionComment: transitionDialog.comment.trim() || null }),
         }),
         "Falha ao atualizar status da OS."
       );
-      toast.success(`OS ${order.code} atualizada para ${nextStatus.replaceAll("_", " ")}.`);
+      toast.success(`OS ${transitionDialog.order.code} atualizada para ${transitionDialog.nextStatus.replaceAll("_", " ")}.`);
+      setTransitionDialog(null);
       await loadOrders();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao atualizar status da OS.");
+    } finally {
+      setSavingAction(false);
+    }
+  }
+
+  async function reviewCompletion() {
+    if (!reviewDialog) return;
+    if (!reviewDialog.notes.trim()) {
+      toast.error("Informe um comentario para a decisao.");
+      return;
+    }
+    setSavingAction(true);
+    try {
+      await parseResponse(
+        await fetch(`/api/manutencao/${reviewDialog.order.id}/approval`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ decision: reviewDialog.decision, notes: reviewDialog.notes.trim() }),
+        }),
+        "Falha ao revisar a conclusao da OS."
+      );
+      toast.success(reviewDialog.decision === "APPROVE" ? "Conclusao aprovada." : "Conclusao rejeitada para ajuste.");
+      setReviewDialog(null);
+      await loadOrders();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao revisar a conclusao da OS.");
+    } finally {
+      setSavingAction(false);
     }
   }
 
@@ -662,19 +872,13 @@ export function MaintenancePage({
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow={config.eyebrow}
-        title={config.title}
-        description="Ordens manuais do CD e OS integradas ao Fluig em uma fila operacional para desktop e celular."
-      />
-
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
-          <Button type="button" className="stitch-soft-button" onClick={() => openCreate("manual")}>
+          <Button type="button" className="stitch-soft-button" onClick={() => openCreate("manual")} disabled={capabilities.CREATE_ORDER === false}>
             <Plus className="size-4" />
             Nova OS manual
           </Button>
-          <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => openCreate("fluig")}>
+          <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => openCreate("fluig")} disabled={capabilities.CREATE_ORDER === false}>
             <Wrench className="size-4" />
             Nova OS Fluig
           </Button>
@@ -697,7 +901,7 @@ export function MaintenancePage({
       <Card className="stitch-animate-in rounded-lg shadow-none">
         <CardContent className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
           <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar OS, area, tecnico, Fluig ou filial" />
-          <Select value={status} onValueChange={(value) => setStatus(value as MaintenanceOrderStatus | "ALL")}>
+          <Select value={status} onValueChange={(value) => { setStatus(value as MaintenanceOrderStatus | "ALL"); setPage(1); }}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -710,7 +914,7 @@ export function MaintenancePage({
               ))}
             </SelectContent>
           </Select>
-          <Select value={source} onValueChange={(value) => setSource(value as MaintenanceOrderSource | "ALL")}>
+          <Select value={source} onValueChange={(value) => { setSource(value as MaintenanceOrderSource | "ALL"); setPage(1); }}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -718,17 +922,29 @@ export function MaintenancePage({
               <SelectItem value="ALL">Todas as origens</SelectItem>
               <SelectItem value="manual">Ferramenta</SelectItem>
               <SelectItem value="fluig">Fluig</SelectItem>
+              <SelectItem value="preventiva">Preventiva</SelectItem>
+              <SelectItem value="checklist">Checklist</SelectItem>
+              <SelectItem value="alerta">Alerta</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <section className="space-y-3">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <section className="min-w-0 space-y-3">
           {loading ? (
-            <Card className="rounded-lg shadow-none">
-              <CardContent className="p-6 text-center text-sm text-muted-foreground">Carregando OS reais...</CardContent>
-            </Card>
+            Array.from({ length: 4 }, (_, index) => (
+              <Card key={`maintenance-skeleton-${index}`} className="rounded-lg shadow-none">
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <Skeleton className="h-5 w-2/5" />
+                    <Skeleton className="h-5 w-20" />
+                  </div>
+                  <Skeleton className="h-4 w-4/5" />
+                  <Skeleton className="h-4 w-3/5" />
+                </CardContent>
+              </Card>
+            ))
           ) : orders.length ? (
             orders.map((order) => (
               <MaintenanceOrderCard
@@ -737,16 +953,48 @@ export function MaintenancePage({
                 activeFluigJob={activeFluigJob?.orderId === order.id ? activeFluigJob : null}
                 onEdit={() => openEdit(order)}
                 onViewPhotos={() => void viewPhotos(order)}
-                onQuickStatus={(nextStatus) => void quickStatus(order, nextStatus)}
+                onQuickStatus={(nextStatus) => setTransitionDialog({ order, nextStatus, comment: "" })}
+                onReview={(decision) => setReviewDialog({ order, decision, notes: "" })}
                 onOpenFluig={() => void openOrderInFluig(order)}
+                canEdit={capabilities.EDIT_ORDER !== false}
+                canChangeStatus={capabilities.CHANGE_STATUS !== false}
+                canFinish={capabilities.FINISH_ORDER !== false}
+                canApproveCompletion={capabilities.APPROVE_COMPLETION !== false}
               />
             ))
           ) : (
             <EmptyState title="Nenhuma OS real encontrada" />
           )}
+          <div className="flex flex-col gap-3 rounded-md border bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              {total ? `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, total)} de ${total}` : "0 OS"}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={String(pageSize)}
+                onValueChange={(value) => { setPageSize(Number(value) as (typeof maintenancePageSizes)[number]); setPage(1); }}
+              >
+                <SelectTrigger className="w-[108px]" aria-label="OS por pagina">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {maintenancePageSizes.map((size) => <SelectItem key={size} value={String(size)}>{size} por pagina</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button type="button" size="icon" variant="outline" title="Pagina anterior" disabled={page <= 1 || loading} onClick={() => setPage((current) => Math.max(1, current - 1))}>
+                <ChevronLeft className="size-4" />
+                <span className="sr-only">Pagina anterior</span>
+              </Button>
+              <span className="min-w-20 text-center text-sm">{page} de {pageCount}</span>
+              <Button type="button" size="icon" variant="outline" title="Proxima pagina" disabled={page >= pageCount || loading} onClick={() => setPage((current) => Math.min(pageCount, current + 1))}>
+                <ChevronRight className="size-4" />
+                <span className="sr-only">Proxima pagina</span>
+              </Button>
+            </div>
+          </div>
         </section>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <Card className="stitch-animate-in rounded-lg shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
@@ -791,14 +1039,14 @@ export function MaintenancePage({
         editing={editing}
         form={form}
         branches={branches}
+        assets={assets}
+        capabilities={capabilities}
         photoUploads={photoUploads}
         saving={saving}
         updateForm={updateForm}
-        addMaterial={addMaterial}
-        updateMaterial={updateMaterial}
-        removeMaterial={removeMaterial}
         onPhotoFilesChange={handlePhotoFiles}
         submitOrder={submitOrder}
+        onExecutionChanged={loadOrders}
       />
 
       <PhotoViewerDialog
@@ -810,6 +1058,27 @@ export function MaintenancePage({
           if (!open) setPhotoViewer(null);
         }}
       />
+
+      <Dialog open={Boolean(transitionDialog)} onOpenChange={(open) => { if (!open && !savingAction) setTransitionDialog(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Alterar status da OS</DialogTitle>
+            <DialogDescription>{transitionDialog ? `${transitionDialog.order.code}: ${transitionDialog.order.status.replaceAll("_", " ")} para ${transitionDialog.nextStatus.replaceAll("_", " ")}.` : "Confirme a transicao."}</DialogDescription>
+          </DialogHeader>
+          <FormField label="Comentario" required={Boolean(transitionDialog && ["CANCELADA", "FINALIZADA", "CONCLUIDA"].includes(transitionDialog.nextStatus))}>
+            <Textarea value={transitionDialog?.comment || ""} onChange={(event) => setTransitionDialog((current) => current ? { ...current, comment: event.target.value } : null)} placeholder="Contexto da mudanca para a timeline e auditoria" />
+          </FormField>
+          <DialogFooter><Button type="button" variant="outline" onClick={() => setTransitionDialog(null)} disabled={savingAction}>Voltar</Button><Button type="button" variant={transitionDialog?.nextStatus === "CANCELADA" ? "destructive" : "default"} onClick={() => void confirmStatusTransition()} disabled={savingAction}>{savingAction ? <Loader2 className="size-4 animate-spin" /> : null}Confirmar transicao</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(reviewDialog)} onOpenChange={(open) => { if (!open && !savingAction) setReviewDialog(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>{reviewDialog?.decision === "APPROVE" ? "Aprovar conclusao" : "Rejeitar conclusao"}</DialogTitle><DialogDescription>{reviewDialog ? `${reviewDialog.order.code}: registre a decisao que ficara na timeline da OS.` : "Revise a conclusao."}</DialogDescription></DialogHeader>
+          <FormField label="Comentario da revisao" required><Textarea value={reviewDialog?.notes || ""} onChange={(event) => setReviewDialog((current) => current ? { ...current, notes: event.target.value } : null)} /></FormField>
+          <DialogFooter><Button type="button" variant="outline" onClick={() => setReviewDialog(null)} disabled={savingAction}>Voltar</Button><Button type="button" variant={reviewDialog?.decision === "REJECT" ? "destructive" : "default"} onClick={() => void reviewCompletion()} disabled={savingAction}>{savingAction ? <Loader2 className="size-4 animate-spin" /> : null}{reviewDialog?.decision === "APPROVE" ? "Aprovar" : "Rejeitar"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -819,15 +1088,25 @@ function MaintenanceOrderCard({
   onEdit,
   onViewPhotos,
   onQuickStatus,
+  onReview,
   onOpenFluig,
   activeFluigJob,
+  canEdit,
+  canChangeStatus,
+  canFinish,
+  canApproveCompletion,
 }: {
   order: MaintenanceOrderRecord;
   onEdit: () => void;
   onViewPhotos: () => void;
   onQuickStatus: (status: MaintenanceOrderStatus) => void;
+  onReview: (decision: "APPROVE" | "REJECT") => void;
   onOpenFluig: () => void;
   activeFluigJob: ActiveFluigJob | null;
+  canEdit: boolean;
+  canChangeStatus: boolean;
+  canFinish: boolean;
+  canApproveCompletion: boolean;
 }) {
   const hasFluigModel = Boolean(metadataText(order.metadata, "fluigSourceRequestId"));
   const canOpenFluig = order.source === "fluig" && !order.fluig.requestId;
@@ -842,7 +1121,7 @@ function MaintenanceOrderCard({
               <PriorityBadge priority={order.priority} />
               <StatusBadge status={order.status} />
               <span className="rounded-md border bg-muted/40 px-2 py-1 text-xs">
-                {order.source === "manual" ? "Ferramenta" : "Fluig"}
+                {order.source === "manual" ? "Ferramenta" : order.source === "fluig" ? "Fluig" : maintenanceSourceLabel(order.source)}
               </span>
             </div>
             <h3 className="mt-2 text-base font-semibold">{order.title}</h3>
@@ -867,7 +1146,7 @@ function MaintenanceOrderCard({
                 Abrir no Fluig
               </Button>
             ) : null}
-            <Button type="button" variant="outline" className="stitch-soft-button w-fit" onClick={onEdit}>
+            <Button type="button" variant="outline" className="stitch-soft-button w-fit" onClick={onEdit} disabled={!canEdit}>
               Atualizar OS
             </Button>
           </div>
@@ -875,11 +1154,13 @@ function MaintenanceOrderCard({
 
         <div className="grid gap-2 text-sm md:grid-cols-2 xl:grid-cols-4">
           <Field label="Area" value={order.area} />
+          <Field label="Tipo" value={order.workType.replaceAll("_", " ")} />
+          <Field label="Ativo" value={order.asset ? `${order.asset.internal_code} - ${order.asset.name}` : "-"} />
           <Field label="Filial" value={order.branch.label || order.branch.code || "-"} />
           <Field label="Tecnico" value={order.technician || "-"} />
           <Field label="Prazo" value={formatDate(order.dueAt)} />
           <Field label="Inicio" value={formatDateTime(order.startedAt)} />
-          <Field label="Custo" value={moneyFromCents(order.materialCostCents)} />
+          <Field label="Custo total" value={moneyFromCents(order.totalCostCents || order.materialCostCents)} />
           <Field label="Materiais" value={String(order.materials.length)} />
           <Field label="Fotos" value={String(order.photos.length)} />
           <Field label="Atualizada" value={formatDateTime(order.updatedAt)} />
@@ -928,20 +1209,8 @@ function MaintenanceOrderCard({
           </div>
         ) : null}
 
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => onQuickStatus("INICIADA")} disabled={order.status === "INICIADA"}>
-            Iniciar
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => onQuickStatus("AGUARDANDO_MATERIAL")}>
-            Aguardando material
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => onQuickStatus("AGUARDANDO_TERCEIRO")}>
-            Aguardando terceiro
-          </Button>
-          <Button type="button" size="sm" onClick={() => onQuickStatus("FINALIZADA")}>
-            Finalizar
-          </Button>
-        </div>
+        {order.approvalStatus !== "NOT_REQUIRED" ? <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/20 p-3 text-sm"><span className="text-muted-foreground">Aprovacao da conclusao:</span><StatusBadge status={order.approvalStatus} />{order.approval.notes ? <span className="min-w-0 flex-1 text-muted-foreground">{order.approval.notes}</span> : null}{order.approvalStatus === "PENDING" && canApproveCompletion && ["CONCLUIDA", "AGUARDANDO_VALIDACAO"].includes(order.status) ? <><Button type="button" size="sm" variant="outline" onClick={() => onReview("REJECT")}>Rejeitar</Button><Button type="button" size="sm" onClick={() => onReview("APPROVE")}>Aprovar</Button></> : null}</div> : null}
+        {statusTransitions[order.status].length && canChangeStatus ? <div className="flex flex-wrap gap-2">{statusTransitions[order.status].slice(0, 5).map((nextStatus) => { const approvalBlocksFinish = nextStatus === "FINALIZADA" && ["PENDING", "REJECTED"].includes(order.approvalStatus); return <Button key={nextStatus} type="button" variant={nextStatus === "FINALIZADA" || nextStatus === "CONCLUIDA" ? "default" : "outline"} size="sm" onClick={() => onQuickStatus(nextStatus)} disabled={(nextStatus === "FINALIZADA" && !canFinish) || approvalBlocksFinish} title={approvalBlocksFinish ? "A conclusao precisa ser aprovada antes da finalizacao." : undefined}>{nextStatus.replaceAll("_", " ")}</Button>; })}</div> : null}
       </CardContent>
     </Card>
   );
@@ -953,34 +1222,35 @@ function MaintenanceDialog({
   editing,
   form,
   branches,
+  assets,
+  capabilities,
   photoUploads,
   saving,
   updateForm,
-  addMaterial,
-  updateMaterial,
-  removeMaterial,
   onPhotoFilesChange,
   submitOrder,
+  onExecutionChanged,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editing: MaintenanceOrderRecord | null;
   form: FormState;
   branches: MaintenanceBranch[];
+  assets: MaintenanceAssetOption[];
+  capabilities: Record<string, boolean>;
   photoUploads: PhotoUploadDraft[];
   saving: boolean;
   updateForm: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
-  addMaterial: () => void;
-  updateMaterial: (index: number, key: keyof MaintenanceMaterialFormRow, value: string) => void;
-  removeMaterial: (index: number) => void;
   onPhotoFilesChange: (files: FileList | null) => void;
   submitOrder: () => Promise<void>;
+  onExecutionChanged: () => void | Promise<void>;
 }) {
-  const materialTotal = materialTotalCents(form.materials);
-
+  const availableStatuses = editing
+    ? [editing.status, ...statusTransitions[editing.status]]
+    : ["ABERTA" as MaintenanceOrderStatus];
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-5xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{editing ? `Atualizar ${editing.code}` : "Nova OS de manutencao"}</DialogTitle>
           <DialogDescription>
@@ -988,7 +1258,7 @@ function MaintenanceDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={form.source} onValueChange={(value) => updateForm("source", value as MaintenanceOrderSource)}>
+        {form.source === "manual" || form.source === "fluig" ? <Tabs value={form.source} onValueChange={(value) => updateForm("source", value as MaintenanceOrderSource)}>
           <TabsList className="grid h-auto w-full grid-cols-2">
             <TabsTrigger value="manual">OS manual</TabsTrigger>
             <TabsTrigger value="fluig">OS Fluig</TabsTrigger>
@@ -999,14 +1269,14 @@ function MaintenanceDialog({
           <TabsContent value="fluig" className="mt-4">
             <FlowNotice description="Use quando a OS deve acompanhar o processo Fluig. O numero Fluig e o NumLancW ficam vinculados ao registro local." />
           </TabsContent>
-        </Tabs>
+        </Tabs> : <FlowNotice description={`Origem ${maintenanceSourceLabel(form.source)} gerada automaticamente. A origem permanece preservada durante a edicao.`} />}
 
         <div className="grid gap-4 md:grid-cols-2">
           <FormField label="Titulo" required>
             <Input value={form.title} onChange={(event) => updateForm("title", event.target.value)} />
           </FormField>
           <FormField label="Area" required>
-            <Select value={form.area || undefined} onValueChange={(value) => updateForm("area", value)}>
+            <Select value={form.area} onValueChange={(value) => updateForm("area", value)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecione a area" />
               </SelectTrigger>
@@ -1020,7 +1290,7 @@ function MaintenanceDialog({
             </Select>
           </FormField>
           <FormField label="Filial">
-            <Select value={form.branchId || undefined} onValueChange={(value) => updateForm("branchId", value)}>
+            <Select value={form.branchId} onValueChange={(value) => { updateForm("branchId", value); updateForm("assetId", ""); }}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Filial da OS" />
               </SelectTrigger>
@@ -1031,6 +1301,18 @@ function MaintenanceDialog({
                   </SelectItem>
                 ))}
               </SelectContent>
+            </Select>
+          </FormField>
+          <FormField label="Tipo de manutencao">
+            <Select value={form.workType} onValueChange={(value) => updateForm("workType", value as MaintenanceOrderWorkType)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>{workTypeOptions.map((type) => <SelectItem key={type} value={type}>{type.replaceAll("_", " ")}</SelectItem>)}</SelectContent>
+            </Select>
+          </FormField>
+          <FormField label="Equipamento ou ativo">
+            <Select value={form.assetId || "NONE"} onValueChange={(value) => updateForm("assetId", value === "NONE" ? "" : value)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="NONE">Sem ativo vinculado</SelectItem>{assets.map((asset) => <SelectItem key={asset.id} value={asset.id}>{asset.internal_code} - {asset.name}{asset.asset_tag ? ` (${asset.asset_tag})` : ""}</SelectItem>)}</SelectContent>
             </Select>
           </FormField>
           <FormField label="Prioridade">
@@ -1056,13 +1338,16 @@ function MaintenanceDialog({
           <FormField label="Prazo">
             <Input type="date" value={form.dueAt} onChange={(event) => updateForm("dueAt", event.target.value)} />
           </FormField>
+          <FormField label="SLA (minutos)">
+            <Input inputMode="numeric" value={form.slaMinutes} onChange={(event) => updateForm("slaMinutes", event.target.value)} />
+          </FormField>
           <FormField label="Status">
             <Select value={form.status} onValueChange={(value) => updateForm("status", value as MaintenanceOrderStatus)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {statusOptions.map((option) => (
+                {availableStatuses.map((option) => (
                   <SelectItem key={option} value={option}>
                     {option.replaceAll("_", " ")}
                   </SelectItem>
@@ -1073,65 +1358,7 @@ function MaintenanceDialog({
           <FormField label="Descricao" className="md:col-span-2" required>
             <Textarea value={form.description} onChange={(event) => updateForm("description", event.target.value)} />
           </FormField>
-          <FormField label="Material utilizado" className="md:col-span-2">
-            <Textarea
-              value={form.materialSummary}
-              onChange={(event) => updateForm("materialSummary", event.target.value)}
-              placeholder="Produto, quantidade, unidade, observacoes da execucao"
-            />
-          </FormField>
-          <div className="space-y-3 rounded-md border bg-muted/20 p-3 md:col-span-2">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-medium">Materiais e produtos usados</p>
-                <p className="text-xs text-muted-foreground">Registre item, quantidade e valor para alimentar o custo real da OS.</p>
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={addMaterial}>
-                <Plus className="size-4" />
-                Adicionar material
-              </Button>
-            </div>
-
-            {form.materials.length ? (
-              <div className="space-y-2">
-                {form.materials.map((material, index) => (
-                  <div key={index} className="grid gap-2 rounded-md bg-background/70 p-2 md:grid-cols-[minmax(0,1fr)_140px_140px_40px]">
-                    <Input
-                      value={material.item}
-                      onChange={(event) => updateMaterial(index, "item", event.target.value)}
-                      placeholder="Material ou produto"
-                    />
-                    <Input
-                      value={material.quantity}
-                      onChange={(event) => updateMaterial(index, "quantity", event.target.value)}
-                      placeholder="Qtd./unidade"
-                    />
-                    <Input
-                      value={material.value}
-                      onChange={(event) => updateMaterial(index, "value", event.target.value)}
-                      placeholder="R$ 0,00"
-                    />
-                    <Button type="button" variant="outline" size="icon" onClick={() => removeMaterial(index)} title="Remover material">
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                ))}
-                <p className="text-sm font-medium">Total dos materiais: {moneyFromCents(materialTotal)}</p>
-              </div>
-            ) : (
-              <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-                Nenhum material estruturado. Use o valor avulso abaixo quando nao houver detalhamento por item.
-              </p>
-            )}
-          </div>
-          <FormField label={form.materials.length ? "Valor avulso ignorado" : "Valor gasto avulso"}>
-            <Input
-              value={form.materials.length ? moneyFromCents(materialTotal) : form.materialCost}
-              onChange={(event) => updateForm("materialCost", event.target.value)}
-              placeholder="R$ 0,00"
-              disabled={form.materials.length > 0}
-            />
-          </FormField>
+          {form.materialSummary || form.materials.length ? <div className="space-y-2 rounded-md border bg-muted/20 p-3 md:col-span-2"><p className="text-sm font-medium">Historico de materiais anterior ao estoque</p>{form.materialSummary ? <p className="text-sm text-muted-foreground">{form.materialSummary}</p> : null}{form.materials.map((material, index) => <div key={`${material.item}-${index}`} className="flex flex-wrap justify-between gap-2 rounded-md bg-background px-2 py-1 text-xs"><span>{material.item} / {material.quantity || "quantidade nao informada"}</span><span>{moneyFromCents(centsFromMoney(material.value))}</span></div>)}</div> : null}
           <FormField label="Fotos da execucao">
             <Input
               type="file"
@@ -1152,7 +1379,31 @@ function MaintenanceDialog({
           <FormField label="Motivo se nao finalizou" className="md:col-span-2">
             <Textarea value={form.pendingReason} onChange={(event) => updateForm("pendingReason", event.target.value)} />
           </FormField>
+          <FormField label="Diagnostico" className="md:col-span-2">
+            <Textarea value={form.diagnosis} onChange={(event) => updateForm("diagnosis", event.target.value)} />
+          </FormField>
+          <FormField label="Causa raiz">
+            <Textarea value={form.rootCause} onChange={(event) => updateForm("rootCause", event.target.value)} />
+          </FormField>
+          <FormField label="Solucao executada">
+            <Textarea value={form.executedSolution} onChange={(event) => updateForm("executedSolution", event.target.value)} />
+          </FormField>
+          <FormField label="Tempo de parada (minutos)">
+            <Input inputMode="numeric" value={form.downtimeMinutes} onChange={(event) => updateForm("downtimeMinutes", event.target.value)} />
+          </FormField>
+          <FormField label="Custo de mao de obra">
+            <Input inputMode="decimal" value={form.laborCost} onChange={(event) => updateForm("laborCost", event.target.value)} placeholder="R$ 0,00" />
+          </FormField>
+          <FormField label="Outros custos">
+            <Input inputMode="decimal" value={form.otherCost} onChange={(event) => updateForm("otherCost", event.target.value)} placeholder="R$ 0,00" />
+          </FormField>
+          <FormField label="Conclusao / observacoes finais" className="md:col-span-2">
+            <Textarea value={form.completionNotes} onChange={(event) => updateForm("completionNotes", event.target.value)} />
+          </FormField>
+          <label className="flex cursor-pointer items-center gap-2 text-sm md:col-span-2"><Checkbox checked={form.completionApprovalRequired} onCheckedChange={(checked) => updateForm("completionApprovalRequired", checked === true)} />Exigir validacao antes de finalizar a OS</label>
         </div>
+
+        {editing ? <MaintenanceOrderExecutionPanel orderId={editing.id} branchId={editing.branch.id} canMoveStock={Boolean(capabilities.MOVE_STOCK)} onChanged={onExecutionChanged} /> : <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">Depois de criar a OS, abra novamente para reservar e consumir materiais diretamente do estoque.</div>}
 
         {form.source === "fluig" ? (
           <div className="grid gap-4 rounded-md border bg-muted/20 p-3 md:grid-cols-2">
@@ -1221,7 +1472,7 @@ function PhotoViewerDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-5xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{order ? `Fotos da ${order.code}` : "Fotos da OS"}</DialogTitle>
           <DialogDescription>Registros anexados pelo manutentor com acesso temporario seguro.</DialogDescription>

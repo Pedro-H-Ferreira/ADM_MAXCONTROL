@@ -22,11 +22,16 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const MAX_ATTACHMENTS_TOTAL_BYTES = 3 * 1024 * 1024;
+const DATA_URL_MIME_TYPE_PATTERN = /^[A-Za-z0-9!#$&^_.+-]+\/[A-Za-z0-9!#$&^_.+-]+$/;
+const DATA_URL_PARAMETER_PATTERN =
+  /^[A-Za-z0-9!#$&^_.+-]+=(?:[A-Za-z0-9!#$&^_.+%*-]+|"(?:[^"\\\r\n]|\\.)*")$/;
+
 const moduleSchema = z.enum(["pagamentos", "compras"]);
 const attachmentSchema = z.object({
   name: z.string().trim().min(1).max(255),
   mimeType: z.string().trim().min(1).max(150),
-  size: z.number().int().nonnegative().max(3 * 1024 * 1024),
+  size: z.number().int().nonnegative().max(MAX_ATTACHMENTS_TOTAL_BYTES),
 });
 const attachmentPayloadSchema = attachmentSchema.extend({
   dataBase64: z.string().min(1),
@@ -63,6 +68,60 @@ const submitSchema = z.object({
 
 function jsonError(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
+}
+
+function extractBase64Payload(value: string) {
+  if (!value.startsWith("data:")) return value;
+
+  const commaIndex = value.indexOf(",");
+  if (commaIndex < 0) return null;
+
+  const metadata = value.slice("data:".length, commaIndex);
+  const parts = metadata.split(";");
+  if (parts.pop()?.toLowerCase() !== "base64") return null;
+
+  const mimeType = parts.shift() || "";
+  if (mimeType && !DATA_URL_MIME_TYPE_PATTERN.test(mimeType)) return null;
+  if (parts.some((part) => !DATA_URL_PARAMETER_PATTERN.test(part))) return null;
+
+  return value.slice(commaIndex + 1);
+}
+
+function decodeStrictBase64(value: string) {
+  const payload = extractBase64Payload(value);
+  if (!payload || !/^[A-Za-z0-9+/]*={0,2}$/.test(payload)) return null;
+  if (payload.length % 4 === 1) return null;
+  if (payload.includes("=") && payload.length % 4 !== 0) return null;
+
+  const decoded = Buffer.from(payload, "base64");
+  const unpaddedPayload = payload.replace(/=+$/, "");
+  const canonicalPayload = decoded.toString("base64").replace(/=+$/, "");
+  return unpaddedPayload === canonicalPayload ? decoded : null;
+}
+
+function formatByteCount(bytes: number) {
+  return `${bytes} ${bytes === 1 ? "byte" : "bytes"}`;
+}
+
+function validateAttachmentPayloads(attachments: z.infer<typeof attachmentPayloadSchema>[]) {
+  let totalBytes = 0;
+
+  for (const attachment of attachments) {
+    const decoded = decodeStrictBase64(attachment.dataBase64);
+    if (!decoded) {
+      return `O anexo "${attachment.name}" possui dataBase64 invalido. Envie Base64 puro ou uma data URL valida com marcador ;base64.`;
+    }
+    if (decoded.byteLength !== attachment.size) {
+      return `O tamanho declarado do anexo "${attachment.name}" (${formatByteCount(attachment.size)}) nao corresponde ao tamanho real (${formatByteCount(decoded.byteLength)}).`;
+    }
+
+    totalBytes += decoded.byteLength;
+    if (totalBytes > MAX_ATTACHMENTS_TOTAL_BYTES) {
+      return "Os anexos podem ter no maximo 3 MB no total, considerando os bytes reais.";
+    }
+  }
+
+  return null;
 }
 
 function canCreateLaunch(actor: Awaited<ReturnType<typeof resolveCurrentAppUser>>, module: OperationalLaunchModule) {
@@ -133,8 +192,8 @@ export async function POST(request: Request) {
       return jsonError("Este lancamento ja foi enviado ou concluido.");
     }
 
-    const totalBytes = parsed.data.attachments.reduce((sum, item) => sum + item.size, 0);
-    if (totalBytes > 3 * 1024 * 1024) return jsonError("Os anexos precisam ficar abaixo de 3 MB no total.");
+    const attachmentPayloadError = validateAttachmentPayloads(parsed.data.attachments);
+    if (attachmentPayloadError) return jsonError(attachmentPayloadError);
 
     const fingerprint = operationalLaunchFingerprint({
       sourceRequestId: launch.sourceRequestId,

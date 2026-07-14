@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
-import { createFluigJob, listJobsForActor, resolveCurrentAppUser, type FluigJobOperation } from "@/lib/db/app-repository";
+import {
+  canActorAccessPage,
+  canActorPerformPageAction,
+  createFluigJob,
+  listJobsForActor,
+  resolveCurrentAppUser,
+} from "@/lib/db/app-repository";
 import { requireFluigProcessMap } from "@/lib/fluig/process-map";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
 
@@ -9,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 type JobBody = {
   module?: FluigModuleSlug;
-  operation?: FluigJobOperation;
+  operation?: unknown;
   branchCode?: string | null;
   branchLabel?: string | null;
   payload?: Record<string, unknown>;
@@ -19,21 +25,22 @@ function jsonError(error: string, status = 400) {
   return NextResponse.json({ success: false, error }, { status });
 }
 
-function shouldReuseActiveJob(operation: FluigJobOperation) {
-  return (
-    operation === "sync_history" ||
-    operation === "sync_status" ||
-    operation === "sync_initial_history" ||
-    operation === "sync_user_open_tasks" ||
-    operation === "sync_user_open_requests" ||
-    operation === "sync_user_incremental_batch" ||
-    operation === "sync_request_by_number" ||
-    operation === "supplier_lookup_by_cnpj"
-  );
-}
-
 export const GENERIC_JOBS_OPEN_ERROR =
-  "A operacao open_from_source nao e aceita neste endpoint. Use /api/fluig/adm/launches para aberturas produtivas.";
+  "A operacao open_from_source neste endpoint e exclusiva de Manutencao. Use /api/fluig/adm/launches para Pagamentos e Compras.";
+export const GENERIC_JOBS_MAINTENANCE_CONFIRM_ERROR =
+  "Confirme explicitamente a abertura da solicitacao Fluig de Manutencao.";
+export const GENERIC_JOBS_CANCEL_ERROR =
+  "A operacao cancel_request nao e aceita neste endpoint. Use /api/fluig/adm/cancel para cancelamentos produtivos.";
+export const GENERIC_JOBS_RESTRICTED_ERROR =
+  "O POST /api/fluig/adm/jobs aceita apenas a operacao health_check. Use o endpoint dedicado para operacoes produtivas, sincronizacoes e consultas.";
+
+function rejectedOperationError(operation: unknown) {
+  if (operation === "open_from_source") return GENERIC_JOBS_OPEN_ERROR;
+  if (operation === "cancel_request") return GENERIC_JOBS_CANCEL_ERROR;
+
+  const operationLabel = typeof operation === "string" && operation.trim() ? `"${operation}"` : "nao informada";
+  return `Operacao Fluig ${operationLabel} nao permitida. ${GENERIC_JOBS_RESTRICTED_ERROR}`;
+}
 
 export async function GET(request: Request) {
   try {
@@ -63,9 +70,19 @@ export async function POST(request: Request) {
       return jsonError("Modulo Fluig nao informado.");
     }
 
-    const operation = body.operation || "sync_history";
-    if (operation === "open_from_source") {
-      return jsonError(GENERIC_JOBS_OPEN_ERROR);
+    const operation = body.operation;
+    const isMaintenanceOpen = operation === "open_from_source" && moduleSlug === "manutencao";
+    if (operation !== "health_check" && !isMaintenanceOpen) {
+      return jsonError(rejectedOperationError(operation));
+    }
+    if (isMaintenanceOpen) {
+      if (body.payload?.confirm !== true) return jsonError(GENERIC_JOBS_MAINTENANCE_CONFIRM_ERROR);
+      if (
+        !canActorAccessPage(actor, "manutencao") ||
+        !canActorPerformPageAction(actor, "manutencao", "canCreate")
+      ) {
+        return jsonError("Usuario sem permissao para abrir solicitacoes Fluig de Manutencao.", 403);
+      }
     }
 
     const map = requireFluigProcessMap(moduleSlug);
@@ -86,7 +103,7 @@ export async function POST(request: Request) {
       branchCode: body.branchCode,
       branchLabel: body.branchLabel,
       requestPayload,
-      reuseActive: shouldReuseActiveJob(operation),
+      reuseActive: false,
     });
 
     return NextResponse.json({

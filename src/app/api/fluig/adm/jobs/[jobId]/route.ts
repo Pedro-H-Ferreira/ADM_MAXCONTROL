@@ -11,11 +11,12 @@ type RouteContext = {
   }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   try {
     const { jobId } = await context.params;
     const actor = await resolveCurrentAppUser();
-    const payload = await readJobForActor(actor, jobId);
+    const includePayloads = new URL(request.url).searchParams.get("details") === "true";
+    const payload = await readJobForActor(actor, jobId, { includePayloads });
 
     if (!payload) {
       return NextResponse.json({ success: false, error: "Job nao encontrado." }, { status: 404 });

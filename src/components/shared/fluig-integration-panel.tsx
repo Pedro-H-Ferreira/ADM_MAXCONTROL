@@ -37,6 +37,9 @@ import { useFluigJobState } from "@/lib/use-fluig-job-state";
 type FluigIntegrationPanelProps = {
   moduleSlug: string;
   compact?: boolean;
+  agents?: FluigAdmAgent[];
+  onAgentsChange?: (agents: FluigAdmAgent[]) => void;
+  recoverJobs?: boolean;
 };
 
 const catalogOrder: FluigCatalogType[] = ["supplier", "branch", "natureza", "cost_center", "payment_method", "account"];
@@ -100,13 +103,14 @@ function describeHeartbeatAge(seconds: number | null | undefined) {
   return `${Math.floor(minutes / 60)} h atras`;
 }
 
-export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigIntegrationPanelProps) {
+export function FluigIntegrationPanel({ moduleSlug, compact = false, agents: externalAgents, onAgentsChange, recoverJobs = true }: FluigIntegrationPanelProps) {
   const integration = getFluigIntegrationForModule(moduleSlug);
   const [syncData, setSyncData] = useState<FluigAdmSyncResponse | null>(null);
   const [pendingAction, setPendingAction] = useState<FluigAdmSyncAction | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [agents, setAgents] = useState<FluigAdmAgent[]>([]);
+  const [localAgents, setLocalAgents] = useState<FluigAdmAgent[]>([]);
   const [pendingUserSync, setPendingUserSync] = useState(false);
+  const [historicalPending, setHistoricalPending] = useState(false);
   const [testingAgent, setTestingAgent] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [lookupRequestId, setLookupRequestId] = useState("");
@@ -115,6 +119,11 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [lookupResult, setLookupResult] = useState<FluigSyncRow | null>(null);
   const [pairToken, setPairToken] = useState<string | null>(null);
+  const agents = externalAgents ?? localAgents;
+  const updateAgents = useCallback((nextAgents: FluigAdmAgent[]) => {
+    setLocalAgents(nextAgents);
+    onAgentsChange?.(nextAgents);
+  }, [onAgentsChange]);
 
   const rows = useMemo(() => syncData?.rows ?? [], [syncData?.rows]);
   const examples = useMemo(() => syncData?.examples ?? [], [syncData?.examples]);
@@ -137,7 +146,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     (job: { module: FluigModuleSlug }) => Boolean(integrationSlug && job.module === integrationSlug),
     [integrationSlug]
   );
-  const jobTracker = useFluigJobState({ matches: matchesJob });
+  const jobTracker = useFluigJobState({ matches: matchesJob, recover: recoverJobs });
   const activeJob = jobTracker.job ? { ...jobTracker.job, events: jobTracker.events } : null;
   const onlineAgent = useMemo(() => agents.find((agent) => agent.status === "online") || null, [agents]);
 
@@ -155,26 +164,44 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
     setNotice(null);
 
     try {
-      if (action === "sync" || action === "examples") {
-        const created = await fluigAdmApi.syncHistorical({
-          module: integration.slug,
-          action,
-          days: 730,
-          pageSize: 100,
-          maxPages: 100,
-        });
-
-        for (const job of created.jobs) {
-          await pollJobUntilDone(job.id);
-        }
-      }
-
       const data = await fluigAdmApi.sync({ module: integration.slug as FluigModuleSlug, action });
       setSyncData(data);
     } catch (syncError) {
       setError(syncError instanceof Error ? syncError.message : "Falha ao sincronizar Fluig");
     } finally {
       setPendingAction(null);
+    }
+  }
+
+  async function runHistoricalSync() {
+    if (!integration || !onlineAgent) {
+      setError("Pareie e inicie um agente Fluig antes de reconstruir o historico.");
+      return;
+    }
+    const confirmed = window.confirm(
+      "Esta operacao administrativa consulta ate 730 dias do Fluig e pode demorar. Deseja reconstruir o historico deste modulo?"
+    );
+    if (!confirmed) return;
+
+    setHistoricalPending(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const created = await fluigAdmApi.syncHistorical({
+        module: integration.slug,
+        action: "sync",
+        days: 730,
+        pageSize: 100,
+        maxPages: 100,
+      });
+      for (const job of created.jobs) await pollJobUntilDone(job.id);
+      const refreshed = await fluigAdmApi.sync({ module: integration.slug as FluigModuleSlug, action: "sync" });
+      setSyncData(refreshed);
+      setNotice("Historico Fluig reconstruido com os dados disponiveis.");
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : "Falha ao reconstruir historico Fluig");
+    } finally {
+      setHistoricalPending(false);
     }
   }
 
@@ -281,7 +308,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
       });
       setPairToken(data.token);
       const nextAgents = await fluigAdmApi.listAgents();
-      setAgents(nextAgents);
+      updateAgents(nextAgents);
     } catch (pairError) {
       setError(pairError instanceof Error ? pairError.message : "Falha ao parear agente Fluig");
     }
@@ -305,7 +332,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
       await pollJobUntilDone(created.job.id);
       setNotice("Conexao autenticada com o Fluig validada pelo agente local.");
       const nextAgents = await fluigAdmApi.listAgents();
-      setAgents(nextAgents);
+      updateAgents(nextAgents);
     } catch (testError) {
       setError(testError instanceof Error ? testError.message : "Falha ao testar o agente local.");
     } finally {
@@ -328,19 +355,21 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
         if (active) setError(syncError instanceof Error ? syncError.message : "Falha ao sincronizar Fluig");
       });
 
-    void fluigAdmApi
-      .listAgents()
-      .then((data) => {
-        if (active) setAgents(data);
-      })
-      .catch(() => {
-        if (active) setAgents([]);
-      });
+    if (!externalAgents) {
+      void fluigAdmApi
+        .listAgents()
+        .then((data) => {
+          if (active) updateAgents(data);
+        })
+        .catch(() => {
+          if (active) updateAgents([]);
+        });
+    }
 
     return () => {
       active = false;
     };
-  }, [integrationSlug, moduleSlug]);
+  }, [externalAgents, integrationSlug, moduleSlug, updateAgents]);
 
   if (!integration) {
     return null;
@@ -357,11 +386,11 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
   const monthlyTemplateCount =
     syncData?.launchTemplates?.filter((template) => template.module === integration.slug && template.recurrence === "monthly")
       .length || 0;
-  const fluigBusy = Boolean(pendingAction) || pendingUserSync || lookupPending || testingAgent || jobTracker.active;
+  const fluigBusy = Boolean(pendingAction) || pendingUserSync || historicalPending || lookupPending || testingAgent || jobTracker.active;
 
   return (
-    <Card className="stitch-animate-in stitch-hover-lift rounded-lg shadow-none">
-      <CardHeader className="space-y-4">
+    <Card className="stitch-animate-in stitch-hover-lift min-w-0 rounded-lg shadow-none">
+      <CardHeader className="min-w-0 space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -570,7 +599,7 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
         {notice ? <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{notice}</p> : null}
         {error ? <p className="text-xs font-medium text-destructive">{error}</p> : null}
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="min-w-0 space-y-4">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <InfoTile icon={DatabaseZap} label="Processo" value={integration.processLabel} />
           <InfoTile icon={FileText} label="Modelos de lancamento" value={String(launchTemplateCount)} />
@@ -745,6 +774,21 @@ export function FluigIntegrationPanel({ moduleSlug, compact = false }: FluigInte
               </div>
             </section>
           </>
+        ) : null}
+
+        {!compact ? (
+          <details className="rounded-md border bg-muted/20 p-3">
+            <summary className="cursor-pointer text-sm font-medium">Administracao avancada</summary>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="max-w-2xl text-xs text-muted-foreground">
+                Reconstrucao completa para catalogos e modelos. A operacao normal usa somente sincronizacao incremental.
+              </p>
+              <Button type="button" variant="outline" onClick={() => void runHistoricalSync()} disabled={fluigBusy || !onlineAgent}>
+                <DatabaseZap className={cn("size-4", historicalPending ? "animate-pulse" : "")} />
+                Reconstruir historico (admin)
+              </Button>
+            </div>
+          </details>
         ) : null}
       </CardContent>
     </Card>

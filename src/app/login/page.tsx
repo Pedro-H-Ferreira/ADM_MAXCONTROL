@@ -13,7 +13,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = searchParams ? await searchParams : {};
 
   return (
-    <main className="grid min-h-screen bg-background lg:grid-cols-[1fr_520px]">
+    <main className="grid min-h-dvh bg-background lg:grid-cols-[1fr_520px]">
       <section className="relative hidden overflow-hidden bg-sidebar lg:block">
         <Image
           src="/stitch-thumbnail.png"
@@ -34,7 +34,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </p>
         </div>
       </section>
-      <section className="flex min-h-screen items-center justify-center p-4">
+      <section className="flex min-h-dvh items-center justify-center p-4">
         <div className="absolute right-4 top-4">
           <ThemeToggle />
         </div>

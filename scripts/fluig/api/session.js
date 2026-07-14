@@ -182,6 +182,16 @@ async function loginWithBrowser({ headless = true } = {}) {
     context,
     page,
     async close() {
+      const temporaryAuthFile = `${config.authFile}.${process.pid}.tmp`;
+      try {
+        await context.storageState({ path: temporaryAuthFile });
+        fs.chmodSync(temporaryAuthFile, 0o600);
+        fs.renameSync(temporaryAuthFile, config.authFile);
+        appendSessionTrace("Storage auth renovado no encerramento");
+      } catch (error) {
+        fs.rmSync(temporaryAuthFile, { force: true });
+        appendSessionTrace(`Falha ao renovar storage auth: ${error && error.message ? error.message : String(error)}`);
+      }
       await context.close();
       await browser.close();
     }

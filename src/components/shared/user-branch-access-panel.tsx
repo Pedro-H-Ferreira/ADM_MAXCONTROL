@@ -427,7 +427,7 @@ export function UserBranchAccessPanel() {
                 <div className="grid gap-2 border-t p-3 md:max-w-md">
                   <Label>Filial principal</Label>
                   <Select
-                    value={draft.homeBranchId || undefined}
+                    value={draft.homeBranchId ?? ""}
                     disabled={!selectedBranches.length}
                     onValueChange={(value) => setDraft((current) => ({ ...current, homeBranchId: value }))}
                   >

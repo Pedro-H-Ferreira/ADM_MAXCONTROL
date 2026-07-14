@@ -51,7 +51,7 @@ function AccessDeniedPage({ moduleTitle }: { moduleTitle: string }) {
         permissao de visualizacao deste modulo.
       </p>
       <Button asChild className="mt-6">
-        <Link href="/dashboard" prefetch={false}>
+        <Link href="/dashboard">
           <ArrowLeft className="size-4" aria-hidden="true" />
           Voltar ao dashboard
         </Link>

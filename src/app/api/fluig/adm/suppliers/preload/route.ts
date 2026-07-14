@@ -51,7 +51,10 @@ export async function POST(request: Request) {
   const runtimeConfig = getFluigRuntimeConfig();
 
   try {
-    await resolveCurrentAppUser();
+    const actor = await resolveCurrentAppUser();
+    if (!actor.isAdmin) {
+      return jsonError("Somente administradores podem reconstruir o catalogo historico de fornecedores.", 403);
+    }
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;

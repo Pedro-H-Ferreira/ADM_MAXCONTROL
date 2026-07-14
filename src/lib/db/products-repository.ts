@@ -356,6 +356,25 @@ function applyProductScope<T>(query: T, actor: AppActor, visibleIds: Set<string>
     : scoped.eq("created_by_user_id", actor.id);
 }
 
+async function countProductRows(
+  client: SupabaseClient,
+  actor: AppActor,
+  visibleIds: Set<string> | null,
+  filter: { itemType?: string; status?: string; sourceSystem?: string } = {}
+) {
+  let query = client
+    .from("app_products")
+    .select("id", { count: "exact", head: true })
+    .is("deleted_at", null);
+  query = applyProductScope(query, actor, visibleIds);
+  if (filter.itemType) query = query.eq("item_type", filter.itemType);
+  if (filter.status) query = query.eq("status", filter.status);
+  if (filter.sourceSystem) query = query.eq("source_system", filter.sourceSystem);
+  const { count, error } = await query;
+  if (error) throw error;
+  return count || 0;
+}
+
 async function assertProductScope(
   client: SupabaseClient,
   actor: AppActor,
@@ -408,10 +427,23 @@ export async function listProducts(actor: AppActor, input: ProductListInput = {}
   if (input.unit) query = query.eq("unit", input.unit);
   if (input.status) query = query.eq("status", input.status);
 
-  const { data, error, count } = await query.range(from, from + pageSize - 1);
+  const [pageResult, catalogTotal, serviceTotal, reviewTotal, fluigTotal] = await Promise.all([
+    query.range(from, from + pageSize - 1),
+    countProductRows(client, actor, visibleIds),
+    countProductRows(client, actor, visibleIds, { itemType: "SERVICO" }),
+    countProductRows(client, actor, visibleIds, { status: "REVIEW" }),
+    countProductRows(client, actor, visibleIds, { sourceSystem: "FLUIG" }),
+  ]);
+  const { data, error, count } = pageResult;
   if (error) throw error;
   const items = await mapProductsWithSignedImages((data || []) as unknown as ProductDbRow[]);
-  return { page, pageSize, total: count || 0, items };
+  return {
+    page,
+    pageSize,
+    total: count || 0,
+    items,
+    summary: { total: catalogTotal, services: serviceTotal, review: reviewTotal, fluig: fluigTotal },
+  };
 }
 
 export async function readProduct(actor: AppActor, id: string) {

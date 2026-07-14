@@ -574,7 +574,10 @@ export function ProductsPage({
   const [catalogsError, setCatalogsError] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<{ canCreate: boolean; canUpdate: boolean; canSyncHistory: boolean } | null>(null);
   const [filters, setFilters] = useState<ProductFilters>({ query: "", category: "all", kind: "all", status: "all" });
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState({ total: 0, services: 0, review: 0, fluig: 0 });
   const [loading, setLoading] = useState(true);
   const [sourceMode, setSourceMode] = useState<"catalog" | "purchases">("catalog");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
@@ -592,6 +595,9 @@ export function ProductsPage({
   const [statusTarget, setStatusTarget] = useState<ProductCatalogRow | null>(null);
   const [changingStatus, setChangingStatus] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const filterCategory = filters.category;
+  const filterKind = filters.kind;
+  const filterStatus = filters.status;
 
   const loadCatalogs = useCallback(async () => {
     setCatalogsLoading(true);
@@ -608,37 +614,56 @@ export function ProductsPage({
     }
   }, []);
 
-  const loadProducts = useCallback(async () => {
+  const loadProducts = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     setMessage(null);
 
     try {
-      const response = await fetch(`/api/produtos?page=1&pageSize=${PRODUCT_API_PAGE_SIZE}`, { cache: "no-store" });
+      const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
+      if (debouncedQuery) params.set("search", debouncedQuery);
+      if (filterKind !== "all") params.set("itemType", filterKind);
+      if (filterStatus !== "all") params.set("status", apiProductStatus(filterStatus as ProductStatus));
+      if (filterCategory !== "all") {
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(filterCategory)) {
+          params.set("categoryId", filterCategory);
+        } else {
+          params.set("categoryCode", filterCategory);
+        }
+      }
+
+      const response = await fetch(`/api/produtos?${params.toString()}`, { cache: "no-store", signal });
       if (response.status === 404) {
         const operational = await fluigAdmApi.listOperationalLaunches("compras", 100);
-        setProducts(productsFromOperationalLaunches(operational.launches));
+        const fallbackProducts = filterProductRows(productsFromOperationalLaunches(operational.launches), {
+          query: debouncedQuery,
+          category: filterCategory,
+          kind: filterKind,
+          status: filterStatus,
+        });
+        setProducts(fallbackProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE));
+        setTotal(fallbackProducts.length);
+        setSummary({
+          total: fallbackProducts.length,
+          services: fallbackProducts.filter((item) => item.kind === "SERVICO").length,
+          review: fallbackProducts.filter((item) => item.status === "REVISAR").length,
+          fluig: fallbackProducts.filter((item) => item.origin === "FLUIG").length,
+        });
         setSourceMode("purchases");
       } else {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(responseError(data, "Falha ao carregar o catalogo de produtos."));
-        const firstPageItems = responseItems(data);
-        const total = Math.max(Number(asRecord(data).total) || 0, firstPageItems.length);
-        const remainingPages = await Promise.all(
-          productCatalogPageNumbers(total).map(async (pageNumber) => {
-            const pageResponse = await fetch(
-              `/api/produtos?page=${pageNumber}&pageSize=${PRODUCT_API_PAGE_SIZE}`,
-              { cache: "no-store" }
-            );
-            const pageData = await pageResponse.json().catch(() => ({}));
-            if (!pageResponse.ok) {
-              throw new Error(responseError(pageData, `Falha ao carregar a pagina ${pageNumber} do catalogo.`));
-            }
-            return responseItems(pageData);
-          })
-        );
-        const allItems = [firstPageItems, ...remainingPages].flat();
-        setProducts(allItems.map((item, index) => normalizeProductApiItem(item, index)));
+        const pageItems = responseItems(data);
+        const responseTotal = Math.max(Number(asRecord(data).total) || 0, pageItems.length);
+        const responseSummary = asRecord(asRecord(data).summary);
+        setProducts(pageItems.map((item, index) => normalizeProductApiItem(item, index)));
+        setTotal(responseTotal);
+        setSummary({
+          total: Number(responseSummary.total) || responseTotal,
+          services: Number(responseSummary.services) || 0,
+          review: Number(responseSummary.review) || 0,
+          fluig: Number(responseSummary.fluig) || 0,
+        });
         const permissionData = asRecord(asRecord(data).permissions);
         setPermissions({
           canCreate: permissionData.canCreate !== false,
@@ -649,19 +674,36 @@ export function ProductsPage({
       }
       setLastUpdatedAt(new Date().toISOString());
     } catch (loadError) {
+      if (loadError instanceof DOMException && loadError.name === "AbortError") return;
       setError(loadError instanceof Error ? loadError.message : "Falha ao carregar produtos e servicos.");
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, []);
+  }, [debouncedQuery, filterCategory, filterKind, filterStatus, page]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      void loadProducts();
       void loadCatalogs();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [loadCatalogs, loadProducts]);
+  }, [loadCatalogs]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setPage(1);
+      setDebouncedQuery(filters.query.trim());
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [filters.query]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const frame = window.requestAnimationFrame(() => void loadProducts(controller.signal));
+    return () => {
+      window.cancelAnimationFrame(frame);
+      controller.abort();
+    };
+  }, [loadProducts]);
 
   useEffect(() => {
     if (!initialProductId) return;
@@ -695,33 +737,20 @@ export function ProductsPage({
     [imagePreviewUrl]
   );
 
-  const categories = useMemo(
-    () => Array.from(new Set(products.map((item) => item.categoryLabel))).sort((a, b) => a.localeCompare(b, "pt-BR")),
-    [products]
-  );
   const effectiveFormCatalogs = useMemo(
     () => (catalogsError && products.length ? fallbackCatalogs(products) : formCatalogs),
     [catalogsError, formCatalogs, products]
   );
-  const filteredProducts = useMemo(() => filterProductRows(products, filters), [filters, products]);
-  const pageCount = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
-  const visibleProducts = filteredProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const visibleProducts = products;
   const editingProduct = products.find((item) => item.id === editingId) || null;
   const activeFilters = Boolean(
     filters.query || filters.category !== "all" || filters.kind !== "all" || filters.status !== "all"
   );
-  const metrics = useMemo(
-    () => ({
-      total: products.length,
-      services: products.filter((item) => item.kind === "SERVICO").length,
-      review: products.filter((item) => item.status === "REVISAR").length,
-      fluig: products.filter((item) => item.origin === "FLUIG").length,
-    }),
-    [products]
-  );
+  const metrics = summary;
 
   function updateFilter(key: keyof ProductFilters, value: string) {
-    setPage(1);
+    if (key !== "query") setPage(1);
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
@@ -979,8 +1008,8 @@ export function ProductsPage({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as categorias</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                {effectiveFormCatalogs.categories.options.map((category) => (
+                  <SelectItem key={category.value} value={category.code || category.value}>{category.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1020,7 +1049,7 @@ export function ProductsPage({
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>{filteredProducts.length} {filteredProducts.length === 1 ? "resultado" : "resultados"}</span>
+          <span>{total} {total === 1 ? "resultado" : "resultados"}</span>
           <span>Atualizado em {formatDate(lastUpdatedAt)}</span>
         </div>
       </section>
@@ -1129,7 +1158,7 @@ export function ProductsPage({
           </div>
 
           <div className="flex flex-col gap-2 border-t pt-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>Pagina {page} de {pageCount} · exibindo {visibleProducts.length} de {filteredProducts.length}</span>
+            <span>Pagina {page} de {pageCount} · exibindo {visibleProducts.length} de {total}</span>
             <div className="flex gap-1">
               <Button type="button" variant="outline" size="sm" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1}>
                 <ChevronLeft className="size-4" /> Anterior
@@ -1149,7 +1178,7 @@ export function ProductsPage({
       ) : null}
 
       <Dialog open={Boolean((creating || editingProduct) && editForm)} onOpenChange={(open) => { if (!open) closeEditor(); }}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-2xl">
           {(creating || editingProduct) && editForm ? (
             <>
               <DialogHeader>

@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   Activity,
   AlertTriangle,
   Ban,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   History,
   Laptop,
@@ -44,6 +46,7 @@ import {
 import type { FluigModuleSlug } from "@/lib/fluig-data";
 import type { ModuleConfig } from "@/lib/admin-data";
 import { waitForFluigJobs } from "@/lib/use-fluig-job-state";
+import { useVisibleRefresh } from "@/lib/use-visible-refresh";
 import { cn } from "@/lib/utils";
 
 type ModuleFilter = "all" | FluigModuleSlug;
@@ -266,15 +269,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
     [moduleFilter]
   );
 
-  useEffect(() => {
-    const initialLoad = window.setTimeout(() => void refresh(), 0);
-    const interval = window.setInterval(() => void refresh(true), 30000);
-
-    return () => {
-      window.clearTimeout(initialLoad);
-      window.clearInterval(interval);
-    };
-  }, [refresh]);
+  useVisibleRefresh(refresh);
 
   async function pollJobsUntilDone(seedJobs: FluigAdmJobSummary[]) {
     await waitForFluigJobs(seedJobs, {
@@ -742,6 +737,14 @@ function RequestTable({
   onCancelRequest: (record: FluigOpenRequestRecord) => void;
   cancellingRequestKey: string | null;
 }) {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const visibleRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const firstVisible = rows.length ? (currentPage - 1) * pageSize + 1 : 0;
+  const lastVisible = Math.min(currentPage * pageSize, rows.length);
+
   return (
     <section className="stitch-animate-in rounded-lg border bg-background shadow-none">
       <header className="flex flex-col gap-1 border-b p-4 md:flex-row md:items-center md:justify-between">
@@ -751,60 +754,135 @@ function RequestTable({
         </div>
       </header>
       {rows.length ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Fluig</TableHead>
-              <TableHead>Modulo</TableHead>
-              <TableHead>Fornecedor / solicitante</TableHead>
-              <TableHead>Filial</TableHead>
-              <TableHead>Etapa</TableHead>
-              <TableHead>Responsavel</TableHead>
-              <TableHead>Atualizado</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Acoes</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row) => {
+        <>
+          <div className="divide-y lg:hidden">
+            {visibleRows.map((row) => {
               const cancelable = isCancelableRequest(row);
               const cancelling = cancellingRequestKey === requestRowKey(row);
 
               return (
-                <TableRow key={`${row.module}-${row.fluigRequestId}-${row.id}`}>
-                  <TableCell className="font-medium">{row.fluigRequestId}</TableCell>
-                  <TableCell>{moduleLabels[row.module]}</TableCell>
-                  <TableCell className="min-w-[240px] max-w-[360px] whitespace-normal">
-                    <p className="font-medium">{row.supplierName || row.requester || "Solicitacao Fluig"}</p>
-                    <p className="text-xs text-muted-foreground">{row.supplierCnpj || row.admReference || "-"}</p>
-                  </TableCell>
-                  <TableCell className="min-w-[160px] max-w-[260px] whitespace-normal">{row.branchLabel || row.branchCode || "-"}</TableCell>
-                  <TableCell className="min-w-[180px] max-w-[280px] whitespace-normal">{row.currentTask || "-"}</TableCell>
-                  <TableCell className="min-w-[160px] max-w-[240px] whitespace-normal">{row.taskOwner || "-"}</TableCell>
-                  <TableCell>{formatDateTime(row.lastStatusCheckAt || row.lastSyncedAt || row.lastSeenInUserOpenListAt)}</TableCell>
-                  <TableCell>
+                <article key={`${row.module}-${row.fluigRequestId}-${row.id}`} className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">Fluig {row.fluigRequestId}</p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">{moduleLabels[row.module]}</p>
+                    </div>
                     <StatusBadge status={normalizeStatus(row.normalizedStatus || row.status)} />
-                  </TableCell>
-                  <TableCell>
+                  </div>
+                  <div className="grid gap-2 text-xs sm:grid-cols-2">
+                    <Field label="Fornecedor / solicitante" value={row.supplierName || row.requester || "Solicitacao Fluig"} />
+                    <Field label="Filial" value={row.branchLabel || row.branchCode || "-"} />
+                    <Field label="Etapa" value={row.currentTask || "-"} />
+                    <Field label="Responsavel" value={row.taskOwner || "-"} />
+                    <Field label="Atualizado" value={formatDateTime(row.lastStatusCheckAt || row.lastSyncedAt || row.lastSeenInUserOpenListAt)} />
+                  </div>
+                  {cancelable ? (
                     <Button
                       type="button"
                       variant="destructive"
                       size="sm"
                       onClick={() => onCancelRequest(row)}
-                      disabled={!cancelable || cancelling}
+                      disabled={cancelling}
                     >
                       {cancelling ? <Loader2 className="size-4 animate-spin" /> : <Ban className="size-4" />}
                       Cancelar
                     </Button>
-                  </TableCell>
-                </TableRow>
+                  ) : null}
+                </article>
               );
             })}
-          </TableBody>
-        </Table>
+          </div>
+          <div className="hidden lg:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fluig</TableHead>
+                  <TableHead>Modulo</TableHead>
+                  <TableHead>Fornecedor / solicitante</TableHead>
+                  <TableHead>Filial</TableHead>
+                  <TableHead>Etapa</TableHead>
+                  <TableHead>Responsavel</TableHead>
+                  <TableHead>Atualizado</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Acoes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleRows.map((row) => {
+                  const cancelable = isCancelableRequest(row);
+                  const cancelling = cancellingRequestKey === requestRowKey(row);
+
+                  return (
+                    <TableRow key={`${row.module}-${row.fluigRequestId}-${row.id}`}>
+                      <TableCell className="font-medium">{row.fluigRequestId}</TableCell>
+                      <TableCell>{moduleLabels[row.module]}</TableCell>
+                      <TableCell className="min-w-[240px] max-w-[360px] whitespace-normal">
+                        <p className="font-medium">{row.supplierName || row.requester || "Solicitacao Fluig"}</p>
+                        <p className="text-xs text-muted-foreground">{row.supplierCnpj || row.admReference || "-"}</p>
+                      </TableCell>
+                      <TableCell className="min-w-[160px] max-w-[260px] whitespace-normal">{row.branchLabel || row.branchCode || "-"}</TableCell>
+                      <TableCell className="min-w-[180px] max-w-[280px] whitespace-normal">{row.currentTask || "-"}</TableCell>
+                      <TableCell className="min-w-[160px] max-w-[240px] whitespace-normal">{row.taskOwner || "-"}</TableCell>
+                      <TableCell>{formatDateTime(row.lastStatusCheckAt || row.lastSyncedAt || row.lastSeenInUserOpenListAt)}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={normalizeStatus(row.normalizedStatus || row.status)} />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => onCancelRequest(row)}
+                          disabled={!cancelable || cancelling}
+                        >
+                          {cancelling ? <Loader2 className="size-4 animate-spin" /> : <Ban className="size-4" />}
+                          Cancelar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       ) : (
         <div className="p-8 text-center text-sm text-muted-foreground">{emptyText}</div>
       )}
+      {rows.length > pageSize ? (
+        <footer className="flex items-center justify-between gap-3 border-t px-4 py-3">
+          <p className="text-xs text-muted-foreground">
+            {firstVisible}-{lastVisible} de {rows.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label="Pagina anterior"
+              title="Pagina anterior"
+              disabled={currentPage <= 1}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="min-w-14 text-center text-xs text-muted-foreground">
+              {currentPage}/{totalPages}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label="Proxima pagina"
+              title="Proxima pagina"
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </footer>
+      ) : null}
     </section>
   );
 }

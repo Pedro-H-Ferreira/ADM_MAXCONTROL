@@ -6,6 +6,19 @@ import type {
   OperationalLaunchValidateInput,
 } from "@/lib/operational-launch";
 
+const inFlightFluigReads = new Map<string, Promise<unknown>>();
+
+function dedupeFluigRead<T>(key: string, load: () => Promise<T>) {
+  const current = inFlightFluigReads.get(key) as Promise<T> | undefined;
+  if (current) return current;
+
+  const request = load().finally(() => {
+    if (inFlightFluigReads.get(key) === request) inFlightFluigReads.delete(key);
+  });
+  inFlightFluigReads.set(key, request);
+  return request;
+}
+
 export type FluigAdmSyncAction = "sync" | "examples" | "suppliers" | "tasks";
 export type FluigJobOperation =
   | "sync_history"
@@ -76,6 +89,7 @@ export type FluigOpenRequestRecord = {
   branchLabel: string | null;
   supplierName: string | null;
   supplierCnpj: string | null;
+  dueDate: string | null;
   openedAt: string | null;
   lastSyncedAt: string | null;
   lastStatusCheckAt: string | null;
@@ -158,21 +172,24 @@ export const fluigAdmApi = {
   requestLookupPath: "/api/fluig/adm/request/lookup",
   myTasksPath: "/api/fluig/adm/tasks/my",
   myOpenRequestsPath: "/api/fluig/adm/requests/my-open",
+  requestsPath: "/api/fluig/adm/requests",
   operationalLaunchesPath: "/api/fluig/adm/launches",
   async sync(payload: FluigAdmSyncRequest) {
-    const response = await fetch(this.syncPath, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+    return dedupeFluigRead(`snapshot:${payload.module}:${payload.action || "sync"}`, async () => {
+      const response = await fetch(this.syncPath, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json()) as FluigAdmSyncResponse | { success: false; error: string };
+
+      if (!response.ok || !data.success) {
+        throw new Error("error" in data ? data.error : "Falha ao sincronizar Fluig");
+      }
+
+      return data;
     });
-
-    const data = (await response.json()) as FluigAdmSyncResponse | { success: false; error: string };
-
-    if (!response.ok || !data.success) {
-      throw new Error("error" in data ? data.error : "Falha ao sincronizar Fluig");
-    }
-
-    return data;
   },
   async post<TResponse>(path: string, payload: Record<string, unknown>) {
     const response = await fetch(path, {
@@ -189,14 +206,16 @@ export const fluigAdmApi = {
     return data;
   },
   async get<TResponse>(path: string) {
-    const response = await fetch(path, { cache: "no-store" });
-    const data = (await response.json()) as TResponse & { success?: boolean; error?: string };
+    return dedupeFluigRead(`get:${path}`, async () => {
+      const response = await fetch(path, { cache: "no-store" });
+      const data = (await response.json()) as TResponse & { success?: boolean; error?: string };
 
-    if (!response.ok || data.success === false) {
-      throw new Error(data.error || "Falha ao consultar Fluig");
-    }
+      if (!response.ok || data.success === false) {
+        throw new Error(data.error || "Falha ao consultar Fluig");
+      }
 
-    return data;
+      return data;
+    });
   },
   async createJob(payload: {
     module: FluigModuleSlug;
@@ -220,8 +239,9 @@ export const fluigAdmApi = {
       },
     });
   },
-  async getJob(jobId: string) {
-    const response = await fetch(`${this.jobsPath}/${jobId}`, { cache: "no-store" });
+  async getJob(jobId: string, options: { details?: boolean } = {}) {
+    const suffix = options.details ? "?details=true" : "";
+    const response = await fetch(`${this.jobsPath}/${jobId}${suffix}`, { cache: "no-store" });
     const data = (await response.json()) as FluigJobStatusResponse | { success: false; error?: string };
 
     if (!response.ok || data.success === false || !("job" in data)) {
@@ -231,23 +251,19 @@ export const fluigAdmApi = {
     return { success: true, job: data.job, events: data.events || [] } as FluigJobStatusResponse;
   },
   async listJobs(limit = 20) {
-    const params = new URLSearchParams({ limit: String(limit) });
-    return this.get<{
+    const params = new URLSearchParams({ limit: "50" });
+    const data = await this.get<{
       success: true;
       jobs: FluigAdmJobSummary[];
     }>(`${this.jobsPath}?${params.toString()}`);
+    return { ...data, jobs: data.jobs.slice(0, Math.min(Math.max(limit, 1), 50)) };
   },
   async listAgents() {
-    const response = await fetch(this.agentPairPath, { cache: "no-store" });
-    const data = (await response.json()) as {
+    const data = await this.get<{
       success?: boolean;
       error?: string;
       agents?: FluigAdmAgent[];
-    };
-
-    if (!response.ok || data.success === false) {
-      throw new Error(data.error || "Falha ao consultar agente Fluig");
-    }
+    }>(this.agentPairPath);
 
     return data.agents || [];
   },
@@ -412,6 +428,26 @@ export const fluigAdmApi = {
       requests: FluigOpenRequestRecord[];
       persistence?: unknown;
     }>(`${this.myOpenRequestsPath}?${params.toString()}`);
+  },
+  async listRequests(input: {
+    module: FluigModuleSlug;
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string;
+    branch?: string;
+    open?: boolean | null;
+    overdue?: boolean;
+    errorOnly?: boolean;
+  }) {
+    const params = new URLSearchParams({ module: input.module, page: String(input.page || 1), pageSize: String(input.pageSize || 30) });
+    if (input.search) params.set("q", input.search);
+    if (input.status) params.set("status", input.status);
+    if (input.branch) params.set("branch", input.branch);
+    if (input.open != null) params.set("open", String(input.open));
+    if (input.overdue) params.set("overdue", "true");
+    if (input.errorOnly) params.set("errorOnly", "true");
+    return this.get<{ success: true; page: number; pageSize: number; total: number; items: FluigOpenRequestRecord[] }>(`${this.requestsPath}?${params.toString()}`);
   },
   async listSyncState(module?: FluigModuleSlug) {
     const params = new URLSearchParams();

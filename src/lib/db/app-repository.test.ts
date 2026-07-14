@@ -85,8 +85,8 @@ function jobActor(isAdmin = false): AppActor {
     isAdmin,
     branches: jobBranches,
     branchCodes: jobBranches.map((branch) => branch.code),
-    pageSlugs: [],
-    pageAccess: [],
+    pageSlugs: ["pagamentos"],
+    pageAccess: [{ pageSlug: "pagamentos", canView: true, canCreate: true, canUpdate: true, canApprove: true }],
   };
 }
 
@@ -270,6 +270,30 @@ describe("upsertAppUser", () => {
 });
 
 describe("createFluigJob branch resolution", () => {
+  it("rejeita modulo e acao sem permissao antes de acessar o banco", async () => {
+    const from = vi.fn();
+    const rpc = vi.fn();
+    serviceState.client = { from, rpc };
+
+    await expect(createFluigJob({
+      actor: { ...jobActor(), pageSlugs: [], pageAccess: [] },
+      module: "pagamentos",
+      operation: "sync_status",
+    })).rejects.toMatchObject({ code: "FLUIG_MODULE_ACCESS_DENIED", status: 403 });
+
+    await expect(createFluigJob({
+      actor: {
+        ...jobActor(),
+        pageAccess: [{ pageSlug: "pagamentos", canView: true, canCreate: false, canUpdate: false, canApprove: false }],
+      },
+      module: "pagamentos",
+      operation: "sync_status",
+    })).rejects.toMatchObject({ code: "FLUIG_ACTION_ACCESS_DENIED", status: 403 });
+
+    expect(rpc).not.toHaveBeenCalled();
+    expect(from).not.toHaveBeenCalled();
+  });
+
   it("rejeita branchCode explicito fora das filiais acessiveis", async () => {
     const from = vi.fn();
     const rpc = vi.fn();

@@ -10,7 +10,8 @@ const historyChunkMaxBytes = positiveInt(process.env.ADM_FLUIG_HISTORY_CHUNK_BYT
 const historyFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_FIELD_MAX_CHARS, 6000);
 const historyAggressiveFieldMaxChars = positiveInt(process.env.ADM_FLUIG_HISTORY_AGGRESSIVE_FIELD_MAX_CHARS, 1000);
 const resultMaxBytes = positiveInt(process.env.ADM_FLUIG_RESULT_MAX_BYTES, 650000);
-const heartbeatIntervalMs = positiveInt(process.env.ADM_FLUIG_HEARTBEAT_INTERVAL_MS, 10000);
+const heartbeatIntervalMs = positiveInt(process.env.ADM_FLUIG_HEARTBEAT_INTERVAL_MS, 15000);
+const apiTimeoutMs = positiveInt(process.env.ADM_FLUIG_API_TIMEOUT_MS, 60000);
 const chunkableResultOperations = new Set([
   "sync_history",
   "sync_initial_history",
@@ -59,6 +60,14 @@ function positiveInt(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
 }
 
+function pollDelayMs(baseIntervalMs, failureCount, random = Math.random) {
+  const base = positiveInt(baseIntervalMs, 8000);
+  if (failureCount <= 0) return base;
+  const exponential = Math.min(60000, base * (2 ** Math.min(failureCount - 1, 4)));
+  const jitter = Math.floor(random() * Math.min(1000, Math.max(1, Math.floor(exponential / 5))));
+  return exponential + jitter;
+}
+
 function assertConfig() {
   if (!config.token) {
     throw new Error(`ADM_AGENT_TOKEN ausente. Configure ${config.configFile}.`);
@@ -77,6 +86,7 @@ async function apiFetch(path, payload = {}) {
       Authorization: `Bearer ${config.token}`,
     },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(apiTimeoutMs),
   });
   const data = await response.json().catch(() => ({}));
 
@@ -536,29 +546,33 @@ async function processJob(job) {
     }).catch(() => {});
   } finally {
     stopJobHeartbeat();
-    setTimeout(() => {
-      currentJob = null;
-    }, 15000);
+    currentJob = null;
   }
 }
 
 async function pollOnce() {
+  if (currentJob) return false;
   lastPollAt = new Date().toISOString();
   const data = await apiFetch("/api/agent/jobs/poll", heartbeatPayload());
-  if (data.job && !currentJob) {
+  if (data.job) {
     await processJob(data.job);
+    return true;
   }
+  return false;
 }
 
 async function pollLoop() {
+  let consecutiveFailures = 0;
   while (!stopping) {
     try {
       await pollOnce();
+      consecutiveFailures = 0;
     } catch (error) {
       lastError = error && error.message ? error.message : String(error);
+      consecutiveFailures += 1;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, config.pollIntervalMs));
+    await new Promise((resolve) => setTimeout(resolve, pollDelayMs(config.pollIntervalMs, consecutiveFailures)));
   }
 }
 
@@ -644,6 +658,7 @@ module.exports = {
     historyChunkPayload,
     minimalResultPayload,
     payloadBytes,
+    pollDelayMs,
     shouldChunkResult,
   },
 };

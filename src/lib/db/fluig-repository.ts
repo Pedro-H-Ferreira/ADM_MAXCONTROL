@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { filterRowsForActor, type AppActor } from "@/lib/db/app-repository";
+import { filterRowsForActor, fluigModuleSlugsForActor, type AppActor } from "@/lib/db/app-repository";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 import type {
@@ -45,7 +45,7 @@ type FluigRequestDbRow = {
   last_seen_in_user_open_list_at?: string | null;
   sync_owner_user_id?: string | null;
   sync_source?: string | null;
-  raw_payload: JsonRecord;
+  raw_payload?: JsonRecord;
 };
 
 type FluigSupplierCandidateDbRow = {
@@ -140,6 +140,36 @@ const fluigRequestSelect = [
   "sync_owner_user_id",
   "sync_source",
   "raw_payload",
+].join(",");
+
+const fluigRequestSummarySelect = [
+  "id",
+  "module_slug",
+  "adm_reference",
+  "process_id",
+  "fluig_request_id",
+  "status",
+  "current_task",
+  "task_owner",
+  "requester",
+  "branch_code",
+  "branch_label",
+  "created_by_user_id",
+  "fluig_requester_login",
+  "fluig_requester_code",
+  "supplier_name",
+  "supplier_cnpj",
+  "amount_cents",
+  "currency",
+  "due_date",
+  "opened_at",
+  "last_synced_at",
+  "is_open",
+  "normalized_status",
+  "last_status_check_at",
+  "last_seen_in_user_open_list_at",
+  "sync_owner_user_id",
+  "sync_source",
 ].join(",");
 
 function emptyResult(): PersistenceResult {
@@ -286,6 +316,7 @@ function mapFluigRequestRecord(row: FluigRequestDbRow) {
     branchLabel: row.branch_label,
     supplierName: row.supplier_name,
     supplierCnpj: row.supplier_cnpj,
+    dueDate: row.due_date,
     openedAt: row.opened_at,
     lastSyncedAt: row.last_synced_at,
     lastStatusCheckAt: row.last_status_check_at || null,
@@ -293,6 +324,52 @@ function mapFluigRequestRecord(row: FluigRequestDbRow) {
     syncOwnerUserId: row.sync_owner_user_id || null,
     syncSource: row.sync_source || null,
   };
+}
+
+export async function listFluigRequestsForActor(input: {
+  actor: AppActor;
+  module: FluigModuleSlug;
+  page?: number;
+  pageSize?: number;
+  search?: string | null;
+  status?: string | null;
+  branch?: string | null;
+  open?: boolean | null;
+  overdue?: boolean;
+  errorOnly?: boolean;
+}) {
+  return runWithDb(async (client) => {
+    const allowedModules = new Set(fluigModuleSlugsForActor(input.actor));
+    const page = Math.max(1, Number(input.page || 1));
+    const pageSize = Math.min(Math.max(Number(input.pageSize || 30), 1), 100);
+    if (!allowedModules.has(input.module)) return { page, pageSize, total: 0, items: [] };
+    let query = client
+      .from("fluig_requests")
+      .select(fluigRequestSummarySelect, { count: "exact" })
+      .eq("module_slug", input.module)
+      .not("fluig_request_id", "is", null)
+      .order("last_status_check_at", { ascending: false, nullsFirst: false })
+      .order("last_synced_at", { ascending: false, nullsFirst: false });
+    const actorFilter = buildFluigActorPostgrestFilter(input.actor);
+    if (actorFilter) query = query.or(actorFilter);
+    if (input.open != null) query = query.eq("is_open", input.open);
+    if (input.status) query = query.ilike("normalized_status", input.status);
+    if (input.branch) query = query.eq("branch_code", input.branch);
+    if (input.overdue) query = query.eq("is_open", true).lt("due_date", new Date().toISOString());
+    if (input.errorOnly) {
+      query = query.in("normalized_status", ["erro", "error", "falha", "failed", "cancelado", "cancelled"]);
+    }
+    const search = String(input.search || "").replace(/[%_,()]/g, " ").trim();
+    if (search) {
+      const pattern = `%${search}%`;
+      query = query.or(`fluig_request_id.ilike.${pattern},adm_reference.ilike.${pattern},supplier_name.ilike.${pattern},supplier_cnpj.ilike.${pattern},requester.ilike.${pattern},current_task.ilike.${pattern},task_owner.ilike.${pattern}`);
+    }
+    const from = (page - 1) * pageSize;
+    const { data, error, count } = await query.range(from, from + pageSize - 1);
+    if (error) throw error;
+    const visible = filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[]).map(mapFluigRequestRecord);
+    return { page, pageSize, total: count || 0, items: visible };
+  }).then(({ result, persistence }) => ({ ...(result || { page: 1, pageSize: 30, total: 0, items: [] }), persistence }));
 }
 
 function compareOpenRequestPriority(left: FluigRequestDbRow, right: FluigRequestDbRow) {
@@ -1202,10 +1279,12 @@ export async function readKnownOpenFluigRequestsForActor(input: {
   onlyTasks?: boolean;
 }) {
   return runWithDb(async (client) => {
-    const modules =
-      input.module && input.module !== "fornecedores"
-        ? ([input.module] satisfies FluigModuleSlug[])
-        : (["pagamentos", "compras", "manutencao"] satisfies FluigModuleSlug[]);
+    const allowedModules = new Set(fluigModuleSlugsForActor(input.actor));
+    const requestedModules = input.module
+      ? ([input.module] satisfies FluigModuleSlug[])
+      : (["pagamentos", "compras", "manutencao", "fornecedores"] satisfies FluigModuleSlug[]);
+    const modules = requestedModules.filter((moduleSlug) => allowedModules.has(moduleSlug));
+    if (!modules.length) return [];
     const limit = Math.min(Math.max(Number(input.limit || 50), 1), 200);
     const actorFilter = buildFluigActorPostgrestFilter(input.actor);
     let query = client
@@ -1244,10 +1323,12 @@ export async function readFluigRequestByNumberForActor(input: {
   return runWithDb(async (client) => {
     if (!fluigRequestId) return null;
 
-    const modules =
-      input.module && input.module !== "fornecedores"
-        ? ([input.module] satisfies FluigModuleSlug[])
-        : (["pagamentos", "compras", "manutencao", "fornecedores"] satisfies FluigModuleSlug[]);
+    const allowedModules = new Set(fluigModuleSlugsForActor(input.actor));
+    const requestedModules = input.module
+      ? ([input.module] satisfies FluigModuleSlug[])
+      : (["pagamentos", "compras", "manutencao", "fornecedores"] satisfies FluigModuleSlug[]);
+    const modules = requestedModules.filter((moduleSlug) => allowedModules.has(moduleSlug));
+    if (!modules.length) return null;
     let query = client
       .from("fluig_requests")
       .select(fluigRequestSelect)

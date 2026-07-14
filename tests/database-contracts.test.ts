@@ -32,6 +32,68 @@ describe("database and API contracts", () => {
     expect(migration).toMatch(/add constraint app_user_profiles_role_check[\s\S]*role in/i);
   });
 
+  it("remove leitura direta dos vinculos Fluig sem bloquear o service role", async () => {
+    const migration = await source(
+      "supabase/migrations/20260713221056_harden_fluig_supplier_scope_and_queue_indexes.sql"
+    );
+
+    expect(migration).toContain(
+      'drop policy if exists "authenticated_read_fluig_supplier_links" on public.fluig_supplier_links;'
+    );
+    expect(migration).not.toMatch(/create policy\s+"authenticated_read_fluig_supplier_links"/i);
+    expect(migration).toMatch(
+      /revoke select on table public\.fluig_supplier_links from anon, authenticated;/i
+    );
+    expect(migration).toMatch(/grant select on table public\.fluig_supplier_links to service_role;/i);
+  });
+
+  it("indexa a fila aberta Fluig na mesma ordem da consulta", async () => {
+    const migration = await source(
+      "supabase/migrations/20260713221056_harden_fluig_supplier_scope_and_queue_indexes.sql"
+    );
+    const normalizedMigration = migration.replace(/\s+/g, " ");
+
+    expect(normalizedMigration).toContain(
+      "create index if not exists fluig_requests_open_queue_status_check_idx on public.fluig_requests ( module_slug, last_status_check_at asc nulls first, last_synced_at desc nulls last ) where is_open is true and fluig_request_id is not null;"
+    );
+    expect(migration).toContain(
+      "-- Rollback seguro: drop index if exists public.fluig_requests_open_queue_status_check_idx;"
+    );
+  });
+
+  it("pagina e pesquisa solicitacoes Fluig com filtros apoiados por indices", async () => {
+    const migration = await source(
+      "supabase/migrations/20260713234000_optimize_fluig_request_operational_filters.sql"
+    );
+    const repository = await source("src/lib/db/fluig-repository.ts");
+    const route = await source("src/app/api/fluig/adm/requests/route.ts");
+    const page = await source("src/components/pages/fluig-module-operations-page.tsx");
+
+    expect(migration).toContain("fluig_requests_operational_page_idx");
+    expect(migration).toContain("fluig_requests_operational_branch_idx");
+    expect(migration).toContain("fluig_requests_operational_due_idx");
+    expect(migration).toContain("gin_trgm_ops");
+    expect(repository).toContain('.range(from, from + pageSize - 1)');
+    expect(repository).toContain('.eq("branch_code", input.branch)');
+    expect(repository).toContain('.lt("due_date", new Date().toISOString())');
+    expect(route).toContain('url.searchParams.get("errorOnly")');
+    expect(page).toContain("20 por pagina");
+    expect(page).toContain("100 por pagina");
+    expect(page).toContain("debouncedQuery");
+  });
+
+  it("mantem a carga historica Fluig fora da abertura e da sincronizacao normal", async () => {
+    const panel = await source("src/components/shared/fluig-integration-panel.tsx");
+    const runSyncStart = panel.indexOf("async function runSync");
+    const historicalStart = panel.indexOf("async function runHistoricalSync");
+    const normalSync = panel.slice(runSyncStart, historicalStart);
+
+    expect(normalSync).not.toContain("syncHistorical");
+    expect(panel.slice(historicalStart)).toContain("window.confirm");
+    expect(panel.slice(historicalStart)).toContain("days: 730");
+    expect(panel).toContain("Reconstruir historico (admin)");
+  });
+
   it("mantem o upsert de solicitacoes idempotente por modulo e numero Fluig", async () => {
     const repository = await source("src/lib/db/fluig-repository.ts");
     expect(repository).toContain('onConflict: "module_slug,fluig_request_id"');
@@ -188,8 +250,14 @@ describe("database and API contracts", () => {
     const suppliers = await source("src/components/pages/suppliers-page.tsx");
     const maintenance = await source("src/components/pages/maintenance-page.tsx");
 
-    expect(repository).toContain("const loadActiveJobs = async");
-    expect(repository).toContain(".range(from, from + pageSize - 1)");
+    const listJobsSource = repository.slice(
+      repository.indexOf("export async function listJobsForActor"),
+      repository.indexOf("export async function readJobForActor")
+    );
+    expect(repository).toContain("const fluigJobSummarySelect");
+    expect(listJobsSource).toContain(".limit(200)");
+    expect(listJobsSource).toContain(".select(fluigJobSummarySelect)");
+    expect(listJobsSource).not.toContain('.select("*")');
     expect(repository).toContain('status: "started" | "success" | "error"');
     expect(api).toContain('status: "started" | "success" | "error"');
     expect(projection).toContain("projectFluigJobState");
@@ -438,6 +506,6 @@ describe("database and API contracts", () => {
     expect(installer).toContain("-RunLevel Limited");
     expect(installer).not.toContain('New-ScheduledTaskAction -Execute "cmd.exe"');
     expect(uninstaller).toContain("Stop-AgentProcesses -AgentScriptPath $AgentScript");
-    expect(agentPackage).toContain('"version": "0.1.3"');
+    expect(agentPackage).toContain('"version": "0.1.4"');
   });
 });

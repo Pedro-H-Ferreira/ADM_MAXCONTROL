@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  canActorAccessPage: vi.fn(),
+  canActorPerformPageAction: vi.fn(),
   recordFluigOperationRun: vi.fn(),
   resolveCurrentAppUser: vi.fn(),
 }));
 
 vi.mock("@/lib/db/app-repository", () => ({
+  canActorAccessPage: mocks.canActorAccessPage,
+  canActorPerformPageAction: mocks.canActorPerformPageAction,
   resolveCurrentAppUser: mocks.resolveCurrentAppUser,
 }));
 
@@ -31,6 +35,8 @@ describe("POST /api/fluig/adm/open", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.resolveCurrentAppUser.mockResolvedValue({ id: "user-1" });
+    mocks.canActorAccessPage.mockReturnValue(true);
+    mocks.canActorPerformPageAction.mockReturnValue(true);
     mocks.recordFluigOperationRun.mockResolvedValue({ recorded: true });
   });
 

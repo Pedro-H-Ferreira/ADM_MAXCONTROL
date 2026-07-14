@@ -56,6 +56,15 @@ type FluigJobDashboardRow = {
   finished_at: string | null;
 };
 
+type FluigDashboardSummary = {
+  paymentsThisMonth: number;
+  paymentsOpen: number;
+  paymentsOverdue: number;
+  openMaintenance: number;
+  tasksOverdue: number;
+  openRequests: number;
+};
+
 export type DashboardOverviewData = {
   paymentsThisMonth: number;
   paymentsOpen: number;
@@ -125,15 +134,6 @@ function isOpenFluigRequest(row: Pick<FluigDashboardRow, "is_open" | "status" | 
 
   const status = `${row.normalized_status || ""} ${row.status || ""}`.toLowerCase();
   return !status.includes("finaliz") && !status.includes("cancel") && !status.includes("encerr");
-}
-
-function isCurrentMonth(value: string | null | undefined) {
-  if (!value) return false;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return false;
-
-  const now = new Date();
-  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
 }
 
 function isBeforeToday(value: string | null | undefined) {
@@ -325,44 +325,107 @@ async function loadMaintenanceSummary(actor: AppActor) {
   };
 }
 
-async function loadFluigRows(actor: AppActor) {
+async function loadFluigSummary(actor: AppActor): Promise<FluigDashboardSummary> {
   const client = getSupabaseServiceClient();
-  if (!client) return [] as FluigDashboardRow[];
+  if (!client) {
+    return { paymentsThisMonth: 0, paymentsOpen: 0, paymentsOverdue: 0, openMaintenance: 0, tasksOverdue: 0, openRequests: 0 };
+  }
 
-  let query = client
-    .from("fluig_requests")
-    .select(
-      [
-        "id",
-        "module_slug",
-        "status",
-        "normalized_status",
-        "is_open",
-        "due_date",
-        "opened_at",
-        "last_synced_at",
-        "branch_code",
-        "created_by_user_id",
-        "fluig_requester_login",
-        "fluig_requester_code",
-        "requester",
-        "sync_owner_user_id",
-        "supplier_name",
-        "amount_cents",
-        "current_task",
-        "task_owner",
-      ].join(",")
-    )
-    .order("last_synced_at", { ascending: false, nullsFirst: false })
-    .limit(5000);
   const actorFilter = buildFluigActorPostgrestFilter(actor);
-  if (actorFilter) query = query.or(actorFilter);
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const serviceClient = client;
 
-  const { data, error } = await query;
-  if (error) throwDashboardQueryError("solicitacoes Fluig", error);
+  function countQuery() {
+    let query = serviceClient.from("fluig_requests").select("id", { count: "exact", head: true });
+    if (actorFilter) query = query.or(actorFilter);
+    return query;
+  }
 
-  const rows = (data || []) as unknown as FluigDashboardRow[];
-  return filterRowsForActor(actor, rows);
+  const [openResult, paymentsOpenResult, paymentsOverdueResult, paymentsMonthResult, maintenanceResult, tasksResult] = await Promise.all([
+    countQuery().eq("is_open", true),
+    countQuery().eq("module_slug", "pagamentos").eq("is_open", true),
+    countQuery().eq("module_slug", "pagamentos").eq("is_open", true).lt("due_date", todayStart),
+    countQuery()
+      .eq("module_slug", "pagamentos")
+      .or(`opened_at.gte.${monthStart},and(opened_at.is.null,last_synced_at.gte.${monthStart})`),
+    countQuery().eq("module_slug", "manutencao").eq("is_open", true),
+    countQuery().eq("is_open", true).not("current_task", "is", null).lt("due_date", todayStart),
+  ]);
+  const error = [openResult, paymentsOpenResult, paymentsOverdueResult, paymentsMonthResult, maintenanceResult, tasksResult]
+    .map((result) => result.error)
+    .find(Boolean);
+  if (error) throwDashboardQueryError("resumo de solicitacoes Fluig", error);
+
+  return {
+    paymentsThisMonth: paymentsMonthResult.count || 0,
+    paymentsOpen: paymentsOpenResult.count || 0,
+    paymentsOverdue: paymentsOverdueResult.count || 0,
+    openMaintenance: maintenanceResult.count || 0,
+    tasksOverdue: tasksResult.count || 0,
+    openRequests: openResult.count || 0,
+  };
+}
+
+async function loadFluigDisplayRows(actor: AppActor) {
+  const client = getSupabaseServiceClient();
+  if (!client) return { chartRows: [] as FluigDashboardRow[], upcomingRows: [] as FluigDashboardRow[] };
+
+  const select = [
+    "id",
+    "module_slug",
+    "status",
+    "normalized_status",
+    "is_open",
+    "due_date",
+    "opened_at",
+    "last_synced_at",
+    "branch_code",
+    "created_by_user_id",
+    "fluig_requester_login",
+    "fluig_requester_code",
+    "requester",
+    "sync_owner_user_id",
+    "supplier_name",
+    "amount_cents",
+    "current_task",
+    "task_owner",
+  ].join(",");
+  const actorFilter = buildFluigActorPostgrestFilter(actor);
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+
+  let chartQuery = client
+    .from("fluig_requests")
+    .select(select)
+    .eq("module_slug", "pagamentos")
+    .gte("opened_at", monthStart)
+    .gt("amount_cents", 0)
+    .order("last_synced_at", { ascending: false, nullsFirst: false })
+    .limit(1000);
+  let upcomingQuery = client
+    .from("fluig_requests")
+    .select(select)
+    .eq("module_slug", "pagamentos")
+    .eq("is_open", true)
+    .gte("due_date", todayStart)
+    .order("due_date", { ascending: true })
+    .limit(6);
+  if (actorFilter) {
+    chartQuery = chartQuery.or(actorFilter);
+    upcomingQuery = upcomingQuery.or(actorFilter);
+  }
+
+  const [chartResult, upcomingResult] = await Promise.all([chartQuery, upcomingQuery]);
+  if (chartResult.error) throwDashboardQueryError("distribuicao de pagamentos Fluig", chartResult.error);
+  if (upcomingResult.error) throwDashboardQueryError("proximos pagamentos Fluig", upcomingResult.error);
+
+  return {
+    chartRows: filterRowsForActor(actor, (chartResult.data || []) as unknown as FluigDashboardRow[]),
+    upcomingRows: filterRowsForActor(actor, (upcomingResult.data || []) as unknown as FluigDashboardRow[]),
+  };
 }
 
 async function loadRecentJobs(actor: AppActor) {
@@ -393,31 +456,26 @@ export async function getDashboardOverviewData(actor: AppActor): Promise<Dashboa
     };
   }
 
-  const [fluigRows, supplierSummary, maintenanceSummary, recentJobs] = await Promise.all([
-    loadFluigRows(actor),
+  const [fluigSummary, fluigDisplayRows, supplierSummary, maintenanceSummary, recentJobs] = await Promise.all([
+    loadFluigSummary(actor),
+    loadFluigDisplayRows(actor),
     loadSupplierSummary(actor),
     loadMaintenanceSummary(actor),
     loadRecentJobs(actor),
   ]);
 
-  const openRows = fluigRows.filter(isOpenFluigRequest);
-  const payments = fluigRows.filter((row) => row.module_slug === "pagamentos");
-  const openPayments = payments.filter(isOpenFluigRequest);
-  const openMaintenanceFluig = openRows.filter((row) => row.module_slug === "manutencao");
-  const overdueTaskRows = openRows.filter((row) => row.current_task && isBeforeToday(row.due_date));
-
   return {
-    paymentsThisMonth: payments.filter((row) => isCurrentMonth(row.opened_at || row.last_synced_at)).length,
-    paymentsOpen: openPayments.length,
-    paymentsOverdue: openPayments.filter((row) => isBeforeToday(row.due_date)).length,
-    maintenanceOpen: maintenanceSummary.maintenanceOpen + openMaintenanceFluig.length,
+    paymentsThisMonth: fluigSummary.paymentsThisMonth,
+    paymentsOpen: fluigSummary.paymentsOpen,
+    paymentsOverdue: fluigSummary.paymentsOverdue,
+    maintenanceOpen: maintenanceSummary.maintenanceOpen + fluigSummary.openMaintenance,
     maintenanceOverdue: maintenanceSummary.maintenanceOverdue,
-    tasksOverdue: overdueTaskRows.length,
+    tasksOverdue: fluigSummary.tasksOverdue,
     activeSuppliers: supplierSummary.activeSuppliers,
     suppliersPendingReview: supplierSummary.suppliersPendingReview,
-    openFluigRequests: openRows.length,
-    chartRows: buildChartRows(payments),
-    upcomingPayments: buildUpcomingPayments(payments),
+    openFluigRequests: fluigSummary.openRequests,
+    chartRows: buildChartRows(fluigDisplayRows.chartRows),
+    upcomingPayments: buildUpcomingPayments(fluigDisplayRows.upcomingRows),
     recentActivities: buildRecentActivities(recentJobs),
     warnings: [],
   };
