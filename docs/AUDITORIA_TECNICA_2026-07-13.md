@@ -133,6 +133,15 @@ concluidos por esta auditoria:
 
 ## Publicacao
 
-O codigo deve ser publicado em branch dedicada, validado pelo build remoto da
-Vercel e promovido para `https://adm-maxcontrol.vercel.app`. A validacao final deve
-repetir o smoke test autenticado em dashboard, pagamentos e manutencao.
+O commit funcional `149558d` foi publicado na branch
+`codex/technical-audit-maintenance-fluig` e implantado em producao pela Vercel.
+
+- Deployment: `dpl_4EKCZCdcv84tcKGZdy3BQR4WCYFF`.
+- Estado da Vercel: `READY`.
+- Alias publico: `https://adm-maxcontrol.vercel.app`.
+- Build remoto: Next.js 16.2.9 compilado, TypeScript aprovado e 36 paginas
+  estaticas geradas.
+- Smoke autenticado em producao: dashboard, pagamentos e os dez submodulos de
+  manutencao aprovados.
+- Rede em producao: os cinco recursos iniciais do Fluig foram chamados uma vez,
+  sem sincronizacao historica ou `POST /api/fluig/adm/sync` na abertura.
