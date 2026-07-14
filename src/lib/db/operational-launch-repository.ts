@@ -391,6 +391,16 @@ export async function createValidatedOperationalLaunch(actor: AppActor, input: O
       .maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("Fornecedor oficial ativo nao encontrado.");
+
+    const { data: branchLink, error: branchLinkError } = await client
+      .from("app_supplier_branch_links")
+      .select("supplier_id")
+      .eq("supplier_id", input.supplierId)
+      .eq("branch_id", selectedBranch.id)
+      .maybeSingle();
+    if (branchLinkError) throw branchLinkError;
+    if (!branchLink) throw new Error("Fornecedor nao pertence a filial selecionada.");
+
     supplier = data as OperationalSupplierDbRow;
   }
 

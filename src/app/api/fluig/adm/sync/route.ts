@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
-import { resolveCurrentAppUser } from "@/lib/db/app-repository";
+import { canActorAccessPage, resolveCurrentAppUser } from "@/lib/db/app-repository";
 import { readFluigSyncSnapshot } from "@/lib/db/fluig-repository";
 import { getFluigIntegrationForModule, type FluigModuleSlug } from "@/lib/fluig-data";
 import { getFluigRuntimeConfig } from "@/lib/fluig/server-client";
@@ -30,6 +30,9 @@ async function responseForModule(moduleSlug: string | null) {
 
   const runtimeConfig = getFluigRuntimeConfig();
   const actor = await resolveCurrentAppUser();
+  if (!canActorAccessPage(actor, integration.slug)) {
+    return jsonError("Usuario sem acesso ao modulo Fluig solicitado.", 403);
+  }
   const snapshot = await readFluigSyncSnapshot(integration.slug as FluigModuleSlug, 50, actor);
 
   return NextResponse.json({

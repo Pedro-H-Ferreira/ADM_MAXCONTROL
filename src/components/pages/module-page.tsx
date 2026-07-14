@@ -16,9 +16,10 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { UploadField } from "@/components/shared/upload-field";
 import { UserBranchAccessPanel } from "@/components/shared/user-branch-access-panel";
 import { BranchesPage } from "@/components/pages/branches-page";
+import { AdfControlPage } from "@/components/pages/adf-control-page";
 import { FluigModuleOperationsPage } from "@/components/pages/fluig-module-operations-page";
 import { FluigTasksPage } from "@/components/pages/fluig-tasks-page";
-import { MaintenancePage } from "@/components/pages/maintenance-page";
+import { MaintenancePage } from "@/components/maintenance/maintenance-workspace-page";
 import { ProductsPage } from "@/components/pages/products-page";
 import { SuppliersPage } from "@/components/pages/suppliers-page";
 import type { ModuleConfig } from "@/lib/admin-data";
@@ -73,6 +74,10 @@ export function ModulePage({
 
   if (config.slug === "usuarios") {
     return <UsersAccessPage config={clientConfig} />;
+  }
+
+  if (config.slug === "adfs") {
+    return <AdfControlPage />;
   }
 
   if (config.slug === "tarefas" && mode === "list") {
@@ -150,7 +155,7 @@ function ModuleFormPage({ config }: { config: ModuleConfig }) {
   return (
     <div className="space-y-6">
       <Button variant="ghost" asChild className="stitch-soft-button w-fit">
-        <Link href={`/${config.slug}`} prefetch={false}>
+        <Link href={`/${config.slug}`}>
           <ArrowLeft className="size-4" />
           Voltar
         </Link>
@@ -208,7 +213,7 @@ function ModuleDetailPage({ config }: { config: ModuleConfig }) {
   return (
     <div className="space-y-6">
       <Button variant="ghost" asChild className="stitch-soft-button w-fit">
-        <Link href={`/${config.slug}`} prefetch={false}>
+        <Link href={`/${config.slug}`}>
           <ArrowLeft className="size-4" />
           Voltar
         </Link>

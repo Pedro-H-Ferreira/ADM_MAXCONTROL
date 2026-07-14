@@ -196,6 +196,24 @@ describe("buildSupplierCandidates", () => {
       canceled_at: "2026-06-25T11:00:00.000Z",
     });
   });
+
+  it("marca a participacao exata do usuario nas listas da Central de Tarefas", () => {
+    expect(
+      buildFluigStatusRequestRow("pagamentos", {
+        numeroFluig: "1160447",
+        statusProcesso: "em_andamento",
+        active: true,
+        dataUltimaConsulta: "2026-07-14T15:00:00.000Z",
+        syncFluigUserId: "00130",
+        syncTypes: ["open_tasks", "my_requests"],
+      })
+    ).toMatchObject({
+      open_task_fluig_user_id: "00130",
+      my_request_fluig_user_id: "00130",
+      last_seen_in_user_task_list_at: "2026-07-14T15:00:00.000Z",
+      last_seen_in_user_request_list_at: "2026-07-14T15:00:00.000Z",
+    });
+  });
 });
 
 describe("buildFluigLaunchTemplatesFromRequests", () => {

@@ -33,6 +33,12 @@ export const navigationSections: NavigationSection[] = [
         roles: ["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO", "GERENTE_CD", "FINANCEIRO"],
       },
       {
+        title: "Controle de ADF",
+        href: "/adfs",
+        icon: "FileCheck2",
+        roles: ["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO", "GERENTE_CD", "FINANCEIRO", "COMPRAS"],
+      },
+      {
         title: "Contratos",
         href: "/contratos",
         icon: "FileSignature",

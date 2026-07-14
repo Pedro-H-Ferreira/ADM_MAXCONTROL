@@ -51,6 +51,12 @@ type LaunchField = {
   wide?: boolean;
 };
 
+type LaunchFieldSection = {
+  title: string;
+  description: string;
+  fieldKeys: string[];
+};
+
 type AttachmentPayload = {
   name: string;
   mimeType: string;
@@ -164,6 +170,50 @@ const launchFields: Record<LaunchModule, LaunchField[]> = {
       required: true,
       wide: true,
       placeholder: "Problema, prioridade, local, material previsto e acao esperada.",
+    },
+  ],
+};
+
+const launchFieldSections: Record<LaunchModule, LaunchFieldSection[]> = {
+  pagamentos: [
+    {
+      title: "Fornecedor e filial",
+      description: "Identifique quem recebera o pagamento e a unidade responsavel.",
+      fieldKeys: ["fornecedorC", "codCNPJ", "unidadeFilial"],
+    },
+    {
+      title: "Classificacao financeira",
+      description: "Defina a natureza, o centro de custo e a forma de pagamento.",
+      fieldKeys: ["codigonaturezaC", "centroCusto", "formaPagamento"],
+    },
+    {
+      title: "Nota fiscal",
+      description: "Informe os dados do documento e uma descricao clara para aprovacao.",
+      fieldKeys: ["nNotaFiscal", "dataEmissaoNF", "vencPagNota", "valorNF", "descricaoDemandaEnvio"],
+    },
+  ],
+  compras: [
+    {
+      title: "Dados do pedido",
+      description: "Informe o fornecedor sugerido, a data e a filial solicitante.",
+      fieldKeys: ["fornecedorC", "dataPedido", "codFilialPedido"],
+    },
+    {
+      title: "Classificacao contabil",
+      description: "Defina o centro de custo, a conta contabil e as orientacoes para aprovacao.",
+      fieldKeys: ["centroCusto", "contaCentroCusto", "observacao"],
+    },
+  ],
+  manutencao: [
+    {
+      title: "Origem e destino",
+      description: "Defina as filiais envolvidas e o tipo de manutencao.",
+      fieldKeys: ["filial", "filialDestino", "tipoTransacao"],
+    },
+    {
+      title: "Detalhes da manutencao",
+      description: "Informe centro de custo, ativo, prazo, responsavel e descricao tecnica.",
+      fieldKeys: ["centroCusto", "codPatrimonio", "dataPrevSaida", "zoomDemandaPara", "obsFiscal"],
     },
   ],
 };
@@ -356,13 +406,23 @@ export function FluigLaunchForm({
   integration,
   syncData,
   onSynced,
+  focused = false,
 }: {
   moduleSlug: FluigModuleSlug;
   integration: FluigIntegrationModule;
   syncData: FluigAdmSyncResponse | null;
   onSynced?: (data: FluigAdmSyncResponse) => void;
+  focused?: boolean;
 }) {
   const fields = moduleSlug === "fornecedores" ? [] : launchFields[moduleSlug as LaunchModule];
+  const fieldSections = moduleSlug === "fornecedores"
+    ? []
+    : launchFieldSections[moduleSlug as LaunchModule].map((section) => ({
+        ...section,
+        fields: section.fieldKeys
+          .map((fieldKey) => fields.find((field) => field.key === fieldKey))
+          .filter((field): field is LaunchField => Boolean(field)),
+      }));
   const isOperationalLaunchModule = moduleSlug === "pagamentos" || moduleSlug === "compras";
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [officialSuppliers, setOfficialSuppliers] = useState<CatalogOption[]>([]);
@@ -737,7 +797,11 @@ export function FluigLaunchForm({
         attachments: attachmentMetadata(attachments),
         warnings,
       });
-      setMessage("Validacao concluida. Revise o resumo e confirme o envio para o Fluig.");
+      setMessage(
+        moduleSlug === "pagamentos" || moduleSlug === "compras"
+          ? "Validacao concluida e ADF padrao criada no Controle de ADF. Revise o resumo e confirme o envio para o Fluig."
+          : "Validacao concluida. Revise o resumo e confirme o envio para o Fluig."
+      );
     } catch (validationError) {
       setReview(null);
       setError(validationError instanceof Error ? validationError.message : "Falha ao validar lancamento Fluig.");
@@ -789,7 +853,7 @@ export function FluigLaunchForm({
         const launch = completed.launches[0] || null;
         setMessage(
           launch?.fluigRequestId
-            ? `Solicitacao Fluig ${launch.fluigRequestId} aberta e vinculada ao lancamento.`
+            ? `Solicitacao Fluig ${launch.fluigRequestId} aberta, vinculada ao lancamento e disponivel para receber a ADF assinada.`
             : "Lancamento executado pelo agente. Atualize o historico para consultar o numero Fluig."
         );
         await refreshOperationalLaunches();
@@ -809,12 +873,14 @@ export function FluigLaunchForm({
   }
 
   return (
-    <section id="novo-lancamento-fluig" className="scroll-mt-24 rounded-md border bg-background">
-      <header className="flex flex-col gap-3 border-b p-3 lg:flex-row lg:items-start lg:justify-between">
+    <section id="novo-lancamento-fluig" className={cn("scroll-mt-24 border bg-background", focused ? "rounded-xl shadow-sm" : "rounded-md")}>
+      <header className={cn("flex flex-col gap-3 border-b lg:flex-row lg:items-start lg:justify-between", focused ? "p-5" : "p-3")}>
         <div>
-          <h3 className="text-sm font-semibold">{integration.primaryAction}</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Preenchimento com listas reais do Fluig, anexos e padroes detectados em solicitacoes anteriores.
+          <h3 className={cn("font-semibold", focused ? "text-lg" : "text-sm")}>{integration.primaryAction}</h3>
+          <p className={cn("mt-1 text-muted-foreground", focused ? "text-sm" : "text-xs")}>
+            {focused
+              ? "Preencha os blocos abaixo, anexe os documentos e valide antes de enviar ao Fluig."
+              : "Preenchimento com listas reais do Fluig, anexos e padroes detectados em solicitacoes anteriores."}
           </p>
         </div>
         {jobState ? (
@@ -830,7 +896,7 @@ export function FluigLaunchForm({
         ) : null}
       </header>
 
-      <div className="space-y-4 p-3">
+      <div className={cn("space-y-4", focused ? "p-5" : "p-3")}>
         {monthlyTemplates.length ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold">
@@ -875,37 +941,47 @@ export function FluigLaunchForm({
           </p>
         ) : null}
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {fields.map((field) =>
-            field.type === "catalog" && field.catalogType ? (
-              <SearchableCatalogField
-                key={field.key}
-                field={field}
-                value={formValues[field.key] || ""}
-                items={catalogs[field.catalogType] || []}
-                onChange={(value) => handleCatalogChange(field, value)}
-                onSelect={(item) => handleCatalogSelect(field, item)}
-              />
-            ) : field.type === "textarea" ? (
-              <FieldShell key={field.key} field={field}>
-                <Textarea
-                  value={formValues[field.key] || ""}
-                  placeholder={field.placeholder}
-                  onChange={(event) => setFieldValue(field.key, event.target.value)}
-                />
-              </FieldShell>
-            ) : (
-              <FieldShell key={field.key} field={field}>
-                <Input
-                  type={field.type === "date" ? "date" : "text"}
-                  inputMode={field.type === "currency" ? "decimal" : undefined}
-                  value={formValues[field.key] || ""}
-                  placeholder={field.placeholder}
-                  onChange={(event) => setFieldValue(field.key, event.target.value)}
-                />
-              </FieldShell>
-            )
-          )}
+        <div className="space-y-3">
+          {fieldSections.map((section, sectionIndex) => (
+            <section key={section.title} className="rounded-lg border bg-muted/10 p-4" aria-labelledby={`launch-${moduleSlug}-section-${sectionIndex}`}>
+              <div>
+                <h4 id={`launch-${moduleSlug}-section-${sectionIndex}`} className="text-sm font-semibold">{section.title}</h4>
+                <p className="mt-1 text-xs text-muted-foreground">{section.description}</p>
+              </div>
+              <div className="mt-4 grid gap-x-4 gap-y-3 md:grid-cols-2 xl:grid-cols-3">
+                {section.fields.map((field) =>
+                  field.type === "catalog" && field.catalogType ? (
+                    <SearchableCatalogField
+                      key={field.key}
+                      field={field}
+                      value={formValues[field.key] || ""}
+                      items={catalogs[field.catalogType] || []}
+                      onChange={(value) => handleCatalogChange(field, value)}
+                      onSelect={(item) => handleCatalogSelect(field, item)}
+                    />
+                  ) : field.type === "textarea" ? (
+                    <FieldShell key={field.key} field={field}>
+                      <Textarea
+                        value={formValues[field.key] || ""}
+                        placeholder={field.placeholder}
+                        onChange={(event) => setFieldValue(field.key, event.target.value)}
+                      />
+                    </FieldShell>
+                  ) : (
+                    <FieldShell key={field.key} field={field}>
+                      <Input
+                        type={field.type === "date" ? "date" : "text"}
+                        inputMode={field.type === "currency" ? "decimal" : undefined}
+                        value={formValues[field.key] || ""}
+                        placeholder={field.placeholder}
+                        onChange={(event) => setFieldValue(field.key, event.target.value)}
+                      />
+                    </FieldShell>
+                  )
+                )}
+              </div>
+            </section>
+          ))}
         </div>
 
         {moduleSlug === "compras" ? (
@@ -1135,7 +1211,7 @@ export function FluigLaunchForm({
           </Button>
         </div>
 
-        {isOperationalLaunchModule ? (
+        {isOperationalLaunchModule && !focused ? (
           <div className="border-t pt-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">

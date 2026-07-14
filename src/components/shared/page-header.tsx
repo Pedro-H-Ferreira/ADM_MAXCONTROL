@@ -24,7 +24,7 @@ export function PageHeader({
       </div>
       {action ? (
         <Button asChild className="stitch-soft-button w-fit">
-          <Link href={action.href} prefetch={false}>
+          <Link href={action.href}>
             <Plus className="size-4" />
             {action.label}
           </Link>

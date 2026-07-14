@@ -8,6 +8,13 @@ export type ProductItemType = (typeof PRODUCT_ITEM_TYPES)[number];
 
 export type JsonRecord = Record<string, unknown>;
 
+export const ORDER_OBSERVATION_FIELD = "observacaoPedido";
+
+export type ProductOccurrenceSourceTable =
+  | "solTabelaProdutos"
+  | "tabelaProdutos"
+  | typeof ORDER_OBSERVATION_FIELD;
+
 export type ProductFluigRequestSource = {
   fluigRequestId: string;
   fluigRequestRowId?: string | null;
@@ -21,7 +28,7 @@ export type ProductFluigRequestSource = {
 export type ExtractedProductOccurrence = {
   fluigRequestId: string;
   fluigRequestRowId: string | null;
-  sourceTable: "solTabelaProdutos" | "tabelaProdutos";
+  sourceTable: ProductOccurrenceSourceTable;
   sourceRowIndex: number;
   sourceItemNumber: string;
   branchId: string | null;
@@ -57,6 +64,54 @@ type SecondaryRow = {
   unitPriceCents: number | null;
   payload: JsonRecord;
 };
+
+type ParsedObservationItem = {
+  lineIndex: number;
+  segmentIndex: number;
+  rawLine: string;
+  name: string;
+  specification: string | null;
+  quantity: string | null;
+  unit: string | null;
+  extractionMethod: "BULLET" | "LEADING_QUANTITY" | "TRAILING_QUANTITY" | "NARRATIVE";
+  extractionConfidence: number;
+};
+
+const OBSERVATION_UNIT_PATTERN = [
+  "UNIDADES?",
+  "UNID(?:ADES?)?\\.?",
+  "UNDS?\\.?",
+  "UN\\.?",
+  "PCTS?\\.?",
+  "PACOTES?",
+  "P[ÇC]S?\\.?",
+  "PE[ÇC]AS?",
+  "CXS?\\.?",
+  "CAIXAS?",
+  "ROLOS?",
+  "KGS?\\.?",
+  "QUILOS?",
+  "LTS?\\.?",
+  "LITROS?",
+  "MTS?\\.?",
+  "METROS?",
+  "PARES?",
+  "KITS?",
+  "MILHEIROS?",
+].join("|");
+
+const observationUnitAliases: Array<[RegExp, string]> = [
+  [/^(?:UNIDADES?|UNID(?:ADES?)?|UNDS?|UN|P[ÇC]S?|PE[ÇC]AS?)\.?$/i, "UN"],
+  [/^(?:PCTS?|PACOTES?)\.?$/i, "PCT"],
+  [/^(?:CXS?|CAIXAS?)\.?$/i, "CX"],
+  [/^ROLOS?$/i, "ROLO"],
+  [/^(?:KGS?|QUILOS?)\.?$/i, "KG"],
+  [/^(?:LTS?|LITROS?)\.?$/i, "L"],
+  [/^(?:MTS?|METROS?)\.?$/i, "M"],
+  [/^PARES?$/i, "PAR"],
+  [/^KITS?$/i, "KIT"],
+  [/^MILHEIROS?$/i, "MIL"],
+];
 
 function cleanText(value: unknown) {
   const text = String(value ?? "").replace(/\s+/g, " ").trim();
@@ -133,6 +188,249 @@ export function parseFluigMoneyCents(value: unknown) {
   if (decimal == null) return null;
   const amount = Number(decimal);
   return Number.isSafeInteger(Math.round(amount * 100)) ? Math.round(amount * 100) : null;
+}
+
+function parseObservationQuantity(value: string) {
+  const compact = value.replace(/\s/g, "");
+  const normalized = /^\d{1,3}(?:[.,]\d{3})+$/.test(compact)
+    ? compact.replace(/[.,]/g, "")
+    : compact.includes(",")
+      ? compact.replace(/\./g, "").replace(",", ".")
+      : compact;
+  const quantity = Number(normalized);
+  return Number.isFinite(quantity) && quantity >= 0 ? String(quantity) : null;
+}
+
+function normalizeObservationUnit(value: string) {
+  const unit = value.trim();
+  return observationUnitAliases.find(([pattern]) => pattern.test(unit))?.[1] || null;
+}
+
+function observationUnitFromSpecification(value: string | null) {
+  if (!value) return null;
+  const match = value.match(new RegExp(`^(${OBSERVATION_UNIT_PATTERN})\\b`, "i"));
+  return match ? normalizeObservationUnit(match[1]) : null;
+}
+
+function splitObservationSpecification(value: string) {
+  const cleaned = value
+    .replace(/^[\s\-–—:]+/, "")
+    .replace(/[\s.;,\-–—:]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const parenthetical = cleaned.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
+  if (!parenthetical?.[1] || !parenthetical[2]?.trim()) {
+    return { name: cleaned, specification: null };
+  }
+  return {
+    name: parenthetical[1].trim(),
+    specification: parenthetical[2].replace(/\s+/g, " ").trim(),
+  };
+}
+
+function isObservationNote(value: string) {
+  if (/^\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/.test(value.trim())) return true;
+  const normalized = normalizeProductName(value);
+  if (!normalized) return true;
+  if (/^(OBS|OBSERVACAO|OBSERVACOES|ATENCAO|URGENTE|JUSTIFICATIVA|MOTIVO|ENTREGA|PRAZO)\b/.test(normalized)) {
+    return true;
+  }
+  if (/^(LISTA DE PEDIDOS|LISTA DE MATERIAIS|SEGUE ANEXO|PEDIDO SEGUE ANEXO|TESTE DE FLUXO)\b/.test(normalized)) {
+    return true;
+  }
+  if (/^(MODELO|IMAGEM|FOTO)\b.*\bANEX/.test(normalized)) return true;
+  if (/^(COMPRA DE NOVAS PECAS|NOVAS PECAS|PECAS EM ANEXO)$/.test(normalized)) return true;
+  if (/^\d+\s*V\b/.test(normalized)) return true;
+  if (/^(PRECO|VALOR) (UNITARIO|TOTAL)\b/.test(normalized)) return true;
+  return /\b(MES|MENSALIDADE)\s+\d{1,2}\b/.test(normalized) && normalized.length < 45;
+}
+
+function narrativeProductName(value: string) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length > 220) return null;
+  const patterns = [
+    /^(?:COMPRA|AQUISI[ÇC][AÃ]O)\s+(?:DE|DO|DA|DOS|DAS)\s+(.+)$/i,
+    /^(?:POR GENTILEZA\s+)?SOLICITO(?:\s+OR[ÇC]AMENTO|\s+COTA[ÇC][AÃ]O)?(?:\s+PARA)?(?:\s+A)?\s+COMPRA\s+(?:DE|DO|DA|DOS|DAS)\s+(.+)$/i,
+    /^(?:POR GENTILEZA\s+)?SOLICITO\s+COTA[ÇC][AÃ]O\s+(?:DE|DO|DA|DOS|DAS)\s+(.+)$/i,
+  ];
+  for (const pattern of patterns) {
+    const candidate = normalized.match(pattern)?.[1]?.trim();
+    if (candidate && !isObservationNote(candidate)) return candidate;
+  }
+  return null;
+}
+
+function parseObservationLine(
+  rawLine: string,
+  lineIndex: number,
+  segmentIndex: number
+): ParsedObservationItem | null {
+  const trimmed = rawLine.trim();
+  if (!trimmed) return null;
+  const bulletMatch = trimmed.match(/^[*•▪◦-]\s*/u);
+  const explicitBullet = Boolean(bulletMatch);
+  const line = trimmed.slice(bulletMatch?.[0].length || 0).trim();
+  if (!line || isObservationNote(line)) return null;
+
+  const thousandUnits = line.match(
+    new RegExp(`^(\\d[\\d.,]*)\\s+MIL\\s+(UNIDADES?|UNID(?:ADES?)?|UNDS?|UN)\\.?\\s*(?:[-–—:]\\s*)?(.+)$`, "i")
+  );
+  if (thousandUnits) {
+    const baseQuantity = parseObservationQuantity(thousandUnits[1]);
+    const parsed = splitObservationSpecification(thousandUnits[3]);
+    if (!baseQuantity || !parsed.name || isObservationNote(parsed.name)) return null;
+    return {
+      lineIndex,
+      segmentIndex,
+      rawLine: trimmed,
+      ...parsed,
+      quantity: String(Number(baseQuantity) * 1000),
+      unit: "UN",
+      extractionMethod: "LEADING_QUANTITY",
+      extractionConfidence: 0.95,
+    };
+  }
+
+  const leadingQuantity = line.match(
+    new RegExp(`^(\\d[\\d.,]*)\\s*(${OBSERVATION_UNIT_PATTERN})\\s*(?:DE\\s+)?(?:[-–—:]\\s*)?(.+)$`, "i")
+  );
+  if (leadingQuantity) {
+    const quantity = parseObservationQuantity(leadingQuantity[1]);
+    const unit = normalizeObservationUnit(leadingQuantity[2]);
+    const parsed = splitObservationSpecification(leadingQuantity[3]);
+    if (!quantity || !unit || !parsed.name || isObservationNote(parsed.name)) return null;
+    return {
+      lineIndex,
+      segmentIndex,
+      rawLine: trimmed,
+      ...parsed,
+      quantity,
+      unit,
+      extractionMethod: "LEADING_QUANTITY",
+      extractionConfidence: 0.95,
+    };
+  }
+
+  const trailingThousandUnits = line.match(
+    /^(.*?)\s+(\d[\d.,]*)\s+MIL\s+UNIDADES?(?:\s+MENSAIS?)?\.?$/i
+  );
+  if (trailingThousandUnits) {
+    const baseQuantity = parseObservationQuantity(trailingThousandUnits[2]);
+    const parsed = splitObservationSpecification(trailingThousandUnits[1]);
+    if (!baseQuantity || !parsed.name || isObservationNote(parsed.name)) return null;
+    return {
+      lineIndex,
+      segmentIndex,
+      rawLine: trimmed,
+      ...parsed,
+      quantity: String(Number(baseQuantity) * 1000),
+      unit: "UN",
+      extractionMethod: "TRAILING_QUANTITY",
+      extractionConfidence: 0.85,
+    };
+  }
+
+  const trailingQuantity = line.match(
+    new RegExp(`^(.*?)\\s+(\\d[\\d.,]*)\\s*(${OBSERVATION_UNIT_PATTERN})(?:\\s+MENSAIS?)?\\.?$`, "i")
+  );
+  if (trailingQuantity) {
+    const quantity = parseObservationQuantity(trailingQuantity[2]);
+    const unit = normalizeObservationUnit(trailingQuantity[3]);
+    const parsed = splitObservationSpecification(trailingQuantity[1]);
+    if (!quantity || !unit || !parsed.name || isObservationNote(parsed.name)) return null;
+    return {
+      lineIndex,
+      segmentIndex,
+      rawLine: trimmed,
+      ...parsed,
+      quantity,
+      unit,
+      extractionMethod: "TRAILING_QUANTITY",
+      extractionConfidence: 0.85,
+    };
+  }
+
+  const leadingQuantityWithoutUnit = line.match(/^(\d[\d.,]*)\s+(?:[-–—:]\s*)?(.+)$/);
+  if (explicitBullet && leadingQuantityWithoutUnit) {
+    const quantity = parseObservationQuantity(leadingQuantityWithoutUnit[1]);
+    const parsed = splitObservationSpecification(leadingQuantityWithoutUnit[2]);
+    if (!quantity || !parsed.name || isObservationNote(parsed.name)) return null;
+    return {
+      lineIndex,
+      segmentIndex,
+      rawLine: trimmed,
+      ...parsed,
+      quantity,
+      unit: observationUnitFromSpecification(parsed.specification),
+      extractionMethod: "LEADING_QUANTITY",
+      extractionConfidence: 0.82,
+    };
+  }
+
+  if (explicitBullet) {
+    const parsed = splitObservationSpecification(line);
+    if (!parsed.name || isObservationNote(parsed.name)) return null;
+    return {
+      lineIndex,
+      segmentIndex,
+      rawLine: trimmed,
+      ...parsed,
+      quantity: null,
+      unit: null,
+      extractionMethod: "BULLET",
+      extractionConfidence: 0.72,
+    };
+  }
+
+  return null;
+}
+
+function observationLineSegments(rawLine: string) {
+  const trimmed = rawLine.trim();
+  if (!trimmed) return [];
+  const bullet = trimmed.match(/^[*•▪◦-]\s*/u)?.[0] || "";
+  const content = trimmed.slice(bullet.length).trim();
+  const separator = new RegExp(
+    `\\s+(?:E|;|,)\\s+(?=\\d[\\d.,]*(?:\\s*(?:${OBSERVATION_UNIT_PATTERN}))?\\b)`,
+    "gi"
+  );
+  return content
+    .split(separator)
+    .map((segment, segmentIndex) => ({
+      segment: `${bullet || (segmentIndex > 0 ? "* " : "")}${segment.trim()}`,
+      segmentIndex,
+    }))
+    .filter((item) => item.segment.trim());
+}
+
+export function parseOrderObservationProducts(value: unknown): ParsedObservationItem[] {
+  const lines = String(value ?? "").split(/\r?\n/);
+  const explicitItems = lines
+    .flatMap((line, lineIndex) =>
+      narrativeProductName(line)
+        ? []
+        : observationLineSegments(line).map(({ segment, segmentIndex }) =>
+        parseObservationLine(segment, lineIndex, segmentIndex)
+      )
+    )
+    .filter((item): item is ParsedObservationItem => Boolean(item));
+  if (explicitItems.length) return explicitItems;
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const candidate = narrativeProductName(lines[lineIndex]);
+    if (!candidate) continue;
+    const parsed = observationLineSegments(`* ${candidate}`)
+      .map(({ segment, segmentIndex }) => parseObservationLine(segment, lineIndex, segmentIndex))
+      .filter((item): item is ParsedObservationItem => Boolean(item))
+      .map((item) => ({
+        ...item,
+        rawLine: lines[lineIndex].trim(),
+        extractionMethod: "NARRATIVE" as const,
+        extractionConfidence: 0.55,
+      }));
+    if (parsed.length) return parsed;
+  }
+  return [];
 }
 
 function childIndexes(fields: Record<string, unknown>, prefix: string) {
@@ -374,6 +672,39 @@ function commonOccurrence(
   };
 }
 
+function observationField(fields: Record<string, unknown>) {
+  const key = Object.keys(fields).find(
+    (candidate) => normalizeProductName(candidate) === normalizeProductName(ORDER_OBSERVATION_FIELD)
+  );
+  return key ? { key, value: fields[key] } : null;
+}
+
+function observationOccurrences(request: ProductFluigRequestSource) {
+  const observation = observationField(request.formFields || {});
+  if (!observation) return [];
+  return parseOrderObservationProducts(observation.value).map((item) =>
+    commonOccurrence(request, {
+      sourceTable: ORDER_OBSERVATION_FIELD,
+      sourceRowIndex: item.lineIndex * 1000 + item.segmentIndex,
+      sourceItemNumber: `OBS-${item.lineIndex + 1}.${item.segmentIndex + 1}`,
+      name: item.name,
+      specification: item.specification,
+      quantity: item.quantity,
+      unit: item.unit,
+      unitPriceCents: null,
+      sourcePayload: {
+        fieldName: observation.key,
+        originalLine: item.rawLine,
+        lineNumber: item.lineIndex + 1,
+        segmentNumber: item.segmentIndex + 1,
+        extractionMethod: item.extractionMethod,
+        extractionConfidence: item.extractionConfidence,
+        parserVersion: "order-observation-v1",
+      },
+    })
+  );
+}
+
 export function extractProductsFromFluigRequest(
   request: ProductFluigRequestSource
 ): ExtractedProductOccurrence[] {
@@ -381,8 +712,8 @@ export function extractProductsFromFluigRequest(
   const primaryIndexes = childIndexes(fields, "solProdutoServico");
   const secondary = secondaryRows(fields);
 
-  if (!primaryIndexes.length) {
-    return secondary.map((row) =>
+  const structuredOccurrences = !primaryIndexes.length
+    ? secondary.map((row) =>
       commonOccurrence(request, {
         sourceTable: "tabelaProdutos",
         sourceRowIndex: row.index,
@@ -394,55 +725,61 @@ export function extractProductsFromFluigRequest(
         unitPriceCents: row.unitPriceCents,
         sourcePayload: { secondary: row.payload },
       })
-    );
-  }
+    )
+    : (() => {
+        const secondaryByNumber = new Map<string, SecondaryRow>();
+        const secondaryByIndex = new Map<number, SecondaryRow>();
+        for (const row of secondary) {
+          if (!secondaryByNumber.has(row.itemNumber)) secondaryByNumber.set(row.itemNumber, row);
+          secondaryByIndex.set(row.index, row);
+        }
 
-  const secondaryByNumber = new Map<string, SecondaryRow>();
-  const secondaryByIndex = new Map<number, SecondaryRow>();
-  for (const row of secondary) {
-    if (!secondaryByNumber.has(row.itemNumber)) secondaryByNumber.set(row.itemNumber, row);
-    secondaryByIndex.set(row.index, row);
-  }
+        return primaryIndexes.flatMap((index) => {
+          const name = field(fields, "solProdutoServico", index);
+          if (!name) return [];
+          const itemNumber = field(fields, "solnumProdutoPedido", index) || String(index);
+          const complement = secondaryByNumber.get(itemNumber) || secondaryByIndex.get(index) || null;
+          const specification = field(fields, "SolEspecTecnica", index);
+          const primaryQuantity = parseFluigDecimal(field(fields, "solQtdProduto", index));
+          const primaryUnit = field(fields, "solUnMedidaProduto", index);
+          const primaryPayload = rowPayload(
+            fields,
+            [
+              "solProdutoServico",
+              "SolEspecTecnica",
+              "solQtdProduto",
+              "solUnMedidaProduto",
+              "solnumProdutoPedido",
+              "solRowTabelaProdutos",
+            ],
+            index
+          );
 
-  return primaryIndexes.flatMap((index) => {
-    const name = field(fields, "solProdutoServico", index);
-    if (!name) return [];
-    const itemNumber = field(fields, "solnumProdutoPedido", index) || String(index);
-    const complement = secondaryByNumber.get(itemNumber) || secondaryByIndex.get(index) || null;
-    const specification = field(fields, "SolEspecTecnica", index);
-    const primaryQuantity = parseFluigDecimal(field(fields, "solQtdProduto", index));
-    const primaryUnit = field(fields, "solUnMedidaProduto", index);
-    const primaryPayload = rowPayload(
-      fields,
-      [
-        "solProdutoServico",
-        "SolEspecTecnica",
-        "solQtdProduto",
-        "solUnMedidaProduto",
-        "solnumProdutoPedido",
-        "solRowTabelaProdutos",
-      ],
-      index
-    );
+          return [
+            commonOccurrence(request, {
+              sourceTable: "solTabelaProdutos",
+              sourceRowIndex: index,
+              sourceItemNumber: itemNumber,
+              name,
+              specification,
+              quantity: primaryQuantity || complement?.quantity || null,
+              unit: primaryUnit || complement?.unit || null,
+              unitPriceCents: complement?.unitPriceCents || null,
+              sourcePayload: {
+                primary: primaryPayload,
+                secondaryComplement: complement?.payload || null,
+                secondaryRowIndex: complement?.index || null,
+              },
+            }),
+          ];
+        });
+      })();
 
-    return [
-      commonOccurrence(request, {
-        sourceTable: "solTabelaProdutos",
-        sourceRowIndex: index,
-        sourceItemNumber: itemNumber,
-        name,
-        specification,
-        quantity: primaryQuantity || complement?.quantity || null,
-        unit: primaryUnit || complement?.unit || null,
-        unitPriceCents: complement?.unitPriceCents || null,
-        sourcePayload: {
-          primary: primaryPayload,
-          secondaryComplement: complement?.payload || null,
-          secondaryRowIndex: complement?.index || null,
-        },
-      }),
-    ];
-  });
+  const structuredDedupeKeys = new Set(structuredOccurrences.map((item) => item.dedupeKey));
+  const parsedObservationOccurrences = observationOccurrences(request).filter(
+    (item) => !structuredDedupeKeys.has(item.dedupeKey)
+  );
+  return [...structuredOccurrences, ...parsedObservationOccurrences];
 }
 
 export function formFieldsFromProductPayload(payload: unknown) {

@@ -350,7 +350,8 @@ async function executeJob(config, job, emitProgress) {
     const historyProgress = parseTaggedJson(line, "ADM_FLUIG_HISTORY_PROGRESS");
     const statusProgress = parseTaggedJson(line, "SYNC_FLUIG_STATUS_PROGRESS");
     const openProgress = parseTaggedJson(line, "ADM_FLUIG_OPEN_PROGRESS");
-    const progress = historyProgress || statusProgress || openProgress;
+    const attachProgress = parseTaggedJson(line, "ADM_FLUIG_ATTACH_PROGRESS");
+    const progress = historyProgress || statusProgress || openProgress || attachProgress;
     if (progress) {
       emitProgress({
         stage: progress.stage || "reading_page",
@@ -570,6 +571,44 @@ async function executeJob(config, job, emitProgress) {
         outputPath,
         data: readOutputJson(outputPath),
       };
+    } finally {
+      if (temporaryAttachments.root) {
+        fs.rmSync(temporaryAttachments.root, { recursive: true, force: true });
+      }
+    }
+  }
+
+  if (job.operation === "attach_to_request") {
+    const requestId = String(payload.requestId || "").trim();
+    if (!/^\d+$/.test(requestId)) {
+      throw new Error("Numero da solicitacao Fluig invalido para anexar ADF.");
+    }
+    emitProgress({ stage: "opening_fluig", label: `Abrindo solicitacao Fluig ${requestId}.` });
+    const temporaryAttachments = writePayloadAttachments(config, job, payload.attachments);
+    if (!temporaryAttachments.items.length) {
+      throw new Error("Nenhum PDF de ADF foi informado para anexar ao Fluig.");
+    }
+    const attachmentArgs = temporaryAttachments.items.flatMap((attachment) => [
+      `--attachment-path=${attachment.path}`,
+      `--attachment-name=${attachment.name}`,
+    ]);
+    const scriptPath = path.join(root, "scripts", "fluig", "attachToRequest.js");
+    try {
+      const { stdout } = await runNodeScript(
+        config,
+        scriptPath,
+        [
+          `--request-id=${requestId}`,
+          `--task-user-id=${payload.taskUserId || processMap.defaultTaskUserId || config.fluig.taskUserId}`,
+          ...attachmentArgs,
+        ],
+        {
+          onLine,
+          timeoutMs: positiveInt(process.env.ADM_FLUIG_ATTACH_TIMEOUT_MS, 10 * 60 * 1000),
+        }
+      );
+      const outputPath = parseTaggedPath(stdout, "ADM_FLUIG_ATTACH_RESULT");
+      return { outputPath, data: readOutputJson(outputPath) };
     } finally {
       if (temporaryAttachments.root) {
         fs.rmSync(temporaryAttachments.root, { recursive: true, force: true });

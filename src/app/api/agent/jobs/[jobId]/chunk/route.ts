@@ -158,6 +158,8 @@ export async function POST(request: Request, context: RouteContext) {
   if (isStatusChunkJob(job.operation)) {
     const statusItems = extractStatusItems(resultPayload);
     itemCount = statusItems.length;
+    const directTaskCentral = statusItems.some((item) => item.syncSource === "fluig_task_central");
+    const fluigUserId = statusItems.map((item) => String(item.syncFluigUserId || "").trim()).find(Boolean) || null;
 
     if (shouldPersistJobResult(job) && job.operation === "sync_user_incremental_batch") {
       const itemsByModule = new Map<FluigModuleSlug, FluigStatusItem[]>();
@@ -171,8 +173,9 @@ export async function POST(request: Request, context: RouteContext) {
         persistenceResults.push(
           await persistStatusItems(moduleSlug, items, {
             ownerUserId: job.requestedByUserId,
-            syncSource: job.operation,
+            syncSource: directTaskCentral ? "fluig_task_central" : job.operation,
             markSeenOpen: true,
+            fluigUserId,
           })
         );
       }
@@ -205,6 +208,18 @@ export async function POST(request: Request, context: RouteContext) {
     },
     status: "syncing_result",
   });
+
+  if (job.operation === "sync_user_incremental_batch" && persistence.errors.length) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Falha ao persistir lote da Central de Tarefas: ${persistence.errors.join(" | ")}`,
+        itemCount,
+        persistence,
+      },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({
     success: true,

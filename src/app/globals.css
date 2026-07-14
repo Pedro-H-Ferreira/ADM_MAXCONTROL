@@ -122,10 +122,13 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply min-w-0 bg-background text-foreground antialiased;
+    overflow-x: clip;
   }
   html {
     @apply font-sans;
+    min-height: 100%;
+    scroll-padding-top: 4rem;
   }
 }
 
@@ -406,6 +409,6 @@
 
   .stitch-hover-lift,
   .stitch-soft-button {
-    transition-duration: 0.01ms !important;
+    transition: none !important;
   }
 }

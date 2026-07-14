@@ -19,7 +19,7 @@ const notifications = [
 
 export function NotificationBell() {
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="icon" aria-label="Notificações" className="stitch-soft-button relative">
           <Bell className="size-4" />

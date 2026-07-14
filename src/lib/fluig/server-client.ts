@@ -59,7 +59,14 @@ export type FluigStatusOutput = {
 
 export type FluigStatusItem = {
   numeroFluig: string;
+  moduleSlug?: FluigModuleSlug | null;
+  processId?: string | null;
+  processDescription?: string | null;
+  requesterId?: string | null;
+  requesterName?: string | null;
+  openedAt?: string | null;
   vencimentoPagamento?: string | null;
+  dueDate?: string | null;
   vencPagNota?: string;
   etapaAtual?: string;
   responsavelAtual?: string;
@@ -74,6 +81,10 @@ export type FluigStatusItem = {
   cancelavel?: boolean;
   prazoTexto?: string;
   dataUltimaConsulta?: string;
+  syncFluigUserId?: string;
+  syncTypes?: Array<"open_tasks" | "my_requests">;
+  syncOperations?: Array<"sync_user_open_tasks" | "sync_user_open_requests">;
+  syncSource?: string;
   error?: string;
 };
 

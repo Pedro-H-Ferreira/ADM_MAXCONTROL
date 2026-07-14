@@ -1,35 +1,25 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { loginWithBrowser } = require("./api/session");
 
-function extractCurrentUserId(payload, rawText) {
+function extractCurrentUser(payload, rawText) {
   const content = payload && typeof payload === "object" ? payload.content : null;
-  const candidates = [
-    content,
-    content && typeof content === "object" ? content.currentUserId : null,
-    content && typeof content === "object" ? content.userId : null,
-    content && typeof content === "object" ? content.userCode : null,
-    content && typeof content === "object" ? content.login : null,
-    payload && typeof payload === "object" ? payload.currentUserId : null,
-    payload && typeof payload === "object" ? payload.userId : null,
-    payload && typeof payload === "object" ? payload.userCode : null,
-    payload && typeof payload === "object" ? payload.login : null,
-    rawText,
-  ];
-
-  for (const candidate of candidates) {
-    if (candidate == null || typeof candidate === "object") continue;
-    const value = String(candidate).replace(/^"+|"+$/g, "").trim();
-    if (value && !["guest", "anonymous", "null", "undefined"].includes(value.toLowerCase())) {
-      return value;
-    }
+  if (content && typeof content === "object" && content.code) {
+    return {
+      id: content.id == null ? null : String(content.id),
+      code: String(content.code).trim(),
+      login: String(content.login || "").trim() || null,
+      email: String(content.email || "").trim() || null,
+      fullName: String(content.fullName || "").trim() || null,
+    };
   }
 
-  return null;
+  const fallback = String(rawText || "").replace(/^"+|"+$/g, "").trim();
+  return fallback ? { id: null, code: fallback, login: null, email: null, fullName: null } : null;
 }
 
 async function probeAuthenticatedSession(page) {
   const result = await page.evaluate(async () => {
-    const endpoint = "/portal/api/rest/wcm/rest/admin/location/getCurrentUserId";
+    const endpoint = "/api/public/2.0/users/getCurrent";
     const response = await fetch(endpoint, {
       method: "GET",
       credentials: "include",
@@ -61,14 +51,15 @@ async function probeAuthenticatedSession(page) {
     throw new Error(`Fluig recusou a verificacao da sessao autenticada (HTTP ${result.status}).`);
   }
 
-  const currentUserId = extractCurrentUserId(result.payload, result.text);
-  if (!currentUserId) {
+  const currentUser = extractCurrentUser(result.payload, result.text);
+  if (!currentUser?.code) {
     throw new Error("Fluig respondeu, mas nao confirmou um usuario autenticado.");
   }
 
   return {
     authenticated: true,
-    currentUserId,
+    currentUserId: currentUser.code,
+    currentUser,
     probeEndpoint: result.endpoint,
     probeStatus: result.status,
     probeContentType: result.contentType,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
-import { resolveCurrentAppUser } from "@/lib/db/app-repository";
+import { canActorAccessPage, canActorPerformPageAction, resolveCurrentAppUser } from "@/lib/db/app-repository";
 import { recordFluigOperationRun } from "@/lib/db/fluig-repository";
 import {
   getProcessMapForRequest,
@@ -34,7 +34,14 @@ export async function POST(request: Request) {
   const runtimeConfig = getFluigRuntimeConfig();
 
   try {
-    await resolveCurrentAppUser();
+    const actor = await resolveCurrentAppUser();
+    const processMap = getProcessMapForRequest(body.module || "pagamentos");
+    if (
+      !canActorAccessPage(actor, processMap.module) ||
+      !canActorPerformPageAction(actor, processMap.module, "canCreate")
+    ) {
+      return jsonError("Usuario sem permissao para preparar aberturas neste modulo Fluig.", 403);
+    }
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;

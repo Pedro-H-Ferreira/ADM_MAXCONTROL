@@ -4,6 +4,7 @@ import {
   extractProductsFromFluigRequest,
   isGenericProductDescription,
   normalizeProductName,
+  parseOrderObservationProducts,
   parseFluigMoneyCents,
 } from "@/lib/products";
 
@@ -98,6 +99,108 @@ describe("extractProductsFromFluigRequest", () => {
       unit: "Caixa",
       unitPriceCents: 380000,
     });
+  });
+
+  it("identifica os itens escritos na observacao do pedido", () => {
+    const rows = extractProductsFromFluigRequest({
+      fluigRequestId: "1172000",
+      branchCode: "1017",
+      formFields: {
+        contaCentroCusto: "5150101",
+        codContaFin: "5150101 - MATERIAL DE ESCRITORIO - CONS INTERNO",
+        observacaoPedido: [
+          "* 2 PASTA EML A4 (PCT COM 10)",
+          "* TESOURA BRW 21CM CABO EMBORRACHADO",
+          "* 20 CXS ARQUIVO FACIL ECONOMICO - AZUL",
+          "* 1 PCT DE CHAVEIROS PLASTICO COLORIDO",
+          "* 3 CAIXAS DE ESTILETE GRANDE PARA LAMINA DE 18MM (3 CAIXAS DE 24 UNIDADES CADA)",
+          "* 2 COLA INSTANTANEA 20G 793 TEKBOND MEDIA",
+          "* 5 POSTIT AMARELO",
+          "* 5 CXS DE CLIPS N1",
+          "* 10 CALCULADORAS DE BOLSO COM CORDAO",
+        ].join("\r\n"),
+      },
+    });
+
+    expect(rows).toHaveLength(9);
+    expect(rows.every((row) => row.sourceTable === "observacaoPedido")).toBe(true);
+    expect(rows.map((row) => row.name)).toEqual([
+      "PASTA EML A4",
+      "TESOURA BRW 21CM CABO EMBORRACHADO",
+      "ARQUIVO FACIL ECONOMICO - AZUL",
+      "CHAVEIROS PLASTICO COLORIDO",
+      "ESTILETE GRANDE PARA LAMINA DE 18MM",
+      "COLA INSTANTANEA 20G 793 TEKBOND MEDIA",
+      "POSTIT AMARELO",
+      "CLIPS N1",
+      "CALCULADORAS DE BOLSO COM CORDAO",
+    ]);
+    expect(rows[0]).toMatchObject({
+      quantity: "2",
+      unit: "PCT",
+      specification: "PCT COM 10",
+      categoryCode: "5150101",
+      materialTypeLabel: "Escritorio e sinalizacao",
+    });
+    expect(rows[1]).toMatchObject({ quantity: null, unit: null });
+    expect(rows[2]).toMatchObject({ quantity: "20", unit: "CX" });
+    expect(rows[3]).toMatchObject({ quantity: "1", unit: "PCT" });
+    expect(rows[4]).toMatchObject({
+      quantity: "3",
+      unit: "CX",
+      specification: "3 CAIXAS DE 24 UNIDADES CADA",
+    });
+    expect(rows[8].sourcePayload).toMatchObject({
+      fieldName: "observacaoPedido",
+      lineNumber: 9,
+      parserVersion: "order-observation-v1",
+    });
+  });
+
+  it("nao duplica na observacao um item ja presente na tabela estruturada", () => {
+    const rows = extractProductsFromFluigRequest({
+      fluigRequestId: "1172001",
+      formFields: {
+        solProdutoServico___1: "SSD SATA 256GB",
+        solQtdProduto___1: "2",
+        solUnMedidaProduto___1: "UN",
+        observacaoPedido: "2 UNIDADES - SSD SATA 256GB\r\n1 UNIDADE - CONVERSOR VGA/HDMI",
+      },
+    });
+
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.sourceTable)).toEqual(["solTabelaProdutos", "observacaoPedido"]);
+    expect(rows[1]).toMatchObject({ name: "CONVERSOR VGA/HDMI", quantity: "1", unit: "UN" });
+  });
+
+  it("interpreta quantidades no fim da linha e ignora observacoes operacionais", () => {
+    expect(
+      parseOrderObservationProducts([
+        "Por gentileza solicito cotacao para compra de lacres de seguranca",
+        "lacres cabo de aco 2,500 unidades mensais",
+        "lacres de plastico 11 mil unidades mensais",
+        "OBS: entregar ate sexta-feira",
+      ].join("\r\n"))
+    ).toMatchObject([
+      { name: "lacres cabo de aco", quantity: "2500", unit: "UN", extractionMethod: "TRAILING_QUANTITY" },
+      { name: "lacres de plastico", quantity: "11000", unit: "UN", extractionMethod: "TRAILING_QUANTITY" },
+    ]);
+  });
+
+  it("identifica uma compra narrativa somente quando nao existe lista explicita", () => {
+    expect(parseOrderObservationProducts("Compra de defletor de ar condicionado.")).toMatchObject([
+      { name: "defletor de ar condicionado", quantity: null, extractionMethod: "NARRATIVE" },
+    ]);
+    expect(
+      parseOrderObservationProducts(
+        "SOLICITO COMPRA DE 15 UNIDADES DE ACRILICO A4 E 10 UNIDADES DE ACRILICO A3."
+      )
+    ).toMatchObject([
+      { name: "ACRILICO A4", quantity: "15", unit: "UN", extractionMethod: "NARRATIVE" },
+      { name: "ACRILICO A3", quantity: "10", unit: "UN", extractionMethod: "NARRATIVE" },
+    ]);
+    expect(parseOrderObservationProducts("LISTA DE PEDIDOS SEGUE ANEXO EM UM PDF.")).toEqual([]);
+    expect(parseOrderObservationProducts("* 04/06/2026.\r\n* 18/06 EM CONVERSAR COM A LOJA")).toEqual([]);
   });
 });
 

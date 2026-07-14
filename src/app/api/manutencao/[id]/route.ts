@@ -16,12 +16,19 @@ type RouteContext = {
 };
 
 const updateSchema = z.object({
-  source: z.enum(["manual", "fluig"]).optional(),
+  source: z.enum(["manual", "fluig", "preventiva", "checklist", "alerta"]).optional(),
   title: z.string().trim().min(1).optional(),
   description: z.string().trim().min(1).optional(),
   area: z.string().trim().min(1).optional(),
   priority: z.enum(["CRITICA", "ALTA", "MEDIA", "BAIXA"]).optional(),
-  status: z.enum(["ABERTA", "INICIADA", "AGUARDANDO_MATERIAL", "AGUARDANDO_TERCEIRO", "FINALIZADA", "CANCELADA"]).optional(),
+  status: z.enum([
+    "ABERTA", "EM_TRIAGEM", "PLANEJADA", "AGUARDANDO_APROVACAO", "AGUARDANDO_MATERIAL",
+    "MATERIAL_RESERVADO", "AGUARDANDO_TERCEIRO", "PROGRAMADA", "INICIADA", "EM_EXECUCAO",
+    "PAUSADA", "CONCLUIDA", "AGUARDANDO_VALIDACAO", "FINALIZADA", "CANCELADA",
+  ]).optional(),
+  workType: z.enum(["CORRETIVA", "PREVENTIVA", "INSPECAO", "MELHORIA", "EMERGENCIA"]).optional(),
+  assetId: z.string().uuid().nullable().optional(),
+  serviceProviderId: z.string().uuid().nullable().optional(),
   requester: z.string().nullable().optional(),
   technician: z.string().nullable().optional(),
   branchId: z.string().uuid().nullable().optional(),
@@ -47,6 +54,16 @@ const updateSchema = z.object({
     )
     .optional(),
   pendingReason: z.string().nullable().optional(),
+  slaMinutes: z.coerce.number().int().min(0).nullable().optional(),
+  diagnosis: z.string().nullable().optional(),
+  rootCause: z.string().nullable().optional(),
+  executedSolution: z.string().nullable().optional(),
+  downtimeMinutes: z.coerce.number().int().min(0).nullable().optional(),
+  laborCostCents: z.coerce.number().int().min(0).nullable().optional(),
+  otherCostCents: z.coerce.number().int().min(0).nullable().optional(),
+  completionNotes: z.string().nullable().optional(),
+  completionApprovalRequired: z.boolean().optional(),
+  transitionComment: z.string().trim().max(2_000).nullable().optional(),
   fluigRequestId: z.string().nullable().optional(),
   fluigNumLancW: z.string().nullable().optional(),
   fluigCurrentTask: z.string().nullable().optional(),

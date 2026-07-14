@@ -17,35 +17,169 @@ export function isActiveFluigJob(job: Pick<FluigAdmJobSummary, "status"> | null 
   return Boolean(job && !isTerminalFluigJob(job));
 }
 
+const defaultFluigPollBackoffMs = [2_000, 5_000, 10_000, 15_000] as const;
+const defaultFluigPollTimeoutMs = 15 * 60 * 1_000;
+
+type PollOptions = {
+  backoffMs?: readonly number[];
+  intervalMs?: number;
+  timeoutMs?: number;
+};
+
+type SharedPollSession = {
+  controller: AbortController;
+  listeners: Map<symbol, (payload: FluigJobStatusResponse) => void>;
+  promise: Promise<FluigJobStatusResponse>;
+};
+
+const activeFluigPolls = new Map<string, SharedPollSession>();
+
+export function fluigPollDelayMs(attempt: number, options: PollOptions = {}) {
+  const configured = options.backoffMs?.length
+    ? options.backoffMs
+    : options.intervalMs
+      ? [options.intervalMs, 5_000, 10_000, 15_000]
+      : defaultFluigPollBackoffMs;
+  const index = Math.min(Math.max(attempt, 0), configured.length - 1);
+  return Math.max(50, Number(configured[index] || configured[configured.length - 1] || 2_000));
+}
+
+function abortError() {
+  return new DOMException("Acompanhamento do job Fluig cancelado.", "AbortError");
+}
+
+function waitForDelay(delayMs: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(abortError());
+      return;
+    }
+
+    const timeout = globalThis.setTimeout(done, delayMs);
+    function done() {
+      signal.removeEventListener("abort", cancelled);
+      resolve();
+    }
+    function cancelled() {
+      globalThis.clearTimeout(timeout);
+      reject(abortError());
+    }
+    signal.addEventListener("abort", cancelled, { once: true });
+  });
+}
+
+function waitForVisibleDocument(signal: AbortSignal) {
+  if (typeof document === "undefined" || document.visibilityState !== "hidden") {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    function cleanup() {
+      document.removeEventListener("visibilitychange", visibilityChanged);
+      signal.removeEventListener("abort", cancelled);
+    }
+    function visibilityChanged() {
+      if (document.visibilityState === "hidden") return;
+      cleanup();
+      resolve();
+    }
+    function cancelled() {
+      cleanup();
+      reject(abortError());
+    }
+    document.addEventListener("visibilitychange", visibilityChanged);
+    signal.addEventListener("abort", cancelled, { once: true });
+  });
+}
+
+async function runFluigPoll(
+  jobId: string,
+  session: Pick<SharedPollSession, "controller" | "listeners">,
+  options: PollOptions
+) {
+  const startedAt = Date.now();
+  const timeoutMs = Math.max(1_000, options.timeoutMs || defaultFluigPollTimeoutMs);
+  let attempt = 0;
+
+  while (!session.controller.signal.aborted) {
+    await waitForVisibleDocument(session.controller.signal);
+    if (Date.now() - startedAt >= timeoutMs) {
+      throw new Error("Tempo limite excedido ao acompanhar o job Fluig. Atualize o status manualmente.");
+    }
+
+    const payload = await fluigAdmApi.getJob(jobId);
+    for (const listener of session.listeners.values()) listener(payload);
+    if (isTerminalFluigJob(payload.job)) return payload;
+
+    await waitForDelay(fluigPollDelayMs(attempt, options), session.controller.signal);
+    attempt += 1;
+  }
+
+  throw abortError();
+}
+
+function sharedFluigPoll(jobId: string, options: PollOptions) {
+  const current = activeFluigPolls.get(jobId);
+  if (current) return current;
+
+  const session: SharedPollSession = {
+    controller: new AbortController(),
+    listeners: new Map(),
+    promise: null as unknown as Promise<FluigJobStatusResponse>,
+  };
+  session.promise = runFluigPoll(jobId, session, options).finally(() => {
+    if (activeFluigPolls.get(jobId) === session) activeFluigPolls.delete(jobId);
+  });
+  activeFluigPolls.set(jobId, session);
+  return session;
+}
+
 export async function waitForFluigJob(
   jobId: string,
   options: {
     signal?: AbortSignal;
     intervalMs?: number;
+    backoffMs?: readonly number[];
+    timeoutMs?: number;
     onUpdate?: (payload: FluigJobStatusResponse) => void;
   } = {}
 ) {
-  const intervalMs = Math.max(500, options.intervalMs || 2_000);
+  if (options.signal?.aborted) throw abortError();
 
-  while (!options.signal?.aborted) {
-    const payload = await fluigAdmApi.getJob(jobId);
-    options.onUpdate?.(payload);
-    if (isTerminalFluigJob(payload.job)) return payload;
+  const session = sharedFluigPoll(jobId, options);
+  const listenerId = Symbol(jobId);
+  session.listeners.set(listenerId, options.onUpdate || (() => undefined));
 
-    await new Promise<void>((resolve) => {
-      const onAbort = () => {
-        window.clearTimeout(timeout);
-        resolve();
-      };
-      const timeout = window.setTimeout(() => {
-        options.signal?.removeEventListener("abort", onAbort);
-        resolve();
-      }, intervalMs);
-      options.signal?.addEventListener("abort", onAbort, { once: true });
-    });
-  }
+  return new Promise<FluigJobStatusResponse>((resolve, reject) => {
+    let settled = false;
+    function cleanup() {
+      if (settled) return;
+      settled = true;
+      session.listeners.delete(listenerId);
+      options.signal?.removeEventListener("abort", cancelled);
+      if (!session.listeners.size && activeFluigPolls.get(jobId) === session) {
+        session.controller.abort();
+      }
+    }
+    function cancelled() {
+      cleanup();
+      reject(abortError());
+    }
 
-  throw new DOMException("Acompanhamento do job Fluig cancelado.", "AbortError");
+    options.signal?.addEventListener("abort", cancelled, { once: true });
+    session.promise.then(
+      (payload) => {
+        if (settled) return;
+        cleanup();
+        resolve(payload);
+      },
+      (error) => {
+        if (settled) return;
+        cleanup();
+        reject(error);
+      }
+    );
+  });
 }
 
 export async function waitForFluigJobs(
@@ -53,6 +187,8 @@ export async function waitForFluigJobs(
   options: {
     signal?: AbortSignal;
     intervalMs?: number;
+    backoffMs?: readonly number[];
+    timeoutMs?: number;
     onUpdate?: (job: FluigAdmJobSummary) => void;
   } = {}
 ) {
@@ -61,6 +197,8 @@ export async function waitForFluigJobs(
       waitForFluigJob(job.id, {
         signal: options.signal,
         intervalMs: options.intervalMs,
+        backoffMs: options.backoffMs,
+        timeoutMs: options.timeoutMs,
         onUpdate: (payload) => options.onUpdate?.(payload.job),
       })
     )
@@ -82,7 +220,7 @@ export function useFluigJobState(options: {
   recoverRecentTerminal?: boolean;
   intervalMs?: number;
 }) {
-  const { matches, recover = true, recoverRecentTerminal = false, intervalMs = 2_000 } = options;
+  const { matches, recover = true, recoverRecentTerminal = false, intervalMs } = options;
   const [job, setJob] = useState<FluigAdmJobSummary | null>(null);
   const [events, setEvents] = useState<FluigJobStatusResponse["events"]>([]);
   const [recovering, setRecovering] = useState(recover);

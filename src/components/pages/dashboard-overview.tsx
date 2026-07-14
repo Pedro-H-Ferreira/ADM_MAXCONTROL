@@ -158,7 +158,7 @@ export async function DashboardOverview({ actor }: { actor: AppActor }) {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Pagamentos por fornecedor</CardTitle>
             <Button variant="ghost" size="sm" asChild className="stitch-soft-button">
-              <Link href="/relatorios" prefetch={false}>
+              <Link href="/relatorios">
                 Ver relatórios
                 <ArrowRight className="size-4" />
               </Link>
@@ -243,7 +243,7 @@ export async function DashboardOverview({ actor }: { actor: AppActor }) {
             {dashboardData.recentActivities.length > 0 ? (
               dashboardData.recentActivities.map((activity, index) => (
                 <div
-                  key={activity}
+                  key={`${index}-${activity}`}
                   className="stitch-animate-in-fast"
                   style={{ animationDelay: `${index * 90 + 450}ms` }}
                 >
@@ -268,7 +268,7 @@ export async function DashboardOverview({ actor }: { actor: AppActor }) {
                 className="stitch-soft-button stitch-animate-in-fast justify-start"
                 style={{ animationDelay: `${index * 80 + 500}ms` }}
               >
-                <Link href={action.href} prefetch={false}>
+                <Link href={action.href}>
                   <Plus className="size-4" />
                   {action.label}
                 </Link>

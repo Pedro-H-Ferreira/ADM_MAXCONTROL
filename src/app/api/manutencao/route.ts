@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { appAuthErrorResponse } from "@/lib/auth-response";
+import { maintenanceErrorResponse } from "@/app/api/manutencao/_utils";
 import { resolveCurrentAppUser } from "@/lib/db/app-repository";
 import {
   createMaintenanceOrder,
@@ -14,9 +14,13 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const sourceSchema = z.enum(["manual", "fluig"]);
+const sourceSchema = z.enum(["manual", "fluig", "preventiva", "checklist", "alerta"]);
 const prioritySchema = z.enum(["CRITICA", "ALTA", "MEDIA", "BAIXA"]);
-const statusSchema = z.enum(["ABERTA", "INICIADA", "AGUARDANDO_MATERIAL", "AGUARDANDO_TERCEIRO", "FINALIZADA", "CANCELADA"]);
+const statusSchema = z.enum([
+  "ABERTA", "EM_TRIAGEM", "PLANEJADA", "AGUARDANDO_APROVACAO", "AGUARDANDO_MATERIAL",
+  "MATERIAL_RESERVADO", "AGUARDANDO_TERCEIRO", "PROGRAMADA", "INICIADA", "EM_EXECUCAO",
+  "PAUSADA", "CONCLUIDA", "AGUARDANDO_VALIDACAO", "FINALIZADA", "CANCELADA",
+]);
 
 const materialSchema = z.object({
   item: z.string().trim().min(1),
@@ -37,6 +41,9 @@ const orderSchema = z.object({
   area: z.string().trim().min(1, "Area da OS e obrigatoria."),
   priority: prioritySchema.default("MEDIA"),
   status: statusSchema.default("ABERTA"),
+  workType: z.enum(["CORRETIVA", "PREVENTIVA", "INSPECAO", "MELHORIA", "EMERGENCIA"]).default("CORRETIVA"),
+  assetId: z.string().uuid().nullable().optional(),
+  serviceProviderId: z.string().uuid().nullable().optional(),
   requester: z.string().nullable().optional(),
   technician: z.string().nullable().optional(),
   branchId: z.string().uuid().nullable().optional(),
@@ -46,6 +53,15 @@ const orderSchema = z.object({
   materials: z.array(materialSchema).optional(),
   photos: z.array(photoSchema).optional(),
   pendingReason: z.string().nullable().optional(),
+  slaMinutes: z.coerce.number().int().min(0).nullable().optional(),
+  diagnosis: z.string().nullable().optional(),
+  rootCause: z.string().nullable().optional(),
+  executedSolution: z.string().nullable().optional(),
+  downtimeMinutes: z.coerce.number().int().min(0).nullable().optional(),
+  laborCostCents: z.coerce.number().int().min(0).nullable().optional(),
+  otherCostCents: z.coerce.number().int().min(0).nullable().optional(),
+  completionNotes: z.string().nullable().optional(),
+  completionApprovalRequired: z.boolean().optional(),
   fluigRequestId: z.string().nullable().optional(),
   fluigNumLancW: z.string().nullable().optional(),
   fluigCurrentTask: z.string().nullable().optional(),
@@ -85,9 +101,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, ...payload });
   } catch (error) {
-    const authResponse = appAuthErrorResponse(error);
-    if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao listar OS de manutencao.", 500);
+    return maintenanceErrorResponse(error, "Falha ao listar OS de manutencao.");
   }
 }
 
@@ -106,8 +120,6 @@ export async function POST(request: Request) {
     } as MaintenanceOrderInput);
     return NextResponse.json({ success: true, order }, { status: 201 });
   } catch (error) {
-    const authResponse = appAuthErrorResponse(error);
-    if (authResponse) return authResponse;
-    return jsonError(error instanceof Error ? error.message : "Falha ao criar OS de manutencao.", 500);
+    return maintenanceErrorResponse(error, "Falha ao criar OS de manutencao.");
   }
 }

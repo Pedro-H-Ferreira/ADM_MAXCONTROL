@@ -17,8 +17,8 @@ O portal ADM roda na Vercel, mas a automacao do Fluig roda na maquina Windows de
 - `/compras`: cria job historico do modulo `compras`; o agente consulta o processo de Compra Administrativa e grava requisicoes, modelos, fornecedores e catalogos de compra.
 - `/manutencao`: cria job historico do modulo `manutencao`; o agente consulta o processo de ativo fixo/manutencao e grava OS Fluig, retornos e catalogos da manutencao.
 - `/fornecedores`: cria um unico job `sync_initial_history` do modulo `fornecedores`, mas o payload contem os processos reais de pagamentos, compras e manutencao. O agente faz um login, percorre todos os processos na mesma sessao e cada item volta com `moduleSlug` para ser salvo no modulo correto.
-- `/dashboard` e `/tarefas`: o job `sync_user_incremental_batch` usa um unico login do agente para descobrir solicitacoes recentes em uma janela curta, consultar status das solicitacoes conhecidas/descobertas e devolver os itens ja anotados por modulo. Isso evita sincronizar todo o historico a cada clique e tambem evita precisar clicar duas vezes quando o usuario ainda nao tem solicitacoes abertas conhecidas no ADM.
-- Dashboard / botao `Sincronizar meu Fluig`: cria um unico job `sync_user_incremental_batch`. O payload contem lotes internos por modulo e tipo (`open_tasks` e `my_requests`). O agente abre uma sessao, consulta todos os numeros Fluig conhecidos uma vez e o backend grava cada item no modulo correto.
+- `/dashboard` e `/tarefas`: o job `sync_user_incremental_batch` usa um unico login do agente e consulta diretamente a Central de Tarefas pela API oficial do Fluig: resumo, tarefas pendentes e minhas solicitacoes. O backend preserva o total oficial e grava a participacao do usuario em cada item por modulo.
+- Dashboard / botao `Sincronizar meu Fluig`: cria um unico job `sync_user_incremental_batch`. O agente confirma o codigo do colaborador autenticado em `/api/public/2.0/users/getCurrent` e usa esse codigo nas rotas `getResumedTasks`, `findWorkflowTasks` e `findMyRequests`; o id numerico interno do usuario nao e usado como matricula.
 - Endpoints especificos `/api/fluig/adm/sync/open-tasks` e `/api/fluig/adm/sync/my-requests`: continuam criando jobs separados quando for necessario diagnosticar ou executar somente uma parte da sincronizacao.
 - Consulta de status por numero Fluig: cria `sync_request_by_number`; o agente faz uma sessao e consulta todos os numeros enviados no mesmo job.
 - Abertura/cancelamento: criam `open_from_source` ou `cancel_request`; cada job usa a sessao do usuario local e devolve protocolo/status para a tela.
@@ -67,7 +67,7 @@ O agente nao deve logar novamente para cada pagina ou item dentro do mesmo job. 
 - cada job abre no maximo uma sessao Playwright;
 - dentro de `sync_history`, a mesma pagina consulta todas as janelas, paginas e processos do payload;
 - dentro de `sync_status`, a mesma pagina consulta todos os numeros Fluig do payload;
-- dentro de `sync_user_incremental_batch`, a mesma pagina consulta todos os numeros abertos conhecidos do usuario, mesmo quando eles pertencem a modulos/tipos diferentes;
+- dentro de `sync_user_incremental_batch`, a mesma pagina consulta o resumo e as duas listas da Central de Tarefas, classifica os processos de pagamentos, compras e manutencao e elimina duplicidade entre tarefa e solicitacao;
 - a sessao autenticada fica salva em `%APPDATA%\ADM MaxControl\fluig-agent\auth\fluig.json`, isolada por usuario Windows;
 - o trace fica em `%APPDATA%\ADM MaxControl\fluig-agent\logs\session-trace.log` e mostra `Sessao reutilizada valida: sim` quando o cache foi aceito.
 
@@ -75,7 +75,7 @@ Se aparecer login repetido, conferir primeiro o `session-trace.log`. Quando ele 
 
 ## Envio de resultados grandes
 
-Historicos grandes, principalmente `/fornecedores`, nao sao enviados em um unico POST. O agente `0.1.1` divide o retorno em lotes adaptativos:
+Historicos grandes e listas extensas da Central de Tarefas nao sao enviados em um unico POST. O agente `0.1.5` divide o retorno em lotes adaptativos e preserva no fechamento a identidade Fluig, os totais oficiais e a data de inicio da sincronizacao:
 
 - limite padrao de 25 registros por lote;
 - limite padrao de aproximadamente 650 KB por POST;

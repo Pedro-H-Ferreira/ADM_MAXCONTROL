@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   recordFluigJobEvent: vi.fn(),
   buildFluigCatalogItemsByModule: vi.fn(),
   buildSupplierCandidates: vi.fn(),
+  clearStaleFluigUserTaskMemberships: vi.fn(),
   persistFluigCatalogItems: vi.fn(),
   persistHistoryItemsInChunksByModule: vi.fn(),
   persistStatusItems: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock("@/lib/db/app-repository", () => ({
 vi.mock("@/lib/db/fluig-repository", () => ({
   buildFluigCatalogItemsByModule: mocks.buildFluigCatalogItemsByModule,
   buildSupplierCandidates: mocks.buildSupplierCandidates,
+  clearStaleFluigUserTaskMemberships: mocks.clearStaleFluigUserTaskMemberships,
   persistFluigCatalogItems: mocks.persistFluigCatalogItems,
   persistHistoryItemsInChunksByModule: mocks.persistHistoryItemsInChunksByModule,
   persistStatusItems: mocks.persistStatusItems,
@@ -119,6 +121,8 @@ describe("POST /api/agent/jobs/[jobId]/result", () => {
       saved: { fluigRequests: 1 },
       errors: [],
     });
+    mocks.recordDetectedFluigUserId.mockResolvedValue({ detected: true, matched: true, updated: false });
+    mocks.clearStaleFluigUserTaskMemberships.mockResolvedValue({ configured: true, saved: {}, errors: [] });
   });
 
   it.each([
@@ -191,5 +195,98 @@ describe("POST /api/agent/jobs/[jobId]/result", () => {
     );
     expect(mocks.recordMaintenanceOrderFluigJobFailure).not.toHaveBeenCalled();
     expect(mocks.markOperationalLaunchFailure).not.toHaveBeenCalled();
+  });
+
+  it("persiste a Central de Tarefas, limpa participacoes antigas e grava os totais oficiais", async () => {
+    const incrementalJob = {
+      ...job,
+      module: "fornecedores",
+      operation: "sync_user_incremental_batch",
+      requestPayload: {
+        batches: [
+          {
+            module: "pagamentos",
+            operation: "sync_user_open_tasks",
+            syncType: "open_tasks",
+            requestIds: [],
+          },
+          {
+            module: "pagamentos",
+            operation: "sync_user_open_requests",
+            syncType: "my_requests",
+            requestIds: [],
+          },
+        ],
+      },
+    };
+    mocks.readJobForAgent.mockResolvedValue(incrementalJob);
+    const resultPayload = {
+      data: {
+        directTaskCentral: true,
+        syncStartedAt: "2026-07-14T15:00:00.000Z",
+        currentFluigUser: {
+          id: "132",
+          code: "00130",
+          login: "administrativo.dvaatacados.com.br.1",
+          email: "administrativo@dvaatacados.com.br",
+        },
+        membership: {
+          global: { openTasks: 45, myRequests: 600 },
+          modules: [{ module: "pagamentos", openTasks: 32, myRequests: 567 }],
+        },
+        items: [
+          {
+            numeroFluig: "1160447",
+            moduleSlug: "pagamentos",
+            statusProcesso: "em_andamento",
+            active: true,
+            syncFluigUserId: "00130",
+            syncTypes: ["open_tasks", "my_requests"],
+          },
+        ],
+      },
+    };
+
+    const response = await POST(resultRequest(resultPayload), context);
+
+    expect(response.status).toBe(200);
+    expect(mocks.recordDetectedFluigUserId).toHaveBeenCalledWith({
+      userId: incrementalJob.requestedByUserId,
+      fluigUserId: "00130",
+      fluigUsername: "administrativo.dvaatacados.com.br.1",
+      fluigEmail: "administrativo@dvaatacados.com.br",
+      legacyFluigUserIds: ["132"],
+    });
+    expect(mocks.persistStatusItems).toHaveBeenCalledWith(
+      "pagamentos",
+      expect.arrayContaining([expect.objectContaining({ numeroFluig: "1160447" })]),
+      expect.objectContaining({
+        ownerUserId: incrementalJob.requestedByUserId,
+        syncSource: "fluig_task_central",
+        fluigUserId: "00130",
+      })
+    );
+    expect(mocks.clearStaleFluigUserTaskMemberships).toHaveBeenCalledWith({
+      fluigUserId: "00130",
+      syncStartedAt: "2026-07-14T15:00:00.000Z",
+    });
+    expect(mocks.completeFluigUserSyncStateForJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        job: incrementalJob,
+        module: "pagamentos",
+        syncType: "open_tasks",
+        fluigUserId: "00130",
+        metadata: expect.objectContaining({ requestCount: 32, globalTotal: 45 }),
+      })
+    );
+    expect(mocks.completeFluigUserSyncStateForJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        job: incrementalJob,
+        module: "pagamentos",
+        syncType: "my_requests",
+        fluigUserId: "00130",
+        metadata: expect.objectContaining({ requestCount: 567, globalTotal: 600 }),
+      })
+    );
   });
 });

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AppAuthError, type AppActor } from "@/lib/db/app-repository";
+import { AppAuthError, canActorPerformPageAction, type AppActor } from "@/lib/db/app-repository";
 import {
   buildProductDedupeKey,
   buildProductSku,
@@ -326,8 +326,12 @@ async function mapProductsWithSignedImages(rows: ProductDbRow[]) {
   return rows.map((row) => mapProduct(row, row.image_path ? signedByPath.get(row.image_path) || null : null));
 }
 
+function actorHasGlobalProductScope(actor: AppActor) {
+  return actor.isAdmin || canActorPerformPageAction(actor, "produtos", "canApprove");
+}
+
 async function accessibleProductIds(client: SupabaseClient, actor: AppActor) {
-  if (actor.isAdmin) return null;
+  if (actorHasGlobalProductScope(actor)) return null;
   const ids = new Set<string>();
   const branches = actor.branches.filter((branch) => branch.active);
   for (const batch of chunksOf(branches.map((branch) => branch.id).filter(Boolean), 100)) {
@@ -348,12 +352,31 @@ async function accessibleProductIds(client: SupabaseClient, actor: AppActor) {
 }
 
 function applyProductScope<T>(query: T, actor: AppActor, visibleIds: Set<string> | null) {
-  if (actor.isAdmin) return query;
+  if (actorHasGlobalProductScope(actor)) return query;
   const scoped = query as T & { eq(column: string, value: unknown): T; or(filter: string): T };
   const ids = Array.from(visibleIds || []);
   return ids.length
     ? scoped.or(`created_by_user_id.eq.${actor.id},id.in.(${ids.join(",")})`)
     : scoped.eq("created_by_user_id", actor.id);
+}
+
+async function countProductRows(
+  client: SupabaseClient,
+  actor: AppActor,
+  visibleIds: Set<string> | null,
+  filter: { itemType?: string; status?: string; sourceSystem?: string } = {}
+) {
+  let query = client
+    .from("app_products")
+    .select("id", { count: "exact", head: true })
+    .is("deleted_at", null);
+  query = applyProductScope(query, actor, visibleIds);
+  if (filter.itemType) query = query.eq("item_type", filter.itemType);
+  if (filter.status) query = query.eq("status", filter.status);
+  if (filter.sourceSystem) query = query.eq("source_system", filter.sourceSystem);
+  const { count, error } = await query;
+  if (error) throw error;
+  return count || 0;
 }
 
 async function assertProductScope(
@@ -408,10 +431,23 @@ export async function listProducts(actor: AppActor, input: ProductListInput = {}
   if (input.unit) query = query.eq("unit", input.unit);
   if (input.status) query = query.eq("status", input.status);
 
-  const { data, error, count } = await query.range(from, from + pageSize - 1);
+  const [pageResult, catalogTotal, serviceTotal, reviewTotal, fluigTotal] = await Promise.all([
+    query.range(from, from + pageSize - 1),
+    countProductRows(client, actor, visibleIds),
+    countProductRows(client, actor, visibleIds, { itemType: "SERVICO" }),
+    countProductRows(client, actor, visibleIds, { status: "REVIEW" }),
+    countProductRows(client, actor, visibleIds, { sourceSystem: "FLUIG" }),
+  ]);
+  const { data, error, count } = pageResult;
   if (error) throw error;
   const items = await mapProductsWithSignedImages((data || []) as unknown as ProductDbRow[]);
-  return { page, pageSize, total: count || 0, items };
+  return {
+    page,
+    pageSize,
+    total: count || 0,
+    items,
+    summary: { total: catalogTotal, services: serviceTotal, review: reviewTotal, fluig: fluigTotal },
+  };
 }
 
 export async function readProduct(actor: AppActor, id: string) {
@@ -423,7 +459,7 @@ export async function readProduct(actor: AppActor, id: string) {
     .eq("product_id", id)
     .order("observed_at", { ascending: false })
     .limit(100);
-  if (!actor.isAdmin && row.created_by_user_id !== actor.id) {
+  if (!actorHasGlobalProductScope(actor) && row.created_by_user_id !== actor.id) {
     const branches = actor.branches.filter((branch) => branch.active);
     const branchIds = branches.map((branch) => branch.id).filter(Boolean);
     const branchCodes = branches.map((branch) => branch.code).filter(Boolean);
@@ -665,7 +701,7 @@ async function persistProductsFromFluigRequests(
           p_classification_source: occurrence.classificationSource,
           p_review_required: occurrence.reviewRequired,
           p_source_payload: occurrence.sourcePayload,
-          p_metadata: { extractionVersion: "products-v1" },
+          p_metadata: { extractionVersion: "products-v2", observationParser: "order-observation-v1" },
           p_actor_user_id: actorId,
         });
         if (error) throw error;
@@ -678,6 +714,7 @@ async function persistProductsFromFluigRequests(
     requestsWithProducts: new Set(occurrences.map((item) => item.fluigRequestId)).size,
     products: new Set(occurrences.map((item) => `${item.itemType}:${item.dedupeKey}`)).size,
     occurrences: occurrences.length,
+    observationOccurrences: occurrences.filter((item) => item.sourceTable === "observacaoPedido").length,
   };
 }
 

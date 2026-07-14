@@ -45,6 +45,7 @@ describe("Fluig job lifecycle", () => {
 
   it("nao repete automaticamente operacoes que podem duplicar lancamentos", () => {
     expect(defaultFluigJobMaxAttempts("open_from_source")).toBe(1);
+    expect(defaultFluigJobMaxAttempts("attach_to_request")).toBe(1);
     expect(defaultFluigJobMaxAttempts("cancel_request")).toBe(1);
 
     expect(

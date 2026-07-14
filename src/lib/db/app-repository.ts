@@ -90,6 +90,7 @@ export type FluigJobOperation =
   | "sync_history"
   | "sync_status"
   | "open_from_source"
+  | "attach_to_request"
   | "cancel_request"
   | "health_check"
   | "sync_initial_history"
@@ -160,8 +161,8 @@ type DbJobRow = {
   branch_code: string | null;
   branch_label: string | null;
   fluig_username: string | null;
-  request_payload: JsonRecord;
-  result_payload: JsonRecord;
+  request_payload?: JsonRecord | null;
+  result_payload?: JsonRecord | null;
   error_message: string | null;
   progress_stage: string | null;
   progress_label: string | null;
@@ -219,6 +220,8 @@ const adminRoles = new Set<AppRole>(["ADMIN_MASTER", "ADMIN"]);
 const fallbackAdminEmail = "admin@adm.local";
 const reusableJobStatuses: FluigJobStatus[] = [...fluigActiveJobStatuses];
 const agentHeartbeatOnlineWindowMs = 2 * 60 * 1000;
+const fluigJobSummarySelect =
+  "id,requested_by_user_id,assigned_agent_id,module_slug,operation,status,branch_code,branch_label,fluig_username,error_message,progress_stage,progress_label,attempts,max_attempts,next_attempt_at,last_attempt_at,expires_at,created_at,updated_at,finished_at" as const;
 
 export class AppAuthError extends Error {
   status: number;
@@ -382,6 +385,33 @@ export function canActorPerformPageAction(
   if (actor.isAdmin) return true;
   const access = actor.pageAccess.find((page) => page.pageSlug === pageSlug);
   return Boolean(access?.canView && access[action]);
+}
+
+const fluigModuleSlugs = ["pagamentos", "compras", "manutencao", "fornecedores"] as const;
+
+export function fluigModuleSlugsForActor(actor: Pick<AppActor, "isAdmin" | "pageSlugs">) {
+  return fluigModuleSlugs.filter((moduleSlug) => canActorAccessPage(actor, moduleSlug));
+}
+
+function assertFluigJobPermission(actor: AppActor, module: FluigModuleSlug, operation: FluigJobOperation) {
+  if (!canActorAccessPage(actor, module)) {
+    throw new AppAuthError("Usuario sem acesso ao modulo Fluig solicitado.", 403, "FLUIG_MODULE_ACCESS_DENIED");
+  }
+
+  const requiredAction = operation === "open_from_source"
+    ? "canCreate"
+    : operation === "cancel_request"
+      ? "canApprove"
+      : operation === "health_check"
+        ? null
+        : "canUpdate";
+  if (requiredAction && !canActorPerformPageAction(actor, module, requiredAction)) {
+    throw new AppAuthError(
+      "Usuario sem permissao para executar esta acao no modulo Fluig.",
+      403,
+      "FLUIG_ACTION_ACCESS_DENIED"
+    );
+  }
 }
 
 function normalizePageSlugs(pageSlugs: string[] | null | undefined) {
@@ -1034,6 +1064,7 @@ export async function createAgentPairing(input: { actor: AppActor; displayName?:
         "sync_history",
         "sync_status",
         "open_from_source",
+        "attach_to_request",
         "cancel_request",
         "health_check",
         "sync_initial_history",
@@ -1149,6 +1180,9 @@ export async function recordAgentHeartbeat(input: {
 export async function recordDetectedFluigUserId(input: {
   userId: string;
   fluigUserId?: string | null;
+  fluigUsername?: string | null;
+  fluigEmail?: string | null;
+  legacyFluigUserIds?: Array<string | null | undefined>;
 }) {
   const fluigUserId = String(input.fluigUserId || "").trim();
   if (!fluigUserId) {
@@ -1158,7 +1192,7 @@ export async function recordDetectedFluigUserId(input: {
   const client = assertServiceClient();
   const { data: profile, error: profileError } = await client
     .from("app_user_profiles")
-    .select("id,fluig_user_id")
+    .select("id,email,fluig_user_id,fluig_username")
     .eq("id", input.userId)
     .maybeSingle();
   if (profileError) throw profileError;
@@ -1167,22 +1201,50 @@ export async function recordDetectedFluigUserId(input: {
   }
 
   const existingFluigUserId = String(profile.fluig_user_id || "").trim();
-  if (existingFluigUserId) {
+  const fluigUsername = String(input.fluigUsername || "").trim() || null;
+  const fluigEmail = String(input.fluigEmail || "").trim().toLowerCase() || null;
+  const legacyFluigUserIds = new Set(
+    (input.legacyFluigUserIds || []).map((value) => String(value || "").trim()).filter(Boolean)
+  );
+  const detectedIdentityValues = new Set(
+    [fluigUsername, fluigEmail].map((value) => String(value || "").trim().toLowerCase()).filter(Boolean)
+  );
+  const profileIdentityValues = [profile.fluig_username, profile.email]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean);
+  const identityMatchesProfile = profileIdentityValues.some((value) => detectedIdentityValues.has(value));
+  const canReplaceLegacyId = Boolean(
+    existingFluigUserId &&
+      legacyFluigUserIds.has(existingFluigUserId) &&
+      (identityMatchesProfile || !String(profile.fluig_username || "").trim())
+  );
+
+  if (existingFluigUserId && existingFluigUserId !== fluigUserId && !canReplaceLegacyId) {
     return {
       detected: true,
-      matched: existingFluigUserId === fluigUserId,
+      matched: false,
       updated: false,
     };
   }
 
-  const { data, error } = await client
+  const shouldUpdateUserId = !existingFluigUserId || canReplaceLegacyId;
+  const shouldUpdateUsername = Boolean(fluigUsername && !String(profile.fluig_username || "").trim());
+  if (!shouldUpdateUserId && !shouldUpdateUsername) {
+    return { detected: true, matched: true, updated: false };
+  }
+
+  let updateQuery = client
     .from("app_user_profiles")
     .update({
-      fluig_user_id: fluigUserId,
+      ...(shouldUpdateUserId ? { fluig_user_id: fluigUserId } : {}),
+      ...(shouldUpdateUsername ? { fluig_username: fluigUsername } : {}),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", input.userId)
-    .or("fluig_user_id.is.null,fluig_user_id.eq.")
+    .eq("id", input.userId);
+  updateQuery = existingFluigUserId
+    ? updateQuery.eq("fluig_user_id", existingFluigUserId)
+    : updateQuery.or("fluig_user_id.is.null,fluig_user_id.eq.");
+  const { data, error } = await updateQuery
     .select("id")
     .maybeSingle();
   if (error) throw error;
@@ -1200,6 +1262,7 @@ export async function createFluigJob(input: {
   reuseActive?: boolean;
 }) {
   const client = assertServiceClient();
+  assertFluigJobPermission(input.actor, input.module, input.operation);
   const requestedBranchCode = input.branchCode?.trim() || null;
   const requestedBranchLabel = input.branchLabel?.trim() || null;
   const branchByCode = requestedBranchCode
@@ -1330,13 +1393,14 @@ export async function completeFluigUserSyncStateForJob(input: {
   status: "success" | "error";
   errorMessage?: string | null;
   metadata?: JsonRecord;
+  fluigUserId?: string | null;
 }) {
   const client = assertServiceClient();
   const now = new Date().toISOString();
   const payload = {
     user_id: input.job.requestedByUserId,
     fluig_username: input.job.fluigUsername,
-    fluig_user_id: fluigUserIdFromJobPayload(input.job.requestPayload),
+    fluig_user_id: input.fluigUserId || fluigUserIdFromJobPayload(input.job.requestPayload),
     module_slug: input.module || input.job.module,
     sync_type: input.syncType,
     last_sync_at: now,
@@ -1361,15 +1425,26 @@ export async function completeFluigUserSyncStateForJob(input: {
 
 export async function listFluigUserSyncState(actor: AppActor, input: { userId?: string | null; module?: FluigModuleSlug | null } = {}) {
   const client = assertServiceClient();
-  const targetUserId = actor.isAdmin && input.userId ? input.userId : actor.id;
+  const allowedModules = fluigModuleSlugsForActor(actor);
+  if (input.module && !allowedModules.includes(input.module)) return [];
+  if (!allowedModules.length) return [];
   let query = client
     .from("fluig_user_sync_state")
     .select("*")
-    .eq("user_id", targetUserId)
     .order("updated_at", { ascending: false });
+
+  if (actor.isAdmin && input.userId) {
+    query = query.eq("user_id", input.userId);
+  } else if (actor.fluigUserId) {
+    query = query.eq("fluig_user_id", actor.fluigUserId);
+  } else {
+    query = query.eq("user_id", actor.id);
+  }
 
   if (input.module) {
     query = query.eq("module_slug", input.module);
+  } else {
+    query = query.in("module_slug", allowedModules);
   }
 
   const { data, error } = await query;
@@ -1379,56 +1454,56 @@ export async function listFluigUserSyncState(actor: AppActor, input: { userId?: 
 
 export async function listJobsForActor(actor: AppActor, limit = 20) {
   const client = assertServiceClient();
+  const allowedModules = fluigModuleSlugsForActor(actor);
+  if (!allowedModules.length) return [];
   await reconcileFluigJobLifecycle(client, actor.id);
-  const loadActiveJobs = async () => {
-    const pageSize = 1_000;
-    const rows: DbJobRow[] = [];
-
-    for (let from = 0; ; from += pageSize) {
-      const { data, error } = await client
-        .from("fluig_jobs")
-        .select("*")
-        .eq("requested_by_user_id", actor.id)
-        .in("status", reusableJobStatuses)
-        .order("created_at", { ascending: false })
-        .range(from, from + pageSize - 1);
-      if (error) throw error;
-      rows.push(...((data || []) as DbJobRow[]));
-      if ((data || []).length < pageSize) return rows;
-    }
-  };
-
   const [activeJobs, recentResult] = await Promise.all([
-    loadActiveJobs(),
     client
       .from("fluig_jobs")
-      .select("*")
+      .select(fluigJobSummarySelect)
       .eq("requested_by_user_id", actor.id)
+      .in("module_slug", allowedModules)
+      .in("status", reusableJobStatuses)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    client
+      .from("fluig_jobs")
+      .select(fluigJobSummarySelect)
+      .eq("requested_by_user_id", actor.id)
+      .in("module_slug", allowedModules)
       .in("status", ["success", "error", "cancelled", "expired"])
       .order("created_at", { ascending: false })
       .limit(limit),
   ]);
+  if (activeJobs.error) throw activeJobs.error;
   if (recentResult.error) throw recentResult.error;
 
-  return [...activeJobs, ...((recentResult.data || []) as DbJobRow[])].map(mapJob);
+  return [...((activeJobs.data || []) as DbJobRow[]), ...((recentResult.data || []) as DbJobRow[])].map(mapJob);
 }
 
-export async function readJobForActor(actor: AppActor, jobId: string) {
+export async function readJobForActor(
+  actor: AppActor,
+  jobId: string,
+  options: { includePayloads?: boolean } = {}
+) {
   const client = assertServiceClient();
+  const allowedModules = fluigModuleSlugsForActor(actor);
+  if (!allowedModules.length) return null;
   await reconcileFluigJobLifecycle(client, actor.id);
   const { data, error } = await client
     .from("fluig_jobs")
-    .select("*")
+    .select(options.includePayloads ? "*" : fluigJobSummarySelect)
     .eq("id", jobId)
     .eq("requested_by_user_id", actor.id)
+    .in("module_slug", allowedModules)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const job = mapJob(data as DbJobRow);
+  const job = mapJob(data as unknown as DbJobRow);
 
   const { data: events, error: eventsError } = await client
     .from("fluig_job_events")
-    .select("id,event_type,stage,label,event_payload,created_at")
+    .select(options.includePayloads ? "id,event_type,stage,label,event_payload,created_at" : "id,event_type,stage,label,created_at")
     .eq("job_id", jobId)
     .order("created_at", { ascending: true });
   if (eventsError) throw eventsError;

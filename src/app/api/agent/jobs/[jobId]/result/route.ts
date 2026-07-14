@@ -11,6 +11,7 @@ import {
 import {
   buildFluigCatalogItemsByModule,
   buildSupplierCandidates,
+  clearStaleFluigUserTaskMemberships,
   persistFluigCatalogItems,
   type PersistenceResult,
   persistHistoryItemsInChunksByModule,
@@ -21,6 +22,9 @@ import {
   completeMaintenanceOrderFluigOpenJob,
   recordMaintenanceOrderFluigJobFailure,
 } from "@/lib/db/maintenance-repository";
+import {
+  completeExpenseAuthorizationAttachment,
+} from "@/lib/db/expense-authorization-repository";
 import {
   completeOperationalLaunchJob,
   markOperationalLaunchFailure,
@@ -89,9 +93,31 @@ function extractCancelStatusItems(payload: Record<string, unknown>) {
     );
 }
 
-function extractCurrentFluigUserId(payload: Record<string, unknown>) {
-  const data = payload.data as Record<string, unknown> | undefined;
-  return String(data?.currentUserId || payload.currentUserId || "").trim();
+type DetectedFluigUser = {
+  id: string | null;
+  code: string;
+  login: string | null;
+  email: string | null;
+  fullName: string | null;
+};
+
+function resultOutput(payload: Record<string, unknown>) {
+  return (payload.data && typeof payload.data === "object" ? payload.data : payload) as Record<string, unknown>;
+}
+
+function extractCurrentFluigUser(payload: Record<string, unknown>): DetectedFluigUser | null {
+  const output = resultOutput(payload);
+  const candidate = (output.currentFluigUser || output.currentUser) as Record<string, unknown> | undefined;
+  const code = String(candidate?.code || output.currentUserId || "").trim();
+  if (!code) return null;
+
+  return {
+    id: candidate?.id == null ? null : String(candidate.id),
+    code,
+    login: String(candidate?.login || "").trim() || null,
+    email: String(candidate?.email || "").trim() || null,
+    fullName: String(candidate?.fullName || "").trim() || null,
+  };
 }
 
 function purchaseHistoryRequestIds(fallback: FluigModuleSlug, items: FluigHistoryItem[]) {
@@ -169,9 +195,7 @@ function shouldPersistJobResult(job: { requestPayload: Record<string, unknown> }
 }
 
 function batchDiscoveryCounts(resultPayload: Record<string, unknown>) {
-  const output = (resultPayload.data && typeof resultPayload.data === "object"
-    ? resultPayload.data
-    : resultPayload) as Record<string, unknown>;
+  const output = resultOutput(resultPayload);
   const discovery = output.discovery as Record<string, unknown> | undefined;
   const modules = Array.isArray(discovery?.modules) ? discovery.modules : [];
   const counts = new Map<string, number>();
@@ -185,9 +209,34 @@ function batchDiscoveryCounts(resultPayload: Record<string, unknown>) {
   return counts;
 }
 
+function directMembershipCounts(resultPayload: Record<string, unknown>) {
+  const output = resultOutput(resultPayload);
+  const membership = output.membership as Record<string, unknown> | undefined;
+  const global = membership?.global as Record<string, unknown> | undefined;
+  const modules = Array.isArray(membership?.modules) ? membership.modules : [];
+  const counts = new Map<string, number>();
+
+  for (const item of modules) {
+    const row = item as Record<string, unknown>;
+    const moduleSlug = String(row.module || "");
+    counts.set(`${moduleSlug}:open_tasks`, Number(row.openTasks || 0));
+    counts.set(`${moduleSlug}:my_requests`, Number(row.myRequests || 0));
+  }
+
+  return {
+    directTaskCentral: output.directTaskCentral === true,
+    counts,
+    globalTotals: {
+      open_tasks: Number(global?.openTasks || 0),
+      my_requests: Number(global?.myRequests || 0),
+    },
+  };
+}
+
 function batchDefinitions(payload: Record<string, unknown>, resultPayload: Record<string, unknown> = {}) {
   const batches = Array.isArray(payload.batches) ? payload.batches : [];
   const discoveryCounts = batchDiscoveryCounts(resultPayload);
+  const directCounts = directMembershipCounts(resultPayload);
 
   return batches
     .map((batch) => ({
@@ -201,9 +250,10 @@ function batchDefinitions(payload: Record<string, unknown>, resultPayload: Recor
     .map((batch) => ({
       ...batch,
       requestCount:
-        batch.requestIds.length ||
-        discoveryCounts.get(`${batch.module}:${batch.syncType}`) ||
-        0,
+        (directCounts.directTaskCentral
+          ? directCounts.counts.get(`${batch.module}:${batch.syncType}`) ?? 0
+          : discoveryCounts.get(`${batch.module}:${batch.syncType}`) ?? batch.requestIds.length),
+      globalTotal: directCounts.globalTotals[batch.syncType as "open_tasks" | "my_requests"] || 0,
     }))
     .filter(
       (batch): batch is {
@@ -212,6 +262,7 @@ function batchDefinitions(payload: Record<string, unknown>, resultPayload: Recor
         operation: string;
         requestIds: string[];
         requestCount: number;
+        globalTotal: number;
       } => isFluigModuleSlug(batch.module) && (batch.syncType === "open_tasks" || batch.syncType === "my_requests")
     );
 }
@@ -238,6 +289,45 @@ export async function POST(request: Request, context: RouteContext) {
   const status = missingOpenProtocol ? "error" : reportedStatus;
   const errorMessage = missingOpenProtocol ? MISSING_OPEN_PROTOCOL_ERROR : body.errorMessage;
   const persistenceResults: PersistenceResult[] = [];
+  const currentFluigUser = extractCurrentFluigUser(resultPayload);
+
+  if (status === "success" && (job.operation === "health_check" || job.operation === "sync_user_incremental_batch")) {
+    const identity = await recordDetectedFluigUserId({
+      userId: job.requestedByUserId,
+      fluigUserId: currentFluigUser?.code,
+      fluigUsername: currentFluigUser?.login || currentFluigUser?.email,
+      fluigEmail: currentFluigUser?.email,
+      legacyFluigUserIds: [currentFluigUser?.id],
+    });
+
+    if (!identity.matched) {
+      const identityError = identity.detected
+        ? "A credencial local pertence a outro usuario Fluig. Reinstale ou reconfigure o agente com a credencial correta deste usuario."
+        : "Nao foi possivel confirmar a identidade Fluig da credencial local.";
+      await completeFluigJob({
+        jobId,
+        agentId: agent.id,
+        status: "error",
+        resultPayload: { identityVerified: false },
+        errorMessage: identityError,
+      });
+      return NextResponse.json(
+        { success: false, error: identityError, code: "FLUIG_IDENTITY_MISMATCH" },
+        { status: 409 }
+      );
+    }
+
+    if (identity.updated) {
+      await recordFluigJobEvent({
+        jobId,
+        agentId: agent.id,
+        eventType: "profile_updated",
+        stage: "syncing_result",
+        label: "Usuario Fluig detectado pelo agente e salvo no perfil.",
+        payload: { fluigUserId: currentFluigUser?.code },
+      });
+    }
+  }
 
   if (status === "success" && (job.operation === "sync_history" || job.operation === "sync_initial_history")) {
     const historyItems = extractHistoryItems(resultPayload);
@@ -302,6 +392,10 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (status === "success" && job.operation === "sync_user_incremental_batch") {
     const itemsByModule = new Map<FluigModuleSlug, FluigStatusItem[]>();
+    const output = resultOutput(resultPayload);
+    const directTaskCentral = output.directTaskCentral === true;
+    const syncStartedAt = String(output.syncStartedAt || "").trim();
+    const directPersistenceResults: PersistenceResult[] = [];
 
     for (const item of extractStatusItems(resultPayload)) {
       const moduleSlug = moduleFromStatusItem(item, job.module);
@@ -309,11 +403,27 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     for (const [moduleSlug, items] of itemsByModule.entries()) {
-      persistenceResults.push(
+      directPersistenceResults.push(
         await persistStatusItems(moduleSlug, items, {
           ownerUserId: job.requestedByUserId,
-          syncSource: job.operation,
+          syncSource: directTaskCentral ? "fluig_task_central" : job.operation,
           markSeenOpen: true,
+          fluigUserId: currentFluigUser?.code,
+        })
+      );
+    }
+
+    persistenceResults.push(...directPersistenceResults);
+    if (
+      directTaskCentral &&
+      currentFluigUser?.code &&
+      syncStartedAt &&
+      directPersistenceResults.every((item) => item.errors.length === 0)
+    ) {
+      persistenceResults.push(
+        await clearStaleFluigUserTaskMemberships({
+          fluigUserId: currentFluigUser.code,
+          syncStartedAt,
         })
       );
     }
@@ -358,40 +468,13 @@ export async function POST(request: Request, context: RouteContext) {
     }
   }
 
-  if (status === "success" && job.operation === "health_check") {
-    const currentFluigUserId = extractCurrentFluigUserId(resultPayload);
-    const identity = await recordDetectedFluigUserId({
-      userId: job.requestedByUserId,
-      fluigUserId: currentFluigUserId,
+  if (job.operation === "attach_to_request") {
+    await completeExpenseAuthorizationAttachment({
+      job,
+      success: status === "success",
+      resultPayload,
+      errorMessage,
     });
-
-    if (!identity.matched) {
-      const identityError = identity.detected
-        ? "A credencial local pertence a outro usuario Fluig. Reinstale ou reconfigure o agente com a credencial correta deste usuario."
-        : "Nao foi possivel confirmar a identidade Fluig da credencial local.";
-      await completeFluigJob({
-        jobId,
-        agentId: agent.id,
-        status: "error",
-        resultPayload: { identityVerified: false },
-        errorMessage: identityError,
-      });
-      return NextResponse.json(
-        { success: false, error: identityError, code: "FLUIG_IDENTITY_MISMATCH" },
-        { status: 409 }
-      );
-    }
-
-    if (identity.updated) {
-      await recordFluigJobEvent({
-        jobId,
-        agentId: agent.id,
-        eventType: "profile_updated",
-        stage: "syncing_result",
-        label: "Usuario Fluig detectado pelo agente e salvo no perfil.",
-        payload: { fluigUserId: currentFluigUserId },
-      });
-    }
   }
 
   const persistence = persistenceResults.length ? mergePersistence(...persistenceResults) : undefined;
@@ -443,7 +526,9 @@ export async function POST(request: Request, context: RouteContext) {
         batched: true,
         operation: batch.operation,
         requestCount: batch.requestCount,
+        globalTotal: batch.globalTotal,
       },
+      fluigUserId: currentFluigUser?.code,
     });
   }
 

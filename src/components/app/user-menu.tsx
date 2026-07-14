@@ -38,7 +38,7 @@ export function UserMenu({ user }: { user: AppShellUser }) {
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger className="stitch-soft-button flex items-center gap-2 rounded-lg border bg-card px-2 py-1.5 text-left text-sm outline-none hover:bg-muted">
         <Avatar className="size-7">
           <AvatarFallback>{initials}</AvatarFallback>
@@ -57,7 +57,7 @@ export function UserMenu({ user }: { user: AppShellUser }) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/perfil" prefetch={false}>
+          <Link href="/perfil">
             <UserRound className="size-4" />
             Perfil
           </Link>

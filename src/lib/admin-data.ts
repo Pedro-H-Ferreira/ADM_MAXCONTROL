@@ -176,6 +176,16 @@ export const moduleConfigs: Record<string, ModuleConfig> = {
       { title: "Comprovante", fields: ["Arquivo", "Observacoes"] },
     ],
   }),
+  adfs: createModule({
+    slug: "adfs",
+    title: "Controle de ADF",
+    eyebrow: "Governanca de despesas",
+    description: "Autorizacoes de despesa extra-orcamentaria, assinatura, entrega e anexo no Fluig.",
+    icon: FileSignature,
+    columns: ["ADF", "Origem", "Beneficiario", "Valor", "Fluig", "Status"],
+    statuses: ["EM_ELABORACAO", "AGUARDANDO_ASSINATURA", "ASSINADA", "ENTREGUE", "ANEXADA_FLUIG"],
+    formSections: [],
+  }),
   compras: createModule({
     slug: "compras",
     title: "Requisicoes de Compra",

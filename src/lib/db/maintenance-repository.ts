@@ -1,16 +1,28 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { AppActor, AppBranch, FluigJobRecord } from "@/lib/db/app-repository";
+import { AppAuthError } from "@/lib/db/app-repository";
+import { assertMaintenanceAction } from "@/lib/db/maintenance-domain-repository";
 
 type JsonRecord = Record<string, unknown>;
 
-export type MaintenanceOrderSource = "manual" | "fluig";
+export type MaintenanceOrderSource = "manual" | "fluig" | "preventiva" | "checklist" | "alerta";
 export type MaintenanceOrderPriority = "CRITICA" | "ALTA" | "MEDIA" | "BAIXA";
+export type MaintenanceOrderWorkType = "CORRETIVA" | "PREVENTIVA" | "INSPECAO" | "MELHORIA" | "EMERGENCIA";
 export type MaintenanceOrderStatus =
   | "ABERTA"
+  | "EM_TRIAGEM"
+  | "PLANEJADA"
+  | "AGUARDANDO_APROVACAO"
+  | "MATERIAL_RESERVADO"
   | "INICIADA"
+  | "EM_EXECUCAO"
   | "AGUARDANDO_MATERIAL"
   | "AGUARDANDO_TERCEIRO"
+  | "PROGRAMADA"
+  | "PAUSADA"
+  | "CONCLUIDA"
+  | "AGUARDANDO_VALIDACAO"
   | "FINALIZADA"
   | "CANCELADA";
 
@@ -38,6 +50,9 @@ export type MaintenanceOrderInput = {
   area: string;
   priority?: MaintenanceOrderPriority;
   status?: MaintenanceOrderStatus;
+  workType?: MaintenanceOrderWorkType;
+  assetId?: string | null;
+  serviceProviderId?: string | null;
   requester?: string | null;
   technician?: string | null;
   branchId?: string | null;
@@ -47,6 +62,15 @@ export type MaintenanceOrderInput = {
   materials?: MaintenanceMaterialInput[];
   photos?: MaintenancePhotoInput[];
   pendingReason?: string | null;
+  slaMinutes?: number | null;
+  diagnosis?: string | null;
+  rootCause?: string | null;
+  executedSolution?: string | null;
+  downtimeMinutes?: number | null;
+  laborCostCents?: number | null;
+  otherCostCents?: number | null;
+  completionNotes?: string | null;
+  completionApprovalRequired?: boolean;
   fluigRequestId?: string | null;
   fluigNumLancW?: string | null;
   fluigCurrentTask?: string | null;
@@ -56,6 +80,7 @@ export type MaintenanceOrderInput = {
 
 export type MaintenanceOrderUpdateInput = Partial<MaintenanceOrderInput> & {
   status?: MaintenanceOrderStatus;
+  transitionComment?: string | null;
 };
 
 type MaintenanceOrderDbRow = {
@@ -67,6 +92,9 @@ type MaintenanceOrderDbRow = {
   area: string;
   priority: MaintenanceOrderPriority;
   status: MaintenanceOrderStatus;
+  work_type: MaintenanceOrderWorkType;
+  asset_id: string | null;
+  service_provider_id: string | null;
   requester: string | null;
   requester_user_id: string | null;
   technician: string | null;
@@ -82,6 +110,19 @@ type MaintenanceOrderDbRow = {
   materials: MaintenanceMaterialInput[] | null;
   photos: MaintenancePhotoInput[] | null;
   pending_reason: string | null;
+  sla_minutes: number | null;
+  diagnosis: string | null;
+  root_cause: string | null;
+  executed_solution: string | null;
+  downtime_minutes: number;
+  labor_cost_cents: number;
+  other_cost_cents: number;
+  total_cost_cents: number;
+  completion_notes: string | null;
+  approval_status: "NOT_REQUIRED" | "PENDING" | "APPROVED" | "REJECTED";
+  approved_by: string | null;
+  approved_at: string | null;
+  approval_notes: string | null;
   fluig_request_id: string | null;
   fluig_num_lanc_w: string | null;
   fluig_current_task: string | null;
@@ -93,6 +134,19 @@ type MaintenanceOrderDbRow = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  asset?: {
+    id: string;
+    internal_code: string;
+    asset_tag: string | null;
+    name: string;
+    status: string;
+    physical_location: string | null;
+  } | null;
+  service_provider?: {
+    id: string;
+    name: string;
+    tax_id: string | null;
+  } | null;
 };
 
 type OrderCounts = {
@@ -105,6 +159,24 @@ type OrderCounts = {
 };
 
 const terminalStatuses = new Set<MaintenanceOrderStatus>(["FINALIZADA", "CANCELADA"]);
+const openStatuses: MaintenanceOrderStatus[] = [
+  "ABERTA", "EM_TRIAGEM", "PLANEJADA", "AGUARDANDO_APROVACAO", "AGUARDANDO_MATERIAL",
+  "MATERIAL_RESERVADO", "AGUARDANDO_TERCEIRO", "PROGRAMADA", "INICIADA", "EM_EXECUCAO",
+  "PAUSADA", "CONCLUIDA", "AGUARDANDO_VALIDACAO",
+];
+
+const maintenanceOrderSelect = [
+  "id", "code", "source", "title", "description", "area", "priority", "status", "work_type",
+  "asset_id", "service_provider_id", "requester", "requester_user_id", "technician", "technician_user_id",
+  "branch_id", "branch_code", "branch_label", "due_at", "started_at", "finished_at", "material_summary",
+  "material_cost_cents", "materials", "photos", "pending_reason", "sla_minutes", "diagnosis", "root_cause",
+  "executed_solution", "downtime_minutes", "labor_cost_cents", "other_cost_cents", "total_cost_cents",
+  "completion_notes", "approval_status", "approved_by", "approved_at", "approval_notes", "fluig_request_id", "fluig_num_lanc_w", "fluig_current_task",
+  "fluig_task_owner", "fluig_last_sync_at", "metadata", "created_by_user_id", "updated_by_user_id",
+  "created_at", "updated_at", "deleted_at",
+  "asset:app_maintenance_assets(id,internal_code,asset_tag,name,status,physical_location)",
+  "service_provider:app_maintenance_service_providers(id,name,tax_id)",
+].join(",");
 
 function assertServiceClient(): SupabaseClient {
   const client = getSupabaseServiceClient();
@@ -118,6 +190,25 @@ function assertServiceClient(): SupabaseClient {
 function cleanText(value: unknown) {
   const text = String(value ?? "").trim();
   return text || null;
+}
+
+function escapeSearch(value: string) {
+  return value.replace(/[%_,()]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function maintenanceActorFilter(actor: AppActor) {
+  if (actor.isAdmin) return null;
+
+  const filters = [
+    `created_by_user_id.eq.${actor.id}`,
+    `requester_user_id.eq.${actor.id}`,
+    `technician_user_id.eq.${actor.id}`,
+  ];
+  const branchIds = actor.branches.map((branch) => branch.id).filter(Boolean);
+  const branchCodes = actor.branchCodes.filter((code) => /^[A-Za-z0-9_-]+$/.test(code));
+  if (branchIds.length) filters.push(`branch_id.in.(${branchIds.join(",")})`);
+  if (branchCodes.length) filters.push(`branch_code.in.(${branchCodes.join(",")})`);
+  return filters.join(",");
 }
 
 function asRecord(value: unknown): JsonRecord {
@@ -213,17 +304,19 @@ function normalizeCreateInput(actor: AppActor, input: MaintenanceOrderInput) {
   if (!area) throw new Error("Area da OS e obrigatoria.");
 
   const branch = branchForInput(actor, input.branchId);
-  const status = upperText<MaintenanceOrderStatus>(input.status, "ABERTA");
+  const status: MaintenanceOrderStatus = "ABERTA";
   const now = new Date().toISOString();
 
   return {
-    code: `OS-${Date.now().toString(36).toUpperCase()}`,
-    source: input.source === "fluig" ? "fluig" : "manual",
+    source: input.source || "manual",
     title,
     description,
     area,
     priority: upperText<MaintenanceOrderPriority>(input.priority, "MEDIA"),
     status,
+    work_type: upperText<MaintenanceOrderWorkType>(input.workType, "CORRETIVA"),
+    asset_id: cleanText(input.assetId),
+    service_provider_id: cleanText(input.serviceProviderId),
     requester: cleanText(input.requester) || actor.displayName,
     requester_user_id: actor.id,
     technician: cleanText(input.technician),
@@ -231,13 +324,22 @@ function normalizeCreateInput(actor: AppActor, input: MaintenanceOrderInput) {
     branch_code: branch?.code || null,
     branch_label: branch?.fluigLabel || branch?.name || null,
     due_at: cleanText(input.dueAt),
-    started_at: status === "INICIADA" ? now : null,
-    finished_at: status === "FINALIZADA" ? now : null,
+    started_at: null,
+    finished_at: null,
     material_summary: cleanText(input.materialSummary),
     material_cost_cents: centsFromInput(input.materialCostCents),
     materials: sanitizeMaterials(input.materials),
     photos: sanitizePhotos(input.photos),
     pending_reason: cleanText(input.pendingReason),
+    sla_minutes: input.slaMinutes == null ? null : Math.max(0, Number(input.slaMinutes) || 0),
+    diagnosis: cleanText(input.diagnosis),
+    root_cause: cleanText(input.rootCause),
+    executed_solution: cleanText(input.executedSolution),
+    downtime_minutes: Math.max(0, Number(input.downtimeMinutes) || 0),
+    labor_cost_cents: centsFromInput(input.laborCostCents),
+    other_cost_cents: centsFromInput(input.otherCostCents),
+    completion_notes: cleanText(input.completionNotes),
+    approval_status: input.completionApprovalRequired ? "PENDING" : "NOT_REQUIRED",
     fluig_request_id: cleanText(input.fluigRequestId),
     fluig_num_lanc_w: cleanText(input.fluigNumLancW),
     fluig_current_task: cleanText(input.fluigCurrentTask),
@@ -254,7 +356,7 @@ function normalizeUpdateInput(actor: AppActor, current: MaintenanceOrderDbRow, i
     updated_by_user_id: actor.id,
   };
 
-  if ("source" in input) payload.source = input.source === "fluig" ? "fluig" : "manual";
+  if ("source" in input) payload.source = input.source || current.source;
   if ("title" in input) {
     const title = cleanText(input.title);
     if (!title) throw new Error("Titulo da OS e obrigatorio.");
@@ -271,13 +373,9 @@ function normalizeUpdateInput(actor: AppActor, current: MaintenanceOrderDbRow, i
     payload.area = area;
   }
   if ("priority" in input) payload.priority = upperText<MaintenanceOrderPriority>(input.priority, current.priority);
-  if ("status" in input) {
-    const nextStatus = upperText<MaintenanceOrderStatus>(input.status, current.status);
-    payload.status = nextStatus;
-    if (nextStatus === "INICIADA" && !current.started_at) payload.started_at = new Date().toISOString();
-    if (nextStatus === "FINALIZADA" && !current.finished_at) payload.finished_at = new Date().toISOString();
-    if (nextStatus !== "FINALIZADA") payload.finished_at = null;
-  }
+  if ("workType" in input) payload.work_type = upperText<MaintenanceOrderWorkType>(input.workType, current.work_type);
+  if ("assetId" in input) payload.asset_id = cleanText(input.assetId);
+  if ("serviceProviderId" in input) payload.service_provider_id = cleanText(input.serviceProviderId);
   if ("requester" in input) payload.requester = cleanText(input.requester);
   if ("technician" in input) payload.technician = cleanText(input.technician);
   if ("branchId" in input) {
@@ -292,6 +390,42 @@ function normalizeUpdateInput(actor: AppActor, current: MaintenanceOrderDbRow, i
   if ("materials" in input) payload.materials = sanitizeMaterials(input.materials);
   if ("photos" in input) payload.photos = sanitizePhotos(input.photos);
   if ("pendingReason" in input) payload.pending_reason = cleanText(input.pendingReason);
+  if ("slaMinutes" in input) payload.sla_minutes = input.slaMinutes == null ? null : Math.max(0, Number(input.slaMinutes) || 0);
+  if ("diagnosis" in input) payload.diagnosis = cleanText(input.diagnosis);
+  if ("rootCause" in input) payload.root_cause = cleanText(input.rootCause);
+  if ("executedSolution" in input) payload.executed_solution = cleanText(input.executedSolution);
+  if ("downtimeMinutes" in input) payload.downtime_minutes = Math.max(0, Number(input.downtimeMinutes) || 0);
+  if ("laborCostCents" in input) payload.labor_cost_cents = centsFromInput(input.laborCostCents);
+  if ("otherCostCents" in input) payload.other_cost_cents = centsFromInput(input.otherCostCents);
+  if ("completionNotes" in input) payload.completion_notes = cleanText(input.completionNotes);
+  if ("completionApprovalRequired" in input) {
+    if (!input.completionApprovalRequired) {
+      payload.approval_status = "NOT_REQUIRED";
+      payload.approved_by = null;
+      payload.approved_at = null;
+      payload.approval_notes = null;
+    } else if (current.approval_status === "NOT_REQUIRED" || current.approval_status === "REJECTED") {
+      payload.approval_status = "PENDING";
+      payload.approved_by = null;
+      payload.approved_at = null;
+      payload.approval_notes = null;
+    } else if (current.approval_status === "APPROVED") {
+      const completionChanged =
+        ("diagnosis" in input && cleanText(input.diagnosis) !== current.diagnosis) ||
+        ("rootCause" in input && cleanText(input.rootCause) !== current.root_cause) ||
+        ("executedSolution" in input && cleanText(input.executedSolution) !== current.executed_solution) ||
+        ("completionNotes" in input && cleanText(input.completionNotes) !== current.completion_notes) ||
+        ("downtimeMinutes" in input && Math.max(0, Number(input.downtimeMinutes) || 0) !== current.downtime_minutes) ||
+        ("laborCostCents" in input && centsFromInput(input.laborCostCents) !== current.labor_cost_cents) ||
+        ("otherCostCents" in input && centsFromInput(input.otherCostCents) !== current.other_cost_cents);
+      if (completionChanged) {
+        payload.approval_status = "PENDING";
+        payload.approved_by = null;
+        payload.approved_at = null;
+        payload.approval_notes = null;
+      }
+    }
+  }
   if ("fluigRequestId" in input) {
     payload.fluig_request_id = cleanText(input.fluigRequestId);
     payload.fluig_last_sync_at = input.fluigRequestId ? new Date().toISOString() : current.fluig_last_sync_at;
@@ -307,13 +441,19 @@ function normalizeUpdateInput(actor: AppActor, current: MaintenanceOrderDbRow, i
 function actorCanSeeOrder(actor: AppActor, order: MaintenanceOrderDbRow) {
   if (actor.isAdmin) return true;
   if (order.created_by_user_id === actor.id || order.requester_user_id === actor.id || order.technician_user_id === actor.id) return true;
-  return Boolean(order.branch_code && actor.branchCodes.includes(order.branch_code));
+  return Boolean(
+    (order.branch_id && actor.branches.some((branch) => branch.id === order.branch_id)) ||
+    (order.branch_code && actor.branchCodes.includes(order.branch_code))
+  );
 }
 
 function actorCanMutateOrder(actor: AppActor, order: MaintenanceOrderDbRow) {
   if (actor.isAdmin) return true;
   if (order.created_by_user_id === actor.id || order.requester_user_id === actor.id || order.technician_user_id === actor.id) return true;
-  return Boolean(order.branch_code && actor.branchCodes.includes(order.branch_code));
+  return Boolean(
+    (order.branch_id && actor.branches.some((branch) => branch.id === order.branch_id)) ||
+    (order.branch_code && actor.branchCodes.includes(order.branch_code))
+  );
 }
 
 function mapOrder(row: MaintenanceOrderDbRow) {
@@ -326,6 +466,11 @@ function mapOrder(row: MaintenanceOrderDbRow) {
     area: row.area,
     priority: row.priority,
     status: row.status,
+    workType: row.work_type,
+    assetId: row.asset_id,
+    asset: row.asset || null,
+    serviceProviderId: row.service_provider_id,
+    serviceProvider: row.service_provider || null,
     requester: row.requester,
     technician: row.technician,
     branch: {
@@ -341,6 +486,21 @@ function mapOrder(row: MaintenanceOrderDbRow) {
     materials: row.materials || [],
     photos: row.photos || [],
     pendingReason: row.pending_reason,
+    slaMinutes: row.sla_minutes,
+    diagnosis: row.diagnosis,
+    rootCause: row.root_cause,
+    executedSolution: row.executed_solution,
+    downtimeMinutes: row.downtime_minutes,
+    laborCostCents: row.labor_cost_cents,
+    otherCostCents: row.other_cost_cents,
+    totalCostCents: row.total_cost_cents,
+    completionNotes: row.completion_notes,
+    approvalStatus: row.approval_status,
+    approval: {
+      approvedBy: row.approved_by,
+      approvedAt: row.approved_at,
+      notes: row.approval_notes,
+    },
     fluig: {
       requestId: row.fluig_request_id,
       numLancW: row.fluig_num_lanc_w,
@@ -352,17 +512,6 @@ function mapOrder(row: MaintenanceOrderDbRow) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
-  };
-}
-
-function buildCounts(rows: MaintenanceOrderDbRow[]): OrderCounts {
-  return {
-    open: rows.filter((row) => !terminalStatuses.has(row.status)).length,
-    started: rows.filter((row) => row.status === "INICIADA").length,
-    waitingMaterial: rows.filter((row) => row.status === "AGUARDANDO_MATERIAL").length,
-    finished: rows.filter((row) => row.status === "FINALIZADA").length,
-    fluig: rows.filter((row) => row.source === "fluig").length,
-    manual: rows.filter((row) => row.source === "manual").length,
   };
 }
 
@@ -404,57 +553,142 @@ export async function listMaintenanceOrders(actor: AppActor, input: {
   page?: number;
   pageSize?: number;
 }) {
+  const capabilities = await assertMaintenanceAction(actor, "VIEW");
   const client = assertServiceClient();
   const page = Math.max(Number(input.page || 1), 1);
-  const pageSize = Math.min(Math.max(Number(input.pageSize || 50), 1), 200);
-  let query = client
+  const requestedPageSize = Number(input.pageSize || 20);
+  const pageSize = ([20, 50, 100] as const).includes(requestedPageSize as 20 | 50 | 100) ? requestedPageSize : 20;
+  const from = (page - 1) * pageSize;
+  const actorFilter = maintenanceActorFilter(actor);
+  const search = cleanText(input.search);
+  const searchFilter = search
+    ? ["code", "title", "area", "description", "technician", "branch_label", "fluig_request_id"]
+        .map((column) => `${column}.ilike.%${escapeSearch(search)}%`)
+        .join(",")
+    : null;
+
+  function applyFilters<T extends {
+    eq(column: string, value: unknown): T;
+    or(filter: string): T;
+  }>(query: T, extra?: { status?: MaintenanceOrderStatus[]; source?: MaintenanceOrderSource }) {
+    let filtered = query;
+    if (actorFilter) filtered = filtered.or(actorFilter);
+    if (searchFilter) filtered = filtered.or(searchFilter);
+    if (input.status && input.status !== "ALL") filtered = filtered.eq("status", input.status);
+    if (input.source && input.source !== "ALL") filtered = filtered.eq("source", input.source);
+    if (extra?.status?.length === 1) filtered = filtered.eq("status", extra.status[0]);
+    if (extra?.source) filtered = filtered.eq("source", extra.source);
+    return filtered;
+  }
+
+  let pageQuery = client
     .from("app_maintenance_orders")
-    .select("*")
+    .select(maintenanceOrderSelect, { count: "exact" })
     .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(500);
+    .order("finished_at", { ascending: true, nullsFirst: true })
+    .order("due_at", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  pageQuery = applyFilters(pageQuery);
 
-  if (input.status && input.status !== "ALL") query = query.eq("status", input.status);
-  if (input.source && input.source !== "ALL") query = query.eq("source", input.source);
+  const countQuery = (extra?: { status?: MaintenanceOrderStatus[]; source?: MaintenanceOrderSource }) => {
+    let query = client
+      .from("app_maintenance_orders")
+      .select("id", { count: "exact", head: true })
+      .is("deleted_at", null);
+    query = applyFilters(query, extra);
+    if (extra?.status && extra.status.length > 1) query = query.in("status", extra.status);
+    return query;
+  };
 
-  const { data, error } = await query;
+  const [pageResult, openResult, startedResult, waitingResult, finishedResult, fluigResult, manualResult] = await Promise.all([
+    pageQuery.range(from, from + pageSize - 1),
+    countQuery({ status: openStatuses }),
+    countQuery({ status: ["INICIADA", "EM_EXECUCAO"] }),
+    countQuery({ status: ["AGUARDANDO_MATERIAL"] }),
+    countQuery({ status: ["FINALIZADA"] }),
+    countQuery({ source: "fluig" }),
+    countQuery({ source: "manual" }),
+  ]);
+  const error = [pageResult, openResult, startedResult, waitingResult, finishedResult, fluigResult, manualResult]
+    .map((result) => result.error)
+    .find(Boolean);
   if (error) throw error;
 
-  const search = cleanText(input.search)?.toLowerCase();
-  const visibleRows = ((data || []) as MaintenanceOrderDbRow[])
-    .filter((row) => actorCanSeeOrder(actor, row))
-    .filter((row) => {
-      if (!search) return true;
-      return [row.code, row.title, row.area, row.description, row.technician, row.branch_label, row.fluig_request_id]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(search));
-    })
-    .sort(sortOrders);
-
-  const from = (page - 1) * pageSize;
-  const items = visibleRows.slice(from, from + pageSize).map(mapOrder);
+  const visibleRows = (pageResult.data || []) as unknown as MaintenanceOrderDbRow[];
+  const items = visibleRows.sort(sortOrders).map(mapOrder);
+  const counts: OrderCounts = {
+    open: openResult.count || 0,
+    started: startedResult.count || 0,
+    waitingMaterial: waitingResult.count || 0,
+    finished: finishedResult.count || 0,
+    fluig: fluigResult.count || 0,
+    manual: manualResult.count || 0,
+  };
 
   return {
     page,
     pageSize,
-    total: visibleRows.length,
-    counts: buildCounts(visibleRows),
+    total: pageResult.count || 0,
+    counts,
     branches: actor.branches,
+    capabilities,
     items,
   };
 }
 
 export async function readMaintenanceOrder(actor: AppActor, id: string) {
+  await assertMaintenanceAction(actor, "VIEW");
   const client = assertServiceClient();
-  const { data, error } = await client.from("app_maintenance_orders").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await client.from("app_maintenance_orders").select(maintenanceOrderSelect).eq("id", id).maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const row = data as MaintenanceOrderDbRow;
+  const row = data as unknown as MaintenanceOrderDbRow;
   if (!actorCanSeeOrder(actor, row)) return null;
-  return mapOrder(row);
+  const [eventResult, materialResult, reservationResult, movementResult, laborResult] = await Promise.all([
+    client
+      .from("app_maintenance_order_events")
+      .select("id,event_type,event_label,status_from,status_to,event_payload,actor_user_id,created_at,actor:app_user_profiles(id,display_name,email)")
+      .eq("order_id", id)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    client
+      .from("app_maintenance_order_materials")
+      .select("id,material_id,planned_quantity,reserved_quantity,consumed_quantity,returned_quantity,unit_cost_cents,notes,created_at,updated_at,material:app_maintenance_materials(id,code,name,unit,minimum_stock,reorder_point)")
+      .eq("order_id", id)
+      .order("created_at"),
+    client
+      .from("app_maintenance_stock_reservations")
+      .select("id,material_id,location_id,requested_quantity,reserved_quantity,consumed_quantity,released_quantity,status,reserved_at,updated_at,material:app_maintenance_materials(id,code,name,unit),location:app_maintenance_storage_locations(id,code,warehouse_id,warehouse:app_maintenance_warehouses(id,code,name,branch_id))")
+      .eq("order_id", id)
+      .order("reserved_at", { ascending: false }),
+    client
+      .from("app_maintenance_stock_movements")
+      .select("id,movement_type,material_id,quantity,unit,unit_cost_cents,total_cost_cents,reason,notes,occurred_at,material:app_maintenance_materials(id,code,name)")
+      .eq("work_order_id", id)
+      .order("occurred_at", { ascending: false })
+      .limit(100),
+    client
+      .from("app_maintenance_order_labor")
+      .select("id,professional_name,started_at,ended_at,minutes,hourly_cost_cents,total_cost_cents,notes,service_provider:app_maintenance_service_providers(id,name)")
+      .eq("order_id", id)
+      .order("started_at", { ascending: false }),
+  ]);
+  const detailError = [eventResult, materialResult, reservationResult, movementResult, laborResult]
+    .map((result) => result.error)
+    .find(Boolean);
+  if (detailError) throw detailError;
+  return {
+    ...mapOrder(row),
+    events: eventResult.data || [],
+    materialItems: materialResult.data || [],
+    reservations: reservationResult.data || [],
+    stockMovements: movementResult.data || [],
+    laborEntries: laborResult.data || [],
+  };
 }
 
 export async function createMaintenanceOrder(actor: AppActor, input: MaintenanceOrderInput) {
+  await assertMaintenanceAction(actor, "CREATE_ORDER");
   const client = assertServiceClient();
   const payload = normalizeCreateInput(actor, input);
   const { data, error } = await client.from("app_maintenance_orders").insert(payload).select("*").single();
@@ -472,6 +706,7 @@ export async function createMaintenanceOrder(actor: AppActor, input: Maintenance
 }
 
 export async function updateMaintenanceOrder(actor: AppActor, id: string, input: MaintenanceOrderUpdateInput) {
+  await assertMaintenanceAction(actor, "EDIT_ORDER");
   const client = assertServiceClient();
   const { data: currentData, error: currentError } = await client.from("app_maintenance_orders").select("*").eq("id", id).maybeSingle();
   if (currentError) throw currentError;
@@ -479,14 +714,34 @@ export async function updateMaintenanceOrder(actor: AppActor, id: string, input:
 
   const current = currentData as MaintenanceOrderDbRow;
   if (!actorCanMutateOrder(actor, current)) {
-    throw new Error("Usuario sem acesso para atualizar esta OS.");
+    throw new AppAuthError("Usuario sem acesso para atualizar esta OS.", 403, "MAINTENANCE_ORDER_DENIED");
   }
 
   const payload = normalizeUpdateInput(actor, current, input);
-  const { data, error } = await client.from("app_maintenance_orders").update(payload).eq("id", id).select("*").maybeSingle();
+  const nextStatus = input.status ? upperText<MaintenanceOrderStatus>(input.status, current.status) : current.status;
+  const statusChanged = nextStatus !== current.status;
+  if (statusChanged) {
+    await assertMaintenanceAction(actor, nextStatus === "FINALIZADA" ? "FINISH_ORDER" : "CHANGE_STATUS");
+  }
+
+  if (Object.keys(payload).length > 1) {
+    const { error } = await client.from("app_maintenance_orders").update(payload).eq("id", id);
+    if (error) throw error;
+  }
+
+  if (statusChanged) {
+    const { error } = await client.rpc("app_maintenance_transition_order", {
+      p_order_id: id,
+      p_next_status: nextStatus,
+      p_actor_user_id: actor.id,
+      p_comment: cleanText(input.transitionComment) || cleanText(input.completionNotes) || cleanText(input.pendingReason),
+    });
+    if (error) throw error;
+  }
+
+  const { data, error } = await client.from("app_maintenance_orders").select("*").eq("id", id).maybeSingle();
   if (error) throw error;
   if (!data) return null;
-
   const updated = data as MaintenanceOrderDbRow;
   await recordOrderEvent(client, {
     orderId: updated.id,
@@ -504,7 +759,36 @@ export async function updateMaintenanceOrder(actor: AppActor, id: string, input:
   return mapOrder(updated);
 }
 
+export async function reviewMaintenanceOrderCompletion(
+  actor: AppActor,
+  id: string,
+  input: { decision: "APPROVE" | "REJECT"; notes: string }
+) {
+  await assertMaintenanceAction(actor, "APPROVE_COMPLETION");
+  const client = assertServiceClient();
+  const { data: currentData, error: currentError } = await client
+    .from("app_maintenance_orders")
+    .select(maintenanceOrderSelect)
+    .eq("id", id)
+    .maybeSingle();
+  if (currentError) throw currentError;
+  if (!currentData) return null;
+  const current = currentData as unknown as MaintenanceOrderDbRow;
+  if (!actorCanSeeOrder(actor, current)) {
+    throw new AppAuthError("Usuario sem acesso para revisar esta OS.", 403, "MAINTENANCE_ORDER_DENIED");
+  }
+  const { data, error } = await client.rpc("app_maintenance_review_completion", {
+    p_order_id: id,
+    p_decision: input.decision,
+    p_actor_user_id: actor.id,
+    p_notes: cleanText(input.notes),
+  });
+  if (error) throw error;
+  return mapOrder(data as MaintenanceOrderDbRow);
+}
+
 export async function appendMaintenanceOrderPhotos(actor: AppActor, id: string, photos: MaintenancePhotoInput[]) {
+  await assertMaintenanceAction(actor, "EDIT_ORDER");
   const client = assertServiceClient();
   const { data: currentData, error: currentError } = await client.from("app_maintenance_orders").select("*").eq("id", id).maybeSingle();
   if (currentError) throw currentError;
@@ -512,7 +796,7 @@ export async function appendMaintenanceOrderPhotos(actor: AppActor, id: string, 
 
   const current = currentData as MaintenanceOrderDbRow;
   if (!actorCanMutateOrder(actor, current)) {
-    throw new Error("Usuario sem acesso para anexar fotos nesta OS.");
+    throw new AppAuthError("Usuario sem acesso para anexar fotos nesta OS.", 403, "MAINTENANCE_ORDER_DENIED");
   }
 
   const uploadedAt = new Date().toISOString();

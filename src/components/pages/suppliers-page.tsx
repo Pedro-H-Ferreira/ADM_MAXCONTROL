@@ -1383,7 +1383,7 @@ function SupplierFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-5xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{editing ? "Editar fornecedor" : "Novo fornecedor"}</DialogTitle>
           <DialogDescription>
@@ -1755,7 +1755,7 @@ function SupplierListSkeleton() {
 function SupplierViewDialog({ supplier, onOpenChange }: { supplier: SupplierRecord | null; onOpenChange: (open: boolean) => void }) {
   return (
     <Dialog open={Boolean(supplier)} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>{supplier?.razaoSocial || "Fornecedor"}</DialogTitle>
           <DialogDescription>Resumo cadastral, vinculos e ultima sincronizacao Fluig.</DialogDescription>
