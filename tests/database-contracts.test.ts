@@ -497,6 +497,16 @@ describe("database and API contracts", () => {
     expect(healthCheck).toContain("/api/public/2.0/users/getCurrent");
   });
 
+  it("aplica o proxy de saida somente ao Chromium do runner Fluig", async () => {
+    const config = await source("scripts/fluig/config.js");
+    const session = await source("scripts/fluig/api/session.js");
+
+    expect(config).toContain('proxyUrl: optionalProxyUrl("FLUIG_PROXY_URL")');
+    expect(config).toContain('["http:", "https:", "socks5:"]');
+    expect(session).toContain("launchOptions.proxy = { server: config.browser.proxyUrl }");
+    expect(session).toContain("chromium.launch(launchOptions)");
+  });
+
   it("instala e remove o agente Windows sem deixar processo Node orfao", async () => {
     const installer = await source("agent/fluig-agent/scripts/install-windows-agent.ps1");
     const uninstaller = await source("agent/fluig-agent/scripts/uninstall-windows-agent.ps1");

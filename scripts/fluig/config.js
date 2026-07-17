@@ -88,6 +88,21 @@ function optionalUrl(name, fallback = "") {
   return value;
 }
 
+function optionalProxyUrl(name) {
+  const value = optional(name);
+
+  if (!value) {
+    return "";
+  }
+
+  const proxyUrl = new URL(value);
+  if (!["http:", "https:", "socks5:"].includes(proxyUrl.protocol)) {
+    throw new Error(`Protocolo de proxy invalido em ${name}: ${proxyUrl.protocol}`);
+  }
+
+  return value;
+}
+
 const projectRoot = path.resolve(__dirname, "..", "..");
 loadEnvFile(path.join(projectRoot, ".env.local"));
 loadEnvFile(path.join(projectRoot, ".env"));
@@ -112,7 +127,8 @@ module.exports = {
   dataFile,
   browser: {
     headless: optionalBoolean("HEADLESS", true),
-    slowMo: optionalNumber("SLOW_MO", 0)
+    slowMo: optionalNumber("SLOW_MO", 0),
+    proxyUrl: optionalProxyUrl("FLUIG_PROXY_URL")
   },
   urls: {
     base: fluigBaseUrl,

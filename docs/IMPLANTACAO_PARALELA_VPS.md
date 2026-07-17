@@ -24,11 +24,25 @@ servidor e nunca devem ser salvas no Git.
 
 ### Acesso de rede ao Fluig
 
-Em 17/07/2026, a aplicacao e o runner interno ficaram saudaveis, mas a conexao
-HTTPS da VPS para `nossaempresa.fluig.cloudtotvs.com.br:443` terminou em timeout.
-O mesmo endereco respondeu normalmente fora da VPS. Antes do teste produtivo,
-o IP `179.197.78.61` deve ser liberado no firewall ou allowlist do ambiente
-Fluig/TOTVS. Ate essa liberacao, mantenha o agente e o ambiente original ativos.
+Em 17/07/2026, a rota IPv4 direta da VPS para
+`nossaempresa.fluig.cloudtotvs.com.br:443` terminou em timeout antes do TLS,
+embora o mesmo endereco respondesse normalmente fora da VPS. O runner da
+homologacao usa `FLUIG_PROXY_URL` para aplicar um proxy apenas ao Chromium do
+Playwright; a aplicacao, o banco e os demais containers continuam na rota
+normal da VPS.
+
+No host, o cliente WARP opera em modo proxy SOCKS local em
+`127.0.0.1:40000`. O servico `warp-socks-relay.service` publica esse socket
+somente no gateway privado da rede Docker Coolify, em `172.16.1.1:40001`.
+Configure no recurso Coolify:
+
+```dotenv
+FLUIG_PROXY_URL=socks5://172.16.1.1:40001
+```
+
+Se a rede `coolify` for recriada com outro gateway, atualize o bind do servico
+e a variavel antes de executar o runner. O ambiente original deve continuar
+ativo ate os testes de leitura e de abertura controlada serem aprovados.
 
 ## Banco de homologacao
 
