@@ -8,7 +8,7 @@ alterar o ambiente atual da Vercel ou o Supabase gerenciado.
 | Papel | Aplicacao | Supabase |
 | --- | --- | --- |
 | Producao atual | `https://adm-maxcontrol.vercel.app` | projeto gerenciado `asdxkkduejwibpojychi` |
-| Homologacao VPS | subdominio proprio no Coolify | `https://supabase-portal.nexusmax.cloud` |
+| Homologacao VPS | `https://portal-homolog.nexusmax.cloud` | `https://supabase-portal.nexusmax.cloud` |
 
 As variaveis da Vercel nao devem ser alteradas durante a homologacao. A
 aplicacao da VPS recebe suas proprias variaveis no Coolify.
@@ -22,6 +22,14 @@ aplicacao, eliminando a dependencia do agente instalado em uma estacao local.
 As credenciais `FLUIG_USERNAME` e `FLUIG_PASSWORD` sao segredos exclusivos do
 servidor e nunca devem ser salvas no Git.
 
+### Acesso de rede ao Fluig
+
+Em 17/07/2026, a aplicacao e o runner interno ficaram saudaveis, mas a conexao
+HTTPS da VPS para `nossaempresa.fluig.cloudtotvs.com.br:443` terminou em timeout.
+O mesmo endereco respondeu normalmente fora da VPS. Antes do teste produtivo,
+o IP `179.197.78.61` deve ser liberado no firewall ou allowlist do ambiente
+Fluig/TOTVS. Ate essa liberacao, mantenha o agente e o ambiente original ativos.
+
 ## Banco de homologacao
 
 O script `scripts/migrate-supabase-to-vps.ps1` gera os dumps diretamente na VPS
@@ -31,6 +39,10 @@ Os arquivos ficam fora do repositorio e devem ser apagados depois da validacao.
 O processo de copia nao pausa nem modifica o Supabase gerenciado. Como os dois
 bancos passam a divergir depois da copia, qualquer teste que crie, altere ou
 cancele processos deve ser executado somente no dominio de homologacao.
+
+Na copia validada em 17/07/2026 havia 61 tabelas publicas com RLS habilitado,
+2 usuarios de Auth, 3 perfis, 956 fornecedores e 12.748 solicitacoes Fluig. Os
+dumps temporarios foram removidos da VPS depois da conferencia.
 
 ## Validacao antes do corte
 
