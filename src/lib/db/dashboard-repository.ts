@@ -191,7 +191,7 @@ function operationLabel(operation: string) {
     open_from_source: "abertura de solicitacao",
     attach_to_request: "anexo em solicitacao",
     cancel_request: "cancelamento",
-    health_check: "teste do agente",
+    health_check: "teste da conexao VPS",
   };
   return labels[operation] || operation;
 }

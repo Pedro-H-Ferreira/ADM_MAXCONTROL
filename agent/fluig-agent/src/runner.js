@@ -617,7 +617,7 @@ async function executeJob(config, job, emitProgress) {
   }
 
   if (job.operation === "health_check") {
-    emitProgress({ stage: "authenticating", label: "Autenticando com as credenciais locais no Fluig." });
+    emitProgress({ stage: "authenticating", label: "Autenticando com a credencial cadastrada no Fluig." });
     const scriptPath = path.join(/* turbopackIgnore: true */ root, "scripts", "fluig", "healthCheck.js");
     const { stdout } = await runNodeScript(config, scriptPath, [], { onLine });
     const healthResult = stdout
