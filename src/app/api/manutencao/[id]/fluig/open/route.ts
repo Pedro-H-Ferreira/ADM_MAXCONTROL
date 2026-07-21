@@ -141,7 +141,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     const updatedOrder = await updateMaintenanceOrder(actor, order.id, {
       source: "fluig",
-      fluigCurrentTask: "Aguardando agente local abrir no Fluig",
+      fluigCurrentTask: "Aguardando a VPS abrir no Fluig",
       fluigTaskOwner: actor.fluigUsername || actor.displayName,
       metadata: {
         ...metadata,

@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import {
   completeFluigUserSyncStateForJob,
   completeFluigJob,
+  completeServerFluigJob,
   readJobForAgent,
   recordDetectedFluigUserId,
   recordFluigJobEvent,
+  recordServerFluigJobEvent,
+  type FluigJobRecord,
   type FluigUserSyncType,
   type FluigJobStatus,
 } from "@/lib/db/app-repository";
@@ -267,17 +270,33 @@ function batchDefinitions(payload: Record<string, unknown>, resultPayload: Recor
     );
 }
 
-export async function POST(request: Request, context: RouteContext) {
-  const { agent, error } = await requireAgent(request);
-  if (!agent) return error;
+type JobResultExecutor = { type: "agent"; agentId: string } | { type: "server" };
 
-  const { jobId } = await context.params;
-  const job = await readJobForAgent(agent, jobId);
-  if (!job) {
-    return NextResponse.json({ success: false, error: "Job nao pertence a este agente." }, { status: 404 });
-  }
+async function completeResultJob(
+  executor: JobResultExecutor,
+  input: { jobId: string; status: "success" | "error" | "cancelled"; resultPayload?: Record<string, unknown>; errorMessage?: string | null }
+) {
+  return executor.type === "agent"
+    ? completeFluigJob({ ...input, agentId: executor.agentId })
+    : completeServerFluigJob(input);
+}
 
-  const body = (await request.json().catch(() => ({}))) as ResultBody;
+async function recordResultJobEvent(
+  executor: JobResultExecutor,
+  input: { jobId: string; eventType: string; stage?: string | null; label?: string | null; payload?: Record<string, unknown>; status?: FluigJobStatus }
+) {
+  return executor.type === "agent"
+    ? recordFluigJobEvent({ ...input, agentId: executor.agentId })
+    : recordServerFluigJobEvent(input);
+}
+
+export async function persistFluigJobResult(input: {
+  job: FluigJobRecord;
+  body: ResultBody;
+  executor: JobResultExecutor;
+}) {
+  const { job, body, executor } = input;
+  const jobId = job.id;
   const reportedStatus = body.status || "success";
   const resultPayload = body.resultPayload || {};
   const generatedRequestId =
@@ -302,11 +321,10 @@ export async function POST(request: Request, context: RouteContext) {
 
     if (!identity.matched) {
       const identityError = identity.detected
-        ? "A credencial local pertence a outro usuario Fluig. Reinstale ou reconfigure o agente com a credencial correta deste usuario."
-        : "Nao foi possivel confirmar a identidade Fluig da credencial local.";
-      await completeFluigJob({
+        ? "A credencial cadastrada pertence a outro usuario Fluig. Corrija usuario e senha Fluig no cadastro deste usuario."
+        : "Nao foi possivel confirmar a identidade da credencial Fluig cadastrada.";
+      await completeResultJob(executor, {
         jobId,
-        agentId: agent.id,
         status: "error",
         resultPayload: { identityVerified: false },
         errorMessage: identityError,
@@ -318,12 +336,11 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     if (identity.updated) {
-      await recordFluigJobEvent({
+      await recordResultJobEvent(executor, {
         jobId,
-        agentId: agent.id,
         eventType: "profile_updated",
         stage: "syncing_result",
-        label: "Usuario Fluig detectado pelo agente e salvo no perfil.",
+        label: "Usuario Fluig detectado pelo executor e salvo no perfil.",
         payload: { fluigUserId: currentFluigUser?.code },
       });
     }
@@ -494,9 +511,8 @@ export async function POST(request: Request, context: RouteContext) {
     });
   }
 
-  await completeFluigJob({
+  await completeResultJob(executor, {
     jobId,
-    agentId: agent.id,
     status,
     resultPayload: finalPayload,
     errorMessage,
@@ -533,9 +549,8 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   if (persistence?.errors.length) {
-    await recordFluigJobEvent({
+    await recordResultJobEvent(executor, {
       jobId,
-      agentId: agent.id,
       eventType: "persistence_warning",
       stage: "syncing_result",
       label: persistence.errors.join(" | "),
@@ -546,5 +561,23 @@ export async function POST(request: Request, context: RouteContext) {
   return NextResponse.json({
     success: true,
     persistence,
+  });
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  const { agent, error } = await requireAgent(request);
+  if (!agent) return error;
+
+  const { jobId } = await context.params;
+  const job = await readJobForAgent(agent, jobId);
+  if (!job) {
+    return NextResponse.json({ success: false, error: "Job nao pertence a este agente." }, { status: 404 });
+  }
+
+  const body = (await request.json().catch(() => ({}))) as ResultBody;
+  return persistFluigJobResult({
+    job,
+    body,
+    executor: { type: "agent", agentId: agent.id },
   });
 }

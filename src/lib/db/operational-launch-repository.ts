@@ -525,7 +525,7 @@ export async function markOperationalLaunchQueued(
       status: "NA_FILA",
       fluig_job_id: job.id,
       progress_stage: job.progressStage || "queued",
-      progress_label: job.progressLabel || "Aguardando agente local.",
+      progress_label: job.progressLabel || "Aguardando executor da VPS.",
       last_error_message: null,
       queued_at: now,
       failed_at: null,
@@ -538,7 +538,7 @@ export async function markOperationalLaunchQueued(
     launchId,
     actorId: actor.id,
     type: "queued",
-    label: "Lancamento enviado para a fila do agente Fluig.",
+    label: "Lancamento enviado para a fila do executor Fluig da VPS.",
     statusFrom: current.status,
     statusTo: "NA_FILA",
     payload: { jobId: job.id },
@@ -606,7 +606,7 @@ export async function updateOperationalLaunchJobProgress(input: {
     .update({
       status: activeStatus,
       progress_stage: input.stage || input.status || "processing",
-      progress_label: input.label || "Agente local executando o lancamento.",
+      progress_label: input.label || "Executor da VPS realizando o lancamento.",
     })
     .eq("id", String(input.job.requestPayload.launchId))
     .eq("fluig_job_id", input.job.id);

@@ -1140,7 +1140,7 @@ function MaintenanceOrderCard({
                 className="stitch-soft-button w-fit"
                 onClick={onOpenFluig}
                 disabled={Boolean(activeFluigJob)}
-                title={hasFluigModel ? "Abrir processo no Fluig pelo agente local" : "Informe o modelo Fluig na OS"}
+                title={hasFluigModel ? "Abrir processo no Fluig diretamente pela VPS" : "Informe o modelo Fluig na OS"}
               >
                 {activeFluigJob ? <Loader2 className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
                 Abrir no Fluig
@@ -1183,7 +1183,7 @@ function MaintenanceOrderCard({
               <span className="font-mono text-xs text-muted-foreground">{activeFluigJob.id.slice(0, 8)}</span>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              {activeFluigJob.progressLabel || "Aguardando agente local assumir a abertura da OS."}
+              {activeFluigJob.progressLabel || "Aguardando o executor da VPS assumir a abertura da OS."}
             </p>
           </div>
         ) : null}

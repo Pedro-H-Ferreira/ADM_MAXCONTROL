@@ -6,6 +6,7 @@ node_modules
 .env.*
 !.env.example
 .migration-private
+.adm-fluig-runtime
 .playwright-cli
 data
 output

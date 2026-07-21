@@ -296,7 +296,7 @@ export function AdfControlPage() {
       setSelected(data.authorization);
       setForm(formFromAuthorization(data.authorization));
       setItems((current) => current.map((item) => (item.id === data.authorization.id ? data.authorization : item)));
-      toast.success("Envio para o Fluig colocado na fila do agente local.");
+      toast.success("Envio para o Fluig colocado na fila do executor da VPS.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao anexar no Fluig.");
     } finally {
@@ -539,7 +539,7 @@ export function AdfControlPage() {
                         </div>
                         <Button className="w-full" onClick={() => void attachToFluig()} disabled={!permissions.canUpdate || attaching || !selected.signedDocumentName || !selected.fluigRequestId || selected.status === "ANEXO_NA_FILA" || selected.status === "ANEXADA_FLUIG"}>
                           {attaching ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Paperclip className="size-4" aria-hidden="true" />}
-                          {selected.status === "ANEXADA_FLUIG" ? "Confirmada no Fluig" : selected.status === "ANEXO_NA_FILA" ? "Aguardando agente" : "Anexar no Fluig aberto"}
+                          {selected.status === "ANEXADA_FLUIG" ? "Confirmada no Fluig" : selected.status === "ANEXO_NA_FILA" ? "Aguardando executor da VPS" : "Anexar no Fluig aberto"}
                         </Button>
                         {!selected.fluigRequestId ? <p className="text-xs text-amber-700">A solicitacao pode ser aberta primeiro; este botao sera liberado quando o numero Fluig retornar.</p> : null}
                         {selected.lastErrorMessage ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">{selected.lastErrorMessage}</p> : null}

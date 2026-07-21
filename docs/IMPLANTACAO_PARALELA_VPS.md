@@ -1,75 +1,105 @@
-# Implantacao paralela na VPS
+# Implantacao definitiva na VPS
 
-Esta branch executa o ADM_MAXCONTROL como ambiente de homologacao na VPS sem
-alterar o ambiente atual da Vercel ou o Supabase gerenciado.
+O ADM MaxControl opera na VPS pelo Coolify. A aplicacao, o Supabase
+self-hosted e o executor Fluig ficam na mesma infraestrutura; Vercel e
+Supabase gerenciado nao fazem parte do runtime atual.
 
-## Ambientes
+## Enderecos e origem do deploy
 
-| Papel | Aplicacao | Supabase |
-| --- | --- | --- |
-| Producao atual | `https://adm-maxcontrol.vercel.app` | projeto gerenciado `asdxkkduejwibpojychi` |
-| Homologacao VPS | `https://portal-homolog.nexusmax.cloud` | `https://supabase-portal.nexusmax.cloud` |
+| Recurso | Endereco |
+| --- | --- |
+| Aplicacao | `https://portal-homolog.nexusmax.cloud` |
+| Supabase self-hosted | `https://supabase-portal.nexusmax.cloud` |
+| Repositorio | `Pedro-H-Ferreira/ADM_MAXCONTROL` |
+| Branch do Coolify | `codex/vps-parallel-pilot` |
 
-As variaveis da Vercel nao devem ser alteradas durante a homologacao. A
-aplicacao da VPS recebe suas proprias variaveis no Coolify.
+O recurso do Coolify usa GitHub App e Dockerfile. Cada push na branch
+configurada dispara o build, o health check em `/api/health` e a troca do
+container somente depois de o novo container ficar saudavel.
 
-## Runner Fluig
+## Executor Fluig interno
 
-Na VPS, configure `FLUIG_INTEGRATION_MODE=internal_runner`. Os scripts em
-`scripts/fluig` e o Chromium do Playwright ficam dentro do mesmo container da
-aplicacao, eliminando a dependencia do agente instalado em uma estacao local.
+Configure `FLUIG_INTEGRATION_MODE=internal_runner` e
+`FLUIG_SERVER_WORKER_ENABLED=true`. O worker iniciado pelo servidor Next.js
+consome `fluig_jobs` sequencialmente, executa os scripts em `scripts/fluig` com
+o Chromium do container e persiste o resultado usando a mesma camada de
+negocio das rotas historicas.
 
-As credenciais `FLUIG_USERNAME` e `FLUIG_PASSWORD` sao segredos exclusivos do
-servidor e nunca devem ser salvas no Git.
+Nao instale nem pareie o antigo agente Windows. As tabelas e rotas antigas
+permanecem apenas para compatibilidade e auditoria de jobs anteriores.
 
-### Acesso de rede ao Fluig
+## Credenciais por usuario
 
-Em 17/07/2026, a rota IPv4 direta da VPS para
-`nossaempresa.fluig.cloudtotvs.com.br:443` terminou em timeout antes do TLS,
-embora o mesmo endereco respondesse normalmente fora da VPS. O runner da
-homologacao usa `FLUIG_PROXY_URL` para aplicar um proxy apenas ao Chromium do
-Playwright; a aplicacao, o banco e os demais containers continuam na rota
-normal da VPS.
+O administrador informa `Usuario Fluig` e `Senha Fluig` em `Usuarios e
+Perfis`. A senha:
 
-No host, o cliente WARP opera em modo proxy SOCKS local em
-`127.0.0.1:40000`. O servico `warp-socks-relay.service` publica esse socket
-somente no gateway privado da rede Docker Coolify, em `172.16.1.1:40001`.
-Configure no recurso Coolify:
+- e criptografada com AES-256-GCM antes de ser gravada;
+- usa AAD vinculado ao UUID do usuario, impedindo mover o ciphertext entre
+  perfis;
+- nunca volta nas respostas da API;
+- pode ser mantida deixando o campo em branco ou removida explicitamente;
+- e lida somente pelo backend com `service_role`.
+
+A chave `FLUIG_CREDENTIALS_ENCRYPTION_KEY` deve ter 32 bytes em base64 ou 64
+caracteres hexadecimais, existir apenas como secret do Coolify e permanecer
+estavel entre deploys. Nao use `FLUIG_USERNAME` ou `FLUIG_PASSWORD` globais.
+
+## Rede ate o Fluig
+
+A rota direta da VPS ate o Fluig apresentou timeout antes do TLS. O servico
+WARP do host publica um proxy SOCKS somente no gateway privado da rede Docker:
 
 ```dotenv
 FLUIG_PROXY_URL=socks5://172.16.1.1:40001
 ```
 
-Se a rede `coolify` for recriada com outro gateway, atualize o bind do servico
-e a variavel antes de executar o runner. O ambiente original deve continuar
-ativo ate os testes de leitura e de abertura controlada serem aprovados.
+Esse proxy e aplicado apenas ao Chromium do executor. Aplicacao, Supabase e
+demais containers continuam usando a rota normal da VPS. Se a rede `coolify`
+for recriada, valide o gateway e o servico `warp-socks-relay.service` antes de
+executar tarefas Fluig.
 
-## Banco de homologacao
+## Banco self-hosted
 
-O script `scripts/migrate-supabase-to-vps.ps1` gera os dumps diretamente na VPS
-usando uma credencial temporaria e somente leitura emitida pelo Supabase CLI.
-Os arquivos ficam fora do repositorio e devem ser apagados depois da validacao.
+As migrations ficam em `supabase/migrations`. Antes de aplicar uma migration
+manualmente, crie backup no host e execute o SQL com `ON_ERROR_STOP=1`. A
+migration `20260721192657_fluig_user_credentials.sql` adiciona o cofre de
+credenciais e as RPCs exclusivas do executor da VPS.
 
-O processo de copia nao pausa nem modifica o Supabase gerenciado. Como os dois
-bancos passam a divergir depois da copia, qualquer teste que crie, altere ou
-cancele processos deve ser executado somente no dominio de homologacao.
+O banco validado na migracao possuia 61 tabelas publicas com RLS, 2 usuarios
+de Auth, 3 perfis, 956 fornecedores e 12.748 solicitacoes Fluig. Storage e
+Auth tambem sao componentes do Supabase self-hosted e precisam entrar no plano
+de backup junto com o Postgres.
 
-Na copia validada em 17/07/2026 havia 61 tabelas publicas com RLS habilitado,
-2 usuarios de Auth, 3 perfis, 956 fornecedores e 12.748 solicitacoes Fluig. Os
-dumps temporarios foram removidos da VPS depois da conferencia.
+## Variaveis obrigatorias no Coolify
 
-## Validacao antes do corte
+```dotenv
+NEXT_PUBLIC_APP_URL=https://portal-homolog.nexusmax.cloud
+NEXT_PUBLIC_SUPABASE_URL=https://supabase-portal.nexusmax.cloud
+SUPABASE_URL=https://supabase-portal.nexusmax.cloud
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+FLUIG_INTEGRATION_MODE=internal_runner
+FLUIG_SERVER_WORKER_ENABLED=true
+FLUIG_SERVER_WORKER_POLL_MS=2500
+FLUIG_CREDENTIALS_ENCRYPTION_KEY=...
+FLUIG_RUNTIME_DATA_DIR=/app/.adm-fluig-runtime
+FLUIG_BASE_URL=...
+FLUIG_PROXY_URL=socks5://172.16.1.1:40001
+```
 
-1. Confirmar Auth, REST, Storage e Realtime no Supabase da VPS.
-2. Confirmar login dos usuarios de teste; uma nova autenticacao sera exigida.
-3. Conferir contagens e amostras das tabelas operacionais.
-4. Validar consultas Fluig em modo somente leitura.
-5. Validar abertura produtiva com um caso de teste controlado e confirmacao.
-6. Manter a Vercel e o Supabase gerenciado ativos durante todo o aceite.
+Seletores e caminhos Fluig continuam configurados no Coolify. Segredos nunca
+devem ser gravados no Git, em tickets ou em logs.
 
-## Corte e rollback
+## Validacao e rollback
 
-O corte final sera feito somente depois do aceite, alterando DNS e variaveis do
-ambiente oficial. Enquanto isso nao ocorrer, o rollback consiste apenas em
-continuar usando `https://adm-maxcontrol.vercel.app`; nenhuma restauracao no
-ambiente original e necessaria.
+Depois de cada deploy:
+
+1. confirmar `/api/health` e o estado `healthy` do container;
+2. autenticar no portal usando o Supabase da VPS;
+3. executar `Testar conexao Fluig` com um usuario que possua credencial;
+4. conferir os eventos e o resultado do job no banco;
+5. fazer abertura ou cancelamento somente com confirmacao e caso controlado.
+
+O rollback de aplicacao e feito pelo deployment anterior do Coolify. Mudancas
+de banco exigem restauracao do backup correspondente; por isso migrations
+destrutivas nao devem ser aplicadas sem janela e teste de restauracao.

@@ -1098,24 +1098,19 @@ export async function listAgentsForActor(actor: AppActor) {
   return ((data || []) as DbAgentRow[]).map(mapAgent);
 }
 
-async function assertOnlineAgentForActor(client: SupabaseClient, actor: AppActor) {
-  const heartbeatCutoff = new Date(Date.now() - agentHeartbeatOnlineWindowMs).toISOString();
+async function assertFluigCredentialsForActor(client: SupabaseClient, actor: AppActor) {
   const { data, error } = await client
-    .from("fluig_user_agents")
-    .select("id")
+    .from("fluig_user_credentials")
+    .select("user_id")
     .eq("user_id", actor.id)
-    .eq("status", "online")
-    .gte("last_heartbeat_at", heartbeatCutoff)
-    .order("last_heartbeat_at", { ascending: false })
-    .limit(1)
     .maybeSingle();
   if (error) throw error;
   if (data) return;
 
   throw new AppAuthError(
-    "Nenhum agente Fluig online esta pareado com este usuario. Gere o token neste mesmo login, inicie o agente local e tente novamente.",
+    "Credenciais Fluig nao cadastradas para este usuario. Solicite ao administrador o preenchimento do usuario e da senha Fluig no cadastro de usuarios.",
     409,
-    "FLUIG_AGENT_OFFLINE"
+    "FLUIG_CREDENTIALS_MISSING"
   );
 }
 
@@ -1298,7 +1293,7 @@ export async function createFluigJob(input: {
 
   const selectedBranch = branchByCode || branchByLabel || input.actor.branches[0];
   await reconcileFluigJobLifecycle(client, input.actor.id);
-  await assertOnlineAgentForActor(client, input.actor);
+  await assertFluigCredentialsForActor(client, input.actor);
 
   const requestPayload = input.requestPayload || {};
   const branchCode = requestedBranchCode || selectedBranch?.code || null;
@@ -1521,6 +1516,59 @@ export async function pollNextAgentJob(agent: { id: string; userId: string }) {
     .maybeSingle();
   if (error) throw error;
   return data ? mapJob(data as DbJobRow) : null;
+}
+
+export async function claimNextServerFluigJob() {
+  const client = assertServiceClient();
+  const { data, error } = await client
+    .rpc("claim_next_fluig_server_job")
+    .maybeSingle();
+  if (error) throw error;
+  return data ? mapJob(data as DbJobRow) : null;
+}
+
+export async function recordServerFluigJobEvent(input: {
+  jobId: string;
+  eventType: string;
+  stage?: string | null;
+  label?: string | null;
+  payload?: JsonRecord;
+  status?: FluigJobStatus;
+}) {
+  const client = assertServiceClient();
+  const { data, error } = await client
+    .rpc("transition_fluig_server_job", {
+      p_job_id: input.jobId,
+      p_event_type: input.eventType,
+      p_stage: input.stage || null,
+      p_label: input.label || null,
+      p_status: input.status || null,
+      p_event_payload: input.payload || {},
+    })
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Job Fluig nao esta mais atribuido ao executor da VPS.");
+  return mapJob(data as DbJobRow);
+}
+
+export async function completeServerFluigJob(input: {
+  jobId: string;
+  status: "success" | "error" | "cancelled";
+  resultPayload?: JsonRecord;
+  errorMessage?: string | null;
+}) {
+  const client = assertServiceClient();
+  const { data, error } = await client
+    .rpc("complete_fluig_server_job", {
+      p_job_id: input.jobId,
+      p_status: input.status,
+      p_result_payload: input.resultPayload || {},
+      p_error_message: input.errorMessage || null,
+    })
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Job Fluig nao esta mais atribuido ao executor da VPS.");
+  return mapJob(data as DbJobRow);
 }
 
 export async function readJobForAgent(agent: { id: string; userId: string }, jobId: string) {

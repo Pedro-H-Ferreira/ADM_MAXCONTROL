@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/fluig-repository";
 import { getProcessMapForRequest, jsonError, mergePersistence, parseBoolean, parseNumber, readJsonBody } from "@/lib/fluig/route-utils";
 import { getFluigRuntimeConfig, queryFluigHistory, type FluigHistoryItem } from "@/lib/fluig/server-client";
+import { readFluigCredentials } from "@/lib/fluig/credentials";
 import { listFluigProcessMaps, type FluigProcessMap } from "@/lib/fluig/process-map";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
 
@@ -48,6 +49,8 @@ async function executeHistory(input: Required<Pick<HistoryBody, "module">> & Omi
   }> = [];
   const persistenceResults = [];
   const allItems: FluigHistoryItem[] = [];
+  if (!actor) throw new Error("Usuario nao identificado para executar a consulta Fluig.");
+  const credentials = await readFluigCredentials(actor.id);
 
   for (const map of maps) {
     const result = await queryFluigHistory(map, {
@@ -57,7 +60,7 @@ async function executeHistory(input: Required<Pick<HistoryBody, "module">> & Omi
       windows: input.windows,
       pageSize: input.pageSize,
       maxPages: input.maxPages,
-    });
+    }, credentials);
     const items = result.data?.items || [];
     allItems.push(...items);
     results.push({

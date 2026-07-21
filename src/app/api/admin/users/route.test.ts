@@ -69,4 +69,10 @@ describe("userAccessBodySchema", () => {
       pageAccess: [{ ...page, canView: false, canUpdate: true }],
     }).success).toBe(false);
   });
+
+  it("aceita senha Fluig somente como entrada e limita seu tamanho", () => {
+    expect(userAccessBodySchema.safeParse({ id: userId, fluigUsername: "usuario", fluigPassword: "segredo" }).success).toBe(true);
+    expect(userAccessBodySchema.safeParse({ id: userId, fluigPassword: "x".repeat(257) }).success).toBe(false);
+    expect(userAccessBodySchema.safeParse({ id: userId, clearFluigCredentials: true }).success).toBe(true);
+  });
 });

@@ -5,7 +5,6 @@ import {
   DatabaseZap,
   ExternalLink,
   FileText,
-  KeyRound,
   Laptop,
   RefreshCcw,
   Search,
@@ -126,7 +125,6 @@ export function FluigIntegrationPanel({
   const [lookupPending, setLookupPending] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [lookupResult, setLookupResult] = useState<FluigSyncRow | null>(null);
-  const [pairToken, setPairToken] = useState<string | null>(null);
   const agents = externalAgents ?? localAgents;
   const updateAgents = useCallback((nextAgents: FluigAdmAgent[]) => {
     setLocalAgents(nextAgents);
@@ -163,7 +161,7 @@ export function FluigIntegrationPanel({
       return;
     }
     if (!onlineAgent) {
-      setError("Pareie e inicie um agente Fluig para este usuario antes de executar a consulta.");
+      setError("Cadastre o usuario e a senha Fluig deste usuario antes de executar a consulta na VPS.");
       return;
     }
 
@@ -183,7 +181,7 @@ export function FluigIntegrationPanel({
 
   async function runHistoricalSync() {
     if (!integration || !onlineAgent) {
-      setError("Pareie e inicie um agente Fluig antes de reconstruir o historico.");
+      setError("Cadastre o usuario e a senha Fluig antes de reconstruir o historico na VPS.");
       return;
     }
     const confirmed = window.confirm(
@@ -218,7 +216,7 @@ export function FluigIntegrationPanel({
       return;
     }
     if (!onlineAgent) {
-      setError("Pareie e inicie um agente Fluig para este usuario antes de sincronizar.");
+      setError("Cadastre o usuario e a senha Fluig deste usuario antes de sincronizar.");
       return;
     }
 
@@ -256,7 +254,7 @@ export function FluigIntegrationPanel({
       return;
     }
     if (!onlineAgent) {
-      setLookupError("Pareie e inicie um agente Fluig para este usuario antes de consultar.");
+      setLookupError("Cadastre o usuario e a senha Fluig deste usuario antes de consultar.");
       return;
     }
 
@@ -305,29 +303,12 @@ export function FluigIntegrationPanel({
     return jobTracker.wait(jobId);
   }
 
-  async function pairAgent() {
-    setError(null);
-    setNotice(null);
-    setPairToken(null);
-
-    try {
-      const data = await fluigAdmApi.pairAgent({
-        displayName: "Agente Fluig desta maquina",
-      });
-      setPairToken(data.token);
-      const nextAgents = await fluigAdmApi.listAgents();
-      updateAgents(nextAgents);
-    } catch (pairError) {
-      setError(pairError instanceof Error ? pairError.message : "Falha ao parear agente Fluig");
-    }
-  }
-
   async function testAgentConnection() {
     if (!integration) {
       return;
     }
     if (!onlineAgent) {
-      setError("Nenhum agente local online para testar. Abra o agente nesta maquina e clique em Atualizar.");
+      setError("Credenciais Fluig nao cadastradas para este usuario.");
       return;
     }
 
@@ -338,11 +319,11 @@ export function FluigIntegrationPanel({
     try {
       const created = await fluigAdmApi.testAgentConnection({ module: integration.slug });
       await pollJobUntilDone(created.job.id);
-      setNotice("Conexao autenticada com o Fluig validada pelo agente local.");
+      setNotice("Conexao autenticada com o Fluig validada diretamente pela VPS.");
       const nextAgents = await fluigAdmApi.listAgents();
       updateAgents(nextAgents);
     } catch (testError) {
-      setError(testError instanceof Error ? testError.message : "Falha ao testar o agente local.");
+      setError(testError instanceof Error ? testError.message : "Falha ao testar a conexao Fluig na VPS.");
     } finally {
       setTestingAgent(false);
     }
@@ -403,13 +384,13 @@ export function FluigIntegrationPanel({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
               <Laptop className="size-4" />
-              Agente local
-              <StatusBadge status={onlineAgent ? "ONLINE" : agents.length ? "OFFLINE" : "NAO_PAREADO"} />
+              Executor da VPS
+              <StatusBadge status={onlineAgent ? "PRONTO" : "SEM_CREDENCIAL"} />
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {onlineAgent
                 ? `${onlineAgent.display_name} pronto para validar e enviar a solicitacao.`
-                : "O preenchimento esta disponivel, mas o agente precisa ficar online para consultar modelos e enviar ao Fluig."}
+                : "Cadastre usuario e senha Fluig na Gestao de usuarios para consultar modelos e enviar ao Fluig."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -423,12 +404,6 @@ export function FluigIntegrationPanel({
               <RefreshCcw className={cn("size-4", pendingAction === "examples" ? "animate-spin" : "")} />
               Atualizar listas e modelos
             </Button>
-            {!onlineAgent ? (
-              <Button type="button" variant="outline" className="stitch-soft-button" onClick={pairAgent} disabled={fluigBusy}>
-                <KeyRound className="size-4" />
-                Parear agente
-              </Button>
-            ) : null}
             <Button type="button" variant="outline" className="stitch-soft-button" asChild>
               <a href={integration.openUrl} target="_blank" rel="noreferrer">
                 <ExternalLink className="size-4" />
@@ -445,16 +420,7 @@ export function FluigIntegrationPanel({
               <StatusBadge status={activeJob.status.toUpperCase()} />
               <span className="font-mono text-muted-foreground">{activeJob.id.slice(0, 8)}</span>
             </div>
-            <p className="mt-1 text-muted-foreground">{activeJob.progressLabel || "Aguardando agente local assumir a tarefa."}</p>
-          </div>
-        ) : null}
-        {pairToken ? (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
-            <p className="font-semibold">Token gerado uma unica vez</p>
-            <p className="mt-1 break-all font-mono">{pairToken}</p>
-            <p className="mt-2">
-              Execute <span className="font-mono">INSTALAR-AGENTE-FLUIG.bat</span> e cole este token quando solicitado.
-            </p>
+            <p className="mt-1 text-muted-foreground">{activeJob.progressLabel || "Aguardando o executor da VPS assumir a tarefa."}</p>
           </div>
         ) : null}
         {notice ? <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-800">{notice}</p> : null}
@@ -492,7 +458,7 @@ export function FluigIntegrationPanel({
             <div className="grid gap-2 rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground lg:w-72">
               <span className="font-medium text-foreground">Fluxo operacional</span>
               <span>{integration.processLabel}</span>
-              <span>Execucao pelo agente local do usuario.</span>
+              <span>Execucao direta pelo runner interno da VPS.</span>
             </div>
           ) : null}
         </div>
@@ -522,10 +488,6 @@ export function FluigIntegrationPanel({
               Abrir formulario Fluig
             </a>
           </Button>
-          <Button type="button" variant="outline" className="stitch-soft-button" onClick={pairAgent} disabled={fluigBusy}>
-            <KeyRound className="size-4" />
-            Parear agente
-          </Button>
           <Button
             type="button"
             variant="outline"
@@ -534,29 +496,27 @@ export function FluigIntegrationPanel({
             disabled={fluigBusy || !onlineAgent}
           >
             {testingAgent ? <RefreshCcw className="size-4 animate-spin" /> : <Laptop className="size-4" />}
-            Testar agente
+            Testar conexao VPS
           </Button>
         </div>
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
           <div className="rounded-md border bg-muted/20 p-3 text-xs">
             <div className="flex items-center gap-2 font-medium">
               <Laptop className="size-4" />
-              Agente local
-              <StatusBadge status={onlineAgent ? "ONLINE" : agents.length ? "OFFLINE" : "NAO_PAREADO"} />
+              Executor da VPS
+              <StatusBadge status={onlineAgent ? "PRONTO" : "SEM_CREDENCIAL"} />
             </div>
             <p className="mt-2 text-muted-foreground">
               {onlineAgent
                 ? `${onlineAgent.display_name} ativo${onlineAgent.machine_name ? ` em ${onlineAgent.machine_name}` : ""}.`
-                : agents.length
-                  ? "Existe agente pareado, mas ele nao enviou heartbeat recente."
-                  : "Nenhum agente local pareado para este usuario."}
+                : "Credenciais Fluig nao cadastradas para este usuario."}
             </p>
             {onlineAgent ? (
               <div className="mt-2 grid gap-1 text-muted-foreground md:grid-cols-2">
-                <span>Heartbeat: {formatDateTime(onlineAgent.last_heartbeat_at)}</span>
+                <span>Disponivel: {formatDateTime(onlineAgent.last_heartbeat_at)}</span>
                 <span>Versao: {onlineAgent.agent_version || "-"}</span>
-                <span>Ultimo sinal: {describeHeartbeatAge(onlineAgent.heartbeat_age_seconds)}</span>
-                <span>{onlineAgent.local_api_url || "API local nao informada"}</span>
+                <span>Estado: {describeHeartbeatAge(onlineAgent.heartbeat_age_seconds)}</span>
+                <span>Integracao interna do Coolify</span>
               </div>
             ) : null}
           </div>
@@ -567,7 +527,7 @@ export function FluigIntegrationPanel({
                 <StatusBadge status={activeJob.status.toUpperCase()} />
                 <span className="font-mono text-muted-foreground">{activeJob.id.slice(0, 8)}</span>
               </div>
-              <p className="mt-2 text-muted-foreground">{activeJob.progressLabel || "Aguardando agente local assumir a tarefa."}</p>
+              <p className="mt-2 text-muted-foreground">{activeJob.progressLabel || "Aguardando o executor da VPS assumir a tarefa."}</p>
               {activeJob.events.length ? (
                 <div className="mt-2 max-h-24 space-y-1 overflow-auto">
                   {activeJob.events.slice(-4).map((event) => (
@@ -583,7 +543,7 @@ export function FluigIntegrationPanel({
             </div>
           ) : (
             <div className="rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground">
-              As proximas consultas e lancamentos serao executados pelo agente local do usuario.
+              As proximas consultas e lancamentos serao executados diretamente pela VPS com a credencial deste usuario.
             </div>
           )}
         </div>
@@ -658,15 +618,6 @@ export function FluigIntegrationPanel({
               {lookupPending ? "Consultando" : "Consultar numero"}
             </Button>
           </form>
-        ) : null}
-        {pairToken ? (
-          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
-            <p className="font-semibold">Token gerado uma unica vez</p>
-            <p className="mt-1 break-all font-mono">{pairToken}</p>
-            <p className="mt-2">
-              Execute <span className="font-mono">INSTALAR-AGENTE-FLUIG.bat</span> e cole este token quando solicitado.
-            </p>
-          </div>
         ) : null}
         {syncData ? (
           <p className="text-xs text-muted-foreground">

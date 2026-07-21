@@ -285,7 +285,7 @@ export function FluigModuleOperationsPage({
 
   async function syncThisModule() {
     if (!onlineAgent) {
-      const message = "Pareie e inicie um agente Fluig para este usuario antes de sincronizar este modulo.";
+      const message = "Cadastre o usuario e a senha Fluig antes de sincronizar este modulo pela VPS.";
       setError(message);
       toast.error(message);
       return;
@@ -320,7 +320,7 @@ export function FluigModuleOperationsPage({
 
   async function refreshSelectedRequest() {
     if (!selectedRequest || requestRefreshing) return;
-    if (!onlineAgent) { toast.error("O agente Fluig precisa estar online para consultar a solicitacao."); return; }
+    if (!onlineAgent) { toast.error("Cadastre o usuario e a senha Fluig antes de consultar a solicitacao pela VPS."); return; }
     setRequestRefreshing(true);
     try {
       const created = await fluigAdmApi.lookupRequest({ module: moduleSlug, fluigRequestId: selectedRequest.fluigRequestId, persist: true });
@@ -357,7 +357,7 @@ export function FluigModuleOperationsPage({
         <div className="grid gap-1 text-sm">
           <span className="font-medium">{integration.processLabel}</span>
           <span className="text-muted-foreground">
-            Abertura, consulta e acompanhamento ficam nesta pagina; o agente local executa o Fluig em segundo plano.
+            Abertura, consulta e acompanhamento ficam nesta pagina; a VPS executa o Fluig em segundo plano.
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -383,10 +383,10 @@ export function FluigModuleOperationsPage({
       </div>
 
       <div className="stitch-animate-in grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-        <MetricTile icon={Laptop} label="Agente local" value={onlineAgent ? "Online" : "Pendente"} detail={describeAgent(onlineAgent)} />
+        <MetricTile icon={Laptop} label="Executor da VPS" value={onlineAgent ? "Pronto" : "Sem credencial"} detail={describeAgent(onlineAgent)} />
         <MetricTile icon={ClipboardList} label="Tarefas abertas" value={String(taskTotal)} detail="Pendencias do usuario neste modulo" />
         <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requestTotal)} detail="Total acompanhado pelo ADM, nao apenas a pagina atual" />
-        <MetricTile icon={RefreshCcw} label="Jobs em andamento" value={String(pendingJobs.length)} detail="Execucoes aguardando agente local" />
+        <MetricTile icon={RefreshCcw} label="Jobs em andamento" value={String(pendingJobs.length)} detail="Execucoes processadas pela VPS" />
         <MetricTile
           icon={AlertTriangle}
           label="Erros recentes"
@@ -446,7 +446,7 @@ export function FluigModuleOperationsPage({
             <SheetDescription>
               {workspaceView === "launch"
                 ? "Preencha, valide e envie a solicitacao sem sair desta pagina."
-                : "Sincronize dados, consulte solicitacoes e configure o agente local."}
+                : "Sincronize dados, consulte solicitacoes e configure a credencial Fluig do usuario."}
             </SheetDescription>
             <div className="mt-3 flex w-fit rounded-lg border bg-muted/40 p-1" role="group" aria-label="Area de trabalho Fluig">
               <Button
@@ -534,7 +534,7 @@ function PendingJobs({ jobs }: { jobs: FluigAdmJobSummary[] }) {
               </div>
               <StatusBadge status={normalizeJobStatus(job.status)} />
             </div>
-            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{job.progressLabel || "Aguardando resposta do agente local."}</p>
+            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{job.progressLabel || "Aguardando resposta do executor da VPS."}</p>
           </div>
         ))}
       </div>
@@ -603,7 +603,7 @@ function RequestTable({
 function JobsTable({ jobs, states, loading }: { jobs: FluigAdmJobSummary[]; states: FluigUserSyncStateRecord[]; loading: boolean }) {
   if (loading && !jobs.length) return <EmptyTableText>Carregando jobs e sincronizacoes...</EmptyTableText>;
   if (!jobs.length && !states.length) return <EmptyTableText>Nenhum job ou sincronizacao registrado.</EmptyTableText>;
-  return <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Inicio</TableHead><TableHead>Operacao</TableHead><TableHead>Andamento</TableHead><TableHead>Tentativas</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{jobs.map((job) => <TableRow key={job.id}><TableCell className="whitespace-nowrap">{formatDateTime(job.createdAt)}</TableCell><TableCell><p className="font-medium">{job.operation.replaceAll("_", " ")}</p><p className="text-xs text-muted-foreground">{job.id.slice(0, 8)}</p></TableCell><TableCell className="min-w-72 whitespace-normal">{job.errorMessage || job.progressLabel || job.progressStage || "Aguardando agente local"}</TableCell><TableCell>{job.attempts}/{job.maxAttempts}</TableCell><TableCell><StatusBadge status={normalizeJobStatus(job.status)} /></TableCell></TableRow>)}</TableBody></Table>{states.length ? <div className="border-t p-3"><h3 className="mb-2 text-sm font-medium">Cursores de sincronizacao</h3><div className="grid gap-2 md:grid-cols-2">{states.map((state) => <div key={state.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-xs"><div><p className="font-medium">{syncTypeLabels[state.syncType]}</p><p className="text-muted-foreground">{formatDateTime(state.lastSuccessAt || state.lastErrorAt || state.updatedAt)}</p></div><Badge variant="outline">{state.status}</Badge></div>)}</div></div> : null}</div>;
+  return <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Inicio</TableHead><TableHead>Operacao</TableHead><TableHead>Andamento</TableHead><TableHead>Tentativas</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{jobs.map((job) => <TableRow key={job.id}><TableCell className="whitespace-nowrap">{formatDateTime(job.createdAt)}</TableCell><TableCell><p className="font-medium">{job.operation.replaceAll("_", " ")}</p><p className="text-xs text-muted-foreground">{job.id.slice(0, 8)}</p></TableCell><TableCell className="min-w-72 whitespace-normal">{job.errorMessage || job.progressLabel || job.progressStage || "Aguardando executor da VPS"}</TableCell><TableCell>{job.attempts}/{job.maxAttempts}</TableCell><TableCell><StatusBadge status={normalizeJobStatus(job.status)} /></TableCell></TableRow>)}</TableBody></Table>{states.length ? <div className="border-t p-3"><h3 className="mb-2 text-sm font-medium">Cursores de sincronizacao</h3><div className="grid gap-2 md:grid-cols-2">{states.map((state) => <div key={state.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-xs"><div><p className="font-medium">{syncTypeLabels[state.syncType]}</p><p className="text-muted-foreground">{formatDateTime(state.lastSuccessAt || state.lastErrorAt || state.updatedAt)}</p></div><Badge variant="outline">{state.status}</Badge></div>)}</div></div> : null}</div>;
 }
 
 function RequestDetail({ label, value }: { label: string; value: string }) {

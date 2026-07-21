@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
-import { resolveCurrentAppUser } from "@/lib/db/app-repository";
+import { resolveCurrentAppUser, type AppActor } from "@/lib/db/app-repository";
 import {
   buildSupplierCandidates,
   persistHistoryItems,
@@ -10,6 +10,7 @@ import {
 import { getProcessMapForRequest, jsonError, mergePersistence, parseNumber, readJsonBody } from "@/lib/fluig/route-utils";
 import { listFluigProcessMaps } from "@/lib/fluig/process-map";
 import { getFluigRuntimeConfig, queryFluigHistory, type FluigHistoryItem } from "@/lib/fluig/server-client";
+import { readFluigCredentials } from "@/lib/fluig/credentials";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,9 +50,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const body = await readJsonBody<PreloadBody>(request, {});
   const runtimeConfig = getFluigRuntimeConfig();
+  let actor: AppActor;
 
   try {
-    const actor = await resolveCurrentAppUser();
+    actor = await resolveCurrentAppUser();
     if (!actor.isAdmin) {
       return jsonError("Somente administradores podem reconstruir o catalogo historico de fornecedores.", 403);
     }
@@ -65,13 +67,14 @@ export async function POST(request: Request) {
     const maps = mapsForPreload(body.module);
     const allItems: FluigHistoryItem[] = [];
     const persistenceResults = [];
+    const credentials = await readFluigCredentials(actor.id);
 
     for (const map of maps) {
       const result = await queryFluigHistory(map, {
         days: body.days ?? 180,
         pageSize: body.pageSize ?? 100,
         maxPages: body.maxPages ?? 5,
-      });
+      }, credentials);
       const items = result.data?.items || [];
       allItems.push(...items);
       if (body.persist !== false) {

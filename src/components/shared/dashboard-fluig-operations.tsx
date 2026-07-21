@@ -98,7 +98,7 @@ function sortByRecentActivity(a: FluigOpenRequestRecord, b: FluigOpenRequestReco
 }
 
 function describeAgent(agent: FluigAdmAgent | null) {
-  if (!agent) return "Nenhum agente online para este usuario.";
+  if (!agent) return "Credenciais Fluig nao cadastradas para este usuario.";
   return `${agent.display_name}${agent.machine_name ? ` em ${agent.machine_name}` : ""} - ${describeHeartbeatAge(agent.heartbeat_age_seconds)}`;
 }
 
@@ -202,7 +202,7 @@ export function DashboardFluigOperations() {
   async function syncMyFluig() {
     if (!onlineAgent) {
       const message =
-        "Nenhum agente Fluig online esta pareado com este usuario. Gere o token em uma pagina operacional e inicie o agente nesta maquina.";
+        "Credenciais Fluig nao cadastradas para este usuario. Solicite o cadastro em Gestao de usuarios.";
       setError(message);
       toast.error(message);
       return;
@@ -246,7 +246,7 @@ export function DashboardFluigOperations() {
 
   async function testAgentConnection() {
     if (!onlineAgent) {
-      setError("Nenhum agente local online para testar. Abra o agente nesta maquina e clique em Atualizar.");
+      setError("Credenciais Fluig nao cadastradas para este usuario.");
       return;
     }
 
@@ -269,10 +269,10 @@ export function DashboardFluigOperations() {
 
       setJobs((current) => [testJob, ...current.filter((job) => job.id !== testJob.id)]);
       await pollJobsUntilDone([testJob]);
-      setMessage("Conexao autenticada com o Fluig validada pelo agente local.");
+      setMessage("Conexao autenticada com o Fluig validada diretamente pela VPS.");
       await refresh(true);
     } catch (testError) {
-      setError(testError instanceof Error ? testError.message : "Falha ao testar o agente local.");
+      setError(testError instanceof Error ? testError.message : "Falha ao testar a conexao Fluig na VPS.");
     } finally {
       setTestingAgent(false);
     }
@@ -287,7 +287,7 @@ export function DashboardFluigOperations() {
             Operacao Fluig do usuario
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            Tarefas, solicitacoes abertas e status sincronizados pelo agente local pareado.
+            Tarefas, solicitacoes abertas e status sincronizados diretamente pela VPS.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -303,7 +303,7 @@ export function DashboardFluigOperations() {
             disabled={loading || syncing || testingAgent || !onlineAgent}
           >
             {testingAgent ? <Loader2 className="size-4 animate-spin" /> : <Laptop className="size-4" />}
-            Testar agente
+            Testar conexao VPS
           </Button>
           <Button
             type="button"
@@ -318,7 +318,7 @@ export function DashboardFluigOperations() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
-          <MetricTile icon={Laptop} label="Agente local" value={onlineAgent ? "Online" : "Pendente"} detail={describeAgent(onlineAgent)} />
+          <MetricTile icon={Laptop} label="Executor da VPS" value={onlineAgent ? "Pronto" : "Sem credencial"} detail={describeAgent(onlineAgent)} />
           <MetricTile icon={ClipboardList} label="Minhas tarefas" value={String(taskTotal)} detail="Pendencias sob responsabilidade do usuario" />
           <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requestTotal)} detail="Pagamentos, compras e manutencoes" />
           <MetricTile icon={ClipboardCheck} label="Aguardando acao" value={String(taskTotal)} detail="Itens do Fluig que dependem do usuario logado" />
@@ -345,7 +345,7 @@ export function DashboardFluigOperations() {
                     <span>{moduleLabels[job.module]}</span>
                     <StatusBadge status={normalizeStatus(job.status, "PROCESSANDO")} />
                   </div>
-                  <p className="mt-1 text-muted-foreground">{job.progressLabel || "Aguardando agente local."}</p>
+                  <p className="mt-1 text-muted-foreground">{job.progressLabel || "Aguardando o executor da VPS."}</p>
                 </div>
               ))}
             </div>

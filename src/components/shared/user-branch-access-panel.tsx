@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock3, Save, ShieldCheck, UserCheck, UserRound, UserX } from "lucide-react";
+import { Clock3, KeyRound, Save, ShieldCheck, UserCheck, UserRound, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +49,7 @@ type UserProfile = {
   role: string;
   fluigUsername: string | null;
   fluigUserId: string | null;
+  fluigCredentialConfigured: boolean;
   homeBranchId: string | null;
   active: boolean;
   approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
@@ -116,6 +117,8 @@ export function UserBranchAccessPanel() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fluigPassword, setFluigPassword] = useState("");
+  const [clearFluigCredentials, setClearFluigCredentials] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function loadUsers() {
@@ -151,6 +154,8 @@ export function UserBranchAccessPanel() {
   function selectUser(user: UserProfile) {
     const branchIds = user.branches.filter((branch) => branch.canView).map((branch) => branch.branchId);
     setSelectedUserId(user.id);
+    setFluigPassword("");
+    setClearFluigCredentials(false);
     setDraft({
       ...user,
       branchIds,
@@ -224,6 +229,8 @@ export function UserBranchAccessPanel() {
           displayName: draft.displayName,
           role: draft.role,
           fluigUsername: draft.fluigUsername,
+          fluigPassword: fluigPassword || undefined,
+          clearFluigCredentials,
           fluigUserId: draft.fluigUserId,
           homeBranchId: draft.homeBranchId,
           branchIds: draft.branchIds,
@@ -237,7 +244,9 @@ export function UserBranchAccessPanel() {
         throw new Error(data.error || "Falha ao salvar usuario");
       }
       await loadUsers();
-      toast.success("Acessos do usuario atualizados.");
+      setFluigPassword("");
+      setClearFluigCredentials(false);
+      toast.success("Acessos e credencial Fluig do usuario atualizados.");
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : "Falha ao salvar usuario";
       setError(message);
@@ -398,8 +407,40 @@ export function UserBranchAccessPanel() {
                     id="fluigUsername"
                     value={draft.fluigUsername || ""}
                     onChange={(event) => setDraft((current) => ({ ...current, fluigUsername: event.target.value }))}
-                    placeholder="login ou nome retornado pelo Fluig"
+                    placeholder="login usado para entrar no Fluig"
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="fluigPassword">Senha Fluig</Label>
+                  <Input
+                    id="fluigPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    value={fluigPassword}
+                    disabled={clearFluigCredentials}
+                    onChange={(event) => setFluigPassword(event.target.value)}
+                    placeholder={draft.fluigCredentialConfigured ? "Deixe em branco para manter a senha" : "Informe a senha do Fluig"}
+                  />
+                </div>
+                <div className="flex items-start gap-3 rounded-md border bg-background p-3 md:col-span-2">
+                  <KeyRound className="mt-0.5 size-4 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">
+                      Credencial da VPS: {draft.fluigCredentialConfigured ? "configurada" : "nao configurada"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      A senha e criptografada no servidor, nunca e devolvida pela API e sera usada somente pelo executor Fluig da VPS.
+                    </p>
+                  </div>
+                  {draft.fluigCredentialConfigured ? (
+                    <label className="flex shrink-0 items-center gap-2 text-xs">
+                      <Checkbox
+                        checked={clearFluigCredentials}
+                        onCheckedChange={(value) => setClearFluigCredentials(Boolean(value))}
+                      />
+                      Remover credencial
+                    </label>
+                  ) : null}
                 </div>
               </div>
 

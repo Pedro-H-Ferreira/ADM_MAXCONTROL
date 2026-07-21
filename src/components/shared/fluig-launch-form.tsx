@@ -854,7 +854,7 @@ export function FluigLaunchForm({
         setMessage(
           launch?.fluigRequestId
             ? `Solicitacao Fluig ${launch.fluigRequestId} aberta, vinculada ao lancamento e disponivel para receber a ADF assinada.`
-            : "Lancamento executado pelo agente. Atualize o historico para consultar o numero Fluig."
+            : "Lancamento executado pela VPS. Atualize o historico para consultar o numero Fluig."
         );
         await refreshOperationalLaunches();
       } else {
@@ -890,7 +890,7 @@ export function FluigLaunchForm({
               <span className="font-mono text-muted-foreground">{jobState.id.slice(0, 8)}</span>
             </div>
             <p className="mt-1 max-w-sm text-muted-foreground">
-              {jobState.progressLabel || "Aguardando agente local assumir a tarefa."}
+              {jobState.progressLabel || "Aguardando o executor da VPS assumir a tarefa."}
             </p>
           </div>
         ) : null}

@@ -118,8 +118,6 @@ const requiredInternalRunnerEnv = [
   "FLUIG_BASE_URL",
   "FLUIG_LOGIN_PATH",
   "FLUIG_LANCAMENTO_PATH",
-  "FLUIG_USERNAME",
-  "FLUIG_PASSWORD",
   "LOGIN_USER_SELECTOR",
   "LOGIN_PASSWORD_SELECTOR",
   "LOGIN_SUBMIT_SELECTOR",
@@ -221,16 +219,20 @@ async function runNodeScript<T>({
   args,
   resultTag,
   timeoutMs = 600000,
+  credentials,
 }: {
   runnerRoot: string;
   scriptPath: string;
   args: string[];
   resultTag: string;
   timeoutMs?: number;
+  credentials?: { username: string; password: string };
 }) {
   const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args], {
     cwd: runnerRoot,
-    env: process.env,
+    env: credentials
+      ? { ...process.env, FLUIG_USERNAME: credentials.username, FLUIG_PASSWORD: credentials.password }
+      : process.env,
     timeout: timeoutMs,
     windowsHide: true,
     maxBuffer: 20 * 1024 * 1024,
@@ -256,7 +258,8 @@ export async function queryFluigHistory(
     windows?: Array<{ start: string; end: string }>;
     pageSize?: number;
     maxPages?: number;
-  } = {}
+  } = {},
+  credentials?: { username: string; password: string }
 ): Promise<DirectScriptResult<FluigHistoryOutput>> {
   const runnerRoot = ensureInternalRunner();
   const args = [
@@ -289,6 +292,7 @@ export async function queryFluigHistory(
     scriptPath: resolveAdmScript("fluig-adm-query-history.cjs"),
     args,
     resultTag: "ADM_FLUIG_HISTORY_RESULT",
+    credentials,
   });
 }
 

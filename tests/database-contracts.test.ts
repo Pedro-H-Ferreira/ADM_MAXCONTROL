@@ -446,18 +446,24 @@ describe("database and API contracts", () => {
     expect(integrationDoc).toContain("cria job `sync_status`");
   });
 
-  it("isola agentes por usuario e exige heartbeat proprio antes de criar jobs", async () => {
+  it("isola credenciais por usuario e executa jobs diretamente na VPS", async () => {
     const repository = await source("src/lib/db/app-repository.ts");
-    const transactionalMigration = await source("supabase/migrations/20260713014131_transactional_fluig_job_queue.sql");
+    const serverMigration = await source("supabase/migrations/20260721192657_fluig_user_credentials.sql");
+    const credentials = await source("src/lib/fluig/credentials.ts");
+    const serverWorker = await source("src/lib/fluig/server-worker.ts");
     const dashboard = await source("src/components/shared/dashboard-fluig-operations.tsx");
     const tasksPage = await source("src/components/pages/fluig-tasks-page.tsx");
     const integrationPanel = await source("src/components/shared/fluig-integration-panel.tsx");
 
-    expect(repository).toMatch(/listAgentsForActor[\s\S]*?\.eq\("user_id", actor\.id\)/);
-    expect(repository).toContain("assertOnlineAgentForActor");
-    expect(repository).toContain('"FLUIG_AGENT_OFFLINE"');
-    expect(repository).toMatch(/pollNextAgentJob[\s\S]*?rpc\("claim_next_fluig_job"/);
-    expect(transactionalMigration).toContain("j.requested_by_user_id = v_user_id");
+    expect(repository).toContain("assertFluigCredentialsForActor");
+    expect(repository).toContain('"FLUIG_CREDENTIALS_MISSING"');
+    expect(repository).toMatch(/claimNextServerFluigJob[\s\S]*?rpc\("claim_next_fluig_server_job"/);
+    expect(serverMigration).toContain("join public.fluig_user_credentials c on c.user_id = j.requested_by_user_id");
+    expect(serverMigration).toContain("revoke all on table public.fluig_user_credentials from public, anon, authenticated");
+    expect(credentials).toContain('createCipheriv("aes-256-gcm"');
+    expect(credentials).toContain("decipher.setAAD");
+    expect(serverWorker).toContain("readFluigCredentials(job.requestedByUserId)");
+    expect(serverWorker).toContain("claimNextServerFluigJob");
     expect(repository).toMatch(/listJobsForActor[\s\S]*?\.eq\("requested_by_user_id", actor\.id\)/);
     expect(repository).toMatch(/readJobForActor[\s\S]*?\.eq\("requested_by_user_id", actor\.id\)/);
     expect(repository).toContain('owner.approval_status !== "APPROVED"');

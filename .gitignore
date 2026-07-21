@@ -27,6 +27,7 @@
 .DS_Store
 *.pem
 /.codex/
+/.adm-fluig-runtime/
 /logs/
 /storage/
 /supabase/.temp/
