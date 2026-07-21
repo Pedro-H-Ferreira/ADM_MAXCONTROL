@@ -12,9 +12,8 @@
 
 # testing
 /coverage
-/output/playwright/.auth/
-/output/playwright/report/
-/output/playwright/results/
+/.playwright-cli/
+/output/
 
 # next.js
 /.next/
