@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { listConfiguredFluigUserActors, resolveCurrentAppUser } from "@/lib/db/app-repository";
+import { listFluigMonitoredUsersForSync } from "@/lib/db/fluig-repository";
 import { createUserIncrementalBatchJob } from "@/app/api/fluig/adm/sync/_helpers";
 
 export const runtime = "nodejs";
@@ -29,53 +30,38 @@ export async function POST(request: Request) {
 
     if (parsed.data.scope === "all") {
       if (!actor.isAdmin) return jsonError("Somente administradores podem sincronizar todos os usuarios Fluig.", 403);
-      const configuredActors = await listConfiguredFluigUserActors();
-      const selectedActors = parsed.data.userId
-        ? configuredActors.filter((target) => target.id === parsed.data.userId)
-        : configuredActors;
-      const uniqueActors = Array.from(
-        new Map(
-          selectedActors.map((target) => [
-            String(target.fluigUserId || target.fluigUsername || target.email || target.id).trim().toLowerCase(),
-            target,
-          ])
-        ).values()
-      );
-      const jobs = [];
-      const skipped: Array<{ userId: string; displayName: string; reason: string }> = [];
-
-      for (const target of uniqueActors) {
-        try {
-          const result = await createUserIncrementalBatchJob({
-            actor: { ...target, isAdmin: true },
-            module: parsed.data.module,
-            limit: parsed.data.limit,
-          });
-          jobs.push(...result.jobs.map((job) => ({
-            ...job,
-            requestedUserId: target.id,
-            requestedUserName: target.displayName,
-          })));
-          skipped.push(...result.skipped.map((item) => ({
-            userId: target.id,
-            displayName: target.displayName,
-            reason: `${item.module}: ${item.reason}`,
-          })));
-        } catch (error) {
-          skipped.push({
-            userId: target.id,
-            displayName: target.displayName,
-            reason: error instanceof Error ? error.message : "Falha ao criar sincronizacao.",
-          });
-        }
+      const [configuredActors, monitored] = await Promise.all([
+        listConfiguredFluigUserActors(),
+        listFluigMonitoredUsersForSync(actor),
+      ]);
+      if (monitored.persistence.errors.length) throw new Error(monitored.persistence.errors.join(" "));
+      const credentialActor = configuredActors.find((target) => target.id === actor.id) || configuredActors[0];
+      if (!credentialActor) {
+        return jsonError("Cadastre ao menos uma credencial Fluig para a VPS sincronizar os usuarios monitorados.", 409);
       }
+      const selectedUsers = parsed.data.userId
+        ? monitored.users.filter((target) => target.id === parsed.data.userId)
+        : monitored.users;
+      if (!selectedUsers.length) return jsonError("Nenhum usuario Fluig monitorado encontrado para sincronizacao.", 404);
+      const result = await createUserIncrementalBatchJob({
+        actor: { ...credentialActor, isAdmin: true },
+        module: parsed.data.module,
+        limit: parsed.data.limit,
+        monitoredUsers: selectedUsers.map((target) => ({
+          id: target.id,
+          displayName: target.displayName,
+          email: target.email,
+          fluigUserId: target.fluigUserId,
+          fluigLogin: target.fluigUsername,
+        })),
+      });
 
       return NextResponse.json({
         success: true,
         scope: "all",
-        jobs,
-        skipped,
-        usersQueued: uniqueActors.length,
+        jobs: result.jobs,
+        skipped: result.skipped,
+        usersQueued: selectedUsers.length,
       });
     }
 

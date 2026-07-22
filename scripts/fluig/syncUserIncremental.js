@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const config = require("./config");
 const { loginWithBrowser } = require("./api/session");
-const { fetchUserTaskCentral } = require("./api/userTaskApi");
+const { fetchCurrentFluigUser, fetchUserTaskCentral } = require("./api/userTaskApi");
 const { fetchAttachments, fetchDetails, fetchHistories, fetchRequest } = require("./api/workflowViewApi");
 const { normalizeAttachments, normalizeFormFields, normalizeHistory } = require("./requestDetails").__test;
 
@@ -145,6 +145,68 @@ async function enrichCentralItems(page, items, batches, detailState) {
   return { items, refreshed: pending.length, reused: items.length - pending.length };
 }
 
+function mergeMembershipSummaries(results) {
+  const modules = new Map();
+  let openTasks = 0;
+  let myRequests = 0;
+  for (const result of results) {
+    openTasks += Number(result.centralTaskTotals?.openTasks || 0);
+    myRequests += Number(result.centralTaskTotals?.myRequests || 0);
+    for (const row of result.membership?.modules || []) {
+      const current = modules.get(row.module) || { module: row.module, openTasks: 0, myRequests: 0 };
+      current.openTasks += Number(row.openTasks || 0);
+      current.myRequests += Number(row.myRequests || 0);
+      modules.set(row.module, current);
+    }
+  }
+  return { global: { openTasks, myRequests }, modules: Array.from(modules.values()) };
+}
+
+async function syncMonitoredUsers(page, batches, targets) {
+  let completed = 0;
+  const results = await mapWithConcurrency(targets, 3, async (target) => {
+    try {
+      const central = await fetchUserTaskCentral(page, batches, { timeoutMs: 600000, targetUser: target });
+      return {
+        id: target.id || null,
+        displayName: target.displayName || central.currentFluigUser.fullName || target.email,
+        email: target.email || central.currentFluigUser.email,
+        currentFluigUser: central.currentFluigUser,
+        centralTaskTotals: central.centralTaskTotals,
+        membership: central.membership,
+        sourceCounts: central.sourceCounts,
+        syncStartedAt: central.syncStartedAt,
+        processedAt: central.processedAt,
+        items: central.items,
+        error: null,
+      };
+    } catch (error) {
+      return {
+        id: target.id || null,
+        displayName: target.displayName || target.email,
+        email: target.email || null,
+        currentFluigUser: target.fluigUserId ? { code: target.fluigUserId, login: target.fluigLogin || null, email: target.email || null, fullName: target.displayName || null } : null,
+        centralTaskTotals: { openTasks: 0, myRequests: 0 },
+        membership: { global: { openTasks: 0, myRequests: 0 }, modules: [] },
+        sourceCounts: { openTasks: 0, myRequests: 0, mapped: 0, unmapped: 0 },
+        syncStartedAt: new Date().toISOString(),
+        processedAt: new Date().toISOString(),
+        items: [],
+        error: error && error.message ? error.message : String(error),
+      };
+    } finally {
+      completed += 1;
+      emitProgress({
+        stage: "consultando_usuarios_monitorados",
+        label: `Consultando tarefas dos usuarios: ${completed}/${targets.length}.`,
+        current: completed,
+        total: targets.length,
+      });
+    }
+  });
+  return results;
+}
+
 async function main() {
   const payload = readPayload();
   const batches = Array.isArray(payload.batches) ? payload.batches : [];
@@ -167,6 +229,69 @@ async function main() {
       current: 1,
       total: 3,
     });
+    const monitoredTargets = Array.isArray(payload.monitoredUsers) ? payload.monitoredUsers.filter((item) => item?.email || item?.fluigUserId) : [];
+    if (monitoredTargets.length) {
+      const authenticatedFluigUser = await fetchCurrentFluigUser(session.page, 600000);
+      const monitoredResults = await syncMonitoredUsers(session.page, batches, monitoredTargets);
+      const successfulResults = monitoredResults.filter((item) => !item.error);
+      const items = successfulResults.flatMap((item) => item.items || []);
+      const membership = mergeMembershipSummaries(successfulResults);
+      const sourceCounts = successfulResults.reduce((total, item) => ({
+        openTasks: total.openTasks + Number(item.sourceCounts?.openTasks || 0),
+        myRequests: total.myRequests + Number(item.sourceCounts?.myRequests || 0),
+        mapped: total.mapped + Number(item.sourceCounts?.mapped || 0),
+        unmapped: total.unmapped + Number(item.sourceCounts?.unmapped || 0),
+      }), { openTasks: 0, myRequests: 0, mapped: 0, unmapped: 0 });
+      const output = {
+        processed: items.length,
+        taskUserId: authenticatedFluigUser.code,
+        batchCount: batches.length,
+        batched: true,
+        directTaskCentral: true,
+        bulkMonitoredUsers: true,
+        currentFluigUser: authenticatedFluigUser,
+        centralTaskTotals: membership.global,
+        membership,
+        sourceCounts,
+        syncStartedAt: monitoredResults.map((item) => item.syncStartedAt).sort()[0] || new Date().toISOString(),
+        processedAt: new Date().toISOString(),
+        monitoredUsers: monitoredResults.map((item) => ({
+          id: item.id,
+          displayName: item.displayName,
+          email: item.email,
+          currentFluigUser: item.currentFluigUser,
+          centralTaskTotals: item.centralTaskTotals,
+          membership: item.membership,
+          sourceCounts: item.sourceCounts,
+          syncStartedAt: item.syncStartedAt,
+          processedAt: item.processedAt,
+          error: item.error,
+        })),
+        items,
+        detailSync: { refreshed: 0, reused: items.length },
+      };
+
+      emitProgress({
+        stage: "central_tarefas_consultada",
+        label: `Fluig retornou ${membership.global.openTasks} tarefa(s) de ${successfulResults.length}/${monitoredTargets.length} usuario(s).`,
+        current: monitoredTargets.length,
+        total: monitoredTargets.length,
+      });
+      const outputPath = path.join(config.logsDir, `sync-user-incremental-${nowStamp()}.json`);
+      await fs.promises.writeFile(outputPath, JSON.stringify(output, null, 2), "utf8");
+      console.log(`SYNC_USER_INCREMENTAL_RESULT ${outputPath}`);
+      console.log(JSON.stringify({
+        processed: output.processed,
+        items: output.items.length,
+        openTasks: output.centralTaskTotals.openTasks,
+        myRequests: output.centralTaskTotals.myRequests,
+        users: monitoredTargets.length,
+        usersWithError: monitoredResults.filter((item) => item.error).length,
+        unmapped: output.sourceCounts.unmapped,
+      }, null, 2));
+      return;
+    }
+
     const central = await fetchUserTaskCentral(session.page, batches, { timeoutMs: 600000 });
     const enriched = await enrichCentralItems(session.page, central.items, batches, payload.detailState || []);
     const output = {

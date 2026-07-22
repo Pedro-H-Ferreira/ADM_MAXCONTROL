@@ -50,6 +50,47 @@ async function fetchJson(page, url, timeoutMs = 600000) {
   }
 }
 
+async function postJson(page, url, body, timeoutMs = 600000) {
+  const response = await page.evaluate(
+    async ({ targetUrl, requestBody, requestTimeoutMs }) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+      try {
+        const result = await fetch(targetUrl, {
+          method: "POST",
+          credentials: "include",
+          cache: "no-store",
+          headers: { accept: "application/json", "content-type": "application/json" },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        });
+        return {
+          status: result.status,
+          statusText: result.statusText,
+          text: await result.text(),
+        };
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    },
+    { targetUrl: url, requestBody: body, requestTimeoutMs: timeoutMs }
+  );
+
+  if (!response || response.status < 200 || response.status >= 300) {
+    const summary = normalizeText(response?.text).replace(/\s+/g, " ").slice(0, 500);
+    throw new Error(
+      `Consulta Fluig ${url} falhou com HTTP ${response?.status || "desconhecido"}${summary ? `: ${summary}` : ""}`
+    );
+  }
+
+  try {
+    return response.text ? JSON.parse(response.text) : {};
+  } catch {
+    throw new Error(`Consulta Fluig ${url} retornou JSON invalido.`);
+  }
+}
+
 function contentItems(payload) {
   const content = payload && typeof payload === "object" ? payload.content : null;
   if (Array.isArray(content)) return content;
@@ -69,6 +110,54 @@ function currentUserIdentity(payload) {
     login: normalizeText(content.login) || null,
     email: normalizeText(content.email) || null,
     fullName: normalizeText(content.fullName) || null,
+  };
+}
+
+async function fetchCurrentFluigUser(page, timeoutMs = 600000) {
+  const payload = await fetchJson(page, "/api/public/2.0/users/getCurrent", timeoutMs);
+  const user = currentUserIdentity(payload);
+  if (!user) throw new Error("O Fluig nao retornou o codigo do colaborador autenticado.");
+  return user;
+}
+
+function datasetRows(payload) {
+  const content = payload && typeof payload === "object" ? payload.content : null;
+  if (Array.isArray(content?.values)) return content.values;
+  if (Array.isArray(content)) return content;
+  return Array.isArray(payload?.values) ? payload.values : [];
+}
+
+async function resolveTargetFluigUser(page, target, timeoutMs = 600000) {
+  const explicitCode = normalizeText(target?.code || target?.fluigUserId);
+  const email = normalizeText(target?.email).toLowerCase();
+  if (explicitCode) {
+    return {
+      id: normalizeText(target?.id) || null,
+      code: explicitCode,
+      login: normalizeText(target?.login || target?.fluigLogin) || null,
+      email: email || null,
+      fullName: normalizeText(target?.fullName || target?.displayName) || null,
+    };
+  }
+  if (!email) throw new Error("Usuario monitorado sem e-mail ou codigo Fluig.");
+
+  const payload = await postJson(page, "/api/public/ecm/dataset/datasets", {
+    name: "colleague",
+    fields: null,
+    constraints: [{ _field: "mail", _initialValue: email, _finalValue: email, _type: 1, _likeSearch: false }],
+    order: null,
+  }, timeoutMs);
+  const rows = datasetRows(payload);
+  const row = rows.find((item) => normalizeText(item.mail).toLowerCase() === email) || rows[0];
+  const code = normalizeText(row?.["colleaguePK.colleagueId"] || row?.colleagueId);
+  if (!row || !code) throw new Error(`Usuario ${email} nao encontrado no cadastro de colaboradores do Fluig.`);
+  if (String(row.active || "true").toLowerCase() === "false") throw new Error(`Usuario ${email} esta inativo no Fluig.`);
+  return {
+    id: null,
+    code,
+    login: normalizeText(row.login) || null,
+    email: normalizeText(row.mail) || email,
+    fullName: normalizeText(row.colleagueName) || normalizeText(target?.displayName) || null,
   };
 }
 
@@ -202,11 +291,9 @@ function membershipSummary(items, centralTaskTotals) {
 
 async function fetchUserTaskCentral(page, batches, options = {}) {
   const syncStartedAt = new Date().toISOString();
-  const currentUserPayload = await fetchJson(page, "/api/public/2.0/users/getCurrent", options.timeoutMs);
-  const fluigUser = currentUserIdentity(currentUserPayload);
-  if (!fluigUser) {
-    throw new Error("O Fluig nao retornou o codigo do colaborador autenticado.");
-  }
+  const fluigUser = options.targetUser
+    ? await resolveTargetFluigUser(page, options.targetUser, options.timeoutMs)
+    : await fetchCurrentFluigUser(page, options.timeoutMs);
 
   const encodedUserCode = encodeURIComponent(fluigUser.code);
   const [summaryPayload, tasksPayload, requestsPayload] = await Promise.all([
@@ -261,9 +348,12 @@ async function fetchUserTaskCentral(page, batches, options = {}) {
 }
 
 module.exports = {
+  fetchCurrentFluigUser,
   fetchUserTaskCentral,
+  resolveTargetFluigUser,
   __test: {
     currentUserIdentity,
+    datasetRows,
     inferModule,
     mapCentralTaskItem,
     membershipSummary,

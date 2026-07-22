@@ -1769,15 +1769,24 @@ export async function readKnownOpenFluigRequestsForActor(input: {
     let targetFluigUserId = adminAllScope ? null : String(input.actor.fluigUserId || "").trim() || null;
 
     if (adminAllScope && input.userId) {
-      const { data: selectedUser, error: selectedUserError } = await client
-        .from("app_user_profiles")
-        .select("fluig_user_id")
-        .eq("id", input.userId)
-        .eq("active", true)
-        .eq("approval_status", "APPROVED")
-        .maybeSingle();
-      if (selectedUserError) throw selectedUserError;
-      targetFluigUserId = String(selectedUser?.fluig_user_id || "").trim() || null;
+      const [profileResult, monitoredResult] = await Promise.all([
+        client
+          .from("app_user_profiles")
+          .select("fluig_user_id")
+          .eq("id", input.userId)
+          .eq("active", true)
+          .eq("approval_status", "APPROVED")
+          .maybeSingle(),
+        client
+          .from("fluig_monitored_users")
+          .select("fluig_user_id")
+          .eq("id", input.userId)
+          .eq("active", true)
+          .maybeSingle(),
+      ]);
+      if (profileResult.error) throw profileResult.error;
+      if (monitoredResult.error) throw monitoredResult.error;
+      targetFluigUserId = String(monitoredResult.data?.fluig_user_id || profileResult.data?.fluig_user_id || "").trim() || null;
       if (!targetFluigUserId) return { requests: [], total: 0 };
     }
 
@@ -1908,6 +1917,21 @@ type FluigAccountIdentityInput = {
   fluigUserId: string | null;
 };
 
+export type FluigMonitoredUser = {
+  id: string;
+  displayName: string;
+  email: string;
+  fluigUsername: string | null;
+  fluigUserId: string | null;
+  appUserId: string | null;
+  role: string;
+  credentialConfigured: boolean;
+  taskSyncCompleted: boolean;
+  lastSuccessAt: string | null;
+  taskCount: number;
+  requestCount: number;
+};
+
 function normalizeFluigAccountIdentity(value: string | null | undefined) {
   return String(value || "").trim().toLowerCase();
 }
@@ -1942,6 +1966,200 @@ export function countDistinctFluigAccounts(users: FluigAccountIdentityInput[]) {
   return groups.length;
 }
 
+async function loadFluigDashboardUsers(client: SupabaseClient, actor: AppActor) {
+  let profilesQuery = client
+    .from("app_user_profiles")
+    .select("id,display_name,email,fluig_username,fluig_user_id,role")
+    .eq("active", true)
+    .eq("approval_status", "APPROVED")
+    .order("display_name", { ascending: true });
+  if (!actor.isAdmin) profilesQuery = profilesQuery.eq("id", actor.id);
+
+  const [profilesResult, monitoredResult, credentialsResult, syncStatesResult] = await Promise.all([
+    profilesQuery,
+    actor.isAdmin
+      ? client
+          .from("fluig_monitored_users")
+          .select("id,display_name,email,fluig_user_id,fluig_login,app_user_id,last_success_at,task_count,request_count")
+          .eq("active", true)
+          .order("display_name", { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
+    client.from("fluig_user_credentials").select("user_id"),
+    client
+      .from("fluig_user_sync_state")
+      .select("user_id,fluig_user_id,last_success_at")
+      .eq("sync_type", "open_tasks")
+      .not("last_success_at", "is", null),
+  ]);
+  if (profilesResult.error) throw profilesResult.error;
+  if (monitoredResult.error) throw monitoredResult.error;
+  if (credentialsResult.error) throw credentialsResult.error;
+  if (syncStatesResult.error) throw syncStatesResult.error;
+
+  const credentialUserIds = new Set((credentialsResult.data || []).map((row) => String(row.user_id)));
+  const syncedUserIds = new Set((syncStatesResult.data || []).map((row) => String(row.user_id)));
+  const syncedFluigUserIds = new Set(
+    (syncStatesResult.data || []).map((row) => String(row.fluig_user_id || "").trim()).filter(Boolean)
+  );
+  const users: FluigMonitoredUser[] = (monitoredResult.data || []).map((row) => ({
+    id: String(row.id),
+    displayName: String(row.display_name || row.email || "Usuario Fluig"),
+    email: String(row.email || "").trim().toLowerCase(),
+    fluigUsername: row.fluig_login ? String(row.fluig_login) : null,
+    fluigUserId: row.fluig_user_id ? String(row.fluig_user_id) : null,
+    appUserId: row.app_user_id ? String(row.app_user_id) : null,
+    role: "MONITORED",
+    credentialConfigured: row.app_user_id ? credentialUserIds.has(String(row.app_user_id)) : false,
+    taskSyncCompleted: Boolean(row.last_success_at),
+    lastSuccessAt: row.last_success_at ? String(row.last_success_at) : null,
+    taskCount: Number(row.task_count || 0),
+    requestCount: Number(row.request_count || 0),
+  }));
+  const byEmail = new Map(users.map((user) => [normalizeFluigAccountIdentity(user.email), user]));
+  const byFluigId = new Map(
+    users.filter((user) => user.fluigUserId).map((user) => [normalizeFluigAccountIdentity(user.fluigUserId), user])
+  );
+
+  for (const row of profilesResult.data || []) {
+    const profileId = String(row.id);
+    const email = String(row.email || "").trim().toLowerCase();
+    const fluigUserId = row.fluig_user_id ? String(row.fluig_user_id).trim() : null;
+    const existing = byEmail.get(normalizeFluigAccountIdentity(email)) || byFluigId.get(normalizeFluigAccountIdentity(fluigUserId));
+    if (existing) {
+      existing.appUserId ||= profileId;
+      existing.credentialConfigured ||= credentialUserIds.has(profileId);
+      existing.taskSyncCompleted ||= syncedUserIds.has(profileId) || Boolean(fluigUserId && syncedFluigUserIds.has(fluigUserId));
+      existing.fluigUserId ||= fluigUserId;
+      existing.fluigUsername ||= row.fluig_username ? String(row.fluig_username) : null;
+      continue;
+    }
+    const profileUser: FluigMonitoredUser = {
+      id: profileId,
+      displayName: String(row.display_name || row.email || "Usuario"),
+      email,
+      fluigUsername: row.fluig_username ? String(row.fluig_username) : null,
+      fluigUserId,
+      appUserId: profileId,
+      role: String(row.role || "LEITURA"),
+      credentialConfigured: credentialUserIds.has(profileId),
+      taskSyncCompleted: syncedUserIds.has(profileId) || Boolean(fluigUserId && syncedFluigUserIds.has(fluigUserId)),
+      lastSuccessAt: null,
+      taskCount: 0,
+      requestCount: 0,
+    };
+    users.push(profileUser);
+    byEmail.set(normalizeFluigAccountIdentity(email), profileUser);
+    if (fluigUserId) byFluigId.set(normalizeFluigAccountIdentity(fluigUserId), profileUser);
+  }
+
+  return users.sort((left, right) => left.displayName.localeCompare(right.displayName, "pt-BR", { sensitivity: "base" }));
+}
+
+export async function listFluigMonitoredUsersForSync(actor: AppActor) {
+  return runWithDb(async (client) => loadFluigDashboardUsers(client, actor)).then(({ result, persistence }) => ({
+    users: result || [],
+    persistence,
+  }));
+}
+
+export async function persistFluigMonitoredUserSyncResults(results: Array<{
+  id?: string | null;
+  displayName?: string | null;
+  email?: string | null;
+  currentFluigUser?: { code?: string | null; login?: string | null; email?: string | null; fullName?: string | null } | null;
+  centralTaskTotals?: { openTasks?: number; myRequests?: number } | null;
+  processedAt?: string | null;
+  error?: string | null;
+}>) {
+  return runWithDb(async (client) => {
+    const normalized = results
+      .map((result) => ({ ...result, email: String(result.email || result.currentFluigUser?.email || "").trim().toLowerCase() }))
+      .filter((result) => result.email);
+    if (!normalized.length) return 0;
+    const emails = Array.from(new Set(normalized.map((result) => result.email)));
+    const [profilesResult, existingResult] = await Promise.all([
+      client.from("app_user_profiles").select("id,email").in("email", emails),
+      client
+        .from("fluig_monitored_users")
+        .select("email,source,last_success_at,task_count,request_count")
+        .in("email", emails),
+    ]);
+    const { data: profiles, error: profilesError } = profilesResult;
+    if (profilesError) throw profilesError;
+    if (existingResult.error) throw existingResult.error;
+    const profileByEmail = new Map((profiles || []).map((profile) => [String(profile.email || "").trim().toLowerCase(), String(profile.id)]));
+    const existingByEmail = new Map((existingResult.data || []).map((row) => [String(row.email), row]));
+    const rows = normalized.map((result) => {
+      const timestamp = String(result.processedAt || new Date().toISOString());
+      const errorMessage = String(result.error || "").trim() || null;
+      const existing = existingByEmail.get(result.email);
+      return {
+        email: result.email,
+        display_name: String(result.displayName || result.currentFluigUser?.fullName || result.email).trim(),
+        fluig_user_id: String(result.currentFluigUser?.code || "").trim() || null,
+        fluig_login: String(result.currentFluigUser?.login || "").trim() || null,
+        app_user_id: profileByEmail.get(result.email) || null,
+        active: true,
+        source: String(existing?.source || "app_profile"),
+        last_sync_at: timestamp,
+        last_success_at: errorMessage ? existing?.last_success_at || null : timestamp,
+        last_error_at: errorMessage ? timestamp : null,
+        last_error_message: errorMessage,
+        task_count: errorMessage ? Number(existing?.task_count || 0) : Math.max(0, Number(result.centralTaskTotals?.openTasks || 0)),
+        request_count: errorMessage ? Number(existing?.request_count || 0) : Math.max(0, Number(result.centralTaskTotals?.myRequests || 0)),
+        metadata: { syncSource: "bulk_monitored_users" },
+        updated_at: timestamp,
+      };
+    });
+    const { error } = await client.from("fluig_monitored_users").upsert(rows, { onConflict: "email" });
+    if (error) throw error;
+    return rows.length;
+  }).then(({ result, persistence }) => {
+    if (result) persistence.saved.monitoredUsers = result;
+    return persistence;
+  });
+}
+
+async function loadDashboardNatureFacets(client: SupabaseClient, actor: AppActor, modules: FluigModuleSlug[]) {
+  const values: Array<string | null | undefined> = [];
+  const pageSize = 1000;
+  const fluigUserId = String(actor.fluigUserId || "").trim();
+  for (let offset = 0; ; offset += pageSize) {
+    if (!actor.isAdmin && fluigUserId) {
+      const { data, error } = await client
+        .from("fluig_request_user_memberships")
+        .select("request:fluig_requests!inner(expense_nature,module_slug,is_open)")
+        .eq("fluig_user_id", fluigUserId)
+        .eq("request.is_open", true)
+        .in("request.module_slug", modules)
+        .order("last_seen_at", { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      for (const membership of data || []) {
+        const request = Array.isArray(membership.request) ? membership.request[0] : membership.request;
+        values.push((request as { expense_nature?: string | null } | null)?.expense_nature);
+      }
+      if ((data || []).length < pageSize) break;
+      continue;
+    }
+
+    let query = client
+      .from("fluig_requests")
+      .select("expense_nature,module_slug,is_open,created_by_user_id,sync_owner_user_id,fluig_requester_login,fluig_requester_code,requester")
+      .eq("is_open", true)
+      .in("module_slug", modules)
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    const actorFilter = buildFluigActorPostgrestFilter(actor);
+    if (actorFilter) query = query.or(actorFilter);
+    const { data, error } = await query;
+    if (error) throw error;
+    values.push(...filterRowsForActor(actor, (data || []) as unknown as FluigRequestDbRow[]).map((row) => row.expense_nature));
+    if ((data || []).length < pageSize) break;
+  }
+  return buildFluigNatureFacets(values);
+}
+
 export async function listFluigTaskDashboardFilters(
   actor: AppActor,
   input: { module?: FluigModuleSlug | null } = {}
@@ -1949,58 +2167,10 @@ export async function listFluigTaskDashboardFilters(
   return runWithDb(async (client) => {
     const allowedModules = fluigModuleSlugsForActor(actor);
     const modules = input.module && allowedModules.includes(input.module) ? [input.module] : allowedModules;
-    let profilesQuery = client
-      .from("app_user_profiles")
-      .select("id,display_name,email,fluig_username,fluig_user_id,role")
-      .eq("active", true)
-      .eq("approval_status", "APPROVED")
-      .order("display_name", { ascending: true });
-    if (!actor.isAdmin) profilesQuery = profilesQuery.eq("id", actor.id);
-
-    let natureQuery = client
-      .from("fluig_catalog_items")
-      .select("value,label,module_slug")
-      .eq("catalog_type", "natureza")
-      .order("label", { ascending: true })
-      .limit(1000);
-    if (input.module) natureQuery = natureQuery.eq("module_slug", input.module);
-    else if (modules.length) natureQuery = natureQuery.in("module_slug", modules);
-
-    const [profilesResult, credentialsResult, syncStatesResult, naturesResult] = await Promise.all([
-      profilesQuery,
-      client.from("fluig_user_credentials").select("user_id"),
-      client
-        .from("fluig_user_sync_state")
-        .select("user_id,fluig_user_id,last_success_at")
-        .eq("sync_type", "open_tasks")
-        .not("last_success_at", "is", null),
-      natureQuery,
+    const [users, natures] = await Promise.all([
+      loadFluigDashboardUsers(client, actor),
+      loadDashboardNatureFacets(client, actor, modules),
     ]);
-    if (profilesResult.error) throw profilesResult.error;
-    if (credentialsResult.error) throw credentialsResult.error;
-    if (syncStatesResult.error) throw syncStatesResult.error;
-    if (naturesResult.error) throw naturesResult.error;
-
-    const credentialUserIds = new Set((credentialsResult.data || []).map((row) => String(row.user_id)));
-    const syncedUserIds = new Set((syncStatesResult.data || []).map((row) => String(row.user_id)));
-    const users = (profilesResult.data || []).map((row) => ({
-      id: String(row.id),
-      displayName: String(row.display_name || row.email || "Usuario"),
-      email: row.email ? String(row.email) : null,
-      role: String(row.role || "LEITURA"),
-      fluigUsername: row.fluig_username ? String(row.fluig_username) : null,
-      fluigUserId: row.fluig_user_id ? String(row.fluig_user_id) : null,
-      credentialConfigured: credentialUserIds.has(String(row.id)),
-      taskSyncCompleted: syncedUserIds.has(String(row.id)),
-    }));
-    const natures = Array.from(
-      new Map(
-        (naturesResult.data || [])
-          .map((row) => ({ value: String(row.value || "").trim(), label: String(row.label || row.value || "").trim() }))
-          .filter((row) => row.value)
-          .map((row) => [row.value, row])
-      ).values()
-    );
 
     return {
       isAdmin: actor.isAdmin,

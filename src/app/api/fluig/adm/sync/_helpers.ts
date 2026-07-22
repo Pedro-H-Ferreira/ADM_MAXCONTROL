@@ -45,6 +45,14 @@ const requestFieldDependencies: Record<string, string[]> = {
   branchLabel: ["unidadeFilial", "filial", "codigoFilial", "codFilial"],
 };
 
+export type MonitoredFluigUserTarget = {
+  id: string;
+  displayName: string;
+  email: string;
+  fluigUserId: string | null;
+  fluigLogin: string | null;
+};
+
 export function modulesForUserSync(module: UserSyncModule | null | undefined): FluigModuleSlug[] {
   if (!module || module === "all" || module === "auto" || module === "fornecedores") {
     return ["pagamentos", "compras", "manutencao"];
@@ -128,6 +136,7 @@ export async function createUserIncrementalBatchJob(input: {
   module?: UserSyncModule | null;
   limit?: number;
   discovery?: Partial<DiscoveryWindow>;
+  monitoredUsers?: MonitoredFluigUserTarget[];
 }) {
   const modules = modulesForUserSync(input.module);
   const discovery = {
@@ -220,6 +229,7 @@ export async function createUserIncrementalBatchJob(input: {
         displayName: input.actor.displayName,
         branchCodes: input.actor.branchCodes,
       },
+      monitoredUsers: input.monitoredUsers || [],
       taskUserId: batches[0]?.taskUserId,
       detailState,
     },

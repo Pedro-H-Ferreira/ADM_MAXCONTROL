@@ -502,6 +502,7 @@ async function executeJob(config, job, emitProgress) {
           taskUserId,
           discovery: payload.discovery || {},
           userMatch: payload.userMatch || {},
+          monitoredUsers: Array.isArray(payload.monitoredUsers) ? payload.monitoredUsers : [],
           batches,
           detailState: Array.isArray(payload.detailState) ? payload.detailState : [],
         },

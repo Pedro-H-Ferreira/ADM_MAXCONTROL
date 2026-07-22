@@ -18,6 +18,7 @@ import {
   persistFluigCatalogItems,
   type PersistenceResult,
   persistHistoryItemsInChunksByModule,
+  persistFluigMonitoredUserSyncResults,
   persistStatusItems,
   persistSupplierCandidates,
 } from "@/lib/db/fluig-repository";
@@ -281,6 +282,20 @@ async function completeResultJob(
     : completeServerFluigJob(input);
 }
 
+function extractMonitoredUserResults(payload: Record<string, unknown>) {
+  const output = resultOutput(payload);
+  return (Array.isArray(output.monitoredUsers) ? output.monitoredUsers : []) as Array<{
+    id?: string | null;
+    displayName?: string | null;
+    email?: string | null;
+    currentFluigUser?: { code?: string | null; login?: string | null; email?: string | null; fullName?: string | null } | null;
+    centralTaskTotals?: { openTasks?: number; myRequests?: number } | null;
+    syncStartedAt?: string | null;
+    processedAt?: string | null;
+    error?: string | null;
+  }>;
+}
+
 async function recordResultJobEvent(
   executor: JobResultExecutor,
   input: { jobId: string; eventType: string; stage?: string | null; label?: string | null; payload?: Record<string, unknown>; status?: FluigJobStatus }
@@ -412,6 +427,7 @@ export async function persistFluigJobResult(input: {
     const output = resultOutput(resultPayload);
     const directTaskCentral = output.directTaskCentral === true;
     const syncStartedAt = String(output.syncStartedAt || "").trim();
+    const monitoredUserResults = extractMonitoredUserResults(resultPayload);
     const directPersistenceResults: PersistenceResult[] = [];
 
     for (const item of extractStatusItems(resultPayload)) {
@@ -431,18 +447,29 @@ export async function persistFluigJobResult(input: {
     }
 
     persistenceResults.push(...directPersistenceResults);
-    if (
+    if (monitoredUserResults.length) {
+      persistenceResults.push(await persistFluigMonitoredUserSyncResults(monitoredUserResults));
+      if (directPersistenceResults.every((item) => item.errors.length === 0)) {
+        for (const monitoredUser of monitoredUserResults.filter((item) => !item.error)) {
+          const targetFluigUserId = String(monitoredUser.currentFluigUser?.code || "").trim();
+          const targetSyncStartedAt = String(monitoredUser.syncStartedAt || syncStartedAt).trim();
+          if (targetFluigUserId && targetSyncStartedAt) {
+            persistenceResults.push(
+              await clearStaleFluigUserTaskMemberships({
+                fluigUserId: targetFluigUserId,
+                syncStartedAt: targetSyncStartedAt,
+              })
+            );
+          }
+        }
+      }
+    } else if (
       directTaskCentral &&
       currentFluigUser?.code &&
       syncStartedAt &&
       directPersistenceResults.every((item) => item.errors.length === 0)
     ) {
-      persistenceResults.push(
-        await clearStaleFluigUserTaskMemberships({
-          fluigUserId: currentFluigUser.code,
-          syncStartedAt,
-        })
-      );
+      persistenceResults.push(await clearStaleFluigUserTaskMemberships({ fluigUserId: currentFluigUser.code, syncStartedAt }));
     }
   }
 

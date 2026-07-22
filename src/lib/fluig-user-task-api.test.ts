@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url);
 const { __test } = require("../../scripts/fluig/api/userTaskApi.js") as {
   __test: {
     currentUserIdentity: (payload: unknown) => Record<string, unknown> | null;
+    datasetRows: (payload: unknown) => Array<Record<string, unknown>>;
     mapCentralTaskItem: (item: Record<string, unknown>, input: Record<string, unknown>) => Record<string, unknown> | null;
     membershipSummary: (
       items: Array<Record<string, unknown>>,
@@ -40,6 +41,16 @@ describe("Fluig Central de Tarefas API", () => {
         ],
       })
     ).toEqual({ openTasks: 45, myRequests: 600 });
+  });
+
+  it("le o retorno do dataset de colaboradores usado para resolver os usuarios monitorados", () => {
+    expect(
+      __test.datasetRows({
+        content: {
+          values: [{ "colleaguePK.colleagueId": "00189", mail: "administrativo.agc@atacadaodiaadia.com.br" }],
+        },
+      })
+    ).toEqual([{ "colleaguePK.colleagueId": "00189", mail: "administrativo.agc@atacadaodiaadia.com.br" }]);
   });
 
   it("classifica, une e contabiliza a mesma solicitacao sem duplicar", () => {

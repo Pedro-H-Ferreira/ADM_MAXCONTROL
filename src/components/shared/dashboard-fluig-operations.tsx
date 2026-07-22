@@ -389,7 +389,9 @@ export function DashboardFluigOperations() {
             <SelectContent>
               <SelectItem value="ALL">Todas as naturezas de despesa</SelectItem>
               {(filters?.natures || []).map((nature) => (
-                <SelectItem key={nature.value} value={nature.value}>{nature.label}</SelectItem>
+                <SelectItem key={nature.value} value={nature.value}>
+                  {nature.label}{typeof nature.count === "number" ? ` (${nature.count.toLocaleString("pt-BR")})` : ""}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>

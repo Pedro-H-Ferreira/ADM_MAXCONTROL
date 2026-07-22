@@ -171,7 +171,7 @@ export type FluigTaskDashboardFilters = {
     credentialConfigured: boolean;
     taskSyncCompleted: boolean;
   }>;
-  natures: Array<{ value: string; label: string }>;
+  natures: Array<{ value: string; label: string; count?: number }>;
   coverage: {
     totalUsers: number;
     configuredUsers: number;
