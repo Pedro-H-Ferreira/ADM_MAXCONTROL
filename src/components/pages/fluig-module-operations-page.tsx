@@ -40,6 +40,7 @@ import {
   type FluigAdmAgent,
   type FluigAdmJobSummary,
   type FluigFieldSetting,
+  type FluigNatureFacet,
   type FluigOpenRequestRecord,
   type FluigRequestDetails,
   type FluigUserSyncStateRecord,
@@ -214,7 +215,7 @@ export function FluigModuleOperationsPage({
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [branchFilter, setBranchFilter] = useState("ALL");
   const [natureFilter, setNatureFilter] = useState("ALL");
-  const [natures, setNatures] = useState<Array<{ value: string; label: string }>>([]);
+  const [natures, setNatures] = useState<FluigNatureFacet[]>([]);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [activeTab, setActiveTab] = useState("requests");
   const [selectedRequest, setSelectedRequest] = useState<FluigOpenRequestRecord | null>(null);
@@ -282,6 +283,7 @@ export function FluigModuleOperationsPage({
       const requestData = await loadRequestPage();
       setRequests(requestData.items || []);
       setRequestTotal(requestData.total || 0);
+      setNatures(requestData.natures || []);
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : "Falha ao carregar solicitacoes Fluig.";
       setError(message);
@@ -322,7 +324,7 @@ export function FluigModuleOperationsPage({
         setAgents(nextAgents);
         setTasks(taskData.tasks || []);
         setTaskTotal(Number(taskData.total || 0));
-        setNatures(taskData.filters?.natures || []);
+        setNatures(requestData.natures || []);
         setIsAdmin(Boolean(fieldData.isAdmin || taskData.filters?.isAdmin));
         setFieldSettings(fieldData.settings || []);
         setRequests(requestData.items || []);
@@ -521,7 +523,7 @@ export function FluigModuleOperationsPage({
           <div className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Numero Fluig, NF, fornecedor, CNPJ, solicitante ou etapa" /></div>
           <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setRequestPage(1); }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">Todos os status</SelectItem>{Array.from(new Set([...tasks, ...requests].map((row) => normalizeStatus(row.normalizedStatus || row.status)))).sort().map((status) => <SelectItem key={status} value={status}>{status.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select>
           <Select value={branchFilter} onValueChange={(value) => { setBranchFilter(value); setRequestPage(1); }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">Todas as filiais</SelectItem>{branches.map((branch) => <SelectItem key={branch.code || branch.label} value={branch.code}>{branch.code ? `${branch.code} - ${branch.label}` : branch.label}</SelectItem>)}</SelectContent></Select>
-          <Select value={natureFilter} onValueChange={(value) => { setNatureFilter(value); setRequestPage(1); }}><SelectTrigger className="w-full" aria-label="Filtrar por natureza de despesa"><SelectValue placeholder="Natureza de despesa" /></SelectTrigger><SelectContent><SelectItem value="ALL">Todas as naturezas de despesa</SelectItem>{natures.map((nature) => <SelectItem key={nature.value} value={nature.value}>{nature.label}</SelectItem>)}</SelectContent></Select>
+          <Select value={natureFilter} onValueChange={(value) => { setNatureFilter(value); setRequestPage(1); }}><SelectTrigger className="w-full" aria-label="Filtrar por natureza de despesa"><SelectValue placeholder="Natureza de despesa" /></SelectTrigger><SelectContent><SelectItem value="ALL">Todas as naturezas de despesa</SelectItem>{natures.map((nature) => <SelectItem key={nature.value} value={nature.value}>{nature.label} ({nature.count})</SelectItem>)}</SelectContent></Select>
           <label className="flex items-center gap-2 rounded-md border px-3 text-sm"><Checkbox checked={onlyOverdue} onCheckedChange={(checked) => { setOnlyOverdue(checked === true); setRequestPage(1); }} /><Filter className="size-4" />Somente atrasados</label>
         </div>
 

@@ -243,6 +243,26 @@ function normalizeName(value: unknown) {
     .toUpperCase();
 }
 
+export type FluigNatureFacet = {
+  value: string;
+  label: string;
+  count: number;
+};
+
+export function buildFluigNatureFacets(values: Array<string | null | undefined>): FluigNatureFacet[] {
+  const counts = new Map<string, number>();
+
+  for (const value of values) {
+    const normalized = String(value || "").trim();
+    if (!normalized) continue;
+    counts.set(normalized, (counts.get(normalized) || 0) + 1);
+  }
+
+  return Array.from(counts, ([value, count]) => ({ value, label: value, count })).sort((left, right) =>
+    left.label.localeCompare(right.label, "pt-BR", { numeric: true, sensitivity: "base" })
+  );
+}
+
 export function normalizeFluigRequestLifecycle(
   status: unknown,
   observedAt: string,
@@ -478,7 +498,46 @@ export async function listFluigRequestsForActor(input: {
     const allowedModules = new Set(fluigModuleSlugsForActor(input.actor));
     const page = Math.max(1, Number(input.page || 1));
     const pageSize = Math.min(Math.max(Number(input.pageSize || 30), 1), 100);
-    if (!allowedModules.has(input.module)) return { page, pageSize, total: 0, items: [] };
+    if (!allowedModules.has(input.module)) return { page, pageSize, total: 0, items: [], natures: [] };
+    const actorFilter = buildFluigActorPostgrestFilter(input.actor);
+    const search = String(input.search || "").replace(/[%_,()]/g, " ").trim();
+
+    const loadNatureFacets = async () => {
+      const values: Array<string | null | undefined> = [];
+      const facetPageSize = 1000;
+
+      for (let offset = 0; ; offset += facetPageSize) {
+        let facetQuery = client
+          .from("fluig_requests")
+          .select("id,expense_nature,branch_code,created_by_user_id,sync_owner_user_id,fluig_requester_login,fluig_requester_code,requester")
+          .eq("module_slug", input.module)
+          .not("fluig_request_id", "is", null);
+        if (actorFilter) facetQuery = facetQuery.or(actorFilter);
+        if (input.open != null) facetQuery = facetQuery.eq("is_open", input.open);
+        if (input.status) facetQuery = facetQuery.ilike("normalized_status", input.status);
+        if (input.branch) facetQuery = facetQuery.eq("branch_code", input.branch);
+        if (input.overdue) facetQuery = facetQuery.eq("is_open", true).lt("due_date", new Date().toISOString());
+        if (input.errorOnly) {
+          facetQuery = facetQuery.in("normalized_status", ["erro", "error", "falha", "failed", "cancelado", "cancelled"]);
+        }
+        if (search) {
+          const pattern = `%${search}%`;
+          facetQuery = facetQuery.or(`fluig_request_id.ilike.${pattern},adm_reference.ilike.${pattern},supplier_name.ilike.${pattern},supplier_cnpj.ilike.${pattern},requester.ilike.${pattern},current_task.ilike.${pattern},task_owner.ilike.${pattern},raw_payload->formFields->>nNotaFiscal.ilike.${pattern}`);
+        }
+
+        const { data, error } = await facetQuery
+          .order("id", { ascending: true })
+          .range(offset, offset + facetPageSize - 1);
+        if (error) throw error;
+
+        const rows = filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[]);
+        values.push(...rows.map((row) => row.expense_nature));
+        if ((data || []).length < facetPageSize) break;
+      }
+
+      return buildFluigNatureFacets(values);
+    };
+
     let query = client
       .from("fluig_requests")
       .select(fluigRequestSummarySelect, { count: "exact" })
@@ -486,7 +545,6 @@ export async function listFluigRequestsForActor(input: {
       .not("fluig_request_id", "is", null)
       .order("last_status_check_at", { ascending: false, nullsFirst: false })
       .order("last_synced_at", { ascending: false, nullsFirst: false });
-    const actorFilter = buildFluigActorPostgrestFilter(input.actor);
     if (actorFilter) query = query.or(actorFilter);
     if (input.open != null) query = query.eq("is_open", input.open);
     if (input.status) query = query.ilike("normalized_status", input.status);
@@ -496,17 +554,19 @@ export async function listFluigRequestsForActor(input: {
     if (input.errorOnly) {
       query = query.in("normalized_status", ["erro", "error", "falha", "failed", "cancelado", "cancelled"]);
     }
-    const search = String(input.search || "").replace(/[%_,()]/g, " ").trim();
     if (search) {
       const pattern = `%${search}%`;
       query = query.or(`fluig_request_id.ilike.${pattern},adm_reference.ilike.${pattern},supplier_name.ilike.${pattern},supplier_cnpj.ilike.${pattern},requester.ilike.${pattern},current_task.ilike.${pattern},task_owner.ilike.${pattern},raw_payload->formFields->>nNotaFiscal.ilike.${pattern}`);
     }
     const from = (page - 1) * pageSize;
-    const { data, error, count } = await query.range(from, from + pageSize - 1);
+    const [{ data, error, count }, natures] = await Promise.all([
+      query.range(from, from + pageSize - 1),
+      loadNatureFacets(),
+    ]);
     if (error) throw error;
     const visible = filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[]).map(mapFluigRequestRecord);
-    return { page, pageSize, total: count || 0, items: visible };
-  }).then(({ result, persistence }) => ({ ...(result || { page: 1, pageSize: 30, total: 0, items: [] }), persistence }));
+    return { page, pageSize, total: count || 0, items: visible, natures };
+  }).then(({ result, persistence }) => ({ ...(result || { page: 1, pageSize: 30, total: 0, items: [], natures: [] }), persistence }));
 }
 
 function compareOpenRequestPriority(left: FluigRequestDbRow, right: FluigRequestDbRow) {

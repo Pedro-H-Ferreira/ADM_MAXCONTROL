@@ -177,6 +177,12 @@ export type FluigTaskDashboardFilters = {
   };
 };
 
+export type FluigNatureFacet = {
+  value: string;
+  label: string;
+  count: number;
+};
+
 export type FluigUserSyncStateRecord = {
   id: string;
   userId: string;
@@ -591,7 +597,14 @@ export const fluigAdmApi = {
     if (input.open != null) params.set("open", String(input.open));
     if (input.overdue) params.set("overdue", "true");
     if (input.errorOnly) params.set("errorOnly", "true");
-    return this.get<{ success: true; page: number; pageSize: number; total: number; items: FluigOpenRequestRecord[] }>(`${this.requestsPath}?${params.toString()}`);
+    return this.get<{
+      success: true;
+      page: number;
+      pageSize: number;
+      total: number;
+      items: FluigOpenRequestRecord[];
+      natures: FluigNatureFacet[];
+    }>(`${this.requestsPath}?${params.toString()}`);
   },
   async listSyncState(module?: FluigModuleSlug) {
     const params = new URLSearchParams();

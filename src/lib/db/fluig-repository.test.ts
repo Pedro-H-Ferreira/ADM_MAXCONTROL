@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildFluigLaunchTemplatesFromRequests,
   buildFluigHistoryRequestRow,
+  buildFluigNatureFacets,
   buildFluigStatusRequestRow,
   buildSupplierCandidates,
   countDistinctFluigAccounts,
@@ -70,6 +71,19 @@ function templateRequest(
 }
 
 describe("buildSupplierCandidates", () => {
+  it("lista somente naturezas presentes e mostra a quantidade de cada uma", () => {
+    expect(buildFluigNatureFacets([
+      "5040613 - MANUTENCAO DA EMPILHADEIRA",
+      " 5030101 - MANUTENCAO ",
+      "5040613 - MANUTENCAO DA EMPILHADEIRA",
+      null,
+      "",
+    ])).toEqual([
+      { value: "5030101 - MANUTENCAO", label: "5030101 - MANUTENCAO", count: 1 },
+      { value: "5040613 - MANUTENCAO DA EMPILHADEIRA", label: "5040613 - MANUTENCAO DA EMPILHADEIRA", count: 2 },
+    ]);
+  });
+
   it("conta perfis com a mesma identidade Fluig como uma credencial", () => {
     expect(countDistinctFluigAccounts([
       {
