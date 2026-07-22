@@ -4,6 +4,7 @@ import {
   buildFluigHistoryRequestRow,
   buildFluigStatusRequestRow,
   buildSupplierCandidates,
+  countDistinctFluigAccounts,
   normalizeFluigRequestLifecycle,
 } from "@/lib/db/fluig-repository";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
@@ -68,6 +69,40 @@ function templateRequest(
 }
 
 describe("buildSupplierCandidates", () => {
+  it("conta perfis com a mesma identidade Fluig como uma credencial", () => {
+    expect(countDistinctFluigAccounts([
+      {
+        id: "user-administrativo",
+        email: "administrativo@dvaatacados.com.br",
+        fluigUsername: "administrativo@dvaatacados.com.br",
+        fluigUserId: "00130",
+      },
+      {
+        id: "user-pedro",
+        email: "pedro@example.com",
+        fluigUsername: "ADMINISTRATIVO@DVAATACADOS.COM.BR",
+        fluigUserId: "00130",
+      },
+    ])).toBe(1);
+  });
+
+  it("mantem credenciais Fluig realmente diferentes separadas", () => {
+    expect(countDistinctFluigAccounts([
+      {
+        id: "user-1",
+        email: "administrativo.agc@atacadaodiaadia.com.br",
+        fluigUsername: "administrativo.agc@atacadaodiaadia.com.br",
+        fluigUserId: "00130",
+      },
+      {
+        id: "user-2",
+        email: "administrativo.aps@atacadaodiaadia.com.br",
+        fluigUsername: "administrativo.aps@atacadaodiaadia.com.br",
+        fluigUserId: "00131",
+      },
+    ])).toBe(2);
+  });
+
   it("normaliza o ciclo de vida historico antes de montar listas operacionais", () => {
     expect(normalizeFluigRequestLifecycle("OPEN", "2026-06-25T10:00:00.000Z")).toMatchObject({
       normalizedStatus: "em_andamento",

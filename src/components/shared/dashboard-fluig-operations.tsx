@@ -104,6 +104,14 @@ function describeAgent(agent: FluigAdmAgent | null) {
   return `${agent.display_name}${agent.machine_name ? ` em ${agent.machine_name}` : ""} - ${describeHeartbeatAge(agent.heartbeat_age_seconds)}`;
 }
 
+function formatCredentialCount(count: number) {
+  return `${count} ${count === 1 ? "credencial" : "credenciais"}`;
+}
+
+function formatDistinctCredentialCount(count: number) {
+  return `${formatCredentialCount(count)} ${count === 1 ? "distinta cadastrada" : "distintas cadastradas"}`;
+}
+
 async function loadSupplierReviewSummary(): Promise<SupplierReviewSummary> {
   const params = new URLSearchParams({
     syncStatus: "PENDENTE_REVISAO",
@@ -389,7 +397,7 @@ export function DashboardFluigOperations() {
 
         {isAdmin && filters && filters.coverage.syncedUsers < filters.coverage.totalUsers ? (
           <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-            Cobertura Fluig: {filters.coverage.syncedUsers} de {filters.coverage.totalUsers} usuario(s) ja sincronizados; {filters.coverage.configuredUsers} possuem credencial cadastrada. Os novos usuarios entram automaticamente neste painel apos aprovacao e cadastro da credencial Fluig.
+            Cobertura Fluig: {filters.coverage.syncedUsers} de {filters.coverage.totalUsers} identidade(s) Fluig ja sincronizadas; {formatDistinctCredentialCount(filters.coverage.configuredUsers)}. Os novos usuarios entram automaticamente neste painel apos aprovacao e cadastro da credencial Fluig.
           </p>
         ) : null}
 
@@ -397,8 +405,8 @@ export function DashboardFluigOperations() {
           <MetricTile
             icon={Laptop}
             label="Executor da VPS"
-            value={isAdmin ? `${filters?.coverage.configuredUsers || 0} credenciais` : onlineAgent ? "Pronto" : "Sem credencial"}
-            detail={isAdmin ? "Usuarios prontos para sincronizacao direta" : describeAgent(onlineAgent)}
+            value={isAdmin ? formatCredentialCount(filters?.coverage.configuredUsers || 0) : onlineAgent ? "Pronto" : "Sem credencial"}
+            detail={isAdmin ? "Identidades Fluig prontas para sincronizacao direta" : describeAgent(onlineAgent)}
           />
           <MetricTile icon={ClipboardList} label={isAdmin ? "Tarefas dos usuarios" : "Minhas tarefas"} value={String(taskTotal)} detail={isAdmin ? "Pendencias consolidadas conforme os filtros" : "Pendencias sob responsabilidade do usuario"} />
           <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requestTotal)} detail="Pagamentos, compras e manutencoes" />

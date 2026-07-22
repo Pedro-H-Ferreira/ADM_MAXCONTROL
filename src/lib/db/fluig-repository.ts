@@ -1550,6 +1550,47 @@ export async function readKnownOpenFluigRequestsForActor(input: {
   }));
 }
 
+type FluigAccountIdentityInput = {
+  id: string;
+  email: string | null;
+  fluigUsername: string | null;
+  fluigUserId: string | null;
+};
+
+function normalizeFluigAccountIdentity(value: string | null | undefined) {
+  return String(value || "").trim().toLowerCase();
+}
+
+export function countDistinctFluigAccounts(users: FluigAccountIdentityInput[]) {
+  const groups: Array<Set<string>> = [];
+
+  for (const user of users) {
+    const identities = new Set(
+      [user.fluigUserId, user.fluigUsername, user.email]
+        .map(normalizeFluigAccountIdentity)
+        .filter(Boolean)
+    );
+    if (!identities.size) identities.add(`profile:${user.id}`);
+
+    const matchingIndexes = groups
+      .map((group, index) => Array.from(identities).some((identity) => group.has(identity)) ? index : -1)
+      .filter((index) => index >= 0);
+    if (!matchingIndexes.length) {
+      groups.push(identities);
+      continue;
+    }
+
+    const primary = groups[matchingIndexes[0]];
+    for (const identity of identities) primary.add(identity);
+    for (const index of matchingIndexes.slice(1).reverse()) {
+      for (const identity of groups[index]) primary.add(identity);
+      groups.splice(index, 1);
+    }
+  }
+
+  return groups.length;
+}
+
 export async function listFluigTaskDashboardFilters(
   actor: AppActor,
   input: { module?: FluigModuleSlug | null } = {}
@@ -1615,9 +1656,9 @@ export async function listFluigTaskDashboardFilters(
       users,
       natures,
       coverage: {
-        totalUsers: users.length,
-        configuredUsers: users.filter((user) => user.credentialConfigured).length,
-        syncedUsers: users.filter((user) => user.taskSyncCompleted).length,
+        totalUsers: countDistinctFluigAccounts(users),
+        configuredUsers: countDistinctFluigAccounts(users.filter((user) => user.credentialConfigured)),
+        syncedUsers: countDistinctFluigAccounts(users.filter((user) => user.taskSyncCompleted)),
       },
     };
   }).then(({ result, persistence }) => ({
