@@ -262,6 +262,7 @@ describe("buildSupplierCandidates", () => {
     expect(row).toMatchObject({
       current_task: "Realizar pagamento",
       task_owner: "00130",
+      currency: "BRL",
       due_date: "2026-06-30",
       sync_owner_user_id: "2ff30ac3-e1c7-4df8-a12c-511318469cca",
       raw_payload: {

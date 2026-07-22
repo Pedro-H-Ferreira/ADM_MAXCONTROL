@@ -1397,7 +1397,7 @@ export function buildFluigStatusRequestRow(
     supplier_name: detailSupplierName || undefined,
     supplier_cnpj: detailSupplierCnpj || undefined,
     amount_cents: detailAmount ?? undefined,
-    currency: detailAmount != null ? "BRL" : undefined,
+    currency: "BRL",
     branch_code: detailBranch.code || undefined,
     branch_label: detailBranch.label || undefined,
     due_date: detailDueDate || item.dueDate || item.vencimentoPagamento || existing?.due_date || null,

@@ -323,6 +323,7 @@ export async function persistFluigJobResult(input: {
   const status = missingOpenProtocol ? "error" : reportedStatus;
   const errorMessage = missingOpenProtocol ? MISSING_OPEN_PROTOCOL_ERROR : body.errorMessage;
   const persistenceResults: PersistenceResult[] = [];
+  const monitoredSyncErrors: string[] = [];
   const currentFluigUser = extractCurrentFluigUser(resultPayload);
 
   if (status === "success" && (job.operation === "health_check" || job.operation === "sync_user_incremental_batch")) {
@@ -429,6 +430,11 @@ export async function persistFluigJobResult(input: {
     const syncStartedAt = String(output.syncStartedAt || "").trim();
     const monitoredUserResults = extractMonitoredUserResults(resultPayload);
     const directPersistenceResults: PersistenceResult[] = [];
+    monitoredSyncErrors.push(
+      ...monitoredUserResults
+        .filter((item) => item.error)
+        .map((item) => `${item.email || item.currentFluigUser?.code || "Usuario Fluig"}: ${item.error}`)
+    );
 
     for (const item of extractStatusItems(resultPayload)) {
       const moduleSlug = moduleFromStatusItem(item, job.module);
@@ -448,7 +454,6 @@ export async function persistFluigJobResult(input: {
 
     persistenceResults.push(...directPersistenceResults);
     if (monitoredUserResults.length) {
-      persistenceResults.push(await persistFluigMonitoredUserSyncResults(monitoredUserResults));
       if (directPersistenceResults.every((item) => item.errors.length === 0)) {
         for (const monitoredUser of monitoredUserResults.filter((item) => !item.error)) {
           const targetFluigUserId = String(monitoredUser.currentFluigUser?.code || "").trim();
@@ -463,6 +468,19 @@ export async function persistFluigJobResult(input: {
           }
         }
       }
+
+      const membershipPersistenceErrors = persistenceResults.flatMap((item) => item.errors);
+      const monitoredPersistenceResults = membershipPersistenceErrors.length
+        ? monitoredUserResults.map((item) =>
+            item.error
+              ? item
+              : {
+                  ...item,
+                  error: `Fluig consultado, mas houve falha ao gravar as tarefas no ADM: ${membershipPersistenceErrors.join(" | ")}`,
+                }
+          )
+        : monitoredUserResults;
+      persistenceResults.push(await persistFluigMonitoredUserSyncResults(monitoredPersistenceResults));
     } else if (
       directTaskCentral &&
       currentFluigUser?.code &&
@@ -525,32 +543,38 @@ export async function persistFluigJobResult(input: {
   const finalPayload = persistence ? { ...resultPayload, persistence } : resultPayload;
   const syncType = syncTypeForJob(job.operation);
   const batchSyncStates = job.operation === "sync_user_incremental_batch" ? batchDefinitions(job.requestPayload, resultPayload) : [];
+  const completionIssues = [...(persistence?.errors || []), ...monitoredSyncErrors];
+  const completionStatus = status === "success" && completionIssues.length ? "error" : status;
+  const completionErrorMessage =
+    completionStatus === "error" && !errorMessage && completionIssues.length
+      ? `A sincronizacao Fluig nao foi concluida integralmente: ${completionIssues.join(" | ")}`
+      : errorMessage;
 
   if (job.operation === "supplier_lookup_by_cnpj") {
     await markSupplierFluigSyncResult({
       supplierId: String(job.requestPayload.supplierId || ""),
       actorId: job.requestedByUserId,
-      status,
-      historyItems: status === "success" ? extractHistoryItems(resultPayload) : [],
+      status: completionStatus,
+      historyItems: completionStatus === "success" ? extractHistoryItems(resultPayload) : [],
       resultPayload: finalPayload,
-      errorMessage,
+      errorMessage: completionErrorMessage,
       persistence,
     });
   }
 
   await completeResultJob(executor, {
     jobId,
-    status,
+    status: completionStatus,
     resultPayload: finalPayload,
-    errorMessage,
+    errorMessage: completionErrorMessage,
   });
 
   if (syncType) {
     await completeFluigUserSyncStateForJob({
       job,
       syncType,
-      status: status === "success" ? "success" : "error",
-      errorMessage,
+      status: completionStatus === "success" ? "success" : "error",
+      errorMessage: completionErrorMessage,
       metadata: {
         persistence,
       },
@@ -562,8 +586,8 @@ export async function persistFluigJobResult(input: {
       job,
       module: batch.module,
       syncType: batch.syncType,
-      status: status === "success" ? "success" : "error",
-      errorMessage,
+      status: completionStatus === "success" ? "success" : "error",
+      errorMessage: completionErrorMessage,
       metadata: {
         persistence,
         batched: true,

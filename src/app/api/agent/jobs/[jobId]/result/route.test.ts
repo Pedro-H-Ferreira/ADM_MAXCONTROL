@@ -289,4 +289,75 @@ describe("POST /api/agent/jobs/[jobId]/result", () => {
       })
     );
   });
+
+  it("finaliza o job como erro quando o Fluig responde mas a gravacao no ADM falha", async () => {
+    const incrementalJob = {
+      ...job,
+      module: "fornecedores",
+      operation: "sync_user_incremental_batch",
+      requestPayload: {
+        batches: [
+          {
+            module: "pagamentos",
+            operation: "sync_user_open_tasks",
+            syncType: "open_tasks",
+            requestIds: [],
+          },
+        ],
+      },
+    };
+    mocks.readJobForAgent.mockResolvedValue(incrementalJob);
+    mocks.persistStatusItems.mockResolvedValue({
+      configured: true,
+      saved: {},
+      errors: ['null value in column "currency" violates not-null constraint'],
+    });
+
+    const response = await POST(
+      resultRequest({
+        data: {
+          directTaskCentral: true,
+          syncStartedAt: "2026-07-22T21:00:00.000Z",
+          currentFluigUser: {
+            code: "00130",
+            login: "administrativo.dvaatacados.com.br.1",
+            email: "administrativo@dvaatacados.com.br",
+          },
+          items: [
+            {
+              numeroFluig: "1160447",
+              moduleSlug: "pagamentos",
+              statusProcesso: "em_andamento",
+              active: true,
+              syncFluigUserId: "00130",
+              syncTypes: ["open_tasks"],
+            },
+          ],
+        },
+      }),
+      context
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(
+      expect.objectContaining({
+        success: true,
+        persistence: expect.objectContaining({ errors: expect.any(Array) }),
+      })
+    );
+    expect(mocks.clearStaleFluigUserTaskMemberships).not.toHaveBeenCalled();
+    expect(mocks.completeFluigJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobId: incrementalJob.id,
+        status: "error",
+        errorMessage: expect.stringContaining("currency"),
+      })
+    );
+    expect(mocks.completeFluigUserSyncStateForJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "error",
+        errorMessage: expect.stringContaining("currency"),
+      })
+    );
+  });
 });
