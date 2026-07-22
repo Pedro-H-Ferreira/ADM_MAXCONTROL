@@ -127,6 +127,35 @@ function datasetRows(payload) {
   return Array.isArray(payload?.values) ? payload.values : [];
 }
 
+async function findColleagues(page, field, value, likeSearch, timeoutMs) {
+  const payload = await postJson(page, "/api/public/ecm/dataset/datasets", {
+    name: "colleague",
+    fields: null,
+    constraints: [{ _field: field, _initialValue: value, _finalValue: value, _type: 1, _likeSearch: likeSearch }],
+    order: null,
+  }, timeoutMs);
+  return datasetRows(payload);
+}
+
+function colleagueCode(row) {
+  return normalizeText(row?.["colleaguePK.colleagueId"] || row?.colleagueId);
+}
+
+function pickColleague(rows, email, localPart) {
+  const activeRows = rows.filter(
+    (row) => colleagueCode(row) && String(row.active || "true").toLowerCase() !== "false"
+  );
+  return (
+    activeRows.find((row) => normalizeText(row.mail).toLowerCase() === email) ||
+    activeRows.find((row) => {
+      const login = normalizeText(row.login).toLowerCase();
+      const mail = normalizeText(row.mail).toLowerCase();
+      return login.includes(localPart) || mail.includes(localPart);
+    }) ||
+    (activeRows.length === 1 ? activeRows[0] : null)
+  );
+}
+
 async function resolveTargetFluigUser(page, target, timeoutMs = 600000) {
   const explicitCode = normalizeText(target?.code || target?.fluigUserId);
   const email = normalizeText(target?.email).toLowerCase();
@@ -141,15 +170,18 @@ async function resolveTargetFluigUser(page, target, timeoutMs = 600000) {
   }
   if (!email) throw new Error("Usuario monitorado sem e-mail ou codigo Fluig.");
 
-  const payload = await postJson(page, "/api/public/ecm/dataset/datasets", {
-    name: "colleague",
-    fields: null,
-    constraints: [{ _field: "mail", _initialValue: email, _finalValue: email, _type: 1, _likeSearch: false }],
-    order: null,
-  }, timeoutMs);
-  const rows = datasetRows(payload);
-  const row = rows.find((item) => normalizeText(item.mail).toLowerCase() === email) || rows[0];
-  const code = normalizeText(row?.["colleaguePK.colleagueId"] || row?.colleagueId);
+  const localPart = email.split("@")[0];
+  const exactRows = await findColleagues(page, "mail", email, false, timeoutMs);
+  let row = pickColleague(exactRows, email, localPart);
+  if (!row) {
+    const mailRows = await findColleagues(page, "mail", localPart, true, timeoutMs);
+    row = pickColleague(mailRows, email, localPart);
+  }
+  if (!row) {
+    const loginRows = await findColleagues(page, "login", localPart, true, timeoutMs);
+    row = pickColleague(loginRows, email, localPart);
+  }
+  const code = colleagueCode(row);
   if (!row || !code) throw new Error(`Usuario ${email} nao encontrado no cadastro de colaboradores do Fluig.`);
   if (String(row.active || "true").toLowerCase() === "false") throw new Error(`Usuario ${email} esta inativo no Fluig.`);
   return {
@@ -159,6 +191,79 @@ async function resolveTargetFluigUser(page, target, timeoutMs = 600000) {
     email: normalizeText(row.mail) || email,
     fullName: normalizeText(row.colleagueName) || normalizeText(target?.displayName) || null,
   };
+}
+
+function workflowEnvelope(payload) {
+  const content = payload && typeof payload === "object" ? payload.content : null;
+  const items = Array.isArray(content?.items)
+    ? content.items
+    : Array.isArray(payload?.items)
+      ? payload.items
+      : Array.isArray(content)
+        ? content
+        : [];
+  return {
+    items,
+    hasNext: content?.hasNext ?? payload?.hasNext ?? null,
+  };
+}
+
+function mapFallbackWorkflowTask(item) {
+  const actualTask = Array.isArray(item?.actualTasks) ? item.actualTasks[0] : null;
+  return {
+    ...item,
+    processInstanceId: item?.processInstanceId,
+    processId: item?.processId,
+    processDescription: item?.processDescription,
+    requesterId: item?.requesterId || item?.requesterCode,
+    requesterName: item?.requesterName,
+    movementHour: item?.movementHour || item?.startDate,
+    stateDescription: item?.stateDescription || item?.stateName || actualTask?.stateName || actualTask?.stateDescription,
+    stateId: item?.stateId ?? actualTask?.stateSequence ?? actualTask?.stateId,
+    movementSequence: item?.movementSequence ?? actualTask?.movementSequence,
+    colleagueName: item?.colleagueName || actualTask?.assignee?.name || actualTask?.assigneeName,
+    deadlineDate: item?.deadlineDate || actualTask?.deadlineDate,
+    active: item?.active !== false,
+  };
+}
+
+async function fetchWorkflowTasksFallback(page, batches, fluigUser, timeoutMs) {
+  const processIds = Array.from(
+    new Set((batches || []).map((batch) => normalizeText(batch?.processMap?.processId)).filter(Boolean))
+  );
+  const items = [];
+  const errors = [];
+  const pageSize = 200;
+
+  for (const processId of processIds) {
+    let pageNumber = 1;
+    try {
+      while (pageNumber <= 50) {
+        const params = new URLSearchParams({
+          processId,
+          assignee: fluigUser.code,
+          status: "OPEN",
+          page: String(pageNumber),
+          pageSize: String(pageSize),
+          expand: "actualTasks",
+        });
+        const payload = await fetchJson(
+          page,
+          `/api/public/2.0/workflows/requests/tasks?${params.toString()}`,
+          timeoutMs
+        );
+        const envelope = workflowEnvelope(payload);
+        items.push(...envelope.items.map(mapFallbackWorkflowTask));
+        if (envelope.hasNext === false || envelope.items.length < pageSize) break;
+        pageNumber += 1;
+      }
+    } catch (error) {
+      errors.push(error && error.message ? error.message : String(error));
+    }
+  }
+
+  if (!items.length && errors.length) throw new Error(errors.join(" | "));
+  return items;
 }
 
 function totalsFromSummary(payload) {
@@ -296,11 +401,24 @@ async function fetchUserTaskCentral(page, batches, options = {}) {
     : await fetchCurrentFluigUser(page, options.timeoutMs);
 
   const encodedUserCode = encodeURIComponent(fluigUser.code);
-  const [summaryPayload, tasksPayload, requestsPayload] = await Promise.all([
+  const [summaryPayload, requestsPayload] = await Promise.all([
     fetchJson(page, `/api/public/2.0/tasks/getResumedTasks/${encodedUserCode}`, options.timeoutMs),
-    fetchJson(page, `/api/public/2.0/tasks/findWorkflowTasks/${encodedUserCode}`, options.timeoutMs),
     fetchJson(page, `/api/public/2.0/tasks/findMyRequests/${encodedUserCode}`, options.timeoutMs),
   ]);
+  let tasksPayload;
+  try {
+    tasksPayload = await fetchJson(
+      page,
+      `/api/public/2.0/tasks/findWorkflowTasks/${encodedUserCode}`,
+      options.timeoutMs
+    );
+  } catch (error) {
+    const fallbackItems = await fetchWorkflowTasksFallback(page, batches, fluigUser, options.timeoutMs).catch(() => {
+      throw error;
+    });
+    if (!fallbackItems.length && totalsFromSummary(summaryPayload).openTasks > 0) throw error;
+    tasksPayload = { content: fallbackItems };
+  }
 
   const centralTaskTotals = totalsFromSummary(summaryPayload);
   const processModules = processModuleIndex(batches);
@@ -354,6 +472,9 @@ module.exports = {
   __test: {
     currentUserIdentity,
     datasetRows,
+    mapFallbackWorkflowTask,
+    pickColleague,
+    workflowEnvelope,
     inferModule,
     mapCentralTaskItem,
     membershipSummary,

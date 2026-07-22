@@ -6,6 +6,7 @@ const { __test } = require("../../scripts/fluig/api/userTaskApi.js") as {
   __test: {
     currentUserIdentity: (payload: unknown) => Record<string, unknown> | null;
     datasetRows: (payload: unknown) => Array<Record<string, unknown>>;
+    mapFallbackWorkflowTask: (item: Record<string, unknown>) => Record<string, unknown>;
     mapCentralTaskItem: (item: Record<string, unknown>, input: Record<string, unknown>) => Record<string, unknown> | null;
     membershipSummary: (
       items: Array<Record<string, unknown>>,
@@ -13,7 +14,13 @@ const { __test } = require("../../scripts/fluig/api/userTaskApi.js") as {
     ) => Record<string, unknown>;
     mergeCentralItems: (items: Array<Record<string, unknown>>) => Array<Record<string, unknown>>;
     normalizeKey: (value: unknown) => string;
+    pickColleague: (
+      rows: Array<Record<string, unknown>>,
+      email: string,
+      localPart: string
+    ) => Record<string, unknown> | null;
     totalsFromSummary: (payload: unknown) => { openTasks: number; myRequests: number };
+    workflowEnvelope: (payload: unknown) => { items: Array<Record<string, unknown>>; hasNext: boolean | null };
   };
 };
 
@@ -51,6 +58,46 @@ describe("Fluig Central de Tarefas API", () => {
         },
       })
     ).toEqual([{ "colleaguePK.colleagueId": "00189", mail: "administrativo.agc@atacadaodiaadia.com.br" }]);
+  });
+
+  it("encontra o colaborador por login quando o e-mail cadastrado no Fluig diverge", () => {
+    expect(
+      __test.pickColleague(
+        [
+          {
+            "colleaguePK.colleagueId": "00144",
+            login: "administrativo.qnm11.atacadaodiaadia.com.br.1",
+            mail: "administrativo.ceilandia@atacadaodiaadia.com.br",
+          },
+        ],
+        "administrativo.qnm11@atacadaodiaadia.com.br",
+        "administrativo.qnm11"
+      )
+    ).toMatchObject({ "colleaguePK.colleagueId": "00144" });
+  });
+
+  it("normaliza a resposta paginada da API alternativa de tarefas", () => {
+    const envelope = __test.workflowEnvelope({
+      content: {
+        items: [
+          {
+            processInstanceId: 179529,
+            processId: "Solicitacao de Compra Administrativa",
+            requesterCode: "00189",
+            stateName: "Analisar solicitacao",
+          },
+        ],
+        hasNext: false,
+      },
+    });
+
+    expect(envelope.hasNext).toBe(false);
+    expect(__test.mapFallbackWorkflowTask(envelope.items[0])).toMatchObject({
+      processInstanceId: 179529,
+      requesterId: "00189",
+      stateDescription: "Analisar solicitacao",
+      active: true,
+    });
   });
 
   it("classifica, une e contabiliza a mesma solicitacao sem duplicar", () => {

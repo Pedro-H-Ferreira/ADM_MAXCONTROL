@@ -1660,30 +1660,34 @@ export async function persistStatusItems(
     if (!statusItems.length) return { requests: 0, memberships: 0 };
 
     const requestIds = Array.from(new Set(statusItems.map((item) => String(item.numeroFluig))));
-    const { data: existingRows, error: existingError } = await client
-      .from("fluig_requests")
-      .select("fluig_request_id,process_id,status,current_task,task_owner,requester,fluig_requester_code,due_date,expense_nature,opened_at,raw_payload")
-      .eq("module_slug", module)
-      .in("fluig_request_id", requestIds);
-    if (existingError) throw existingError;
+    const existingRows: Array<
+      Pick<
+        FluigRequestDbRow,
+        | "fluig_request_id"
+        | "process_id"
+        | "status"
+        | "current_task"
+        | "task_owner"
+        | "requester"
+        | "fluig_requester_code"
+        | "due_date"
+        | "expense_nature"
+        | "opened_at"
+        | "raw_payload"
+      >
+    > = [];
+    for (let index = 0; index < requestIds.length; index += 100) {
+      const { data, error } = await client
+        .from("fluig_requests")
+        .select("fluig_request_id,process_id,status,current_task,task_owner,requester,fluig_requester_code,due_date,expense_nature,opened_at,raw_payload")
+        .eq("module_slug", module)
+        .in("fluig_request_id", requestIds.slice(index, index + 100));
+      if (error) throw error;
+      existingRows.push(...((data || []) as typeof existingRows));
+    }
 
     const existingByRequestId = new Map(
-      ((existingRows || []) as Array<
-        Pick<
-          FluigRequestDbRow,
-          | "fluig_request_id"
-          | "process_id"
-          | "status"
-          | "current_task"
-          | "task_owner"
-          | "requester"
-          | "fluig_requester_code"
-          | "due_date"
-          | "expense_nature"
-          | "opened_at"
-          | "raw_payload"
-        >
-      >).map((row) => [String(row.fluig_request_id || ""), row])
+      existingRows.map((row) => [String(row.fluig_request_id || ""), row])
     );
     const rows = statusItems.map((item) =>
       buildFluigStatusRequestRow(module, item, options, existingByRequestId.get(String(item.numeroFluig)))
