@@ -190,6 +190,16 @@ async function resolveTargetFluigUser(page, target, timeoutMs = 600000) {
     const loginRows = await findColleagues(page, "login", localPart, true, timeoutMs);
     row = pickColleague(loginRows, email, localPart);
   }
+  if (!row && normalizeText(target?.displayName)) {
+    const nameRows = await findColleagues(
+      page,
+      "colleagueName",
+      normalizeText(target.displayName),
+      true,
+      timeoutMs
+    );
+    row = pickColleague(nameRows, email, localPart);
+  }
   if (!row) {
     const baseLogin = email.replace("@", ".");
     const genericIds = [`${baseLogin}.1`, baseLogin, email];
