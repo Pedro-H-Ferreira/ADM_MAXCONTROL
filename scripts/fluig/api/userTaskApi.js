@@ -156,6 +156,15 @@ function pickColleague(rows, email, localPart) {
   );
 }
 
+function userListItems(payload) {
+  const content = payload && typeof payload === "object" ? payload.content : null;
+  if (Array.isArray(content)) return content;
+  if (Array.isArray(content?.items)) return content.items;
+  if (Array.isArray(content?.users)) return content.users;
+  if (Array.isArray(payload?.items)) return payload.items;
+  return [];
+}
+
 async function resolveTargetFluigUser(page, target, timeoutMs = 600000) {
   const explicitCode = normalizeText(target?.code || target?.fluigUserId);
   const email = normalizeText(target?.email).toLowerCase();
@@ -182,19 +191,34 @@ async function resolveTargetFluigUser(page, target, timeoutMs = 600000) {
     row = pickColleague(loginRows, email, localPart);
   }
   if (!row) {
-    const expectedLogin = `${email.replace("@", ".")}.1`;
-    const userPayload = await fetchJson(
-      page,
-      `/api/public/2.0/users/getUser/${encodeURIComponent(expectedLogin)}`,
-      timeoutMs
-    ).catch(() => null);
-    const user = userPayload?.content;
+    const baseLogin = email.replace("@", ".");
+    const genericIds = [`${baseLogin}.1`, baseLogin, email];
+    let user = null;
+    for (const genericId of genericIds) {
+      const userPayload = await fetchJson(
+        page,
+        `/api/public/2.0/users/getUser/${encodeURIComponent(genericId)}`,
+        timeoutMs
+      ).catch(() => null);
+      if (userPayload?.content) {
+        user = userPayload.content;
+        break;
+      }
+    }
+    if (!user) {
+      const listPayload = await fetchJson(page, "/api/public/2.0/users/listAll", timeoutMs).catch(() => null);
+      user = userListItems(listPayload).find((candidate) => {
+        const candidateEmail = normalizeText(candidate?.email || candidate?.mail).toLowerCase();
+        const candidateLogin = normalizeText(candidate?.login).toLowerCase();
+        return candidateEmail === email || candidateLogin.includes(localPart) || candidateEmail.includes(localPart);
+      });
+    }
     const userCode = normalizeText(user?.code);
     if (user && userCode) {
       return {
         id: normalizeText(user.id) || null,
         code: userCode,
-        login: normalizeText(user.login) || expectedLogin,
+        login: normalizeText(user.login) || null,
         email: normalizeText(user.email) || email,
         fullName: normalizeText(user.fullName) || normalizeText(target?.displayName) || null,
       };
@@ -283,6 +307,85 @@ async function fetchWorkflowTasksFallback(page, batches, fluigUser, timeoutMs) {
 
   if (!items.length && errors.length) throw new Error(errors.join(" | "));
   return items;
+}
+
+function processTaskRequestId(row) {
+  return normalizeText(
+    row?.["processTask.processInstanceId"] ||
+      row?.["processTaskPK.processInstanceId"] ||
+      row?.processInstanceId
+  );
+}
+
+function mapProcessTaskDatasetRow(task, process) {
+  const requestId = processTaskRequestId(task);
+  return {
+    processInstanceId: requestId,
+    processId: normalizeText(process?.processId),
+    processDescription: normalizeText(process?.processDescription || process?.processId),
+    requesterId: normalizeText(process?.requesterId),
+    requesterName: normalizeText(process?.requesterName),
+    movementHour: process?.startDateProcess || process?.startDate,
+    stateDescription: normalizeText(task?.stateDescription) ||
+      (task?.choosedSequence == null ? "Tarefa pendente" : `Atividade ${task.choosedSequence}`),
+    stateId: task?.choosedSequence == null ? null : Number(task.choosedSequence),
+    movementSequence: Number(
+      task?.["processTask.movementSequence"] || task?.["processTaskPK.movementSequence"] || task?.movementSequence || 0
+    ),
+    colleagueName: normalizeText(task?.choosedColleagueName),
+    deadlineDate: task?.deadline || task?.taskDeadline,
+    active: true,
+  };
+}
+
+async function mapWithConcurrency(items, concurrency, callback) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await callback(items[index], index);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+  return results;
+}
+
+async function fetchProcessTaskDatasetFallback(page, fluigUser, timeoutMs) {
+  const taskPayloads = await Promise.all(
+    ["choosedColleagueId", "colleagueId"].map((field) =>
+      postJson(page, "/api/public/ecm/dataset/datasets", {
+        name: "processTask",
+        fields: null,
+        constraints: [{ _field: field, _initialValue: fluigUser.code, _finalValue: fluigUser.code, _type: 1, _likeSearch: false }],
+        order: null,
+      }, timeoutMs).catch(() => null)
+    )
+  );
+  const byTask = new Map();
+  for (const task of taskPayloads.flatMap(datasetRows)) {
+    const requestId = processTaskRequestId(task);
+    const active = String(task?.active ?? "true").toLowerCase();
+    const status = normalizeText(task?.status || "0");
+    if (!requestId || active === "false" || active === "0" || status !== "0") continue;
+    const movement = normalizeText(
+      task?.["processTask.movementSequence"] || task?.["processTaskPK.movementSequence"] || task?.movementSequence
+    );
+    byTask.set(`${requestId}:${movement}`, task);
+  }
+
+  const rows = await mapWithConcurrency(Array.from(byTask.values()), 6, async (task) => {
+    const requestId = processTaskRequestId(task);
+    const processPayload = await postJson(page, "/api/public/ecm/dataset/datasets", {
+      name: "workflowProcess",
+      fields: null,
+      constraints: [{ _field: "workflowProcessPK.processInstanceId", _initialValue: requestId, _finalValue: requestId, _type: 1, _likeSearch: false }],
+      order: null,
+    }, timeoutMs).catch(() => null);
+    const process = datasetRows(processPayload)[0];
+    return process?.processId ? mapProcessTaskDatasetRow(task, process) : null;
+  });
+  return rows.filter(Boolean);
 }
 
 function totalsFromSummary(payload) {
@@ -432,13 +535,26 @@ async function fetchUserTaskCentral(page, batches, options = {}) {
       options.timeoutMs
     );
   } catch (error) {
-    const fallbackItems = await fetchWorkflowTasksFallback(page, batches, fluigUser, options.timeoutMs).catch(
-      (fallbackError) => {
-        const primaryMessage = error && error.message ? error.message : String(error);
-        const fallbackMessage = fallbackError && fallbackError.message ? fallbackError.message : String(fallbackError);
-        throw new Error(`${primaryMessage} | Consulta alternativa: ${fallbackMessage}`);
+    let fallbackError = null;
+    let fallbackItems = await fetchWorkflowTasksFallback(page, batches, fluigUser, options.timeoutMs).catch(
+      (currentError) => {
+        fallbackError = currentError;
+        return [];
       }
     );
+    if (!fallbackItems.length) {
+      fallbackItems = await fetchProcessTaskDatasetFallback(page, fluigUser, options.timeoutMs).catch(
+        (currentError) => {
+          fallbackError = currentError;
+          return [];
+        }
+      );
+    }
+    if (!fallbackItems.length && fallbackError) {
+      const primaryMessage = error && error.message ? error.message : String(error);
+      const fallbackMessage = fallbackError && fallbackError.message ? fallbackError.message : String(fallbackError);
+      throw new Error(`${primaryMessage} | Consulta alternativa: ${fallbackMessage}`);
+    }
     if (!fallbackItems.length && totalsFromSummary(summaryPayload).openTasks > 0) throw error;
     tasksPayload = { content: fallbackItems };
   }
@@ -496,7 +612,10 @@ module.exports = {
     currentUserIdentity,
     datasetRows,
     mapFallbackWorkflowTask,
+    mapProcessTaskDatasetRow,
     pickColleague,
+    processTaskRequestId,
+    userListItems,
     workflowEnvelope,
     inferModule,
     mapCentralTaskItem,

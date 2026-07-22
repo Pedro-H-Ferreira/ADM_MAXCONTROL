@@ -7,6 +7,10 @@ const { __test } = require("../../scripts/fluig/api/userTaskApi.js") as {
     currentUserIdentity: (payload: unknown) => Record<string, unknown> | null;
     datasetRows: (payload: unknown) => Array<Record<string, unknown>>;
     mapFallbackWorkflowTask: (item: Record<string, unknown>) => Record<string, unknown>;
+    mapProcessTaskDatasetRow: (
+      task: Record<string, unknown>,
+      process: Record<string, unknown>
+    ) => Record<string, unknown>;
     mapCentralTaskItem: (item: Record<string, unknown>, input: Record<string, unknown>) => Record<string, unknown> | null;
     membershipSummary: (
       items: Array<Record<string, unknown>>,
@@ -20,6 +24,7 @@ const { __test } = require("../../scripts/fluig/api/userTaskApi.js") as {
       localPart: string
     ) => Record<string, unknown> | null;
     totalsFromSummary: (payload: unknown) => { openTasks: number; myRequests: number };
+    userListItems: (payload: unknown) => Array<Record<string, unknown>>;
     workflowEnvelope: (payload: unknown) => { items: Array<Record<string, unknown>>; hasNext: boolean | null };
   };
 };
@@ -98,6 +103,36 @@ describe("Fluig Central de Tarefas API", () => {
       stateDescription: "Analisar solicitacao",
       active: true,
     });
+  });
+
+  it("monta a tarefa a partir dos datasets internos sem depender da referencia orfa", () => {
+    expect(
+      __test.mapProcessTaskDatasetRow(
+        {
+          "processTask.processInstanceId": "1184954",
+          "processTask.movementSequence": "7",
+          choosedSequence: "12",
+          choosedColleagueId: "00144",
+          status: "0",
+          active: "true",
+        },
+        {
+          processId: "Solicitacao de Compra Administrativa",
+          requesterId: "00189",
+          startDateProcess: "2026-07-20 10:00:00",
+        }
+      )
+    ).toMatchObject({
+      processInstanceId: "1184954",
+      processId: "Solicitacao de Compra Administrativa",
+      movementSequence: 7,
+      stateId: 12,
+      active: true,
+    });
+  });
+
+  it("le usuarios quando o Fluig retorna a lista dentro de content.users", () => {
+    expect(__test.userListItems({ content: { users: [{ code: "00189" }] } })).toEqual([{ code: "00189" }]);
   });
 
   it("classifica, une e contabiliza a mesma solicitacao sem duplicar", () => {
