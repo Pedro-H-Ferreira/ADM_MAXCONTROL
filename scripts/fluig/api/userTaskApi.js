@@ -181,6 +181,25 @@ async function resolveTargetFluigUser(page, target, timeoutMs = 600000) {
     const loginRows = await findColleagues(page, "login", localPart, true, timeoutMs);
     row = pickColleague(loginRows, email, localPart);
   }
+  if (!row) {
+    const expectedLogin = `${email.replace("@", ".")}.1`;
+    const userPayload = await fetchJson(
+      page,
+      `/api/public/2.0/users/getUser/${encodeURIComponent(expectedLogin)}`,
+      timeoutMs
+    ).catch(() => null);
+    const user = userPayload?.content;
+    const userCode = normalizeText(user?.code);
+    if (user && userCode) {
+      return {
+        id: normalizeText(user.id) || null,
+        code: userCode,
+        login: normalizeText(user.login) || expectedLogin,
+        email: normalizeText(user.email) || email,
+        fullName: normalizeText(user.fullName) || normalizeText(target?.displayName) || null,
+      };
+    }
+  }
   const code = colleagueCode(row);
   if (!row || !code) throw new Error(`Usuario ${email} nao encontrado no cadastro de colaboradores do Fluig.`);
   if (String(row.active || "true").toLowerCase() === "false") throw new Error(`Usuario ${email} esta inativo no Fluig.`);
@@ -413,9 +432,13 @@ async function fetchUserTaskCentral(page, batches, options = {}) {
       options.timeoutMs
     );
   } catch (error) {
-    const fallbackItems = await fetchWorkflowTasksFallback(page, batches, fluigUser, options.timeoutMs).catch(() => {
-      throw error;
-    });
+    const fallbackItems = await fetchWorkflowTasksFallback(page, batches, fluigUser, options.timeoutMs).catch(
+      (fallbackError) => {
+        const primaryMessage = error && error.message ? error.message : String(error);
+        const fallbackMessage = fallbackError && fallbackError.message ? fallbackError.message : String(fallbackError);
+        throw new Error(`${primaryMessage} | Consulta alternativa: ${fallbackMessage}`);
+      }
+    );
     if (!fallbackItems.length && totalsFromSummary(summaryPayload).openTasks > 0) throw error;
     tasksPayload = { content: fallbackItems };
   }

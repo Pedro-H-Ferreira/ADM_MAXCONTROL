@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const config = require("./config");
 const { loginWithBrowser } = require("./api/session");
-const { fetchCurrentFluigUser, fetchUserTaskCentral } = require("./api/userTaskApi");
+const { fetchCurrentFluigUser, fetchUserTaskCentral, resolveTargetFluigUser } = require("./api/userTaskApi");
 const { fetchAttachments, fetchDetails, fetchHistories, fetchRequest } = require("./api/workflowViewApi");
 const { normalizeAttachments, normalizeFormFields, normalizeHistory } = require("./requestDetails").__test;
 
@@ -165,8 +165,10 @@ function mergeMembershipSummaries(results) {
 async function syncMonitoredUsers(page, batches, targets) {
   let completed = 0;
   const results = await mapWithConcurrency(targets, 3, async (target) => {
+    let resolvedUser = null;
     try {
-      const central = await fetchUserTaskCentral(page, batches, { timeoutMs: 600000, targetUser: target });
+      resolvedUser = await resolveTargetFluigUser(page, target, 600000);
+      const central = await fetchUserTaskCentral(page, batches, { timeoutMs: 600000, targetUser: resolvedUser });
       return {
         id: target.id || null,
         displayName: target.displayName || central.currentFluigUser.fullName || target.email,
@@ -185,7 +187,7 @@ async function syncMonitoredUsers(page, batches, targets) {
         id: target.id || null,
         displayName: target.displayName || target.email,
         email: target.email || null,
-        currentFluigUser: target.fluigUserId ? { code: target.fluigUserId, login: target.fluigLogin || null, email: target.email || null, fullName: target.displayName || null } : null,
+        currentFluigUser: resolvedUser || (target.fluigUserId ? { code: target.fluigUserId, login: target.fluigLogin || null, email: target.email || null, fullName: target.displayName || null } : null),
         centralTaskTotals: { openTasks: 0, myRequests: 0 },
         membership: { global: { openTasks: 0, myRequests: 0 }, modules: [] },
         sourceCounts: { openTasks: 0, myRequests: 0, mapped: 0, unmapped: 0 },
