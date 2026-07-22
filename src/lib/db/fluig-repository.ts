@@ -344,6 +344,7 @@ function mapFluigRequestRecord(row: FluigRequestDbRow) {
     supplierName: row.supplier_name,
     supplierCnpj: row.supplier_cnpj,
     invoiceNumber: firstStringField(formFields, ["nNotaFiscal", "numeroNF", "notaFiscal", "numNota", "numeroNota"]) || null,
+    invoiceDueDate: firstStringField(formFields, ["vencPagNota", "vencimentoNF", "dataVencimentoNF"]) || null,
     amountCents: row.amount_cents,
     currency: row.currency || "BRL",
     dueDate: row.due_date,

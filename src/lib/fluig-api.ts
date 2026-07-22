@@ -91,6 +91,7 @@ export type FluigOpenRequestRecord = {
   supplierName: string | null;
   supplierCnpj: string | null;
   invoiceNumber: string | null;
+  invoiceDueDate: string | null;
   amountCents: number | null;
   currency: string | null;
   dueDate: string | null;

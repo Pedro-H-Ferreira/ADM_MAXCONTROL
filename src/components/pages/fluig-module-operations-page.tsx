@@ -689,7 +689,7 @@ function RequestTable({
                   <p className="text-xs text-muted-foreground">{row.branchLabel || row.branchCode || row.supplierCnpj || "-"}</p>
                 </TableCell>
                 {moduleSlug === "pagamentos" ? <TableCell className="whitespace-nowrap font-medium">{formatMoney(row.amountCents, row.currency || "BRL")}</TableCell> : null}
-                <TableCell className="whitespace-nowrap">{formatDate(row.dueDate)}</TableCell>
+                <TableCell className="whitespace-nowrap">{formatDate(moduleSlug === "pagamentos" ? row.invoiceDueDate || row.dueDate : row.dueDate)}</TableCell>
                 {moduleSlug === "pagamentos" ? <TableCell className="min-w-[220px] max-w-[320px] whitespace-normal">{row.expenseNature || "-"}</TableCell> : null}
                 <TableCell className="min-w-[220px] max-w-[340px] whitespace-normal">
                   <p>{row.currentTask || "-"}</p>
@@ -788,7 +788,7 @@ function RequestDetailSheet({
               <section className="grid gap-3 rounded-md border bg-background p-4 sm:grid-cols-2 lg:grid-cols-4">
                 <RequestDetail label="Numero da NF" value={request.invoiceNumber || details?.formFields.nNotaFiscal || "-"} />
                 <RequestDetail label="Valor da NF" value={formatMoney(request.amountCents, request.currency || "BRL")} />
-                <RequestDetail label="Vencimento" value={formatDate(request.dueDate || details?.formFields.vencPagNota)} />
+                <RequestDetail label="Vencimento" value={formatDate(request.invoiceDueDate || details?.formFields.vencPagNota || request.dueDate)} />
                 <RequestDetail label="Natureza de despesa" value={request.expenseNature || details?.formFields.codigonaturezaC || "-"} />
               </section>
               <section className="rounded-md border bg-background p-4">
