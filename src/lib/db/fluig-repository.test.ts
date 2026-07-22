@@ -6,6 +6,7 @@ import {
   buildFluigStatusRequestRow,
   buildSupplierCandidates,
   countDistinctFluigAccounts,
+  describeFluigPersistenceError,
   fluigFieldLabelFromKey,
   fluigFieldSettingsHash,
   mergeFluigFieldSettingsWithDiscovered,
@@ -73,6 +74,14 @@ function templateRequest(
 }
 
 describe("buildSupplierCandidates", () => {
+  it("preserva mensagem, detalhes e codigo dos erros retornados pelo Supabase", () => {
+    expect(describeFluigPersistenceError({
+      message: "Falha ao salvar",
+      details: "Coluna invalida",
+      code: "PGRST204",
+    })).toBe("Falha ao salvar | Coluna invalida | PGRST204");
+  });
+
   it("inclui todos os campos Fluig descobertos sem duplicar os ja configurados", () => {
     const settings = mergeFluigFieldSettingsWithDiscovered("pagamentos", [{
       id: "setting-nf",

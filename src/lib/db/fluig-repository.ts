@@ -1432,6 +1432,23 @@ export function buildFluigStatusRequestRow(
   };
 }
 
+export function describeFluigPersistenceError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const row = error as Record<string, unknown>;
+    const summary = [row.message, row.details, row.hint, row.code]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+    if (summary.length) return Array.from(new Set(summary)).join(" | ");
+    try {
+      return JSON.stringify(row);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
+}
+
 async function runWithDb<T>(callback: (client: SupabaseClient) => Promise<T>) {
   const client = getSupabaseServiceClient();
 
@@ -1445,7 +1462,7 @@ async function runWithDb<T>(callback: (client: SupabaseClient) => Promise<T>) {
     const result = await callback(client);
     return { result, persistence };
   } catch (error) {
-    persistence.errors.push(error instanceof Error ? error.message : String(error));
+    persistence.errors.push(describeFluigPersistenceError(error));
     return { result: null, persistence };
   }
 }
