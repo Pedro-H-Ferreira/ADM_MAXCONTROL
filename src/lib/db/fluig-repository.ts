@@ -1449,6 +1449,18 @@ export function describeFluigPersistenceError(error: unknown) {
   return String(error);
 }
 
+export function groupFluigStatusRowsForUpsert<T extends Record<string, unknown>>(rows: T[]) {
+  const groups = new Map<string, Array<Record<string, unknown>>>();
+
+  for (const row of rows) {
+    const compactRow = Object.fromEntries(Object.entries(row).filter(([, value]) => value !== undefined));
+    const signature = Object.keys(compactRow).sort().join("|");
+    groups.set(signature, [...(groups.get(signature) || []), compactRow]);
+  }
+
+  return Array.from(groups.values());
+}
+
 async function runWithDb<T>(callback: (client: SupabaseClient) => Promise<T>) {
   const client = getSupabaseServiceClient();
 
@@ -1677,13 +1689,17 @@ export async function persistStatusItems(
       buildFluigStatusRequestRow(module, item, options, existingByRequestId.get(String(item.numeroFluig)))
     );
     if (!rows.length) return { requests: 0, memberships: 0 };
-    const { data: savedRequests, error } = await client
-      .from("fluig_requests")
-      .upsert(rows, { onConflict: "module_slug,fluig_request_id" })
-      .select("id,fluig_request_id");
-    if (error) throw error;
+    const savedRequests: Array<{ id: string; fluig_request_id: string | null }> = [];
+    for (const rowGroup of groupFluigStatusRowsForUpsert(rows)) {
+      const { data, error } = await client
+        .from("fluig_requests")
+        .upsert(rowGroup, { onConflict: "module_slug,fluig_request_id" })
+        .select("id,fluig_request_id");
+      if (error) throw error;
+      savedRequests.push(...((data || []) as Array<{ id: string; fluig_request_id: string | null }>));
+    }
     const requestIdByFluigId = new Map(
-      (savedRequests || []).map((row) => [String(row.fluig_request_id || ""), String(row.id)])
+      savedRequests.map((row) => [String(row.fluig_request_id || ""), String(row.id)])
     );
     const membershipRows = statusItems.flatMap((item) => {
       const requestId = requestIdByFluigId.get(String(item.numeroFluig || ""));

@@ -9,6 +9,7 @@ import {
   describeFluigPersistenceError,
   fluigFieldLabelFromKey,
   fluigFieldSettingsHash,
+  groupFluigStatusRowsForUpsert,
   mergeFluigFieldSettingsWithDiscovered,
   normalizeFluigRequestLifecycle,
 } from "@/lib/db/fluig-repository";
@@ -272,6 +273,19 @@ describe("buildSupplierCandidates", () => {
         statusSnapshot: statusItem,
       },
     });
+  });
+
+  it("separa lotes por campos definidos para nao transformar ausentes em null", () => {
+    const groups = groupFluigStatusRowsForUpsert([
+      { fluig_request_id: "1", currency: "BRL", detail_snapshot: undefined },
+      { fluig_request_id: "2", currency: "BRL", detail_snapshot: { formFields: {} } },
+    ]);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toEqual([{ fluig_request_id: "1", currency: "BRL" }]);
+    expect(groups[1]).toEqual([
+      { fluig_request_id: "2", currency: "BRL", detail_snapshot: { formFields: {} } },
+    ]);
   });
 
   it("grava somente o snapshot detalhado recebido pela sincronizacao e atualiza os campos operacionais", () => {
