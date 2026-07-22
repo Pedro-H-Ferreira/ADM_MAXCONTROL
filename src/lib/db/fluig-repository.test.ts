@@ -5,6 +5,7 @@ import {
   buildFluigStatusRequestRow,
   buildSupplierCandidates,
   countDistinctFluigAccounts,
+  fluigFieldSettingsHash,
   normalizeFluigRequestLifecycle,
 } from "@/lib/db/fluig-repository";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
@@ -214,6 +215,51 @@ describe("buildSupplierCandidates", () => {
         statusSnapshot: statusItem,
       },
     });
+  });
+
+  it("grava somente o snapshot detalhado recebido pela sincronizacao e atualiza os campos operacionais", () => {
+    const row = buildFluigStatusRequestRow("pagamentos", {
+      numeroFluig: "1160475",
+      statusProcesso: "em_andamento",
+      active: true,
+      movementSequence: 31,
+      detailConfigHash: "config-1",
+      detailSnapshot: {
+        requestId: "1160475",
+        taskUserId: "00130",
+        sourceUrl: "https://fluig.example/1160475",
+        fetchedAt: "2026-07-22T20:00:00.000Z",
+        formFields: {
+          nNotaFiscal: "3737",
+          valorNF: "1.105,92",
+          vencPagNota: "01/07/2026",
+          codigonaturezaC: "5040613",
+          fornecedorC: "FORNECEDOR TESTE",
+          codCNPJ: "00801587000138",
+        },
+        attachments: [{ sequence: "1", name: "nota.pdf", description: "nota.pdf", mimeType: "application/pdf", size: 10, documentId: "1", version: "1", attachedBy: "ADM", attachedAt: null }],
+        history: [],
+        warnings: [],
+      },
+    });
+
+    expect(row).toMatchObject({
+      supplier_name: "FORNECEDOR TESTE",
+      supplier_cnpj: "00801587000138",
+      amount_cents: 110592,
+      due_date: "2026-07-01",
+      expense_nature: "5040613",
+      detail_movement_sequence: 31,
+      detail_config_hash: "config-1",
+      raw_payload: { formFields: { nNotaFiscal: "3737" } },
+    });
+    expect((row.raw_payload.statusSnapshot as Record<string, unknown>).detailSnapshot).toBeUndefined();
+  });
+
+  it("muda a assinatura somente quando os campos sincronizados mudam", () => {
+    const base = [{ fieldKey: "nNotaFiscal", sourceType: "form" as const, active: true, visibleInList: true, visibleInForm: true }];
+    expect(fluigFieldSettingsHash(base)).toBe(fluigFieldSettingsHash([{ ...base[0] }]));
+    expect(fluigFieldSettingsHash(base)).not.toBe(fluigFieldSettingsHash([{ ...base[0], visibleInForm: false }]));
   });
 
   it("distingue cancelamento de finalizacao na consulta de status", () => {

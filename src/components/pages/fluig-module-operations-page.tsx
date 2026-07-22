@@ -39,6 +39,7 @@ import {
   fluigAdmApi,
   type FluigAdmAgent,
   type FluigAdmJobSummary,
+  type FluigFieldSetting,
   type FluigOpenRequestRecord,
   type FluigRequestDetails,
   type FluigUserSyncStateRecord,
@@ -224,6 +225,10 @@ export function FluigModuleOperationsPage({
   const [technicalOpen, setTechnicalOpen] = useState(false);
   const [workspaceView, setWorkspaceView] = useState<"launch" | "tools">("launch");
   const [requestRefreshing, setRequestRefreshing] = useState(false);
+  const [fieldSettings, setFieldSettings] = useState<FluigFieldSetting[]>([]);
+  const [fieldSettingsOpen, setFieldSettingsOpen] = useState(false);
+  const [fieldSettingsSaving, setFieldSettingsSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [referenceTime, setReferenceTime] = useState(0);
   const initialLoadCompleted = useRef(false);
 
@@ -305,18 +310,21 @@ export function FluigModuleOperationsPage({
       setError(null);
 
       try {
-        const [nextAgents, taskData, requestData, syncStateData, jobData] = await Promise.all([
+        const [nextAgents, taskData, requestData, syncStateData, jobData, fieldData] = await Promise.all([
           fluigAdmApi.listAgents(),
           fluigAdmApi.listMyTasks(40, moduleSlug),
           loadRequestPage(),
           fluigAdmApi.listSyncState(moduleSlug),
           fluigAdmApi.listJobs(30),
+          fluigAdmApi.getFieldSettings(moduleSlug),
         ]);
 
         setAgents(nextAgents);
         setTasks(taskData.tasks || []);
         setTaskTotal(Number(taskData.total || 0));
         setNatures(taskData.filters?.natures || []);
+        setIsAdmin(Boolean(fieldData.isAdmin || taskData.filters?.isAdmin));
+        setFieldSettings(fieldData.settings || []);
         setRequests(requestData.items || []);
         setRequestTotal(requestData.total || 0);
         setStates(syncStateData.states || []);
@@ -425,6 +433,20 @@ export function FluigModuleOperationsPage({
     setTechnicalOpen(true);
   }
 
+  async function saveFieldSettings(settings: FluigFieldSetting[]) {
+    setFieldSettingsSaving(true);
+    try {
+      const result = await fluigAdmApi.saveFieldSettings(moduleSlug, settings);
+      setFieldSettings(result.settings);
+      setFieldSettingsOpen(false);
+      toast.success("Campos e ordem salvos. A proxima sincronizacao atualizará os dados persistidos.");
+    } catch (settingsError) {
+      toast.error(settingsError instanceof Error ? settingsError.message : "Falha ao salvar campos Fluig.");
+    } finally {
+      setFieldSettingsSaving(false);
+    }
+  }
+
   if (!integration) {
     return null;
   }
@@ -457,6 +479,11 @@ export function FluigModuleOperationsPage({
             {syncing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
             Sincronizar {moduleLabels[moduleSlug].toLowerCase()}
           </Button>
+          {isAdmin ? (
+            <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => setFieldSettingsOpen(true)}>
+              <Settings2 className="size-4" />Configurar campos
+            </Button>
+          ) : null}
           <Button type="button" variant="outline" className="stitch-soft-button" asChild>
             <a href={integration.openUrl} target="_blank" rel="noreferrer">
               <ExternalLink className="size-4" />
@@ -500,7 +527,7 @@ export function FluigModuleOperationsPage({
 
         <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setRequestPage(1); }}>
           <div className="overflow-x-auto border-b"><TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0"><TabsTrigger className="rounded-none px-4 py-3" value="tasks">Minhas tarefas ({taskTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="requests">Minhas solicitacoes ({requestTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="errors">Com erro</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="finished">Finalizadas</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="jobs">Jobs e sincronizacoes</TabsTrigger></TabsList></div>
-          {activeTab === "jobs" ? <TabsContent value="jobs" className="m-0"><JobsTable jobs={moduleJobs} states={states} loading={loading} /></TabsContent> : <TabsContent value={activeTab} className="m-0"><RequestTable moduleSlug={moduleSlug} title={activeTab === "tasks" ? "Tarefas sob sua responsabilidade" : activeTab === "errors" ? "Solicitacoes com erro ou canceladas" : activeTab === "finished" ? "Solicitacoes finalizadas" : `Solicitacoes de ${moduleLabels[moduleSlug].toLowerCase()}`} emptyText={loading || requestsLoading ? "Carregando dados persistidos..." : "Nenhum registro encontrado para os filtros informados."} rows={visibleRows} onSelect={(row) => void openRequestDetails(row)} /></TabsContent>}
+          {activeTab === "jobs" ? <TabsContent value="jobs" className="m-0"><JobsTable jobs={moduleJobs} states={states} loading={loading} /></TabsContent> : <TabsContent value={activeTab} className="m-0"><RequestTable title={activeTab === "tasks" ? "Tarefas sob sua responsabilidade" : activeTab === "errors" ? "Solicitacoes com erro ou canceladas" : activeTab === "finished" ? "Solicitacoes finalizadas" : `Solicitacoes de ${moduleLabels[moduleSlug].toLowerCase()}`} emptyText={loading || requestsLoading ? "Carregando dados persistidos..." : "Nenhum registro encontrado para os filtros informados."} rows={visibleRows} fieldSettings={fieldSettings} onSelect={(row) => void openRequestDetails(row)} /></TabsContent>}
         </Tabs>
         {requestTabActive ? (
           <div className="flex flex-col gap-3 border-t p-3 sm:flex-row sm:items-center sm:justify-between">
@@ -589,7 +616,17 @@ export function FluigModuleOperationsPage({
           setDetailsError(null);
           setSelectedAttachmentSequence(null);
         }}
+        fieldSettings={fieldSettings}
       />
+
+      {fieldSettingsOpen ? (
+        <FluigFieldSettingsSheet
+          settings={fieldSettings}
+          saving={fieldSettingsSaving}
+          onOpenChange={setFieldSettingsOpen}
+          onSave={saveFieldSettings}
+        />
+      ) : null}
     </div>
   );
 }
@@ -645,18 +682,21 @@ function PendingJobs({ jobs }: { jobs: FluigAdmJobSummary[] }) {
 }
 
 function RequestTable({
-  moduleSlug,
   title,
   rows,
   emptyText,
+  fieldSettings,
   onSelect,
 }: {
-  moduleSlug: OperationalModuleSlug;
   title: string;
   rows: FluigOpenRequestRecord[];
   emptyText: string;
+  fieldSettings: FluigFieldSetting[];
   onSelect: (row: FluigOpenRequestRecord) => void;
 }) {
+  const columns = fieldSettings
+    .filter((field) => field.active && field.visibleInList)
+    .sort((left, right) => (left.listOrder ?? 9999) - (right.listOrder ?? 9999));
   return (
     <section className="stitch-animate-in rounded-lg border bg-background shadow-none">
       <header className="flex flex-col gap-1 border-b p-4 md:flex-row md:items-center md:justify-between">
@@ -669,35 +709,13 @@ function RequestTable({
         <div className="overflow-x-auto"><Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Fluig</TableHead>
-              {moduleSlug === "pagamentos" ? <TableHead>Numero da NF</TableHead> : null}
-              <TableHead>Fornecedor / filial</TableHead>
-              {moduleSlug === "pagamentos" ? <TableHead>Valor da NF</TableHead> : null}
-              <TableHead>Vencimento</TableHead>
-              {moduleSlug === "pagamentos" ? <TableHead>Natureza de despesa</TableHead> : null}
-              <TableHead>Etapa / responsavel</TableHead>
-              <TableHead>Status</TableHead>
+              {columns.map((field) => <TableHead key={field.fieldKey}>{field.label}</TableHead>)}
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((row) => (
               <TableRow key={`${row.module}-${row.fluigRequestId}-${row.id}`} className="cursor-pointer" onClick={() => onSelect(row)}>
-                <TableCell className="font-medium">{row.fluigRequestId}</TableCell>
-                {moduleSlug === "pagamentos" ? <TableCell className="font-medium">{row.invoiceNumber || "-"}</TableCell> : null}
-                <TableCell className="min-w-[240px] max-w-[360px] whitespace-normal">
-                  <p className="font-medium">{row.supplierName || row.requester || "Solicitacao Fluig"}</p>
-                  <p className="text-xs text-muted-foreground">{row.branchLabel || row.branchCode || row.supplierCnpj || "-"}</p>
-                </TableCell>
-                {moduleSlug === "pagamentos" ? <TableCell className="whitespace-nowrap font-medium">{formatMoney(row.amountCents, row.currency || "BRL")}</TableCell> : null}
-                <TableCell className="whitespace-nowrap">{formatDate(moduleSlug === "pagamentos" ? row.invoiceDueDate || row.dueDate : row.dueDate)}</TableCell>
-                {moduleSlug === "pagamentos" ? <TableCell className="min-w-[220px] max-w-[320px] whitespace-normal">{row.expenseNature || "-"}</TableCell> : null}
-                <TableCell className="min-w-[220px] max-w-[340px] whitespace-normal">
-                  <p>{row.currentTask || "-"}</p>
-                  <p className="text-xs text-muted-foreground">{row.taskOwner || "Responsavel nao informado"}</p>
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={normalizeStatus(row.normalizedStatus || row.status)} />
-                </TableCell>
+                {columns.map((field) => <RequestFieldCell key={field.fieldKey} row={row} field={field} />)}
               </TableRow>
             ))}
           </TableBody>
@@ -707,6 +725,53 @@ function RequestTable({
       )}
     </section>
   );
+}
+
+function requestFieldValue(row: FluigOpenRequestRecord, fieldKey: string) {
+  const values: Record<string, string | number | null | undefined> = {
+    fluigRequestId: row.fluigRequestId,
+    admReference: row.admReference,
+    status: row.normalizedStatus || row.status,
+    currentTask: row.currentTask,
+    taskOwner: row.taskOwner,
+    requester: row.requester,
+    branchCode: row.branchCode,
+    branchLabel: row.branchLabel,
+    supplierName: row.supplierName,
+    supplierCnpj: row.supplierCnpj,
+    invoiceNumber: row.invoiceNumber,
+    invoiceDueDate: row.invoiceDueDate,
+    amountCents: row.amountCents,
+    dueDate: row.dueDate,
+    expenseNature: row.expenseNature,
+  };
+  return values[fieldKey] ?? row.fieldValues?.[fieldKey] ?? null;
+}
+
+function requestFieldText(row: FluigOpenRequestRecord, field: FluigFieldSetting) {
+  const value = requestFieldValue(row, field.fieldKey);
+  if (field.fieldKey === "amountCents" || field.fieldKey === "valorNF" || field.fieldKey === "valorNFT") {
+    return field.fieldKey === "amountCents"
+      ? formatMoney(row.amountCents, row.currency || "BRL")
+      : String(value || "-");
+  }
+  if (["dueDate", "invoiceDueDate", "vencPagNota", "dataEmissaoNF"].includes(field.fieldKey)) {
+    return formatDate(String(value || ""));
+  }
+  return String(value ?? "").trim() || "-";
+}
+
+function RequestFieldCell({ row, field }: { row: FluigOpenRequestRecord; field: FluigFieldSetting }) {
+  if (field.fieldKey === "status") {
+    return <TableCell><StatusBadge status={normalizeStatus(row.normalizedStatus || row.status)} /></TableCell>;
+  }
+  if (field.fieldKey === "supplierName") {
+    return <TableCell className="min-w-[240px] max-w-[360px] whitespace-normal"><p className="font-medium">{requestFieldText(row, field)}</p><p className="text-xs text-muted-foreground">{row.branchLabel || row.branchCode || row.supplierCnpj || "-"}</p></TableCell>;
+  }
+  if (field.fieldKey === "currentTask") {
+    return <TableCell className="min-w-[220px] max-w-[340px] whitespace-normal"><p>{requestFieldText(row, field)}</p><p className="text-xs text-muted-foreground">{row.taskOwner || "Responsavel nao informado"}</p></TableCell>;
+  }
+  return <TableCell className="max-w-[320px] whitespace-normal">{requestFieldText(row, field)}</TableCell>;
 }
 
 function RequestDetailSheet({
@@ -721,6 +786,7 @@ function RequestDetailSheet({
   onSelectedAttachmentSequenceChange,
   onRefresh,
   onClose,
+  fieldSettings,
 }: {
   request: FluigOpenRequestRecord | null;
   details: FluigRequestDetails | null;
@@ -733,12 +799,18 @@ function RequestDetailSheet({
   onSelectedAttachmentSequenceChange: (sequence: string | null) => void;
   onRefresh: () => void;
   onClose: () => void;
+  fieldSettings: FluigFieldSetting[];
 }) {
   if (!request) return null;
   const fluigUrl = requestFluigUrl(request, details, fallbackFluigUrl);
-  const formFields = Object.entries(details?.formFields || {})
-    .filter(([, value]) => String(value || "").trim())
-    .sort(([left], [right]) => fieldLabel(left).localeCompare(fieldLabel(right), "pt-BR"));
+  const formFields = fieldSettings
+    .filter((field) => field.active && field.visibleInForm && field.sourceType === "form")
+    .sort((left, right) => (left.formOrder ?? 9999) - (right.formOrder ?? 9999))
+    .map((field) => [field.fieldKey, details?.formFields?.[field.fieldKey] || "", field.label] as const)
+    .filter(([, value]) => String(value || "").trim());
+  const panelFields = fieldSettings
+    .filter((field) => field.active && field.visibleInList && field.fieldKey !== "status")
+    .sort((left, right) => (left.listOrder ?? 9999) - (right.listOrder ?? 9999));
   const selectedAttachment = details?.attachments.find((item) => item.sequence === selectedAttachmentSequence) || null;
   const attachmentUrl = selectedAttachment
     ? fluigAdmApi.requestAttachmentUrl({ module: moduleSlug, fluigRequestId: request.fluigRequestId, sequence: selectedAttachment.sequence })
@@ -758,7 +830,7 @@ function RequestDetailSheet({
           <div className="flex flex-wrap gap-2 pt-2">
             <Button type="button" size="sm" onClick={onRefresh} disabled={refreshing || loading}>
               {refreshing || loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
-              Atualizar dados do Fluig
+              Sincronizar esta solicitacao
             </Button>
             <Button type="button" size="sm" variant="outline" onClick={() => { void navigator.clipboard.writeText(request.fluigRequestId); toast.success("Numero Fluig copiado."); }}>
               <Copy className="size-4" />Copiar numero
@@ -770,7 +842,7 @@ function RequestDetailSheet({
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-muted/10 p-4 sm:p-6">
-          {loading ? <div className="mb-4 flex items-center gap-2 rounded-md border bg-background p-3 text-sm"><Loader2 className="size-4 animate-spin" />Consultando formulario, historico e anexos diretamente no Fluig...</div> : null}
+          {loading ? <div className="mb-4 flex items-center gap-2 rounded-md border bg-background p-3 text-sm"><Loader2 className="size-4 animate-spin" />Carregando formulario, historico e anexos gravados...</div> : null}
           {error ? <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Os dados locais continuam disponiveis, mas a consulta detalhada ao Fluig falhou: {error}</div> : null}
           {details?.warnings?.length ? <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{details.warnings.join(" ")}</div> : null}
 
@@ -786,16 +858,13 @@ function RequestDetailSheet({
 
             <TabsContent value="form" className="m-0 space-y-4">
               <section className="grid gap-3 rounded-md border bg-background p-4 sm:grid-cols-2 lg:grid-cols-4">
-                <RequestDetail label="Numero da NF" value={request.invoiceNumber || details?.formFields.nNotaFiscal || "-"} />
-                <RequestDetail label="Valor da NF" value={formatMoney(request.amountCents, request.currency || "BRL")} />
-                <RequestDetail label="Vencimento" value={formatDate(request.invoiceDueDate || details?.formFields.vencPagNota || request.dueDate)} />
-                <RequestDetail label="Natureza de despesa" value={request.expenseNature || details?.formFields.codigonaturezaC || "-"} />
+                {panelFields.map((field) => <RequestDetail key={field.fieldKey} label={field.label} value={requestFieldText(request, field)} />)}
               </section>
               <section className="rounded-md border bg-background p-4">
                 <h3 className="mb-3 font-medium">Campos do formulario Fluig</h3>
                 {formFields.length ? (
                   <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {formFields.map(([name, value]) => <RequestDetail key={name} label={fieldLabel(name)} value={value} />)}
+                    {formFields.map(([name, value, label]) => <RequestDetail key={name} label={label || fieldLabel(name)} value={value} />)}
                   </div>
                 ) : <p className="text-sm text-muted-foreground">Aguardando a consulta do formulario no Fluig.</p>}
               </section>
@@ -814,7 +883,7 @@ function RequestDetailSheet({
                 <RequestDetail label="Filial" value={request.branchLabel || request.branchCode || "-"} />
                 <RequestDetail label="Aberta em" value={formatDateTime(request.openedAt)} />
                 <RequestDetail label="Ultima sincronizacao" value={formatDateTime(request.lastStatusCheckAt || request.lastSyncedAt)} />
-                <RequestDetail label="Detalhes consultados em" value={formatDateTime(details?.fetchedAt)} />
+                <RequestDetail label="Detalhes sincronizados em" value={formatDateTime(details?.fetchedAt)} />
               </section>
             </TabsContent>
 
@@ -865,6 +934,84 @@ function RequestDetailSheet({
               ) : <div className="rounded-md border bg-background p-8 text-center text-sm text-muted-foreground">Nenhum anexo retornado pelo Fluig.</div>}
             </TabsContent>
           </Tabs>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function FluigFieldSettingsSheet({
+  settings,
+  saving,
+  onOpenChange,
+  onSave,
+}: {
+  settings: FluigFieldSetting[];
+  saving: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (settings: FluigFieldSetting[]) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState<FluigFieldSetting[]>(settings);
+
+  function updateField(id: string, changes: Partial<FluigFieldSetting>) {
+    setDraft((current) => current.map((item) => {
+      if (item.id !== id) return item;
+      const next = { ...item, ...changes };
+      if (changes.active === false) {
+        next.visibleInList = false;
+        next.visibleInForm = false;
+      }
+      if ((changes.visibleInList === true || changes.visibleInForm === true) && !next.active) next.active = true;
+      return next;
+    }));
+  }
+
+  function addFormField() {
+    setDraft((current) => [...current, {
+      id: `new:${crypto.randomUUID()}`,
+      module: current[0]?.module || "pagamentos",
+      fieldKey: "",
+      label: "",
+      sourceType: "form",
+      active: true,
+      visibleInList: false,
+      listOrder: null,
+      visibleInForm: true,
+      formOrder: Math.max(0, ...current.map((item) => item.formOrder || 0)) + 10,
+    }]);
+  }
+
+  return (
+    <Sheet open onOpenChange={onOpenChange}>
+      <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:max-w-none sm:data-[side=right]:w-[min(980px,calc(100vw-2rem))] sm:data-[side=right]:max-w-none">
+        <SheetHeader className="shrink-0 border-b pr-14">
+          <SheetTitle>Campos sincronizados e exibidos</SheetTitle>
+          <SheetDescription>Ative somente o necessario e defina separadamente a ordem da lista e dos campos do formulario.</SheetDescription>
+        </SheetHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="mb-3 flex justify-end"><Button type="button" variant="outline" onClick={addFormField}><Plus className="size-4" />Adicionar campo do formulario</Button></div>
+          <div className="overflow-x-auto rounded-md border">
+            <Table>
+              <TableHeader><TableRow><TableHead>Campo</TableHead><TableHead className="text-center">Ativo</TableHead><TableHead className="text-center">Na lista</TableHead><TableHead className="w-24">Ordem</TableHead><TableHead className="text-center">No formulario</TableHead><TableHead className="w-24">Ordem</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {draft.map((field) => (
+                  <TableRow key={field.id}>
+                    <TableCell className="min-w-64"><Input value={field.label} onChange={(event) => updateField(field.id, { label: event.target.value })} placeholder="Nome exibido" /><Input className="mt-1 font-mono text-xs" value={field.fieldKey} disabled={!field.id.startsWith("new:")} onChange={(event) => updateField(field.id, { fieldKey: event.target.value.trim() })} placeholder="nomeDoCampoNoFluig" /><p className="mt-1 text-xs text-muted-foreground">{field.sourceType === "form" ? "Campo do formulario Fluig" : "Dado da solicitacao"}</p></TableCell>
+                    <TableCell className="text-center"><Checkbox checked={field.active} onCheckedChange={(checked) => updateField(field.id, { active: checked === true })} aria-label={`Ativar ${field.label}`} /></TableCell>
+                    <TableCell className="text-center"><Checkbox checked={field.visibleInList} onCheckedChange={(checked) => updateField(field.id, { visibleInList: checked === true })} aria-label={`Mostrar ${field.label} na lista`} /></TableCell>
+                    <TableCell><Input type="number" min={1} value={field.listOrder ?? ""} disabled={!field.visibleInList} onChange={(event) => updateField(field.id, { listOrder: event.target.value ? Number(event.target.value) : null })} aria-label={`Ordem de ${field.label} na lista`} /></TableCell>
+                    <TableCell className="text-center"><Checkbox checked={field.visibleInForm} disabled={field.sourceType !== "form"} onCheckedChange={(checked) => updateField(field.id, { visibleInForm: checked === true })} aria-label={`Mostrar ${field.label} no formulario`} /></TableCell>
+                    <TableCell><Input type="number" min={1} value={field.formOrder ?? ""} disabled={!field.visibleInForm || field.sourceType !== "form"} onChange={(event) => updateField(field.id, { formOrder: event.target.value ? Number(event.target.value) : null })} aria-label={`Ordem de ${field.label} no formulario`} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">Historico e metadados dos anexos continuam sincronizados porque compõem as abas detalhadas. O arquivo do anexo so e transferido quando for visualizado.</p>
+        </div>
+        <div className="flex shrink-0 justify-end gap-2 border-t p-4">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button type="button" onClick={() => void onSave(draft)} disabled={saving || !draft.some((field) => field.active && field.visibleInList)}>{saving ? <Loader2 className="size-4 animate-spin" /> : <Settings2 className="size-4" />}Salvar configuracao</Button>
         </div>
       </SheetContent>
     </Sheet>

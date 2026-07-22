@@ -85,6 +85,9 @@ export type FluigStatusItem = {
   syncTypes?: Array<"open_tasks" | "my_requests">;
   syncOperations?: Array<"sync_user_open_tasks" | "sync_user_open_requests">;
   syncSource?: string;
+  detailSnapshot?: FluigRequestDetailsOutput;
+  detailConfigHash?: string;
+  detailSyncError?: string | null;
   error?: string;
 };
 

@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { resolveCurrentAppUser } from "@/lib/db/app-repository";
 import { readFluigRequestByNumberForActor } from "@/lib/db/fluig-repository";
-import { readFluigCredentials } from "@/lib/fluig/credentials";
 import { moduleOrNull } from "@/lib/fluig/route-utils";
-import { queryFluigRequestDetails } from "@/lib/fluig/server-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,20 +22,26 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "Solicitacao Fluig nao encontrada ou sem acesso." }, { status: 404 });
     }
 
-    const credentials = await readFluigCredentials(actor.id);
-    const result = await queryFluigRequestDetails({
-      requestId: fluigRequestId,
-      taskUserId: actor.fluigUserId,
-      credentials,
-    });
-    if (!result.data) throw new Error("O Fluig nao retornou os detalhes da solicitacao.");
+    const snapshot = known.request.detailSnapshot;
+    const details = snapshot && typeof snapshot === "object" && Object.keys(snapshot).length
+      ? snapshot
+      : {
+          requestId: fluigRequestId,
+          taskUserId: null,
+          sourceUrl: known.request.sourceUrl || "",
+          fetchedAt: known.request.detailSyncedAt || known.request.lastSyncedAt || new Date().toISOString(),
+          formFields: known.request.fieldValues || {},
+          attachments: [],
+          history: [],
+          warnings: ["Os detalhes completos ainda nao foram gravados. Execute a sincronizacao do modulo."],
+        };
 
-    return NextResponse.json({ success: true, details: result.data });
+    return NextResponse.json({ success: true, details, source: "database" });
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Falha ao consultar detalhes no Fluig." },
+      { success: false, error: error instanceof Error ? error.message : "Falha ao consultar detalhes gravados." },
       { status: 500 }
     );
   }

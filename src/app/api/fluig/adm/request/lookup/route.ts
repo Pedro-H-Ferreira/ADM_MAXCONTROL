@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { createFluigJob, resolveCurrentAppUser, upsertFluigUserSyncState } from "@/lib/db/app-repository";
-import { readFluigRequestByNumberForActor } from "@/lib/db/fluig-repository";
+import { readFluigFieldSettings, readFluigRequestByNumberForActor } from "@/lib/db/fluig-repository";
 import { requireFluigProcessMap } from "@/lib/fluig/process-map";
 import { moduleOrNull } from "@/lib/fluig/route-utils";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
@@ -106,6 +106,13 @@ export async function POST(request: Request) {
     }
 
     const map = requireFluigProcessMap(moduleSlug);
+    const fieldSettings = await readFluigFieldSettings(moduleSlug);
+    const detailFields = Array.from(new Set(fieldSettings.settings.flatMap((item) => {
+      if (!item.active || (!item.visibleInList && !item.visibleInForm)) return [];
+      if (item.sourceType === "form") return [item.fieldKey];
+      if (item.fieldKey === "supplierName") return ["fornecedorC", "fornecedor", "razaoSocial", "unidadeFilial", "codigoFilial", "codFilial"];
+      return [];
+    })));
     const job = await createFluigJob({
       actor,
       module: moduleSlug,
@@ -114,6 +121,8 @@ export async function POST(request: Request) {
       requestPayload: {
         requestIds: [fluigRequestId],
         persist: parsed.data.persist,
+        detailFields,
+        detailConfigHash: fieldSettings.configHash,
         processMap: {
           module: map.module,
           processId: map.processId,

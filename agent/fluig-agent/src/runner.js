@@ -221,6 +221,8 @@ function syncBatchesFromPayload(payload) {
       discovery: batch?.discovery && typeof batch.discovery === "object" ? batch.discovery : payload.discovery || {},
       processMap: batch?.processMap && typeof batch.processMap === "object" ? batch.processMap : null,
       requestIds: Array.isArray(batch?.requestIds) ? batch.requestIds.map((item) => String(item || "").trim()).filter(Boolean) : [],
+      detailFields: Array.isArray(batch?.detailFields) ? batch.detailFields.map((item) => String(item || "").trim()).filter(Boolean) : [],
+      detailConfigHash: String(batch?.detailConfigHash || "").trim(),
     }))
     .filter((batch) => batch.module && batch.syncType && (batch.requestIds.length || batch.discoverRecent));
 }
@@ -467,7 +469,12 @@ async function executeJob(config, job, emitProgress) {
     const { stdout } = await runNodeScript(
       config,
       scriptPath,
-      [...requestIds, `--task-user-id=${payload.taskUserId || processMap.defaultTaskUserId || config.fluig.taskUserId}`],
+      [
+        ...requestIds,
+        `--task-user-id=${payload.taskUserId || processMap.defaultTaskUserId || config.fluig.taskUserId}`,
+        `--detail-fields-json=${JSON.stringify(Array.isArray(payload.detailFields) ? payload.detailFields : [])}`,
+        `--detail-config-hash=${String(payload.detailConfigHash || "")}`,
+      ],
       { onLine }
     );
     const outputPath = parseTaggedPath(stdout, "SYNC_FLUIG_STATUS_RESULT");
@@ -496,6 +503,7 @@ async function executeJob(config, job, emitProgress) {
           discovery: payload.discovery || {},
           userMatch: payload.userMatch || {},
           batches,
+          detailState: Array.isArray(payload.detailState) ? payload.detailState : [],
         },
         null,
         2

@@ -109,6 +109,22 @@ export type FluigOpenRequestRecord = {
   assignedUserEmail?: string | null;
   membershipType?: "open_task" | "my_request";
   membershipLastSeenAt?: string | null;
+  fieldValues?: Record<string, string>;
+  detailSyncedAt?: string | null;
+  detailSyncError?: string | null;
+};
+
+export type FluigFieldSetting = {
+  id: string;
+  module: FluigModuleSlug;
+  fieldKey: string;
+  label: string;
+  sourceType: "request" | "form";
+  active: boolean;
+  visibleInList: boolean;
+  listOrder: number | null;
+  visibleInForm: boolean;
+  formOrder: number | null;
 };
 
 export type FluigRequestDetails = {
@@ -237,6 +253,7 @@ export const fluigAdmApi = {
   requestLookupPath: "/api/fluig/adm/request/lookup",
   requestDetailsPath: "/api/fluig/adm/request/details",
   requestAttachmentPath: "/api/fluig/adm/request/attachment",
+  fieldSettingsPath: "/api/fluig/adm/field-settings",
   myTasksPath: "/api/fluig/adm/tasks/my",
   myOpenRequestsPath: "/api/fluig/adm/requests/my-open",
   requestsPath: "/api/fluig/adm/requests",
@@ -270,6 +287,16 @@ export const fluigAdmApi = {
       throw new Error(data.error || "Falha ao executar operacao Fluig");
     }
 
+    return data;
+  },
+  async put<TResponse>(path: string, payload: Record<string, unknown>) {
+    const response = await fetch(path, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = (await response.json()) as TResponse & { success?: boolean; error?: string };
+    if (!response.ok || data.success === false) throw new Error(data.error || "Falha ao salvar configuracao Fluig");
     return data;
   },
   async get<TResponse>(path: string) {
@@ -505,6 +532,17 @@ export const fluigAdmApi = {
   async getRequestDetails(payload: { module: FluigModuleSlug; fluigRequestId: string }) {
     const params = new URLSearchParams({ module: payload.module, fluigRequestId: payload.fluigRequestId });
     return this.get<{ success: true; details: FluigRequestDetails }>(`${this.requestDetailsPath}?${params.toString()}`);
+  },
+  async getFieldSettings(module: FluigModuleSlug) {
+    return this.get<{ success: true; settings: FluigFieldSetting[]; configHash: string; isAdmin: boolean }>(
+      `${this.fieldSettingsPath}?module=${encodeURIComponent(module)}`
+    );
+  },
+  async saveFieldSettings(module: FluigModuleSlug, settings: FluigFieldSetting[]) {
+    return this.put<{ success: true; settings: FluigFieldSetting[]; configHash: string; isAdmin: boolean }>(
+      this.fieldSettingsPath,
+      { module, settings }
+    );
   },
   requestAttachmentUrl(payload: { module: FluigModuleSlug; fluigRequestId: string; sequence: string }) {
     const params = new URLSearchParams({

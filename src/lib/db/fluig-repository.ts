@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createHash } from "node:crypto";
 import { filterRowsForActor, fluigModuleSlugsForActor, type AppActor } from "@/lib/db/app-repository";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
@@ -52,6 +53,24 @@ type FluigRequestDbRow = {
   sync_source?: string | null;
   source_url?: string | null;
   raw_payload?: JsonRecord;
+  detail_snapshot?: JsonRecord;
+  detail_synced_at?: string | null;
+  detail_movement_sequence?: number | null;
+  detail_config_hash?: string | null;
+  detail_sync_error?: string | null;
+};
+
+export type FluigFieldSetting = {
+  id: string;
+  module: FluigModuleSlug;
+  fieldKey: string;
+  label: string;
+  sourceType: "request" | "form";
+  active: boolean;
+  visibleInList: boolean;
+  listOrder: number | null;
+  visibleInForm: boolean;
+  formOrder: number | null;
 };
 
 type FluigRequestUserMembershipDbRow = {
@@ -159,6 +178,11 @@ const fluigRequestSelect = [
   "sync_source",
   "source_url",
   "raw_payload",
+  "detail_snapshot",
+  "detail_synced_at",
+  "detail_movement_sequence",
+  "detail_config_hash",
+  "detail_sync_error",
 ].join(",");
 
 const fluigRequestSummarySelect = [
@@ -359,7 +383,82 @@ function mapFluigRequestRecord(row: FluigRequestDbRow) {
     assignedFluigUserId: null as string | null,
     membershipType: null as "open_task" | "my_request" | null,
     membershipLastSeenAt: null as string | null,
+    fieldValues: formFields,
+    detailSnapshot: row.detail_snapshot || null,
+    detailSyncedAt: row.detail_synced_at || null,
+    detailSyncError: row.detail_sync_error || null,
   };
+}
+
+function mapFieldSetting(row: Record<string, unknown>): FluigFieldSetting {
+  return {
+    id: String(row.id || ""),
+    module: String(row.module_slug || "pagamentos") as FluigModuleSlug,
+    fieldKey: String(row.field_key || ""),
+    label: String(row.label || row.field_key || "Campo"),
+    sourceType: row.source_type === "request" ? "request" : "form",
+    active: row.active !== false,
+    visibleInList: row.visible_in_list === true,
+    listOrder: row.list_order == null ? null : Number(row.list_order),
+    visibleInForm: row.visible_in_form === true,
+    formOrder: row.form_order == null ? null : Number(row.form_order),
+  };
+}
+
+export function fluigFieldSettingsHash(settings: Array<Pick<FluigFieldSetting, "fieldKey" | "sourceType" | "active" | "visibleInList" | "visibleInForm">>) {
+  const active = settings
+    .filter((item) => item.active && (item.visibleInList || item.visibleInForm))
+    .map((item) => `${item.sourceType}:${item.fieldKey}:${Number(item.visibleInList)}:${Number(item.visibleInForm)}`)
+    .sort();
+  return createHash("sha256").update(JSON.stringify(active)).digest("hex").slice(0, 24);
+}
+
+export async function readFluigFieldSettings(module: FluigModuleSlug) {
+  return runWithDb(async (client) => {
+    const { data, error } = await client
+      .from("fluig_field_settings")
+      .select("id,module_slug,field_key,label,source_type,active,visible_in_list,list_order,visible_in_form,form_order")
+      .eq("module_slug", module)
+      .order("list_order", { ascending: true, nullsFirst: false })
+      .order("form_order", { ascending: true, nullsFirst: false })
+      .order("label", { ascending: true });
+    if (error) throw error;
+    const settings = (data || []).map((row) => mapFieldSetting(row as Record<string, unknown>));
+    return { settings, configHash: fluigFieldSettingsHash(settings) };
+  }).then(({ result, persistence }) => ({ ...(result || { settings: [], configHash: "" }), persistence }));
+}
+
+export async function replaceFluigFieldSettings(input: {
+  actor: AppActor;
+  module: FluigModuleSlug;
+  settings: Array<Omit<FluigFieldSetting, "id" | "module"> & { id?: string }>;
+}) {
+  return runWithDb(async (client) => {
+    if (!input.actor.isAdmin) throw new Error("Somente administradores podem configurar os campos Fluig.");
+    const rows = input.settings.map((item) => ({
+      module_slug: input.module,
+      field_key: String(item.fieldKey || "").trim(),
+      label: String(item.label || "").trim(),
+      source_type: item.sourceType,
+      active: Boolean(item.active),
+      visible_in_list: Boolean(item.active && item.visibleInList),
+      list_order: item.active && item.visibleInList ? item.listOrder : null,
+      visible_in_form: Boolean(item.active && item.visibleInForm),
+      form_order: item.active && item.visibleInForm ? item.formOrder : null,
+      updated_by_user_id: input.actor.id,
+      updated_at: new Date().toISOString(),
+    })).filter((item) => item.field_key && item.label);
+    if (!rows.length) throw new Error("Configure ao menos um campo Fluig.");
+    const { error } = await client.from("fluig_field_settings").upsert(rows, { onConflict: "module_slug,field_key" });
+    if (error) throw error;
+    const { data, error: readError } = await client
+      .from("fluig_field_settings")
+      .select("id,module_slug,field_key,label,source_type,active,visible_in_list,list_order,visible_in_form,form_order")
+      .eq("module_slug", input.module);
+    if (readError) throw readError;
+    const settings = (data || []).map((row) => mapFieldSetting(row as Record<string, unknown>));
+    return { settings, configHash: fluigFieldSettingsHash(settings) };
+  }).then(({ result, persistence }) => ({ ...(result || { settings: [], configHash: "" }), persistence }));
 }
 
 export async function listFluigRequestsForActor(input: {
@@ -1107,6 +1206,19 @@ export function buildFluigStatusRequestRow(
   const fluigUserId = String(item.syncFluigUserId || options.fluigUserId || "").trim() || null;
   const seenAsTask = open && Boolean(fluigUserId) && syncTypes.includes("open_tasks");
   const seenAsRequest = open && Boolean(fluigUserId) && syncTypes.includes("my_requests");
+  const detailSnapshot = item.detailSnapshot && typeof item.detailSnapshot === "object" ? item.detailSnapshot : null;
+  const detailFields = detailSnapshot?.formFields || {};
+  const detailBranch = normalizeFluigBranch({
+    label: detailFields.unidadeFilial || detailFields.filial,
+    explicitCode: detailFields.codigoFilial || detailFields.codFilial,
+  });
+  const detailSupplierName = firstStringField(detailFields, ["fornecedorC", "fornecedor", "razaoSocial"]);
+  const detailSupplierCnpj = firstStringField(detailFields, ["codCNPJ", "cnpj", "cnpjFornecedor"]);
+  const detailAmount = parseMoneyToCents(firstStringField(detailFields, ["valorNF", "valorNFT", "valorTotal"]));
+  const detailDueDate = parseDateOnly(firstStringField(detailFields, ["vencPagNota", "vencimentoNF", "dataVencimentoNF"]));
+  const detailNature = firstStringField(detailFields, ["codigonaturezaC", "naturezaSalva", "natureza", "codNatureza"]);
+  const statusSnapshot = { ...item } as FluigStatusItem & { detailSnapshot?: never };
+  delete statusSnapshot.detailSnapshot;
 
   return {
     module_slug: module,
@@ -1117,8 +1229,14 @@ export function buildFluigStatusRequestRow(
     task_owner: taskOwner,
     requester: item.requesterName || existing?.requester || undefined,
     fluig_requester_code: item.requesterId || existing?.fluig_requester_code || undefined,
-    due_date: item.dueDate || item.vencimentoPagamento || existing?.due_date || null,
-    expense_nature: existing?.expense_nature || undefined,
+    supplier_name: detailSupplierName || undefined,
+    supplier_cnpj: detailSupplierCnpj || undefined,
+    amount_cents: detailAmount ?? undefined,
+    currency: detailAmount != null ? "BRL" : undefined,
+    branch_code: detailBranch.code || undefined,
+    branch_label: detailBranch.label || undefined,
+    due_date: detailDueDate || item.dueDate || item.vencimentoPagamento || existing?.due_date || null,
+    expense_nature: detailNature || existing?.expense_nature || undefined,
     opened_at: item.openedAt || existing?.opened_at || undefined,
     normalized_status: lifecycle.normalizedStatus,
     is_open: lifecycle.isOpen,
@@ -1135,9 +1253,16 @@ export function buildFluigStatusRequestRow(
     sync_owner_user_id: options.ownerUserId || null,
     last_synced_at: checkedAt,
     updated_at: syncedAt,
+    source_url: detailSnapshot?.sourceUrl || undefined,
+    detail_snapshot: detailSnapshot || undefined,
+    detail_synced_at: detailSnapshot?.fetchedAt || undefined,
+    detail_movement_sequence: detailSnapshot ? item.movementSequence ?? null : undefined,
+    detail_config_hash: detailSnapshot ? item.detailConfigHash || null : undefined,
+    detail_sync_error: detailSnapshot ? null : item.detailSyncError || undefined,
     raw_payload: {
       ...(existing?.raw_payload || {}),
-      statusSnapshot: item as unknown as JsonRecord,
+      ...(detailSnapshot ? { formFields: detailFields } : {}),
+      statusSnapshot: statusSnapshot as unknown as JsonRecord,
     },
   };
 }
@@ -1189,7 +1314,25 @@ export async function persistProcessMaps(processMaps: FluigProcessMap[]) {
 
 export async function persistHistoryItems(module: FluigModuleSlug, items: FluigHistoryItem[], actor?: Pick<AppActor, "id"> | null) {
   return runWithDb(async (client) => {
-    const rows = items.map((item) => buildFluigHistoryRequestRow(module, item, actor)).filter((item) => item.fluig_request_id);
+    const { data: configuredFields, error: configuredFieldsError } = await client
+      .from("fluig_field_settings")
+      .select("field_key")
+      .eq("module_slug", module)
+      .eq("source_type", "form")
+      .eq("active", true)
+      .or("visible_in_list.eq.true,visible_in_form.eq.true");
+    if (configuredFieldsError) throw configuredFieldsError;
+    const activeFieldKeys = new Set((configuredFields || []).map((row) => String(row.field_key || "")).filter(Boolean));
+    const rows = items.map((item) => {
+      const row = buildFluigHistoryRequestRow(module, item, actor);
+      return {
+        ...row,
+        raw_payload: {
+          ...row.raw_payload,
+          formFields: Object.fromEntries(Object.entries(item.formFields || {}).filter(([key]) => activeFieldKeys.has(key))),
+        },
+      };
+    }).filter((item) => item.fluig_request_id);
     if (!rows.length) return { requests: 0, supplierRequestLinks: 0 };
 
     const branches = Array.from(
@@ -1560,6 +1703,37 @@ export async function readKnownOpenFluigRequestsForActor(input: {
     total: result?.total || 0,
     persistence,
   }));
+}
+
+export async function readFluigDetailSyncStateForActor(input: {
+  actor: AppActor;
+  modules: FluigModuleSlug[];
+  limit?: number;
+}) {
+  return runWithDb(async (client) => {
+    const allowedModules = new Set(fluigModuleSlugsForActor(input.actor));
+    const modules = input.modules.filter((moduleSlug) => allowedModules.has(moduleSlug));
+    if (!modules.length) return [];
+    const limit = Math.min(Math.max(Number(input.limit || 5000), 1), 10000);
+    let query = client
+      .from("fluig_requests")
+      .select("module_slug,fluig_request_id,detail_movement_sequence,detail_config_hash,detail_synced_at")
+      .in("module_slug", modules)
+      .not("fluig_request_id", "is", null)
+      .order("last_synced_at", { ascending: false, nullsFirst: false })
+      .limit(limit);
+    const actorFilter = buildFluigActorPostgrestFilter(input.actor);
+    if (actorFilter) query = query.or(actorFilter);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map((row) => ({
+      module: String(row.module_slug) as FluigModuleSlug,
+      requestId: String(row.fluig_request_id || ""),
+      movementSequence: row.detail_movement_sequence == null ? null : Number(row.detail_movement_sequence),
+      configHash: row.detail_config_hash ? String(row.detail_config_hash) : null,
+      syncedAt: row.detail_synced_at ? String(row.detail_synced_at) : null,
+    }));
+  }).then(({ result }) => result || []);
 }
 
 type FluigAccountIdentityInput = {
