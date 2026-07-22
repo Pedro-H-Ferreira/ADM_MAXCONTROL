@@ -112,6 +112,50 @@ export type FluigCancelOutput = {
   items: Array<Record<string, unknown>>;
 };
 
+export type FluigRequestAttachment = {
+  sequence: string;
+  name: string;
+  description: string;
+  mimeType: string | null;
+  size: number | null;
+  documentId: string | null;
+  version: string | null;
+  attachedBy: string | null;
+  attachedAt: string | null;
+};
+
+export type FluigRequestHistoryEntry = {
+  sequence: string;
+  user: string;
+  activity: string | null;
+  destination: string | null;
+  detail: string | null;
+  observation: string | null;
+  date: string | null;
+  automatic: boolean;
+};
+
+export type FluigRequestDetailsOutput = {
+  requestId: string;
+  taskUserId: string | null;
+  sourceUrl: string;
+  fetchedAt: string;
+  formFields: Record<string, string>;
+  attachments: FluigRequestAttachment[];
+  history: FluigRequestHistoryEntry[];
+  warnings: string[];
+};
+
+type FluigRequestAttachmentDownloadOutput = {
+  requestId: string;
+  sequence: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  filePath: string;
+  downloadedAt: string;
+};
+
 const internalRunnerRoot = process.cwd();
 const internalRunnerMarker = path.join(internalRunnerRoot, "scripts", "fluig", "api", "session.js");
 const requiredInternalRunnerEnv = [
@@ -372,4 +416,55 @@ export async function cancelFluigRequests(input: {
     args,
     resultTag: "CANCEL_VIA_API_RESULT",
   });
+}
+
+export async function queryFluigRequestDetails(input: {
+  requestId: string;
+  taskUserId?: string | null;
+  credentials: { username: string; password: string };
+}): Promise<DirectScriptResult<FluigRequestDetailsOutput>> {
+  const runnerRoot = ensureInternalRunner();
+  const args = [`--request-id=${input.requestId}`];
+  if (input.taskUserId) args.push(`--task-user-id=${input.taskUserId}`);
+
+  return runNodeScript<FluigRequestDetailsOutput>({
+    runnerRoot,
+    scriptPath: resolveRunnerScript(runnerRoot, "requestDetails.js"),
+    args,
+    resultTag: "FLUIG_REQUEST_DETAILS_RESULT",
+    timeoutMs: 180000,
+    credentials: input.credentials,
+  });
+}
+
+export async function downloadFluigRequestAttachment(input: {
+  requestId: string;
+  sequence: string;
+  credentials: { username: string; password: string };
+}) {
+  const runnerRoot = ensureInternalRunner();
+  const result = await runNodeScript<FluigRequestAttachmentDownloadOutput>({
+    runnerRoot,
+    scriptPath: resolveRunnerScript(runnerRoot, "downloadRequestAttachment.js"),
+    args: [`--request-id=${input.requestId}`, `--sequence=${input.sequence}`],
+    resultTag: "FLUIG_REQUEST_ATTACHMENT_RESULT",
+    timeoutMs: 180000,
+    credentials: input.credentials,
+  });
+  const filePath = result.data?.filePath || "";
+  if (!filePath) throw new Error("O Fluig nao retornou o arquivo do anexo.");
+  assertSubpath(runnerRoot, filePath);
+
+  try {
+    return {
+      name: result.data?.name || `anexo-${input.sequence}`,
+      mimeType: result.data?.mimeType || "application/octet-stream",
+      bytes: await fs.promises.readFile(filePath),
+    };
+  } finally {
+    await Promise.all([
+      fs.promises.rm(filePath, { force: true }).catch(() => undefined),
+      result.outputPath ? fs.promises.rm(result.outputPath, { force: true }).catch(() => undefined) : Promise.resolve(),
+    ]);
+  }
 }

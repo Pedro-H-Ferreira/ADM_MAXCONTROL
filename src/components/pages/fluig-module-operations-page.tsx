@@ -8,10 +8,14 @@ import {
   ClipboardList,
   Copy,
   ExternalLink,
+  Eye,
+  FileText,
   Filter,
+  History,
   Laptop,
   Loader2,
   Plus,
+  Paperclip,
   RefreshCcw,
   RotateCw,
   Search,
@@ -36,6 +40,7 @@ import {
   type FluigAdmAgent,
   type FluigAdmJobSummary,
   type FluigOpenRequestRecord,
+  type FluigRequestDetails,
   type FluigUserSyncStateRecord,
 } from "@/lib/fluig-api";
 import { getFluigIntegrationForModule, type FluigModuleSlug } from "@/lib/fluig-data";
@@ -112,6 +117,57 @@ function formatDateTime(value: string | null | undefined) {
   });
 }
 
+function formatDate(value: string | null | undefined) {
+  if (!value) return "-";
+  const date = new Date(value.length === 10 ? `${value}T12:00:00` : value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("pt-BR");
+}
+
+function formatMoney(value: number | null | undefined, currency = "BRL") {
+  if (value == null) return "-";
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(value / 100);
+}
+
+function formatFileSize(value: number | null | undefined) {
+  if (!value) return "Tamanho nao informado";
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
+}
+
+const fluigFieldLabels: Record<string, string> = {
+  nNotaFiscal: "Numero da NF",
+  valorNF: "Valor da NF",
+  valorNFT: "Valor total da NF",
+  vencPagNota: "Data de vencimento",
+  dataEmissaoNF: "Data de emissao",
+  codigonaturezaC: "Natureza de despesa",
+  fornecedorC: "Fornecedor",
+  codCNPJ: "CNPJ",
+  unidadeFilial: "Filial",
+  centroCusto: "Centro de custo",
+  formaPagamento: "Forma de pagamento",
+  descricaoDemandaEnvio: "Descricao da demanda",
+};
+
+function fieldLabel(name: string) {
+  if (fluigFieldLabels[name]) return fluigFieldLabels[name];
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function requestFluigUrl(row: FluigOpenRequestRecord, details: FluigRequestDetails | null, fallbackUrl: string) {
+  if (details?.sourceUrl) return details.sourceUrl;
+  if (row.sourceUrl) return row.sourceUrl;
+  const url = new URL(fallbackUrl);
+  url.search = "";
+  url.searchParams.set("app_ecm_workflowview_detailsProcessInstanceID", row.fluigRequestId);
+  return url.toString();
+}
+
 function describeHeartbeatAge(seconds: number | null | undefined) {
   if (seconds == null) return "heartbeat sem registro";
   if (seconds < 60) return "heartbeat agora";
@@ -156,9 +212,15 @@ export function FluigModuleOperationsPage({
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [branchFilter, setBranchFilter] = useState("ALL");
+  const [natureFilter, setNatureFilter] = useState("ALL");
+  const [natures, setNatures] = useState<Array<{ value: string; label: string }>>([]);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [activeTab, setActiveTab] = useState("requests");
   const [selectedRequest, setSelectedRequest] = useState<FluigOpenRequestRecord | null>(null);
+  const [selectedDetails, setSelectedDetails] = useState<FluigRequestDetails | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [selectedAttachmentSequence, setSelectedAttachmentSequence] = useState<string | null>(null);
   const [technicalOpen, setTechnicalOpen] = useState(false);
   const [workspaceView, setWorkspaceView] = useState<"launch" | "tools">("launch");
   const [requestRefreshing, setRequestRefreshing] = useState(false);
@@ -185,11 +247,12 @@ export function FluigModuleOperationsPage({
     return source.filter((row) => {
       if (activeTab === "tasks" && statusFilter !== "ALL" && normalizeStatus(row.normalizedStatus || row.status) !== statusFilter) return false;
       if (activeTab === "tasks" && branchFilter !== "ALL" && row.branchCode !== branchFilter) return false;
+      if (activeTab === "tasks" && natureFilter !== "ALL" && row.expenseNature !== natureFilter) return false;
       if (activeTab === "tasks" && onlyOverdue && (!referenceTime || !row.dueDate || Date.parse(row.dueDate) >= referenceTime)) return false;
       if (!normalizedQuery) return true;
       return [row.fluigRequestId, row.admReference, row.supplierName, row.supplierCnpj, row.requester, row.currentTask, row.taskOwner].some((value) => String(value || "").toLocaleLowerCase("pt-BR").includes(normalizedQuery));
     });
-  }, [activeTab, branchFilter, onlyOverdue, query, referenceTime, sortedRequests, sortedTasks, statusFilter]);
+  }, [activeTab, branchFilter, natureFilter, onlyOverdue, query, referenceTime, sortedRequests, sortedTasks, statusFilter]);
 
   const loadRequestPage = useCallback(
     () =>
@@ -200,11 +263,12 @@ export function FluigModuleOperationsPage({
         search: debouncedQuery || undefined,
         status: statusFilter === "ALL" ? undefined : statusFilter,
         branch: branchFilter === "ALL" ? undefined : branchFilter,
+        nature: natureFilter === "ALL" ? undefined : natureFilter,
         open: activeTab === "finished" ? false : activeTab === "errors" ? null : true,
         overdue: onlyOverdue,
         errorOnly: activeTab === "errors",
       }),
-    [activeTab, branchFilter, debouncedQuery, moduleSlug, onlyOverdue, requestPage, requestPageSize, statusFilter]
+    [activeTab, branchFilter, debouncedQuery, moduleSlug, natureFilter, onlyOverdue, requestPage, requestPageSize, statusFilter]
   );
 
   const refreshRequestTable = useCallback(async () => {
@@ -252,6 +316,7 @@ export function FluigModuleOperationsPage({
         setAgents(nextAgents);
         setTasks(taskData.tasks || []);
         setTaskTotal(Number(taskData.total || 0));
+        setNatures(taskData.filters?.natures || []);
         setRequests(requestData.items || []);
         setRequestTotal(requestData.total || 0);
         setStates(syncStateData.states || []);
@@ -327,12 +392,31 @@ export function FluigModuleOperationsPage({
       await waitForFluigJobs([created.job]);
       const updated = await fluigAdmApi.getLookupRequest({ module: moduleSlug, fluigRequestId: selectedRequest.fluigRequestId });
       if (updated.request) setSelectedRequest(updated.request);
+      const details = await fluigAdmApi.getRequestDetails({ module: moduleSlug, fluigRequestId: selectedRequest.fluigRequestId });
+      setSelectedDetails(details.details);
+      setDetailsError(null);
       await refresh(true);
       toast.success("Status da solicitacao atualizado.");
     } catch (requestError) {
       toast.error(requestError instanceof Error ? requestError.message : "Falha ao atualizar solicitacao.");
     } finally {
       setRequestRefreshing(false);
+    }
+  }
+
+  async function openRequestDetails(row: FluigOpenRequestRecord) {
+    setSelectedRequest(row);
+    setSelectedDetails(null);
+    setDetailsError(null);
+    setSelectedAttachmentSequence(null);
+    setDetailsLoading(true);
+    try {
+      const response = await fluigAdmApi.getRequestDetails({ module: moduleSlug, fluigRequestId: row.fluigRequestId });
+      setSelectedDetails(response.details);
+    } catch (detailError) {
+      setDetailsError(detailError instanceof Error ? detailError.message : "Falha ao consultar os detalhes no Fluig.");
+    } finally {
+      setDetailsLoading(false);
     }
   }
 
@@ -406,16 +490,17 @@ export function FluigModuleOperationsPage({
       {pendingJobs.length ? <PendingJobs jobs={pendingJobs} /> : null}
 
       <section className="rounded-md border bg-background">
-        <div className="grid gap-2 border-b p-3 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
-          <div className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Numero Fluig, fornecedor, CNPJ, solicitante ou etapa" /></div>
+        <div className="grid gap-2 border-b p-3 xl:grid-cols-[minmax(260px,1fr)_180px_210px_260px_auto]">
+          <div className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Numero Fluig, NF, fornecedor, CNPJ, solicitante ou etapa" /></div>
           <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setRequestPage(1); }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">Todos os status</SelectItem>{Array.from(new Set([...tasks, ...requests].map((row) => normalizeStatus(row.normalizedStatus || row.status)))).sort().map((status) => <SelectItem key={status} value={status}>{status.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select>
           <Select value={branchFilter} onValueChange={(value) => { setBranchFilter(value); setRequestPage(1); }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">Todas as filiais</SelectItem>{branches.map((branch) => <SelectItem key={branch.code || branch.label} value={branch.code}>{branch.code ? `${branch.code} - ${branch.label}` : branch.label}</SelectItem>)}</SelectContent></Select>
+          <Select value={natureFilter} onValueChange={(value) => { setNatureFilter(value); setRequestPage(1); }}><SelectTrigger className="w-full" aria-label="Filtrar por natureza de despesa"><SelectValue placeholder="Natureza de despesa" /></SelectTrigger><SelectContent><SelectItem value="ALL">Todas as naturezas de despesa</SelectItem>{natures.map((nature) => <SelectItem key={nature.value} value={nature.value}>{nature.label}</SelectItem>)}</SelectContent></Select>
           <label className="flex items-center gap-2 rounded-md border px-3 text-sm"><Checkbox checked={onlyOverdue} onCheckedChange={(checked) => { setOnlyOverdue(checked === true); setRequestPage(1); }} /><Filter className="size-4" />Somente atrasados</label>
         </div>
 
         <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setRequestPage(1); }}>
           <div className="overflow-x-auto border-b"><TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0"><TabsTrigger className="rounded-none px-4 py-3" value="tasks">Minhas tarefas ({taskTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="requests">Minhas solicitacoes ({requestTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="errors">Com erro</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="finished">Finalizadas</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="jobs">Jobs e sincronizacoes</TabsTrigger></TabsList></div>
-          {activeTab === "jobs" ? <TabsContent value="jobs" className="m-0"><JobsTable jobs={moduleJobs} states={states} loading={loading} /></TabsContent> : <TabsContent value={activeTab} className="m-0"><RequestTable title={activeTab === "tasks" ? "Tarefas sob sua responsabilidade" : activeTab === "errors" ? "Solicitacoes com erro ou canceladas" : activeTab === "finished" ? "Solicitacoes finalizadas" : `Solicitacoes de ${moduleLabels[moduleSlug].toLowerCase()}`} emptyText={loading || requestsLoading ? "Carregando dados persistidos..." : "Nenhum registro encontrado para os filtros informados."} rows={visibleRows} onSelect={setSelectedRequest} /></TabsContent>}
+          {activeTab === "jobs" ? <TabsContent value="jobs" className="m-0"><JobsTable jobs={moduleJobs} states={states} loading={loading} /></TabsContent> : <TabsContent value={activeTab} className="m-0"><RequestTable moduleSlug={moduleSlug} title={activeTab === "tasks" ? "Tarefas sob sua responsabilidade" : activeTab === "errors" ? "Solicitacoes com erro ou canceladas" : activeTab === "finished" ? "Solicitacoes finalizadas" : `Solicitacoes de ${moduleLabels[moduleSlug].toLowerCase()}`} emptyText={loading || requestsLoading ? "Carregando dados persistidos..." : "Nenhum registro encontrado para os filtros informados."} rows={visibleRows} onSelect={(row) => void openRequestDetails(row)} /></TabsContent>}
         </Tabs>
         {requestTabActive ? (
           <div className="flex flex-col gap-3 border-t p-3 sm:flex-row sm:items-center sm:justify-between">
@@ -487,7 +572,24 @@ export function FluigModuleOperationsPage({
         </SheetContent>
       </Sheet>
 
-      <Sheet open={Boolean(selectedRequest)} onOpenChange={(open) => { if (!open) setSelectedRequest(null); }}><SheetContent className="w-full sm:max-w-2xl"><SheetHeader><SheetTitle>{selectedRequest ? `Fluig ${selectedRequest.fluigRequestId}` : "Solicitacao Fluig"}</SheetTitle><SheetDescription>{selectedRequest?.supplierName || selectedRequest?.requester || "Detalhes sincronizados"}</SheetDescription></SheetHeader>{selectedRequest ? <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pb-6"><div className="grid gap-3 rounded-md border p-3 sm:grid-cols-2"><RequestDetail label="Referencia ADM" value={selectedRequest.admReference || "-"} /><RequestDetail label="Modulo" value={moduleLabels[moduleSlug]} /><RequestDetail label="Status" value={normalizeStatus(selectedRequest.normalizedStatus || selectedRequest.status)} /><RequestDetail label="Etapa atual" value={selectedRequest.currentTask || "-"} /><RequestDetail label="Responsavel" value={selectedRequest.taskOwner || "-"} /><RequestDetail label="Solicitante" value={selectedRequest.requester || "-"} /><RequestDetail label="Fornecedor" value={selectedRequest.supplierName || "-"} /><RequestDetail label="CNPJ" value={selectedRequest.supplierCnpj || "-"} /><RequestDetail label="Filial" value={selectedRequest.branchLabel || selectedRequest.branchCode || "-"} /><RequestDetail label="Prazo" value={formatDateTime(selectedRequest.dueDate)} /><RequestDetail label="Aberta em" value={formatDateTime(selectedRequest.openedAt)} /><RequestDetail label="Ultima sincronizacao" value={formatDateTime(selectedRequest.lastStatusCheckAt || selectedRequest.lastSyncedAt)} /></div><div className="flex flex-wrap gap-2"><Button type="button" onClick={() => void refreshSelectedRequest()} disabled={requestRefreshing}>{requestRefreshing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}Atualizar status</Button><Button type="button" variant="outline" onClick={() => { void navigator.clipboard.writeText(selectedRequest.fluigRequestId); toast.success("Numero Fluig copiado."); }}><Copy className="size-4" />Copiar numero</Button><Button type="button" variant="outline" asChild><a href={integration.openUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" />Abrir no Fluig</a></Button></div><section><h3 className="mb-2 font-medium">Historico operacional</h3><div className="rounded-md border p-3 text-sm text-muted-foreground"><p>Registro persistido em {formatDateTime(selectedRequest.lastSyncedAt)}.</p><p className="mt-1">Ultima consulta de status em {formatDateTime(selectedRequest.lastStatusCheckAt)}.</p>{selectedRequest.syncSource ? <p className="mt-1">Origem: {selectedRequest.syncSource.replaceAll("_", " ")}.</p> : null}</div></section></div> : null}</SheetContent></Sheet>
+      <RequestDetailSheet
+        request={selectedRequest}
+        details={selectedDetails}
+        loading={detailsLoading}
+        error={detailsError}
+        moduleSlug={moduleSlug}
+        fallbackFluigUrl={integration.openUrl}
+        refreshing={requestRefreshing}
+        selectedAttachmentSequence={selectedAttachmentSequence}
+        onSelectedAttachmentSequenceChange={setSelectedAttachmentSequence}
+        onRefresh={() => void refreshSelectedRequest()}
+        onClose={() => {
+          setSelectedRequest(null);
+          setSelectedDetails(null);
+          setDetailsError(null);
+          setSelectedAttachmentSequence(null);
+        }}
+      />
     </div>
   );
 }
@@ -543,11 +645,13 @@ function PendingJobs({ jobs }: { jobs: FluigAdmJobSummary[] }) {
 }
 
 function RequestTable({
+  moduleSlug,
   title,
   rows,
   emptyText,
   onSelect,
 }: {
+  moduleSlug: OperationalModuleSlug;
   title: string;
   rows: FluigOpenRequestRecord[];
   emptyText: string;
@@ -566,11 +670,12 @@ function RequestTable({
           <TableHeader>
             <TableRow>
               <TableHead>Fluig</TableHead>
-              <TableHead>Fornecedor / solicitante</TableHead>
-              <TableHead>Filial</TableHead>
-              <TableHead>Etapa</TableHead>
-              <TableHead>Responsavel</TableHead>
-              <TableHead>Atualizado</TableHead>
+              {moduleSlug === "pagamentos" ? <TableHead>Numero da NF</TableHead> : null}
+              <TableHead>Fornecedor / filial</TableHead>
+              {moduleSlug === "pagamentos" ? <TableHead>Valor da NF</TableHead> : null}
+              <TableHead>Vencimento</TableHead>
+              {moduleSlug === "pagamentos" ? <TableHead>Natureza de despesa</TableHead> : null}
+              <TableHead>Etapa / responsavel</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -578,14 +683,18 @@ function RequestTable({
             {rows.map((row) => (
               <TableRow key={`${row.module}-${row.fluigRequestId}-${row.id}`} className="cursor-pointer" onClick={() => onSelect(row)}>
                 <TableCell className="font-medium">{row.fluigRequestId}</TableCell>
+                {moduleSlug === "pagamentos" ? <TableCell className="font-medium">{row.invoiceNumber || "-"}</TableCell> : null}
                 <TableCell className="min-w-[240px] max-w-[360px] whitespace-normal">
                   <p className="font-medium">{row.supplierName || row.requester || "Solicitacao Fluig"}</p>
-                  <p className="text-xs text-muted-foreground">{row.supplierCnpj || row.admReference || "-"}</p>
+                  <p className="text-xs text-muted-foreground">{row.branchLabel || row.branchCode || row.supplierCnpj || "-"}</p>
                 </TableCell>
-                <TableCell className="min-w-[160px] max-w-[260px] whitespace-normal">{row.branchLabel || row.branchCode || "-"}</TableCell>
-                <TableCell className="min-w-[180px] max-w-[280px] whitespace-normal">{row.currentTask || "-"}</TableCell>
-                <TableCell className="min-w-[160px] max-w-[240px] whitespace-normal">{row.taskOwner || "-"}</TableCell>
-                <TableCell>{formatDateTime(row.lastStatusCheckAt || row.lastSyncedAt || row.lastSeenInUserOpenListAt)}</TableCell>
+                {moduleSlug === "pagamentos" ? <TableCell className="whitespace-nowrap font-medium">{formatMoney(row.amountCents, row.currency || "BRL")}</TableCell> : null}
+                <TableCell className="whitespace-nowrap">{formatDate(row.dueDate)}</TableCell>
+                {moduleSlug === "pagamentos" ? <TableCell className="min-w-[220px] max-w-[320px] whitespace-normal">{row.expenseNature || "-"}</TableCell> : null}
+                <TableCell className="min-w-[220px] max-w-[340px] whitespace-normal">
+                  <p>{row.currentTask || "-"}</p>
+                  <p className="text-xs text-muted-foreground">{row.taskOwner || "Responsavel nao informado"}</p>
+                </TableCell>
                 <TableCell>
                   <StatusBadge status={normalizeStatus(row.normalizedStatus || row.status)} />
                 </TableCell>
@@ -597,6 +706,168 @@ function RequestTable({
         <EmptyTableText>{emptyText}</EmptyTableText>
       )}
     </section>
+  );
+}
+
+function RequestDetailSheet({
+  request,
+  details,
+  loading,
+  error,
+  moduleSlug,
+  fallbackFluigUrl,
+  refreshing,
+  selectedAttachmentSequence,
+  onSelectedAttachmentSequenceChange,
+  onRefresh,
+  onClose,
+}: {
+  request: FluigOpenRequestRecord | null;
+  details: FluigRequestDetails | null;
+  loading: boolean;
+  error: string | null;
+  moduleSlug: OperationalModuleSlug;
+  fallbackFluigUrl: string;
+  refreshing: boolean;
+  selectedAttachmentSequence: string | null;
+  onSelectedAttachmentSequenceChange: (sequence: string | null) => void;
+  onRefresh: () => void;
+  onClose: () => void;
+}) {
+  if (!request) return null;
+  const fluigUrl = requestFluigUrl(request, details, fallbackFluigUrl);
+  const formFields = Object.entries(details?.formFields || {})
+    .filter(([, value]) => String(value || "").trim())
+    .sort(([left], [right]) => fieldLabel(left).localeCompare(fieldLabel(right), "pt-BR"));
+  const selectedAttachment = details?.attachments.find((item) => item.sequence === selectedAttachmentSequence) || null;
+  const attachmentUrl = selectedAttachment
+    ? fluigAdmApi.requestAttachmentUrl({ module: moduleSlug, fluigRequestId: request.fluigRequestId, sequence: selectedAttachment.sequence })
+    : null;
+
+  return (
+    <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:max-w-none sm:data-[side=right]:w-[min(1180px,calc(100vw-2rem))] sm:data-[side=right]:max-w-none">
+        <SheetHeader className="shrink-0 border-b pr-14">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <SheetTitle>Solicitacao Fluig {request.fluigRequestId}</SheetTitle>
+              <SheetDescription>{request.supplierName || request.requester || "Detalhes da solicitacao"}</SheetDescription>
+            </div>
+            <StatusBadge status={normalizeStatus(request.normalizedStatus || request.status)} />
+          </div>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button type="button" size="sm" onClick={onRefresh} disabled={refreshing || loading}>
+              {refreshing || loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
+              Atualizar dados do Fluig
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => { void navigator.clipboard.writeText(request.fluigRequestId); toast.success("Numero Fluig copiado."); }}>
+              <Copy className="size-4" />Copiar numero
+            </Button>
+            <Button type="button" size="sm" variant="outline" asChild>
+              <a href={fluigUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" />Abrir esta solicitacao no Fluig</a>
+            </Button>
+          </div>
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto bg-muted/10 p-4 sm:p-6">
+          {loading ? <div className="mb-4 flex items-center gap-2 rounded-md border bg-background p-3 text-sm"><Loader2 className="size-4 animate-spin" />Consultando formulario, historico e anexos diretamente no Fluig...</div> : null}
+          {error ? <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Os dados locais continuam disponiveis, mas a consulta detalhada ao Fluig falhou: {error}</div> : null}
+          {details?.warnings?.length ? <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{details.warnings.join(" ")}</div> : null}
+
+          <Tabs defaultValue="form" className="gap-4">
+            <div className="overflow-x-auto rounded-md border bg-background">
+              <TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0">
+                <TabsTrigger value="form" className="rounded-none px-4 py-3"><FileText className="size-4" />Formulario</TabsTrigger>
+                <TabsTrigger value="info" className="rounded-none px-4 py-3"><Eye className="size-4" />Informacoes</TabsTrigger>
+                <TabsTrigger value="history" className="rounded-none px-4 py-3"><History className="size-4" />Historico ({details?.history.length || 0})</TabsTrigger>
+                <TabsTrigger value="attachments" className="rounded-none px-4 py-3"><Paperclip className="size-4" />Anexos ({details?.attachments.length || 0})</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="form" className="m-0 space-y-4">
+              <section className="grid gap-3 rounded-md border bg-background p-4 sm:grid-cols-2 lg:grid-cols-4">
+                <RequestDetail label="Numero da NF" value={request.invoiceNumber || details?.formFields.nNotaFiscal || "-"} />
+                <RequestDetail label="Valor da NF" value={formatMoney(request.amountCents, request.currency || "BRL")} />
+                <RequestDetail label="Vencimento" value={formatDate(request.dueDate || details?.formFields.vencPagNota)} />
+                <RequestDetail label="Natureza de despesa" value={request.expenseNature || details?.formFields.codigonaturezaC || "-"} />
+              </section>
+              <section className="rounded-md border bg-background p-4">
+                <h3 className="mb-3 font-medium">Campos do formulario Fluig</h3>
+                {formFields.length ? (
+                  <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {formFields.map(([name, value]) => <RequestDetail key={name} label={fieldLabel(name)} value={value} />)}
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">Aguardando a consulta do formulario no Fluig.</p>}
+              </section>
+            </TabsContent>
+
+            <TabsContent value="info" className="m-0">
+              <section className="grid gap-4 rounded-md border bg-background p-4 sm:grid-cols-2 lg:grid-cols-3">
+                <RequestDetail label="Numero Fluig" value={request.fluigRequestId} />
+                <RequestDetail label="Referencia ADM" value={request.admReference || "-"} />
+                <RequestDetail label="Modulo" value={moduleLabels[moduleSlug]} />
+                <RequestDetail label="Etapa atual" value={request.currentTask || "-"} />
+                <RequestDetail label="Responsavel" value={request.taskOwner || "-"} />
+                <RequestDetail label="Solicitante" value={request.requester || "-"} />
+                <RequestDetail label="Fornecedor" value={request.supplierName || "-"} />
+                <RequestDetail label="CNPJ" value={request.supplierCnpj || "-"} />
+                <RequestDetail label="Filial" value={request.branchLabel || request.branchCode || "-"} />
+                <RequestDetail label="Aberta em" value={formatDateTime(request.openedAt)} />
+                <RequestDetail label="Ultima sincronizacao" value={formatDateTime(request.lastStatusCheckAt || request.lastSyncedAt)} />
+                <RequestDetail label="Detalhes consultados em" value={formatDateTime(details?.fetchedAt)} />
+              </section>
+            </TabsContent>
+
+            <TabsContent value="history" className="m-0">
+              <section className="rounded-md border bg-background p-4">
+                {details?.history.length ? (
+                  <div className="space-y-0">
+                    {details.history.map((entry, index) => (
+                      <div key={`${entry.sequence}-${index}`} className="relative border-l-2 border-muted pb-6 pl-6 last:pb-0">
+                        <span className="absolute -left-[7px] top-1 size-3 rounded-full border-2 border-background bg-primary" />
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="font-medium">{entry.user}</p>
+                            <p className="text-sm">{entry.activity || entry.detail || "Movimentacao registrada"}{entry.destination ? ` para ${entry.destination}` : ""}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{formatDateTime(entry.date) === "-" ? entry.date || "Data nao informada" : formatDateTime(entry.date)}</span>
+                        </div>
+                        {entry.detail && entry.detail !== entry.activity ? <p className="mt-2 text-sm text-muted-foreground">{entry.detail}</p> : null}
+                        {entry.observation ? <p className="mt-2 rounded-md bg-muted px-3 py-2 text-sm">{entry.observation}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">Nenhum item de historico retornado pelo Fluig.</p>}
+              </section>
+            </TabsContent>
+
+            <TabsContent value="attachments" className="m-0 space-y-4">
+              {details?.attachments.length ? (
+                <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+                  <div className="space-y-2">
+                    {details.attachments.map((attachment) => (
+                      <button
+                        type="button"
+                        key={attachment.sequence}
+                        onClick={() => onSelectedAttachmentSequenceChange(attachment.sequence)}
+                        className={cn("w-full rounded-md border bg-background p-3 text-left transition-colors hover:bg-muted/50", selectedAttachmentSequence === attachment.sequence ? "border-primary bg-primary/5" : "")}
+                      >
+                        <span className="flex items-start gap-3"><Paperclip className="mt-0.5 size-4 shrink-0" /><span className="min-w-0"><span className="block break-words text-sm font-medium">{attachment.name}</span><span className="mt-1 block text-xs text-muted-foreground">{formatFileSize(attachment.size)}{attachment.attachedBy ? ` - ${attachment.attachedBy}` : ""}</span></span></span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="min-h-[520px] overflow-hidden rounded-md border bg-background">
+                    {attachmentUrl && selectedAttachment ? (
+                      <iframe src={attachmentUrl} title={`Anexo ${selectedAttachment.name}`} className="h-[70vh] min-h-[520px] w-full bg-white" />
+                    ) : <div className="flex min-h-[520px] items-center justify-center p-8 text-center text-sm text-muted-foreground">Selecione um anexo para visualizar nesta tela.</div>}
+                  </div>
+                </div>
+              ) : <div className="rounded-md border bg-background p-8 text-center text-sm text-muted-foreground">Nenhum anexo retornado pelo Fluig.</div>}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

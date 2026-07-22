@@ -90,8 +90,12 @@ export type FluigOpenRequestRecord = {
   branchLabel: string | null;
   supplierName: string | null;
   supplierCnpj: string | null;
+  invoiceNumber: string | null;
+  amountCents: number | null;
+  currency: string | null;
   dueDate: string | null;
   expenseNature?: string | null;
+  sourceUrl: string | null;
   openedAt: string | null;
   lastSyncedAt: string | null;
   lastStatusCheckAt: string | null;
@@ -104,6 +108,36 @@ export type FluigOpenRequestRecord = {
   assignedUserEmail?: string | null;
   membershipType?: "open_task" | "my_request";
   membershipLastSeenAt?: string | null;
+};
+
+export type FluigRequestDetails = {
+  requestId: string;
+  taskUserId: string | null;
+  sourceUrl: string;
+  fetchedAt: string;
+  formFields: Record<string, string>;
+  attachments: Array<{
+    sequence: string;
+    name: string;
+    description: string;
+    mimeType: string | null;
+    size: number | null;
+    documentId: string | null;
+    version: string | null;
+    attachedBy: string | null;
+    attachedAt: string | null;
+  }>;
+  history: Array<{
+    sequence: string;
+    user: string;
+    activity: string | null;
+    destination: string | null;
+    detail: string | null;
+    observation: string | null;
+    date: string | null;
+    automatic: boolean;
+  }>;
+  warnings: string[];
 };
 
 export type FluigTaskDashboardFilters = {
@@ -200,6 +234,8 @@ export const fluigAdmApi = {
   syncOpenTasksPath: "/api/fluig/adm/sync/open-tasks",
   syncMyRequestsPath: "/api/fluig/adm/sync/my-requests",
   requestLookupPath: "/api/fluig/adm/request/lookup",
+  requestDetailsPath: "/api/fluig/adm/request/details",
+  requestAttachmentPath: "/api/fluig/adm/request/attachment",
   myTasksPath: "/api/fluig/adm/tasks/my",
   myOpenRequestsPath: "/api/fluig/adm/requests/my-open",
   requestsPath: "/api/fluig/adm/requests",
@@ -465,6 +501,18 @@ export const fluigAdmApi = {
       persistence?: unknown;
     }>(`${this.myTasksPath}?${params.toString()}`);
   },
+  async getRequestDetails(payload: { module: FluigModuleSlug; fluigRequestId: string }) {
+    const params = new URLSearchParams({ module: payload.module, fluigRequestId: payload.fluigRequestId });
+    return this.get<{ success: true; details: FluigRequestDetails }>(`${this.requestDetailsPath}?${params.toString()}`);
+  },
+  requestAttachmentUrl(payload: { module: FluigModuleSlug; fluigRequestId: string; sequence: string }) {
+    const params = new URLSearchParams({
+      module: payload.module,
+      fluigRequestId: payload.fluigRequestId,
+      sequence: payload.sequence,
+    });
+    return `${this.requestAttachmentPath}?${params.toString()}`;
+  },
   async listMyOpenRequests(
     limit = 20,
     module?: FluigModuleSlug,
@@ -491,6 +539,7 @@ export const fluigAdmApi = {
     search?: string;
     status?: string;
     branch?: string;
+    nature?: string;
     open?: boolean | null;
     overdue?: boolean;
     errorOnly?: boolean;
@@ -499,6 +548,7 @@ export const fluigAdmApi = {
     if (input.search) params.set("q", input.search);
     if (input.status) params.set("status", input.status);
     if (input.branch) params.set("branch", input.branch);
+    if (input.nature) params.set("nature", input.nature);
     if (input.open != null) params.set("open", String(input.open));
     if (input.overdue) params.set("overdue", "true");
     if (input.errorOnly) params.set("errorOnly", "true");

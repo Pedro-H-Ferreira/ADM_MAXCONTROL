@@ -50,6 +50,7 @@ type FluigRequestDbRow = {
   last_seen_in_user_request_list_at?: string | null;
   sync_owner_user_id?: string | null;
   sync_source?: string | null;
+  source_url?: string | null;
   raw_payload?: JsonRecord;
 };
 
@@ -156,6 +157,7 @@ const fluigRequestSelect = [
   "last_seen_in_user_request_list_at",
   "sync_owner_user_id",
   "sync_source",
+  "source_url",
   "raw_payload",
 ].join(",");
 
@@ -192,6 +194,8 @@ const fluigRequestSummarySelect = [
   "last_seen_in_user_request_list_at",
   "sync_owner_user_id",
   "sync_source",
+  "source_url",
+  "raw_payload",
 ].join(",");
 
 function emptyResult(): PersistenceResult {
@@ -323,6 +327,7 @@ function normalizedCnpjList(values: unknown[]) {
 }
 
 function mapFluigRequestRecord(row: FluigRequestDbRow) {
+  const formFields = formFieldsFromPayload(row.raw_payload || {});
   return {
     id: row.id,
     module: row.module_slug,
@@ -338,8 +343,12 @@ function mapFluigRequestRecord(row: FluigRequestDbRow) {
     branchLabel: row.branch_label,
     supplierName: row.supplier_name,
     supplierCnpj: row.supplier_cnpj,
+    invoiceNumber: firstStringField(formFields, ["nNotaFiscal", "numeroNF", "notaFiscal", "numNota", "numeroNota"]) || null,
+    amountCents: row.amount_cents,
+    currency: row.currency || "BRL",
     dueDate: row.due_date,
     expenseNature: row.expense_nature || null,
+    sourceUrl: row.source_url || null,
     openedAt: row.opened_at,
     lastSyncedAt: row.last_synced_at,
     lastStatusCheckAt: row.last_status_check_at || null,
@@ -360,6 +369,7 @@ export async function listFluigRequestsForActor(input: {
   search?: string | null;
   status?: string | null;
   branch?: string | null;
+  nature?: string | null;
   open?: boolean | null;
   overdue?: boolean;
   errorOnly?: boolean;
@@ -381,6 +391,7 @@ export async function listFluigRequestsForActor(input: {
     if (input.open != null) query = query.eq("is_open", input.open);
     if (input.status) query = query.ilike("normalized_status", input.status);
     if (input.branch) query = query.eq("branch_code", input.branch);
+    if (input.nature) query = query.eq("expense_nature", input.nature);
     if (input.overdue) query = query.eq("is_open", true).lt("due_date", new Date().toISOString());
     if (input.errorOnly) {
       query = query.in("normalized_status", ["erro", "error", "falha", "failed", "cancelado", "cancelled"]);
@@ -388,7 +399,7 @@ export async function listFluigRequestsForActor(input: {
     const search = String(input.search || "").replace(/[%_,()]/g, " ").trim();
     if (search) {
       const pattern = `%${search}%`;
-      query = query.or(`fluig_request_id.ilike.${pattern},adm_reference.ilike.${pattern},supplier_name.ilike.${pattern},supplier_cnpj.ilike.${pattern},requester.ilike.${pattern},current_task.ilike.${pattern},task_owner.ilike.${pattern}`);
+      query = query.or(`fluig_request_id.ilike.${pattern},adm_reference.ilike.${pattern},supplier_name.ilike.${pattern},supplier_cnpj.ilike.${pattern},requester.ilike.${pattern},current_task.ilike.${pattern},task_owner.ilike.${pattern},raw_payload->formFields->>nNotaFiscal.ilike.${pattern}`);
     }
     const from = (page - 1) * pageSize;
     const { data, error, count } = await query.range(from, from + pageSize - 1);
