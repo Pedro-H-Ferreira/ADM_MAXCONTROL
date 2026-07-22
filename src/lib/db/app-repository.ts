@@ -698,6 +698,40 @@ async function listActorPageAccess(client: SupabaseClient, profile: AppUserProfi
   return normalizePageAccessRows(explicitRows, profile.role);
 }
 
+async function hydrateAppActor(client: SupabaseClient, profile: AppUserProfile): Promise<AppActor> {
+  const branches = await listActorBranches(client, profile);
+  const pageAccess = await listActorPageAccess(client, profile);
+  const pageSlugs = normalizePageSlugs(pageAccess.filter((page) => page.canView).map((page) => page.pageSlug));
+  return {
+    ...profile,
+    isAdmin: isAdminRole(profile.role),
+    branches,
+    branchCodes: branches.map((branch) => branch.code),
+    pageSlugs,
+    pageAccess,
+  };
+}
+
+export async function listConfiguredFluigUserActors() {
+  const client = assertServiceClient();
+  const { data: credentials, error: credentialsError } = await client
+    .from("fluig_user_credentials")
+    .select("user_id");
+  if (credentialsError) throw credentialsError;
+  const userIds = Array.from(new Set((credentials || []).map((row) => String(row.user_id)).filter(Boolean)));
+  if (!userIds.length) return [];
+
+  const { data: profiles, error: profilesError } = await client
+    .from("app_user_profiles")
+    .select("*")
+    .in("id", userIds)
+    .eq("active", true)
+    .eq("approval_status", "APPROVED")
+    .order("display_name", { ascending: true });
+  if (profilesError) throw profilesError;
+  return Promise.all(((profiles || []) as DbProfileRow[]).map((row) => hydrateAppActor(client, mapProfile(row))));
+}
+
 async function resolveCurrentAppUserUncached(
   allowFallback: boolean,
   requireApproved: boolean
@@ -718,18 +752,7 @@ async function resolveCurrentAppUserUncached(
     throw new AppAuthError("Usuario aguardando liberacao do administrador.", 403, profile.approvalStatus);
   }
 
-  const branches = await listActorBranches(client, profile);
-  const pageAccess = await listActorPageAccess(client, profile);
-  const pageSlugs = normalizePageSlugs(pageAccess.filter((page) => page.canView).map((page) => page.pageSlug));
-
-  return {
-    ...profile,
-    isAdmin: isAdminRole(profile.role),
-    branches,
-    branchCodes: branches.map((branch) => branch.code),
-    pageSlugs,
-    pageAccess,
-  };
+  return hydrateAppActor(client, profile);
 }
 
 const resolveCurrentAppUserCached = cache(resolveCurrentAppUserUncached);

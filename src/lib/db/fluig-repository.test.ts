@@ -90,6 +90,7 @@ describe("buildSupplierCandidates", () => {
     expect(buildFluigHistoryRequestRow("pagamentos", historyItem("1164217"))).toMatchObject({
       normalized_status: "em_andamento",
       is_open: true,
+      expense_nature: "5030101 - MANUTENCAO",
       finalized_at: null,
       closed_at: null,
       canceled_at: null,

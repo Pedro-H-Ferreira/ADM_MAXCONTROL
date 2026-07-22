@@ -12,8 +12,10 @@ import {
   type FluigAdmAgent,
   type FluigAdmJobSummary,
   type FluigOpenRequestRecord,
+  type FluigTaskDashboardFilters,
   type FluigUserSyncStateRecord,
 } from "@/lib/fluig-api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
 import { waitForFluigJobs } from "@/lib/use-fluig-job-state";
 import { useVisibleRefresh } from "@/lib/use-visible-refresh";
@@ -127,6 +129,10 @@ export function DashboardFluigOperations() {
   const [states, setStates] = useState<FluigUserSyncStateRecord[]>([]);
   const [jobs, setJobs] = useState<DashboardJob[]>([]);
   const [supplierReviewSummary, setSupplierReviewSummary] = useState<SupplierReviewSummary>({ total: 0 });
+  const [filters, setFilters] = useState<FluigTaskDashboardFilters | null>(null);
+  const [userFilter, setUserFilter] = useState("ALL");
+  const [moduleFilter, setModuleFilter] = useState<FluigModuleSlug | "ALL">("ALL");
+  const [natureFilter, setNatureFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [testingAgent, setTestingAgent] = useState(false);
@@ -141,6 +147,10 @@ export function DashboardFluigOperations() {
   const failedJobs = actionableRecentFluigJobFailures(jobs);
   const syncStatesWithErrors = states.filter(isCurrentSyncStateError);
   const syncErrorCount = failedJobs.length + syncStatesWithErrors.length;
+  const isAdmin = Boolean(filters?.isAdmin);
+  const selectedModule = moduleFilter === "ALL" ? undefined : moduleFilter;
+  const selectedUserId = userFilter === "ALL" ? undefined : userFilter;
+  const selectedNature = natureFilter === "ALL" ? undefined : natureFilter;
 
   const latestState = useMemo(() => {
     return [...states].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0] || null;
@@ -153,9 +163,17 @@ export function DashboardFluigOperations() {
     try {
       const [nextAgents, taskData, requestData, syncStateData, jobData, nextSupplierReviewSummary] = await Promise.all([
         fluigAdmApi.listAgents(),
-        fluigAdmApi.listMyTasks(20),
-        fluigAdmApi.listMyOpenRequests(20),
-        fluigAdmApi.listSyncState(),
+        fluigAdmApi.listMyTasks(100, selectedModule, {
+          scope: "all",
+          userId: selectedUserId,
+          nature: selectedNature,
+        }),
+        fluigAdmApi.listMyOpenRequests(100, selectedModule, {
+          scope: "all",
+          userId: selectedUserId,
+          nature: selectedNature,
+        }),
+        fluigAdmApi.listSyncState(selectedModule),
         fluigAdmApi.listJobs(20),
         loadSupplierReviewSummary(),
       ]);
@@ -165,6 +183,7 @@ export function DashboardFluigOperations() {
       setRequests(requestData.requests || []);
       setTaskTotal(Number(taskData.total || 0));
       setRequestTotal(Number(requestData.total || 0));
+      setFilters(taskData.filters || null);
       setStates(syncStateData.states || []);
       setJobs(jobData.jobs || []);
       setSupplierReviewSummary(nextSupplierReviewSummary);
@@ -173,7 +192,7 @@ export function DashboardFluigOperations() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, []);
+  }, [selectedModule, selectedNature, selectedUserId]);
 
   useVisibleRefresh(refresh);
 
@@ -200,7 +219,7 @@ export function DashboardFluigOperations() {
   }
 
   async function syncMyFluig() {
-    if (!onlineAgent) {
+    if (!isAdmin && !onlineAgent) {
       const message =
         "Credenciais Fluig nao cadastradas para este usuario. Solicite o cadastro em Gestao de usuarios.";
       setError(message);
@@ -213,7 +232,12 @@ export function DashboardFluigOperations() {
     setMessage(null);
 
     try {
-      const data = await fluigAdmApi.syncUser({ module: "all", limit: 80 });
+      const data = await fluigAdmApi.syncUser({
+        module: moduleFilter === "ALL" ? "all" : moduleFilter,
+        limit: 80,
+        scope: isAdmin ? "all" : "self",
+        userId: isAdmin ? selectedUserId : undefined,
+      });
       const nextJobs = data.jobs.map((job) => ({
         id: job.id,
         module: job.module,
@@ -227,7 +251,11 @@ export function DashboardFluigOperations() {
 
       setJobs(nextJobs);
 
-      if (nextJobs.length) {
+      if (isAdmin && nextJobs.length) {
+        setMessage(
+          `${nextJobs.length} sincronizacao(oes) enfileirada(s) na VPS para ${data.usersQueued || filters?.coverage.configuredUsers || 0} usuario(s).`
+        );
+      } else if (nextJobs.length) {
         await pollJobsUntilDone(nextJobs);
         setMessage("Sincronizacao do seu Fluig concluida.");
       } else if (data.skipped.length) {
@@ -238,7 +266,7 @@ export function DashboardFluigOperations() {
 
       await refresh(true);
     } catch (syncError) {
-      setError(syncError instanceof Error ? syncError.message : "Falha ao sincronizar o Fluig do usuario.");
+      setError(syncError instanceof Error ? syncError.message : "Falha ao sincronizar os usuarios do Fluig.");
     } finally {
       setSyncing(false);
     }
@@ -284,10 +312,12 @@ export function DashboardFluigOperations() {
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
             <Workflow className="size-4" />
-            Operacao Fluig do usuario
+            {isAdmin ? "Operacao Fluig de todos os usuarios" : "Operacao Fluig do usuario"}
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            Tarefas, solicitacoes abertas e status sincronizados diretamente pela VPS.
+            {isAdmin
+              ? "Tarefas de todos os usuarios cadastrados, sincronizadas diretamente pela VPS."
+              : "Tarefas, solicitacoes abertas e status sincronizados diretamente pela VPS."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -309,19 +339,70 @@ export function DashboardFluigOperations() {
             type="button"
             className="stitch-soft-button"
             onClick={syncMyFluig}
-            disabled={syncing || testingAgent || !onlineAgent}
+            disabled={syncing || testingAgent || (isAdmin ? !filters?.coverage.configuredUsers : !onlineAgent)}
           >
             {syncing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
-            Sincronizar meu Fluig
+            {isAdmin ? (selectedUserId ? "Sincronizar usuario" : "Sincronizar todos") : "Sincronizar meu Fluig"}
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="grid gap-3 rounded-md border bg-muted/20 p-3 md:grid-cols-2 xl:grid-cols-3">
+          {isAdmin ? (
+            <Select value={userFilter} onValueChange={setUserFilter}>
+              <SelectTrigger aria-label="Filtrar tarefas por usuario">
+                <SelectValue placeholder="Todos os usuarios" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos os usuarios</SelectItem>
+                {(filters?.users || []).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.displayName}{user.taskSyncCompleted ? "" : " - nao sincronizado"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
+          <Select value={moduleFilter} onValueChange={(value) => setModuleFilter(value as FluigModuleSlug | "ALL")}>
+            <SelectTrigger aria-label="Filtrar tarefas por modulo">
+              <SelectValue placeholder="Todos os tipos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Compras, pagamentos e manutencao</SelectItem>
+              <SelectItem value="compras">Compras</SelectItem>
+              <SelectItem value="pagamentos">Pagamentos</SelectItem>
+              <SelectItem value="manutencao">Manutencao</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={natureFilter} onValueChange={setNatureFilter}>
+            <SelectTrigger aria-label="Filtrar por natureza de despesa">
+              <SelectValue placeholder="Natureza de despesa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todas as naturezas de despesa</SelectItem>
+              {(filters?.natures || []).map((nature) => (
+                <SelectItem key={nature.value} value={nature.value}>{nature.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {isAdmin && filters && filters.coverage.syncedUsers < filters.coverage.totalUsers ? (
+          <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            Cobertura Fluig: {filters.coverage.syncedUsers} de {filters.coverage.totalUsers} usuario(s) ja sincronizados; {filters.coverage.configuredUsers} possuem credencial cadastrada. Os novos usuarios entram automaticamente neste painel apos aprovacao e cadastro da credencial Fluig.
+          </p>
+        ) : null}
+
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
-          <MetricTile icon={Laptop} label="Executor da VPS" value={onlineAgent ? "Pronto" : "Sem credencial"} detail={describeAgent(onlineAgent)} />
-          <MetricTile icon={ClipboardList} label="Minhas tarefas" value={String(taskTotal)} detail="Pendencias sob responsabilidade do usuario" />
+          <MetricTile
+            icon={Laptop}
+            label="Executor da VPS"
+            value={isAdmin ? `${filters?.coverage.configuredUsers || 0} credenciais` : onlineAgent ? "Pronto" : "Sem credencial"}
+            detail={isAdmin ? "Usuarios prontos para sincronizacao direta" : describeAgent(onlineAgent)}
+          />
+          <MetricTile icon={ClipboardList} label={isAdmin ? "Tarefas dos usuarios" : "Minhas tarefas"} value={String(taskTotal)} detail={isAdmin ? "Pendencias consolidadas conforme os filtros" : "Pendencias sob responsabilidade do usuario"} />
           <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requestTotal)} detail="Pagamentos, compras e manutencoes" />
-          <MetricTile icon={ClipboardCheck} label="Aguardando acao" value={String(taskTotal)} detail="Itens do Fluig que dependem do usuario logado" />
+          <MetricTile icon={ClipboardCheck} label="Aguardando acao" value={String(taskTotal)} detail={isAdmin ? "Acoes pendentes de todos os usuarios sincronizados" : "Itens do Fluig que dependem do usuario logado"} />
           <MetricTile icon={UserCheck} label="Fornecedores em revisao" value={String(supplierReviewSummary.total)} detail="Pre-cadastros Fluig pendentes de validacao" />
           <MetricTile icon={AlertTriangle} label="Erros de sync" value={String(syncErrorCount)} detail="Falhas acionaveis das ultimas 24h" tone={syncErrorCount ? "danger" : "default"} />
           <MetricTile
@@ -387,8 +468,8 @@ export function DashboardFluigOperations() {
 
         <div className="grid gap-4 xl:grid-cols-2">
           <DashboardFluigList
-            title="Tarefas sob minha responsabilidade"
-            emptyText={loading ? "Carregando tarefas do Fluig..." : "Nenhuma tarefa aberta sincronizada para este usuario."}
+            title={isAdmin ? "Tarefas por usuario" : "Tarefas sob minha responsabilidade"}
+            emptyText={loading ? "Carregando tarefas do Fluig..." : "Nenhuma tarefa aberta sincronizada para os filtros selecionados."}
             items={visibleTasks}
           />
           <DashboardFluigList
@@ -459,6 +540,8 @@ function DashboardFluigList({
               <div className="mt-3 grid gap-2 text-xs md:grid-cols-2">
                 <Field label="Etapa" value={item.currentTask || "Nao informada"} />
                 <Field label="Responsavel" value={item.taskOwner || "Nao informado"} />
+                {item.assignedUserName ? <Field label="Usuario Fluig" value={item.assignedUserName} /> : null}
+                {item.expenseNature ? <Field label="Natureza de despesa" value={item.expenseNature} /> : null}
                 <Field label="Filial" value={item.branchLabel || item.branchCode || "-"} />
                 <Field label="Atualizado" value={formatDateTime(item.lastStatusCheckAt || item.lastSyncedAt)} />
               </div>

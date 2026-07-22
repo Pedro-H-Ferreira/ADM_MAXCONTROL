@@ -91,12 +91,39 @@ export type FluigOpenRequestRecord = {
   supplierName: string | null;
   supplierCnpj: string | null;
   dueDate: string | null;
+  expenseNature?: string | null;
   openedAt: string | null;
   lastSyncedAt: string | null;
   lastStatusCheckAt: string | null;
   lastSeenInUserOpenListAt: string | null;
   syncOwnerUserId: string | null;
   syncSource: string | null;
+  assignedFluigUserId?: string | null;
+  assignedUserId?: string | null;
+  assignedUserName?: string | null;
+  assignedUserEmail?: string | null;
+  membershipType?: "open_task" | "my_request";
+  membershipLastSeenAt?: string | null;
+};
+
+export type FluigTaskDashboardFilters = {
+  isAdmin: boolean;
+  users: Array<{
+    id: string;
+    displayName: string;
+    email: string | null;
+    role: string;
+    fluigUsername: string | null;
+    fluigUserId: string | null;
+    credentialConfigured: boolean;
+    taskSyncCompleted: boolean;
+  }>;
+  natures: Array<{ value: string; label: string }>;
+  coverage: {
+    totalUsers: number;
+    configuredUsers: number;
+    syncedUsers: number;
+  };
 };
 
 export type FluigUserSyncStateRecord = {
@@ -125,6 +152,8 @@ export type FluigUserSyncSkipped = {
 
 export type FluigUserSyncResponse = {
   success: true;
+  scope?: "self" | "all";
+  usersQueued?: number;
   openTasks?: {
     jobs: FluigAdmJobSummary[];
     skipped: FluigUserSyncSkipped[];
@@ -134,7 +163,7 @@ export type FluigUserSyncResponse = {
     skipped: FluigUserSyncSkipped[];
   };
   jobs: FluigAdmJobSummary[];
-  skipped: FluigUserSyncSkipped[];
+  skipped: Array<FluigUserSyncSkipped | { userId: string; displayName: string; reason: string }>;
   batches?: Array<{
     module: FluigModuleSlug;
     operation: Extract<FluigJobOperation, "sync_user_open_tasks" | "sync_user_open_requests">;
@@ -268,7 +297,12 @@ export const fluigAdmApi = {
 
     return data.agents || [];
   },
-  async syncUser(payload: { module?: FluigModuleSlug | "all" | "auto"; limit?: number }) {
+  async syncUser(payload: {
+    module?: FluigModuleSlug | "all" | "auto";
+    limit?: number;
+    scope?: "self" | "all";
+    userId?: string;
+  }) {
     return this.post<FluigUserSyncResponse>(this.syncUserPath, payload);
   },
   async syncHistorical(payload: {
@@ -412,23 +446,41 @@ export const fluigAdmApi = {
       launches: OperationalLaunchRecord[];
     }>(`${this.operationalLaunchesPath}?${params.toString()}`);
   },
-  async listMyTasks(limit = 20, module?: FluigModuleSlug) {
+  async listMyTasks(
+    limit = 20,
+    module?: FluigModuleSlug,
+    options: { scope?: "self" | "all"; userId?: string; nature?: string } = {}
+  ) {
     const params = new URLSearchParams({ limit: String(limit) });
     if (module) params.set("module", module);
+    if (options.scope) params.set("scope", options.scope);
+    if (options.userId) params.set("userId", options.userId);
+    if (options.nature) params.set("nature", options.nature);
     return this.get<{
       success: true;
       tasks: FluigOpenRequestRecord[];
       total: number;
+      scope: "self" | "all";
+      filters: FluigTaskDashboardFilters;
       persistence?: unknown;
     }>(`${this.myTasksPath}?${params.toString()}`);
   },
-  async listMyOpenRequests(limit = 20, module?: FluigModuleSlug) {
+  async listMyOpenRequests(
+    limit = 20,
+    module?: FluigModuleSlug,
+    options: { scope?: "self" | "all"; userId?: string; nature?: string } = {}
+  ) {
     const params = new URLSearchParams({ limit: String(limit) });
     if (module) params.set("module", module);
+    if (options.scope) params.set("scope", options.scope);
+    if (options.userId) params.set("userId", options.userId);
+    if (options.nature) params.set("nature", options.nature);
     return this.get<{
       success: true;
       requests: FluigOpenRequestRecord[];
       total: number;
+      scope: "self" | "all";
+      filters: FluigTaskDashboardFilters;
       persistence?: unknown;
     }>(`${this.myOpenRequestsPath}?${params.toString()}`);
   },
