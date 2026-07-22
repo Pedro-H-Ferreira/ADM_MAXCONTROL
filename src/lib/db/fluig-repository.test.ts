@@ -6,7 +6,9 @@ import {
   buildFluigStatusRequestRow,
   buildSupplierCandidates,
   countDistinctFluigAccounts,
+  fluigFieldLabelFromKey,
   fluigFieldSettingsHash,
+  mergeFluigFieldSettingsWithDiscovered,
   normalizeFluigRequestLifecycle,
 } from "@/lib/db/fluig-repository";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
@@ -71,6 +73,37 @@ function templateRequest(
 }
 
 describe("buildSupplierCandidates", () => {
+  it("inclui todos os campos Fluig descobertos sem duplicar os ja configurados", () => {
+    const settings = mergeFluigFieldSettingsWithDiscovered("pagamentos", [{
+      id: "setting-nf",
+      module: "pagamentos",
+      fieldKey: "nNotaFiscal",
+      label: "Numero da NF",
+      sourceType: "form",
+      active: true,
+      visibleInList: true,
+      listOrder: 10,
+      visibleInForm: true,
+      formOrder: 10,
+    }], [
+      { field_key: "nNotaFiscal", occurrence_count: 20 },
+      { field_key: "obsAnalisePgto", occurrence_count: "18" },
+    ]);
+
+    expect(settings).toHaveLength(2);
+    expect(settings[0]).toMatchObject({ fieldKey: "nNotaFiscal", discovered: false, occurrenceCount: 20 });
+    expect(settings[1]).toMatchObject({
+      fieldKey: "obsAnalisePgto",
+      label: "Obs Analise Pgto",
+      active: false,
+      visibleInList: false,
+      visibleInForm: false,
+      discovered: true,
+      occurrenceCount: 18,
+    });
+    expect(fluigFieldLabelFromKey("solProdutoServico___3")).toBe("Sol Produto Servico - linha 3");
+  });
+
   it("lista somente naturezas presentes e mostra a quantidade de cada uma", () => {
     expect(buildFluigNatureFacets([
       "5040613 - MANUTENCAO DA EMPILHADEIRA",

@@ -3,6 +3,7 @@ import { appAuthErrorResponse } from "@/lib/auth-response";
 import { resolveCurrentAppUser } from "@/lib/db/app-repository";
 import {
   readFluigFieldSettings,
+  readFluigFieldSettingsForConfiguration,
   replaceFluigFieldSettings,
   type FluigFieldSetting,
 } from "@/lib/db/fluig-repository";
@@ -21,13 +22,23 @@ function operationalModule(value: unknown) {
 export async function GET(request: Request) {
   try {
     const actor = await resolveCurrentAppUser();
-    const moduleSlug = operationalModule(new URL(request.url).searchParams.get("module"));
+    const url = new URL(request.url);
+    const moduleSlug = operationalModule(url.searchParams.get("module"));
     if (!moduleSlug) {
       return NextResponse.json({ success: false, error: "Modulo Fluig invalido." }, { status: 400 });
     }
-    const result = await readFluigFieldSettings(moduleSlug);
+    const discover = url.searchParams.get("discover") === "true";
+    const result = discover
+      ? await readFluigFieldSettingsForConfiguration(moduleSlug)
+      : await readFluigFieldSettings(moduleSlug);
     if (result.persistence.errors.length) throw new Error(result.persistence.errors.join(" "));
-    return NextResponse.json({ success: true, settings: result.settings, configHash: result.configHash, isAdmin: actor.isAdmin });
+    return NextResponse.json({
+      success: true,
+      settings: result.settings,
+      configHash: result.configHash,
+      discoveredCount: "discoveredCount" in result ? result.discoveredCount : 0,
+      isAdmin: actor.isAdmin,
+    });
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
     if (authResponse) return authResponse;

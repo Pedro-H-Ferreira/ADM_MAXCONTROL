@@ -11,6 +11,7 @@ import {
   Eye,
   FileText,
   Filter,
+  GripVertical,
   History,
   Laptop,
   Loader2,
@@ -228,6 +229,7 @@ export function FluigModuleOperationsPage({
   const [requestRefreshing, setRequestRefreshing] = useState(false);
   const [fieldSettings, setFieldSettings] = useState<FluigFieldSetting[]>([]);
   const [fieldSettingsOpen, setFieldSettingsOpen] = useState(false);
+  const [fieldSettingsLoading, setFieldSettingsLoading] = useState(false);
   const [fieldSettingsSaving, setFieldSettingsSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [referenceTime, setReferenceTime] = useState(0);
@@ -435,6 +437,21 @@ export function FluigModuleOperationsPage({
     setTechnicalOpen(true);
   }
 
+  async function openFieldSettings() {
+    if (fieldSettingsLoading) return;
+    setFieldSettingsLoading(true);
+    try {
+      const result = await fluigAdmApi.getFieldSettings(moduleSlug, { discover: true });
+      setFieldSettings(result.settings || []);
+      setIsAdmin(Boolean(result.isAdmin));
+      setFieldSettingsOpen(true);
+    } catch (settingsError) {
+      toast.error(settingsError instanceof Error ? settingsError.message : "Falha ao descobrir os campos Fluig.");
+    } finally {
+      setFieldSettingsLoading(false);
+    }
+  }
+
   async function saveFieldSettings(settings: FluigFieldSetting[]) {
     setFieldSettingsSaving(true);
     try {
@@ -482,8 +499,8 @@ export function FluigModuleOperationsPage({
             Sincronizar {moduleLabels[moduleSlug].toLowerCase()}
           </Button>
           {isAdmin ? (
-            <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => setFieldSettingsOpen(true)}>
-              <Settings2 className="size-4" />Configurar campos
+            <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => void openFieldSettings()} disabled={fieldSettingsLoading}>
+              {fieldSettingsLoading ? <Loader2 className="size-4 animate-spin" /> : <Settings2 className="size-4" />}Configurar campos
             </Button>
           ) : null}
           <Button type="button" variant="outline" className="stitch-soft-button" asChild>
@@ -954,9 +971,21 @@ function FluigFieldSettingsSheet({
   onSave: (settings: FluigFieldSetting[]) => Promise<void>;
 }) {
   const [draft, setDraft] = useState<FluigFieldSetting[]>(settings);
+  const [fieldSearch, setFieldSearch] = useState("");
+  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
+
+  function normalizeDisplayOrders(fields: FluigFieldSetting[]) {
+    let listPosition = 0;
+    let formPosition = 0;
+    return fields.map((field) => ({
+      ...field,
+      listOrder: field.active && field.visibleInList ? ++listPosition * 10 : null,
+      formOrder: field.active && field.visibleInForm ? ++formPosition * 10 : null,
+    }));
+  }
 
   function updateField(id: string, changes: Partial<FluigFieldSetting>) {
-    setDraft((current) => current.map((item) => {
+    setDraft((current) => normalizeDisplayOrders(current.map((item) => {
       if (item.id !== id) return item;
       const next = { ...item, ...changes };
       if (changes.active === false) {
@@ -965,11 +994,35 @@ function FluigFieldSettingsSheet({
       }
       if ((changes.visibleInList === true || changes.visibleInForm === true) && !next.active) next.active = true;
       return next;
-    }));
+    })));
+  }
+
+  function moveField(fieldId: string, targetFieldId: string) {
+    if (fieldId === targetFieldId) return;
+    setDraft((current) => {
+      const fromIndex = current.findIndex((field) => field.id === fieldId);
+      const targetIndex = current.findIndex((field) => field.id === targetFieldId);
+      if (fromIndex < 0 || targetIndex < 0) return current;
+      const next = [...current];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(targetIndex, 0, moved);
+      return normalizeDisplayOrders(next);
+    });
+  }
+
+  function moveFieldByOffset(fieldId: string, offset: -1 | 1) {
+    setDraft((current) => {
+      const index = current.findIndex((field) => field.id === fieldId);
+      const targetIndex = index + offset;
+      if (index < 0 || targetIndex < 0 || targetIndex >= current.length) return current;
+      const next = [...current];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return normalizeDisplayOrders(next);
+    });
   }
 
   function addFormField() {
-    setDraft((current) => [...current, {
+    setDraft((current) => normalizeDisplayOrders([...current, {
       id: `new:${crypto.randomUUID()}`,
       module: current[0]?.module || "pagamentos",
       fieldKey: "",
@@ -979,33 +1032,91 @@ function FluigFieldSettingsSheet({
       visibleInList: false,
       listOrder: null,
       visibleInForm: true,
-      formOrder: Math.max(0, ...current.map((item) => item.formOrder || 0)) + 10,
-    }]);
+      formOrder: null,
+    }]));
   }
+
+  const normalizedSearch = fieldSearch.trim().toLocaleLowerCase("pt-BR");
+  const visibleFields = normalizedSearch
+    ? draft.filter((field) => [field.label, field.fieldKey].some((value) => value.toLocaleLowerCase("pt-BR").includes(normalizedSearch)))
+    : draft;
+  const discoveredCount = draft.filter((field) => field.discovered).length;
+  const selectedCount = draft.filter((field) => field.active && (field.visibleInList || field.visibleInForm)).length;
 
   return (
     <Sheet open onOpenChange={onOpenChange}>
       <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:max-w-none sm:data-[side=right]:w-[min(980px,calc(100vw-2rem))] sm:data-[side=right]:max-w-none">
         <SheetHeader className="shrink-0 border-b pr-14">
           <SheetTitle>Campos sincronizados e exibidos</SheetTitle>
-          <SheetDescription>Ative somente o necessario e defina separadamente a ordem da lista e dos campos do formulario.</SheetDescription>
+          <SheetDescription>Todos os campos encontrados no Fluig aparecem aqui. Arraste pela alca para definir a ordem usada na lista e no formulario.</SheetDescription>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="mb-3 flex justify-end"><Button type="button" variant="outline" onClick={addFormField}><Plus className="size-4" />Adicionar campo do formulario</Button></div>
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-medium">{draft.length} campos disponiveis</p>
+              <p className="text-xs text-muted-foreground">{discoveredCount} encontrados automaticamente no Fluig; {selectedCount} selecionados para exibicao.</p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative min-w-72"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={fieldSearch} onChange={(event) => setFieldSearch(event.target.value)} placeholder="Buscar campo ou chave Fluig" /></div>
+              <Button type="button" variant="outline" onClick={addFormField}><Plus className="size-4" />Adicionar campo</Button>
+            </div>
+          </div>
           <div className="overflow-x-auto rounded-md border">
             <Table>
-              <TableHeader><TableRow><TableHead>Campo</TableHead><TableHead className="text-center">Ativo</TableHead><TableHead className="text-center">Na lista</TableHead><TableHead className="w-24">Ordem</TableHead><TableHead className="text-center">No formulario</TableHead><TableHead className="w-24">Ordem</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead className="w-14"><span className="sr-only">Ordenar</span></TableHead><TableHead className="min-w-[360px]">Campo</TableHead><TableHead className="w-24 text-center">Ativo</TableHead><TableHead className="w-24 text-center">Na lista</TableHead><TableHead className="w-32 text-center">No formulario</TableHead></TableRow></TableHeader>
               <TableBody>
-                {draft.map((field) => (
-                  <TableRow key={field.id}>
-                    <TableCell className="min-w-64"><Input value={field.label} onChange={(event) => updateField(field.id, { label: event.target.value })} placeholder="Nome exibido" /><Input className="mt-1 font-mono text-xs" value={field.fieldKey} disabled={!field.id.startsWith("new:")} onChange={(event) => updateField(field.id, { fieldKey: event.target.value.trim() })} placeholder="nomeDoCampoNoFluig" /><p className="mt-1 text-xs text-muted-foreground">{field.sourceType === "form" ? "Campo do formulario Fluig" : "Dado da solicitacao"}</p></TableCell>
+                {visibleFields.map((field) => (
+                  <TableRow
+                    key={field.id}
+                    className={cn("transition-colors", draggedFieldId === field.id && "bg-primary/5 opacity-60")}
+                    onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const sourceId = event.dataTransfer.getData("text/plain") || draggedFieldId;
+                      if (sourceId) moveField(sourceId, field.id);
+                      setDraggedFieldId(null);
+                    }}
+                  >
+                    <TableCell className="align-middle">
+                      <button
+                        type="button"
+                        draggable
+                        className="mx-auto flex size-9 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+                        aria-label={`Arrastar ${field.label} para ordenar`}
+                        title="Arraste para ordenar. Use as setas do teclado para mover."
+                        onDragStart={(event) => {
+                          setDraggedFieldId(field.id);
+                          event.dataTransfer.effectAllowed = "move";
+                          event.dataTransfer.setData("text/plain", field.id);
+                        }}
+                        onDragEnd={() => setDraggedFieldId(null)}
+                        onKeyDown={(event) => {
+                          if (event.key === "ArrowUp") { event.preventDefault(); moveFieldByOffset(field.id, -1); }
+                          if (event.key === "ArrowDown") { event.preventDefault(); moveFieldByOffset(field.id, 1); }
+                        }}
+                      >
+                        <GripVertical className="size-5" />
+                      </button>
+                    </TableCell>
+                    <TableCell className="min-w-[360px] whitespace-normal py-3">
+                      <Input value={field.label} onChange={(event) => updateField(field.id, { label: event.target.value })} placeholder="Nome exibido" />
+                      {field.id.startsWith("new:") ? (
+                        <Input className="mt-2 font-mono text-xs" value={field.fieldKey} onChange={(event) => updateField(field.id, { fieldKey: event.target.value.trim() })} placeholder="nomeDoCampoNoFluig" />
+                      ) : (
+                        <code className="mt-2 block break-all rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">{field.fieldKey}</code>
+                      )}
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <Badge variant="outline">{field.sourceType === "form" ? "Formulario Fluig" : "Solicitacao"}</Badge>
+                        {field.discovered ? <Badge variant="secondary">Detectado automaticamente</Badge> : null}
+                        {field.occurrenceCount ? <span>Encontrado em {field.occurrenceCount.toLocaleString("pt-BR")} registro(s)</span> : null}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-center"><Checkbox checked={field.active} onCheckedChange={(checked) => updateField(field.id, { active: checked === true })} aria-label={`Ativar ${field.label}`} /></TableCell>
                     <TableCell className="text-center"><Checkbox checked={field.visibleInList} onCheckedChange={(checked) => updateField(field.id, { visibleInList: checked === true })} aria-label={`Mostrar ${field.label} na lista`} /></TableCell>
-                    <TableCell><Input type="number" min={1} value={field.listOrder ?? ""} disabled={!field.visibleInList} onChange={(event) => updateField(field.id, { listOrder: event.target.value ? Number(event.target.value) : null })} aria-label={`Ordem de ${field.label} na lista`} /></TableCell>
                     <TableCell className="text-center"><Checkbox checked={field.visibleInForm} disabled={field.sourceType !== "form"} onCheckedChange={(checked) => updateField(field.id, { visibleInForm: checked === true })} aria-label={`Mostrar ${field.label} no formulario`} /></TableCell>
-                    <TableCell><Input type="number" min={1} value={field.formOrder ?? ""} disabled={!field.visibleInForm || field.sourceType !== "form"} onChange={(event) => updateField(field.id, { formOrder: event.target.value ? Number(event.target.value) : null })} aria-label={`Ordem de ${field.label} no formulario`} /></TableCell>
                   </TableRow>
                 ))}
+                {!visibleFields.length ? <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">Nenhum campo encontrado para esta busca.</TableCell></TableRow> : null}
               </TableBody>
             </Table>
           </div>

@@ -71,6 +71,13 @@ export type FluigFieldSetting = {
   listOrder: number | null;
   visibleInForm: boolean;
   formOrder: number | null;
+  discovered?: boolean;
+  occurrenceCount?: number;
+};
+
+type DiscoveredFluigFieldRow = {
+  field_key: string;
+  occurrence_count: number | string | null;
 };
 
 type FluigRequestUserMembershipDbRow = {
@@ -241,6 +248,72 @@ function normalizeName(value: unknown) {
     .replace(/[^a-zA-Z0-9]+/g, " ")
     .trim()
     .toUpperCase();
+}
+
+const fluigFieldLabelOverrides: Record<string, string> = {
+  nNotaFiscal: "Numero da NF",
+  valorNF: "Valor da NF",
+  valorNFT: "Valor total da NF",
+  vencPagNota: "Data de vencimento",
+  dataEmissaoNF: "Data de emissao",
+  codigonaturezaC: "Natureza de despesa",
+  fornecedorC: "Fornecedor",
+  codCNPJ: "CNPJ",
+  unidadeFilial: "Filial",
+  centroCusto: "Centro de custo",
+  formaPagamento: "Forma de pagamento",
+  descricaoDemandaEnvio: "Descricao da demanda",
+};
+
+export function fluigFieldLabelFromKey(fieldKey: string) {
+  if (fluigFieldLabelOverrides[fieldKey]) return fluigFieldLabelOverrides[fieldKey];
+  const [baseKey, rowNumber] = fieldKey.split("___", 2);
+  const label = baseKey
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
+  return rowNumber ? `${label} - linha ${rowNumber}` : label;
+}
+
+export function mergeFluigFieldSettingsWithDiscovered(
+  module: FluigModuleSlug,
+  settings: FluigFieldSetting[],
+  discoveredRows: DiscoveredFluigFieldRow[]
+) {
+  const discoveredByKey = new Map(
+    discoveredRows
+      .map((row) => ({
+        fieldKey: String(row.field_key || "").trim(),
+        occurrenceCount: Math.max(0, Number(row.occurrence_count || 0)),
+      }))
+      .filter((row) => row.fieldKey)
+      .map((row) => [row.fieldKey, row])
+  );
+  const configuredKeys = new Set(settings.map((setting) => setting.fieldKey));
+  const configured = settings.map((setting) => ({
+    ...setting,
+    discovered: false,
+    occurrenceCount: discoveredByKey.get(setting.fieldKey)?.occurrenceCount || 0,
+  }));
+  const discovered = Array.from(discoveredByKey.values())
+    .filter((row) => !configuredKeys.has(row.fieldKey))
+    .map((row) => ({
+      id: `discovered:${module}:${row.fieldKey}`,
+      module,
+      fieldKey: row.fieldKey,
+      label: fluigFieldLabelFromKey(row.fieldKey),
+      sourceType: "form" as const,
+      active: false,
+      visibleInList: false,
+      listOrder: null,
+      visibleInForm: false,
+      formOrder: null,
+      discovered: true,
+      occurrenceCount: row.occurrenceCount,
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label, "pt-BR", { numeric: true, sensitivity: "base" }));
+
+  return [...configured, ...discovered];
 }
 
 export type FluigNatureFacet = {
@@ -446,6 +519,38 @@ export async function readFluigFieldSettings(module: FluigModuleSlug) {
     const settings = (data || []).map((row) => mapFieldSetting(row as Record<string, unknown>));
     return { settings, configHash: fluigFieldSettingsHash(settings) };
   }).then(({ result, persistence }) => ({ ...(result || { settings: [], configHash: "" }), persistence }));
+}
+
+export async function readFluigFieldSettingsForConfiguration(module: FluigModuleSlug) {
+  return runWithDb(async (client) => {
+    const [settingsResult, discoveredResult] = await Promise.all([
+      client
+        .from("fluig_field_settings")
+        .select("id,module_slug,field_key,label,source_type,active,visible_in_list,list_order,visible_in_form,form_order")
+        .eq("module_slug", module)
+        .order("list_order", { ascending: true, nullsFirst: false })
+        .order("form_order", { ascending: true, nullsFirst: false })
+        .order("label", { ascending: true }),
+      client.rpc("list_fluig_form_field_keys", { p_module_slug: module }),
+    ]);
+    if (settingsResult.error) throw settingsResult.error;
+    if (discoveredResult.error) throw discoveredResult.error;
+
+    const storedSettings = (settingsResult.data || []).map((row) => mapFieldSetting(row as Record<string, unknown>));
+    const settings = mergeFluigFieldSettingsWithDiscovered(
+      module,
+      storedSettings,
+      (discoveredResult.data || []) as DiscoveredFluigFieldRow[]
+    );
+    return {
+      settings,
+      configHash: fluigFieldSettingsHash(storedSettings),
+      discoveredCount: settings.filter((setting) => setting.discovered).length,
+    };
+  }).then(({ result, persistence }) => ({
+    ...(result || { settings: [], configHash: "", discoveredCount: 0 }),
+    persistence,
+  }));
 }
 
 export async function replaceFluigFieldSettings(input: {

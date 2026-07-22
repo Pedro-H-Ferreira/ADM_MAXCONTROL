@@ -125,6 +125,8 @@ export type FluigFieldSetting = {
   listOrder: number | null;
   visibleInForm: boolean;
   formOrder: number | null;
+  discovered?: boolean;
+  occurrenceCount?: number;
 };
 
 export type FluigRequestDetails = {
@@ -539,9 +541,11 @@ export const fluigAdmApi = {
     const params = new URLSearchParams({ module: payload.module, fluigRequestId: payload.fluigRequestId });
     return this.get<{ success: true; details: FluigRequestDetails }>(`${this.requestDetailsPath}?${params.toString()}`);
   },
-  async getFieldSettings(module: FluigModuleSlug) {
-    return this.get<{ success: true; settings: FluigFieldSetting[]; configHash: string; isAdmin: boolean }>(
-      `${this.fieldSettingsPath}?module=${encodeURIComponent(module)}`
+  async getFieldSettings(module: FluigModuleSlug, options: { discover?: boolean } = {}) {
+    const params = new URLSearchParams({ module });
+    if (options.discover) params.set("discover", "true");
+    return this.get<{ success: true; settings: FluigFieldSetting[]; configHash: string; discoveredCount: number; isAdmin: boolean }>(
+      `${this.fieldSettingsPath}?${params.toString()}`
     );
   },
   async saveFieldSettings(module: FluigModuleSlug, settings: FluigFieldSetting[]) {
