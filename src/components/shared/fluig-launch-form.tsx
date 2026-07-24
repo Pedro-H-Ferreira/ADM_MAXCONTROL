@@ -69,6 +69,7 @@ type FiscalDocumentResponse = {
   error?: string;
   document?: {
     sourceType: "xml" | "pdf";
+    documentType: "nfe" | "nfse" | "cte" | "invoice" | "rental" | "unknown";
     supplierName: string | null;
     supplierCnpj: string | null;
     takerName: string | null;
@@ -1211,7 +1212,19 @@ export function FluigLaunchForm({
                 Dados reconhecidos na nota
               </div>
               <p className="mt-1 text-muted-foreground">
-                {[fiscalDocument.supplierName, fiscalDocument.supplierCnpj, fiscalDocument.invoiceNumber ? `NF ${fiscalDocument.invoiceNumber}` : null]
+                {[
+                  {
+                    nfe: "NF-e / DANFE",
+                    nfse: "NFS-e",
+                    cte: "CT-e / DACTE",
+                    invoice: "Fatura",
+                    rental: "Nota de locação",
+                    unknown: "Documento não identificado",
+                  }[fiscalDocument.documentType],
+                  fiscalDocument.supplierName,
+                  fiscalDocument.supplierCnpj,
+                  fiscalDocument.invoiceNumber ? `Nº ${fiscalDocument.invoiceNumber}` : null,
+                ]
                   .filter(Boolean)
                   .join(" - ")}
               </p>
