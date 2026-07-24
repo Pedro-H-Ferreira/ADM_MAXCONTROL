@@ -12,3 +12,13 @@ export function formatAppShellUserLabel(
 
   return [normalizedName, ...normalizedCodes].filter(Boolean).join(" - ");
 }
+
+export function formatAppShellUserButtonLabel(
+  name: string,
+  branchCodes: string[],
+  hasAllBranches: boolean,
+) {
+  return hasAllBranches
+    ? name.trim()
+    : formatAppShellUserLabel(name, branchCodes, false);
+}

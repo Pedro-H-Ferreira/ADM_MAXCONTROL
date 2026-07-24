@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { formatAppShellUserLabel } from "@/lib/app-shell-user-label";
+import {
+  formatAppShellUserButtonLabel,
+  formatAppShellUserLabel,
+} from "@/lib/app-shell-user-label";
 
 describe("formatAppShellUserLabel", () => {
   it("combina o nome do usuario com os codigos unicos das filiais em ordem natural", () => {
@@ -20,5 +23,15 @@ describe("formatAppShellUserLabel", () => {
     expect(
       formatAppShellUserLabel("Pedro Henrique", ["1001", "1004", "1007"], true),
     ).toBe("Todas Filiais");
+  });
+
+  it("mostra somente o nome do administrador no botao do cabecalho", () => {
+    expect(
+      formatAppShellUserButtonLabel(
+        "Pedro Henrique",
+        ["1001", "1004", "1007"],
+        true,
+      ),
+    ).toBe("Pedro Henrique");
   });
 });

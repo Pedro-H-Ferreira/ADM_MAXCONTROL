@@ -52,7 +52,7 @@ export function UserMenu({ user }: { user: AppShellUser }) {
             <span className="block truncate text-xs font-normal text-muted-foreground">{user.email}</span>
           ) : null}
           <span className="block truncate text-xs font-normal text-muted-foreground">
-            {user.displayLabel}
+            {user.accessLabel}
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
