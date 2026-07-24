@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FluigBatchLaunch } from "@/components/shared/fluig-batch-launch";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { fluigAdmApi } from "@/lib/fluig-api";
 import {
@@ -1032,6 +1033,22 @@ export function FluigLaunchForm({
       </header>
 
       <div className={cn("space-y-4", focused ? "p-5" : "p-3")}>
+        {moduleSlug === "pagamentos" ? (
+          <>
+            <FluigBatchLaunch
+              templates={templates}
+              fallbackSourceRequestId={templates[0]?.sourceRequestId || syncData?.examples?.[0]?.id || ""}
+              canCreate={launchPermissions?.canCreate === true}
+              onCompleted={refreshOperationalLaunches}
+            />
+            <div className="flex items-center gap-3 py-1">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs font-medium text-muted-foreground">OU PREENCHA UMA NOTA INDIVIDUALMENTE</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+          </>
+        ) : null}
+
         {monthlyTemplates.length ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold">
