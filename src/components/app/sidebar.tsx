@@ -91,7 +91,7 @@ export function AppSidebar({
         </Link>
       </div>
       <Separator className="bg-sidebar-border" />
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {sections.map((section) => (
           <div key={section.title} className="mb-5">
             <p
