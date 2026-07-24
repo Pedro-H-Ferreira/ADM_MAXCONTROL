@@ -1,4 +1,10 @@
-export function formatAppShellUserLabel(name: string, branchCodes: string[]) {
+export function formatAppShellUserLabel(
+  name: string,
+  branchCodes: string[],
+  hasAllBranches: boolean,
+) {
+  if (hasAllBranches) return "Todas Filiais";
+
   const normalizedName = name.trim().toLocaleUpperCase("pt-BR");
   const normalizedCodes = Array.from(
     new Set(branchCodes.map((code) => code.trim()).filter(Boolean)),

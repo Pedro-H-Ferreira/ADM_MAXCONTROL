@@ -11,7 +11,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       navigationSections={filterNavigationSectionsForAccess(actor.pageSlugs)}
       user={{
         name: actor.displayName,
-        displayLabel: formatAppShellUserLabel(actor.displayName, actor.branchCodes),
+        displayLabel: formatAppShellUserLabel(
+          actor.displayName,
+          actor.branchCodes,
+          actor.isAdmin,
+        ),
         email: actor.email,
       }}
     >
