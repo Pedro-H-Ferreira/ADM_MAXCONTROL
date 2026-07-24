@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PDFParse } from "pdf-parse";
+import { getPath as getPdfWorkerPath } from "pdf-parse/worker";
 import { z } from "zod";
 import { appAuthErrorResponse } from "@/lib/auth-response";
 import { canActorPerformPageAction, resolveCurrentAppUser } from "@/lib/db/app-repository";
@@ -9,6 +10,8 @@ import { parseFiscalPdfText, parseFiscalXml, type FiscalDocumentData } from "@/l
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+PDFParse.setWorker(getPdfWorkerPath());
 
 const MAX_DOCUMENT_BYTES = 3 * 1024 * 1024;
 const payloadSchema = z.object({
