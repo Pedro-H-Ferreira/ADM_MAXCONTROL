@@ -73,11 +73,13 @@ export type FluigFieldSetting = {
   formOrder: number | null;
   discovered?: boolean;
   occurrenceCount?: number;
+  sampleValue?: string | null;
 };
 
 type DiscoveredFluigFieldRow = {
   field_key: string;
   occurrence_count: number | string | null;
+  sample_value?: string | null;
 };
 
 type FluigRequestUserMembershipDbRow = {
@@ -285,6 +287,7 @@ export function mergeFluigFieldSettingsWithDiscovered(
       .map((row) => ({
         fieldKey: String(row.field_key || "").trim(),
         occurrenceCount: Math.max(0, Number(row.occurrence_count || 0)),
+        sampleValue: String(row.sample_value || "").trim() || null,
       }))
       .filter((row) => row.fieldKey)
       .map((row) => [row.fieldKey, row])
@@ -294,6 +297,7 @@ export function mergeFluigFieldSettingsWithDiscovered(
     ...setting,
     discovered: false,
     occurrenceCount: discoveredByKey.get(setting.fieldKey)?.occurrenceCount || 0,
+    sampleValue: discoveredByKey.get(setting.fieldKey)?.sampleValue || null,
   }));
   const discovered = Array.from(discoveredByKey.values())
     .filter((row) => !configuredKeys.has(row.fieldKey))
@@ -310,6 +314,7 @@ export function mergeFluigFieldSettingsWithDiscovered(
       formOrder: null,
       discovered: true,
       occurrenceCount: row.occurrenceCount,
+      sampleValue: row.sampleValue,
     }))
     .sort((left, right) => left.label.localeCompare(right.label, "pt-BR", { numeric: true, sensitivity: "base" }));
 

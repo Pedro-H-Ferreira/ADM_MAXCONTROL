@@ -96,12 +96,17 @@ describe("buildSupplierCandidates", () => {
       visibleInForm: true,
       formOrder: 10,
     }], [
-      { field_key: "nNotaFiscal", occurrence_count: 20 },
-      { field_key: "obsAnalisePgto", occurrence_count: "18" },
+      { field_key: "nNotaFiscal", occurrence_count: 20, sample_value: "4844" },
+      { field_key: "obsAnalisePgto", occurrence_count: "18", sample_value: "Pagamento conferido" },
     ]);
 
     expect(settings).toHaveLength(2);
-    expect(settings[0]).toMatchObject({ fieldKey: "nNotaFiscal", discovered: false, occurrenceCount: 20 });
+    expect(settings[0]).toMatchObject({
+      fieldKey: "nNotaFiscal",
+      discovered: false,
+      occurrenceCount: 20,
+      sampleValue: "4844",
+    });
     expect(settings[1]).toMatchObject({
       fieldKey: "obsAnalisePgto",
       label: "Obs Analise Pgto",
@@ -110,6 +115,7 @@ describe("buildSupplierCandidates", () => {
       visibleInForm: false,
       discovered: true,
       occurrenceCount: 18,
+      sampleValue: "Pagamento conferido",
     });
     expect(fluigFieldLabelFromKey("solProdutoServico___3")).toBe("Sol Produto Servico - linha 3");
   });

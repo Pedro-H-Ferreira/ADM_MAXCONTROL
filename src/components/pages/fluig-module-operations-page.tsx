@@ -1033,33 +1033,38 @@ function FluigFieldSettingsSheet({
   }
 
   const normalizedSearch = fieldSearch.trim().toLocaleLowerCase("pt-BR");
+  const formFieldDraft = draft.filter((field) => field.sourceType === "form");
   const visibleFields = normalizedSearch
-    ? draft.filter((field) => [field.label, field.fieldKey].some((value) => value.toLocaleLowerCase("pt-BR").includes(normalizedSearch)))
-    : draft;
-  const discoveredCount = draft.filter((field) => field.discovered).length;
-  const selectedCount = draft.filter((field) => field.active && (field.visibleInList || field.visibleInForm)).length;
+    ? formFieldDraft.filter((field) =>
+        [field.label, field.fieldKey, field.sampleValue || ""].some((value) =>
+          value.toLocaleLowerCase("pt-BR").includes(normalizedSearch),
+        ),
+      )
+    : formFieldDraft;
+  const discoveredCount = formFieldDraft.filter((field) => field.discovered).length;
+  const selectedCount = formFieldDraft.filter((field) => field.active && (field.visibleInList || field.visibleInForm)).length;
 
   return (
     <Sheet open onOpenChange={onOpenChange}>
       <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:max-w-none sm:data-[side=right]:w-[min(980px,calc(100vw-2rem))] sm:data-[side=right]:max-w-none">
         <SheetHeader className="shrink-0 border-b pr-14">
-          <SheetTitle>Campos sincronizados e exibidos</SheetTitle>
-          <SheetDescription>Todos os campos encontrados no Fluig aparecem aqui. Arraste pela alca para definir a ordem usada na lista e no formulario.</SheetDescription>
+          <SheetTitle>Campos preenchidos no formulário</SheetTitle>
+          <SheetDescription>Somente os campos utilizados na solicitação aparecem aqui. O nome exibido e um exemplo ajudam a identificar cada campo antes de ativá-lo.</SheetDescription>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-medium">{draft.length} campos disponiveis</p>
-              <p className="text-xs text-muted-foreground">{discoveredCount} encontrados automaticamente no Fluig; {selectedCount} selecionados para exibicao.</p>
+              <p className="text-sm font-medium">{formFieldDraft.length} campos preenchidos disponíveis</p>
+              <p className="text-xs text-muted-foreground">{discoveredCount} encontrados automaticamente no formulário; {selectedCount} selecionados para exibição.</p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="relative min-w-72"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={fieldSearch} onChange={(event) => setFieldSearch(event.target.value)} placeholder="Buscar campo ou chave Fluig" /></div>
+              <div className="relative min-w-72"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={fieldSearch} onChange={(event) => setFieldSearch(event.target.value)} placeholder="Buscar nome, campo ou exemplo" /></div>
               <Button type="button" variant="outline" onClick={addFormField}><Plus className="size-4" />Adicionar campo</Button>
             </div>
           </div>
           <div className="overflow-x-auto rounded-md border">
             <Table>
-              <TableHeader><TableRow><TableHead className="w-14"><span className="sr-only">Ordenar</span></TableHead><TableHead className="min-w-[360px]">Campo</TableHead><TableHead className="w-24 text-center">Ativo</TableHead><TableHead className="w-24 text-center">Na lista</TableHead><TableHead className="w-32 text-center">No formulario</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead className="w-14"><span className="sr-only">Ordenar</span></TableHead><TableHead className="min-w-[420px]">Nome exibido e identificação</TableHead><TableHead className="w-24 text-center">Ativo</TableHead><TableHead className="w-24 text-center">Na lista</TableHead><TableHead className="w-32 text-center">No formulário</TableHead></TableRow></TableHeader>
               <TableBody>
                 {visibleFields.map((field) => (
                   <TableRow
@@ -1095,16 +1100,23 @@ function FluigFieldSettingsSheet({
                       </button>
                     </TableCell>
                     <TableCell className="min-w-[360px] whitespace-normal py-3">
-                      <Input value={field.label} onChange={(event) => updateField(field.id, { label: event.target.value })} placeholder="Nome exibido" />
+                      <p className="mb-1 text-xs font-medium text-foreground">Nome que aparecerá no painel</p>
+                      <Input value={field.label} onChange={(event) => updateField(field.id, { label: event.target.value })} placeholder="Digite o nome exibido" />
                       {field.id.startsWith("new:") ? (
                         <Input className="mt-2 font-mono text-xs" value={field.fieldKey} onChange={(event) => updateField(field.id, { fieldKey: event.target.value.trim() })} placeholder="nomeDoCampoNoFluig" />
                       ) : (
-                        <code className="mt-2 block break-all rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">{field.fieldKey}</code>
+                        <p className="mt-2 break-all text-xs text-muted-foreground">
+                          Campo no Fluig: <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{field.fieldKey}</code>
+                        </p>
                       )}
+                      <div className="mt-2 rounded-md border border-dashed bg-muted/30 px-3 py-2 text-xs">
+                        <span className="font-medium text-foreground">Exemplo preenchido: </span>
+                        <span className="break-words text-muted-foreground">{field.sampleValue || "Ainda não há exemplo sincronizado para este campo."}</span>
+                      </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="outline">{field.sourceType === "form" ? "Formulario Fluig" : "Solicitacao"}</Badge>
+                        <Badge variant="outline">Formulário Fluig</Badge>
                         {field.discovered ? <Badge variant="secondary">Detectado automaticamente</Badge> : null}
-                        {field.occurrenceCount ? <span>Encontrado em {field.occurrenceCount.toLocaleString("pt-BR")} registro(s)</span> : null}
+                        {field.occurrenceCount ? <span>Preenchido em {field.occurrenceCount.toLocaleString("pt-BR")} solicitação(ões)</span> : null}
                       </div>
                     </TableCell>
                     <TableCell className="text-center"><Checkbox checked={field.active} onCheckedChange={(checked) => updateField(field.id, { active: checked === true })} aria-label={`Ativar ${field.label}`} /></TableCell>
@@ -1116,7 +1128,7 @@ function FluigFieldSettingsSheet({
               </TableBody>
             </Table>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">Historico e metadados dos anexos continuam sincronizados porque compõem as abas detalhadas. O arquivo do anexo so e transferido quando for visualizado.</p>
+          <p className="mt-3 text-xs text-muted-foreground">Os campos internos do Fluig ficam ocultos desta configuração. Histórico e metadados dos anexos continuam sincronizados nas abas detalhadas.</p>
         </div>
         <div className="flex shrink-0 justify-end gap-2 border-t p-4">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>

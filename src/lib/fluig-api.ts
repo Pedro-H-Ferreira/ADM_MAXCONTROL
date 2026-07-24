@@ -127,6 +127,7 @@ export type FluigFieldSetting = {
   formOrder: number | null;
   discovered?: boolean;
   occurrenceCount?: number;
+  sampleValue?: string | null;
 };
 
 export type FluigRequestDetails = {

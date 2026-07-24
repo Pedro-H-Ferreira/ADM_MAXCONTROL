@@ -28,6 +28,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "Modulo Fluig invalido." }, { status: 400 });
     }
     const discover = url.searchParams.get("discover") === "true";
+    if (discover && !actor.isAdmin) {
+      return NextResponse.json(
+        { success: false, error: "Somente administradores podem consultar os campos do formulario Fluig." },
+        { status: 403 },
+      );
+    }
     const result = discover
       ? await readFluigFieldSettingsForConfiguration(moduleSlug)
       : await readFluigFieldSettings(moduleSlug);
