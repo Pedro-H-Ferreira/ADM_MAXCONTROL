@@ -26,7 +26,6 @@ import {
   type FluigCatalogItem,
   type FluigCatalogType,
   type FluigIntegrationModule,
-  type FluigLaunchTemplate,
   type FluigModuleSlug,
 } from "@/lib/fluig-data";
 import {
@@ -36,6 +35,7 @@ import {
   type OperationalLaunchItemInput,
   type OperationalLaunchRecord,
 } from "@/lib/operational-launch";
+import { selectSupplierTemplate } from "@/lib/fluig-template-selection";
 import { cn } from "@/lib/utils";
 import { useFluigJobState } from "@/lib/use-fluig-job-state";
 
@@ -157,7 +157,9 @@ const supplierModelFieldKeys = new Set([
   "codCentroCusto",
   "formaPagamento",
   "contaCentroCusto",
+  "descricaoDemandaEnvio",
 ]);
+const supplierVariableFieldKeys = ["nNotaFiscal", "dataEmissaoNF", "vencPagNota", "valorNF"];
 
 const launchFields: Record<LaunchModule, LaunchField[]> = {
   pagamentos: [
@@ -316,16 +318,6 @@ function readFileAsBase64(file: File) {
     };
     reader.readAsDataURL(file);
   });
-}
-
-function templateMatchesCatalog(template: FluigLaunchTemplate, item: FluigCatalogItem) {
-  const cnpj = metadataText(item, "cnpj");
-  if (cnpj && template.supplierCnpj && cnpj.replace(/\D/g, "") === template.supplierCnpj.replace(/\D/g, "")) {
-    return true;
-  }
-
-  const supplier = normalizeText(template.supplierName || "");
-  return supplier ? catalogSearchText(item).includes(supplier) : false;
 }
 
 function catalogDedupeKey(item: FluigCatalogItem) {
@@ -599,32 +591,47 @@ export function FluigLaunchForm({
     setFormValues((current) => ({ ...current, [key]: value }));
   }
 
-  function applyTemplate(template: FluigLaunchTemplate) {
+  function applySupplierTemplate(item: CatalogOption) {
+    const cnpj = metadataText(item, "cnpj");
+    const supplierName = item.value || item.label;
+    const selection = selectSupplierTemplate(templates, { cnpj, name: supplierName });
+    const template = selection.template;
+    const automaticBranch = selection.automaticBranch;
+
     setReview(null);
-    setSelectedTemplateId(template.id);
-    setSelectedBranchCode(template.branchCode || null);
-    const matchingSupplier = officialSuppliers.find((supplier) => templateMatchesCatalog(template, supplier));
-    setSelectedSupplierId(matchingSupplier ? metadataText(matchingSupplier, "appSupplierId") || null : null);
+    setFiscalDocument(null);
+    setSelectedTemplateId(template?.id || "");
+    setSelectedBranchCode(automaticBranch?.code || null);
+    setSelectedSupplierId(item.origin === "adm" ? metadataText(item, "appSupplierId") || null : null);
     setFormValues((current) => {
       const next = { ...current };
-      for (const [key, value] of Object.entries(template.defaultFields)) {
-        if (typeof value === "string" && value.trim()) {
+
+      for (const key of supplierModelFieldKeys) next[key] = "";
+      for (const key of supplierVariableFieldKeys) next[key] = "";
+      next.unidadeFilial = "";
+      next.codFilialPedido = "";
+      next.filial = "";
+
+      for (const [key, value] of Object.entries(template?.defaultFields || {})) {
+        if (supplierModelFieldKeys.has(key) && typeof value === "string" && value.trim()) {
           next[key] = displayValueForField(key, value);
         }
       }
-      if (template.supplierName) next.fornecedorC = template.defaultFields.fornecedorC || template.supplierName;
-      if (template.supplierCnpj) next.codCNPJ = template.supplierCnpj;
-      if (template.branchLabel) {
-        next.unidadeFilial = template.branchLabel;
-        next.codFilialPedido = template.branchLabel;
-        next.filial = template.branchLabel;
+      next.fornecedorC = supplierName;
+      next.codCNPJ = cnpj || template?.supplierCnpj || "";
+      if (automaticBranch?.label) {
+        next.unidadeFilial = automaticBranch.label;
+        next.codFilialPedido = automaticBranch.label;
+        next.filial = automaticBranch.label;
       }
       return next;
     });
     setMessage(
-      template.recurrence === "monthly"
-        ? "Padrao mensal aplicado. Revise competencia, valor e anexe a nota fiscal."
-        : "Modelo real aplicado a partir do historico Fluig."
+      template
+        ? automaticBranch
+          ? "Ultimo modelo do fornecedor aplicado. A filial unica tambem foi preenchida; informe os dados da nova nota."
+          : "Ultimo modelo do fornecedor aplicado. Selecione a filial e informe os dados da nova nota."
+        : "Fornecedor selecionado. Nenhum modelo anterior foi encontrado; complete a classificacao financeira."
     );
     setError(null);
   }
@@ -674,7 +681,8 @@ export function FluigLaunchForm({
       next.dataEmissaoNF = document.issueDate || "";
       next.vencPagNota = document.dueDate || "";
       next.valorNF = document.amountCents != null ? formatMoneyInput(document.amountCents) : "";
-      next.descricaoDemandaEnvio = document.description || "";
+      next.descricaoDemandaEnvio =
+        document.description || templateFields.descricaoDemandaEnvio || "";
       return next;
     });
     setMessage(
@@ -687,23 +695,13 @@ export function FluigLaunchForm({
   }
 
   function handleCatalogSelect(field: LaunchField, item: CatalogOption) {
-    setFieldValue(field.key, item.value || item.label);
-
     if (field.catalogType === "supplier") {
-      setSelectedSupplierId(item.origin === "adm" ? metadataText(item, "appSupplierId") || null : null);
-      const cnpj = metadataText(item, "cnpj");
-      if (cnpj) setFieldValue("codCNPJ", cnpj);
-      const branchCode = metadataText(item, "branchCode");
-      const branchLabel = metadataText(item, "branchLabel");
-      if (branchLabel) {
-        setFieldValue("unidadeFilial", branchLabel);
-        setFieldValue("codFilialPedido", branchLabel);
-        setSelectedBranchCode(branchCode || null);
-      }
-      const template = templates.find((candidate) => templateMatchesCatalog(candidate, item));
-      if (template) applyTemplate(template);
+      applySupplierTemplate(item);
     } else if (field.catalogType === "branch") {
+      setFieldValue(field.key, item.value || item.label);
       setSelectedBranchCode(item.code || metadataText(item, "branchCode") || null);
+    } else {
+      setFieldValue(field.key, item.value || item.label);
     }
   }
 

@@ -1254,7 +1254,7 @@ function monthKey(value: string | null | undefined) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function templateDefaultFields(module: FluigModuleSlug, fields: Record<string, string>) {
+function templateDefaultFields(module: FluigModuleSlug, fields: Record<string, string>): Record<string, string> {
   const paymentFields = [
     "fornecedorC",
     "codCNPJ",
@@ -1265,6 +1265,7 @@ function templateDefaultFields(module: FluigModuleSlug, fields: Record<string, s
     "naturezaSalva",
     "formaPagamento",
     "contaCentroCusto",
+    "descricaoDemandaEnvio",
   ];
   const otherModuleFields = [
     ...paymentFields,
@@ -1278,7 +1279,9 @@ function templateDefaultFields(module: FluigModuleSlug, fields: Record<string, s
   ];
   const keep = module === "pagamentos" ? paymentFields : otherModuleFields;
 
-  return Object.fromEntries(keep.map((fieldName) => [fieldName, fields[fieldName] || ""]).filter(([, value]) => value));
+  return Object.fromEntries(
+    keep.map((fieldName) => [fieldName, fields[fieldName] || ""] as const).filter(([, value]) => Boolean(value))
+  );
 }
 
 function requestTimestamp(row: FluigRequestDbRow) {
@@ -1287,11 +1290,12 @@ function requestTimestamp(row: FluigRequestDbRow) {
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
-function paymentTemplateFieldsAreComplete(fields: Record<string, string>) {
+function paymentTemplateHasReusableFields(fields: Record<string, string>) {
   return Boolean(
-    firstStringField(fields, catalogFieldMap.natureza.fields) &&
-      firstStringField(fields, catalogFieldMap.cost_center.fields) &&
-      firstStringField(fields, catalogFieldMap.payment_method.fields)
+    firstStringField(fields, catalogFieldMap.natureza.fields) ||
+      firstStringField(fields, catalogFieldMap.cost_center.fields) ||
+      firstStringField(fields, catalogFieldMap.payment_method.fields) ||
+      stringField(fields, "descricaoDemandaEnvio")
   );
 }
 
@@ -1326,14 +1330,23 @@ export function buildFluigLaunchTemplatesFromRequests(rows: FluigRequestDbRow[])
 
   return Array.from(grouped.entries())
     .map(([key, group]) => {
-      const latest = [...group.rows]
+      const reusableRows = [...group.rows]
         .filter((row) => {
           if (row.module_slug !== "pagamentos") return true;
-          return paymentTemplateFieldsAreComplete(formFieldsFromPayload(row.raw_payload || {}));
+          return paymentTemplateHasReusableFields(formFieldsFromPayload(row.raw_payload || {}));
         })
-        .sort((a, b) => requestTimestamp(b) - requestTimestamp(a))[0];
+        .sort((a, b) => requestTimestamp(b) - requestTimestamp(a));
+      const latest = reusableRows[0];
       if (!latest) return null;
       const fields = formFieldsFromPayload(latest.raw_payload || {});
+      const defaultFields: Record<string, string> = {};
+      for (const row of reusableRows) {
+        for (const [fieldName, value] of Object.entries(
+          templateDefaultFields(row.module_slug, formFieldsFromPayload(row.raw_payload || {}))
+        )) {
+          if (!defaultFields[fieldName] && value) defaultFields[fieldName] = value;
+        }
+      }
       const supplier = supplierFromFields(fields);
       const supplierName = latest.supplier_name || supplier.name || firstStringField(fields, catalogFieldMap.supplier.fields) || null;
       const sourceRequestId = latest.fluig_request_id || latest.id;
@@ -1359,7 +1372,7 @@ export function buildFluigLaunchTemplatesFromRequests(rows: FluigRequestDbRow[])
         supplierCnpj: latest.supplier_cnpj || supplier.cnpj,
         branchCode: latest.branch_code || extractBranchCode(fields),
         branchLabel: latest.branch_label || extractBranchLabel(fields) || null,
-        defaultFields: templateDefaultFields(latest.module_slug, fields),
+        defaultFields,
         occurrenceCount: group.rows.length,
         monthCount: group.months.size,
         lastSeenAt: latest.last_synced_at || latest.opened_at,

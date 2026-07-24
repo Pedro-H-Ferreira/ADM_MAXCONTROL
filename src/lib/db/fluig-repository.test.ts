@@ -438,7 +438,7 @@ describe("buildFluigLaunchTemplatesFromRequests", () => {
     });
   });
 
-  it("usa o registro completo mais recente e descarta campos da competencia", () => {
+  it("usa o registro reutilizavel mais recente, preserva a descricao e descarta campos variaveis", () => {
     const templates = buildFluigLaunchTemplatesFromRequests([
       templateRequest("1164400", "2026-05-01T10:00:00.000Z", {
         fields: {
@@ -460,22 +460,50 @@ describe("buildFluigLaunchTemplatesFromRequests", () => {
         },
       }),
       templateRequest("1164402", "2026-07-01T10:00:00.000Z", {
-        fields: { centroCusto: "INCOMPLETO", formaPagamento: "" },
+        fields: {
+          centroCusto: "INCOMPLETO",
+          codigonaturezaC: "",
+          formaPagamento: "",
+          descricaoDemandaEnvio: "",
+        },
       }),
     ]);
 
     expect(templates[0]).toMatchObject({
-      sourceRequestId: "1164401",
+      sourceRequestId: "1164402",
       defaultFields: {
-        centroCusto: "NOVO",
+        centroCusto: "INCOMPLETO",
         codigonaturezaC: "NATUREZA NOVA",
         formaPagamento: "PIX",
+        descricaoDemandaEnvio: "Competencia de junho",
       },
     });
     expect(templates[0].defaultFields).not.toHaveProperty("nNotaFiscal");
     expect(templates[0].defaultFields).not.toHaveProperty("dataEmissaoNF");
     expect(templates[0].defaultFields).not.toHaveProperty("vencPagNota");
     expect(templates[0].defaultFields).not.toHaveProperty("valorNF");
-    expect(templates[0].defaultFields).not.toHaveProperty("descricaoDemandaEnvio");
+    expect(templates[0].defaultFields.descricaoDemandaEnvio).toBe("Competencia de junho");
+  });
+
+  it("cria modelo mesmo quando o historico possui apenas parte da classificacao", () => {
+    const templates = buildFluigLaunchTemplatesFromRequests([
+      templateRequest("1164500", "2026-06-01T10:00:00.000Z", {
+        fields: {
+          centroCusto: "3111001 - OPERACAO LOJA",
+          codigonaturezaC: "5030103 - ENERGIA ELETRICA - REDE GERAL",
+          formaPagamento: "",
+          descricaoDemandaEnvio: "CONTA MENSAL DE ENERGIA",
+        },
+      }),
+    ]);
+
+    expect(templates[0]).toMatchObject({
+      sourceRequestId: "1164500",
+      defaultFields: {
+        centroCusto: "3111001 - OPERACAO LOJA",
+        codigonaturezaC: "5030103 - ENERGIA ELETRICA - REDE GERAL",
+        descricaoDemandaEnvio: "CONTA MENSAL DE ENERGIA",
+      },
+    });
   });
 });
