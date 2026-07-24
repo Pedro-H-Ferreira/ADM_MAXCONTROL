@@ -9,6 +9,8 @@ export type ExpenseAuthorizationStatus =
   | "ANEXADA_FLUIG"
   | "CANCELADA";
 
+export type ExpenseAuthorizationCreationSource = "LANCAMENTO" | "MANUAL" | "DOCUMENTO_FISCAL";
+
 export type ExpenseAuthorizationEvent = {
   id: string;
   eventType: string;
@@ -31,15 +33,19 @@ export type ExpenseAuthorizationItem = {
 export type ExpenseAuthorizationRecord = {
   id: string;
   documentNumber: string;
-  launchId: string;
+  launchId: string | null;
   module: OperationalLaunchModule;
+  creationSource: ExpenseAuthorizationCreationSource;
   status: ExpenseAuthorizationStatus;
   issueDate: string;
+  invoiceNumber: string | null;
+  invoiceDueDate: string | null;
   expenseType: string | null;
   description: string;
   expenseAccount: string | null;
   financialAccount: string | null;
   costCenter: string | null;
+  branchId: string | null;
   branchCode: string | null;
   branchLabel: string | null;
   supplierName: string | null;
@@ -83,13 +89,21 @@ export type ExpenseAuthorizationRecord = {
 };
 
 export type ExpenseAuthorizationUpdateInput = Partial<{
+  module: OperationalLaunchModule;
   status: ExpenseAuthorizationStatus;
   issueDate: string;
+  invoiceNumber: string | null;
+  invoiceDueDate: string | null;
   expenseType: string | null;
   description: string;
   expenseAccount: string | null;
   financialAccount: string | null;
   costCenter: string | null;
+  branchId: string | null;
+  branchCode: string | null;
+  branchLabel: string | null;
+  supplierName: string | null;
+  supplierTaxId: string | null;
   amountCents: number | null;
   amountWords: string | null;
   beneficiaryCategory: string | null;
@@ -109,9 +123,26 @@ export type ExpenseAuthorizationUpdateInput = Partial<{
   budgetDeviationCents: number | null;
   budgetDeviationPercent: number | null;
   additionalInfo: string | null;
+  fluigRequestId: string | null;
   physicalLocation: string | null;
   deliveredTo: string | null;
 }>;
+
+export type ExpenseAuthorizationCreateInput = Omit<
+  ExpenseAuthorizationUpdateInput,
+  "status"
+> & {
+  module: OperationalLaunchModule;
+  issueDate: string;
+  description: string;
+  creationSource: Exclude<ExpenseAuthorizationCreationSource, "LANCAMENTO">;
+  sourceDocument?: {
+    name: string;
+    mimeType: string;
+    sourceType: "pdf" | "xml";
+    warnings?: string[];
+  } | null;
+};
 
 export const expenseAuthorizationStatusLabels: Record<ExpenseAuthorizationStatus, string> = {
   EM_ELABORACAO: "Em elaboracao",

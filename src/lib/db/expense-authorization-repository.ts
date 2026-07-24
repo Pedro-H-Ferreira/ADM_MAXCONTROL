@@ -10,6 +10,7 @@ import {
 import {
   type ExpenseAuthorizationEvent,
   type ExpenseAuthorizationItem,
+  type ExpenseAuthorizationCreateInput,
   type ExpenseAuthorizationRecord,
   type ExpenseAuthorizationStatus,
   type ExpenseAuthorizationUpdateInput,
@@ -22,10 +23,13 @@ const signedDocumentBucket = "adf-documents";
 type AuthorizationDbRow = {
   id: string;
   document_number: string;
-  launch_id: string;
+  launch_id: string | null;
   module_slug: "pagamentos" | "compras";
+  creation_source: "LANCAMENTO" | "MANUAL" | "DOCUMENTO_FISCAL";
   status: ExpenseAuthorizationStatus;
   issue_date: string;
+  invoice_number: string | null;
+  invoice_due_date: string | null;
   expense_type: string | null;
   description: string;
   expense_account: string | null;
@@ -117,6 +121,13 @@ function assertUpdateAccess(actor: AppActor) {
   }
 }
 
+function assertCreateAccess(actor: AppActor) {
+  assertViewAccess(actor);
+  if (!canActorPerformPageAction(actor, "adfs", "canCreate")) {
+    throw new AppAuthError("Usuario sem permissao para criar ADF.", 403, "ADF_CREATE_DENIED");
+  }
+}
+
 function mapEvent(row: AuthorizationEventDbRow): ExpenseAuthorizationEvent {
   return {
     id: row.id,
@@ -139,13 +150,17 @@ function mapAuthorization(
     documentNumber: row.document_number,
     launchId: row.launch_id,
     module: row.module_slug,
+    creationSource: row.creation_source || "LANCAMENTO",
     status: row.status,
     issueDate: row.issue_date,
+    invoiceNumber: row.invoice_number,
+    invoiceDueDate: row.invoice_due_date,
     expenseType: row.expense_type,
     description: row.description,
     expenseAccount: row.expense_account,
     financialAccount: row.financial_account,
     costCenter: row.cost_center,
+    branchId: row.branch_id,
     branchCode: row.branch_code,
     branchLabel: row.branch_label,
     supplierName: row.supplier_name,
@@ -269,9 +284,9 @@ export async function listExpenseAuthorizations(
   const rows = ((data || []) as AuthorizationDbRow[]).filter((row) => actorCanView(actor, row));
   const [events, items] = await Promise.all([
     loadEvents(client, rows.map((row) => row.id)),
-    loadItems(client, rows.map((row) => row.launch_id)),
+    loadItems(client, rows.map((row) => row.launch_id).filter((id): id is string => Boolean(id))),
   ]);
-  return rows.map((row) => mapAuthorization(row, events.get(row.id) || [], items.get(row.launch_id) || []));
+  return rows.map((row) => mapAuthorization(row, events.get(row.id) || [], row.launch_id ? items.get(row.launch_id) || [] : []));
 }
 
 export async function getExpenseAuthorization(actor: AppActor, id: string) {
@@ -307,6 +322,86 @@ function textOrNull(value: string | null | undefined) {
   return value?.trim() || null;
 }
 
+function resolveBranch(actor: AppActor, branchId: string | null | undefined) {
+  if (!branchId) return null;
+  const branch = actor.branches.find((item) => item.id === branchId);
+  if (!branch) {
+    throw new AppAuthError("A filial selecionada nao esta disponivel para este usuario.", 403, "ADF_BRANCH_DENIED");
+  }
+  return branch;
+}
+
+export async function createExpenseAuthorization(actor: AppActor, input: ExpenseAuthorizationCreateInput) {
+  assertCreateAccess(actor);
+  const client = assertServiceClient();
+  const branch = resolveBranch(actor, input.branchId);
+  const sourceDocument = input.sourceDocument || null;
+  const payload = {
+    launch_id: null,
+    module_slug: input.module,
+    creation_source: input.creationSource,
+    status: "EM_ELABORACAO",
+    issue_date: input.issueDate,
+    invoice_number: textOrNull(input.invoiceNumber),
+    invoice_due_date: input.invoiceDueDate || null,
+    expense_type: textOrNull(input.expenseType),
+    description: input.description.trim(),
+    expense_account: textOrNull(input.expenseAccount),
+    financial_account: textOrNull(input.financialAccount),
+    cost_center: textOrNull(input.costCenter),
+    branch_id: branch?.id || null,
+    branch_code: branch?.code || textOrNull(input.branchCode),
+    branch_label: branch?.fluigLabel || branch?.name || textOrNull(input.branchLabel),
+    supplier_name: textOrNull(input.supplierName),
+    supplier_tax_id: textOrNull(input.supplierTaxId),
+    amount_cents: input.amountCents ?? null,
+    amount_words: textOrNull(input.amountWords),
+    beneficiary_category: textOrNull(input.beneficiaryCategory),
+    beneficiary_name: textOrNull(input.beneficiaryName),
+    beneficiary_tax_id: textOrNull(input.beneficiaryTaxId),
+    beneficiary_phone: textOrNull(input.beneficiaryPhone),
+    payment_method: textOrNull(input.paymentMethod),
+    bank_name: textOrNull(input.bankName),
+    bank_operation: textOrNull(input.bankOperation),
+    bank_agency: textOrNull(input.bankAgency),
+    bank_account: textOrNull(input.bankAccount),
+    pix_key: textOrNull(input.pixKey),
+    requester_name: textOrNull(input.requesterName) || actor.displayName,
+    requester_role: textOrNull(input.requesterRole) || actor.role,
+    budget_planned_cents: input.budgetPlannedCents ?? null,
+    budget_realized_cents: input.budgetRealizedCents ?? null,
+    budget_deviation_cents: input.budgetDeviationCents ?? null,
+    budget_deviation_percent: input.budgetDeviationPercent ?? null,
+    additional_info: textOrNull(input.additionalInfo),
+    fluig_request_id: textOrNull(input.fluigRequestId),
+    physical_location: textOrNull(input.physicalLocation),
+    delivered_to: textOrNull(input.deliveredTo),
+    source_snapshot: {
+      creationSource: input.creationSource,
+      sourceDocument,
+      fieldOverrides: {},
+    },
+    created_by_user_id: actor.id,
+    updated_by_user_id: actor.id,
+  };
+
+  const { data, error } = await client.from("app_expense_authorizations").insert(payload).select("id").single();
+  if (error) throw error;
+
+  await recordEvent(client, {
+    authorizationId: String(data.id),
+    actorId: actor.id,
+    eventType: input.creationSource === "DOCUMENTO_FISCAL" ? "CREATED_FROM_FISCAL_DOCUMENT" : "CREATED_MANUALLY",
+    label:
+      input.creationSource === "DOCUMENTO_FISCAL"
+        ? `ADF criada a partir do ${sourceDocument?.sourceType?.toUpperCase() || "documento fiscal"} ${sourceDocument?.name || ""}.`.trim()
+        : "ADF criada manualmente no Controle de ADF.",
+    statusTo: "EM_ELABORACAO",
+    payload: sourceDocument ? { sourceDocument } : {},
+  });
+  return (await getExpenseAuthorization(actor, String(data.id)))!;
+}
+
 export async function updateExpenseAuthorization(
   actor: AppActor,
   id: string,
@@ -316,6 +411,7 @@ export async function updateExpenseAuthorization(
   const client = assertServiceClient();
   const current = await getExpenseAuthorization(actor, id);
   if (!current) throw new Error("ADF nao encontrada.");
+  const branch = input.branchId !== undefined ? resolveBranch(actor, input.branchId) : undefined;
 
   const payload: Record<string, unknown> = { updated_by_user_id: actor.id };
   const textFields: Array<[keyof ExpenseAuthorizationUpdateInput, string]> = [
@@ -324,6 +420,11 @@ export async function updateExpenseAuthorization(
     ["expenseAccount", "expense_account"],
     ["financialAccount", "financial_account"],
     ["costCenter", "cost_center"],
+    ["branchCode", "branch_code"],
+    ["branchLabel", "branch_label"],
+    ["supplierName", "supplier_name"],
+    ["supplierTaxId", "supplier_tax_id"],
+    ["invoiceNumber", "invoice_number"],
     ["amountWords", "amount_words"],
     ["beneficiaryCategory", "beneficiary_category"],
     ["beneficiaryName", "beneficiary_name"],
@@ -338,6 +439,7 @@ export async function updateExpenseAuthorization(
     ["requesterName", "requester_name"],
     ["requesterRole", "requester_role"],
     ["additionalInfo", "additional_info"],
+    ["fluigRequestId", "fluig_request_id"],
     ["physicalLocation", "physical_location"],
     ["deliveredTo", "delivered_to"],
   ];
@@ -357,6 +459,13 @@ export async function updateExpenseAuthorization(
   }
 
   if (input.issueDate !== undefined) payload.issue_date = input.issueDate;
+  if (input.invoiceDueDate !== undefined) payload.invoice_due_date = input.invoiceDueDate;
+  if (input.module !== undefined) payload.module_slug = input.module;
+  if (input.branchId !== undefined) {
+    payload.branch_id = branch?.id || null;
+    payload.branch_code = branch?.code || null;
+    payload.branch_label = branch?.fluigLabel || branch?.name || null;
+  }
   if (input.status !== undefined) {
     payload.status = input.status;
     if (input.status === "AGUARDANDO_ASSINATURA" && !current.sentForSignatureAt) {

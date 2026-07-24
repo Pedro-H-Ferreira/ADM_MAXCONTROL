@@ -56,9 +56,9 @@ export function AdfPrintDocument({ authorization }: { authorization: ExpenseAuth
   const referenceFields: Array<[string, string | null | undefined]> =
     authorization.module === "pagamentos"
       ? [
-          ["Nota fiscal", sourceFields.nNotaFiscal],
-          ["Emissao da NF", sourceFields.dataEmissaoNF],
-          ["Vencimento", sourceFields.vencPagNota],
+          ["Nota fiscal", authorization.invoiceNumber || sourceFields.nNotaFiscal],
+          ["Emissao da NF", authorization.issueDate || sourceFields.dataEmissaoNF],
+          ["Vencimento", authorization.invoiceDueDate || sourceFields.vencPagNota],
           ["Forma de pagamento", sourceFields.formaPagamento || authorization.paymentMethod],
         ]
       : [
@@ -142,7 +142,18 @@ export function AdfPrintDocument({ authorization }: { authorization: ExpenseAuth
         </header>
 
         <div className="mt-2 grid grid-cols-4 border-l border-t border-slate-300">
-          <Field label="Origem" value={authorization.module === "pagamentos" ? "Lancamento de pagamento" : "Compra / cotacao"} />
+          <Field
+            label="Origem"
+            value={
+              authorization.creationSource === "DOCUMENTO_FISCAL"
+                ? `${authorization.module === "pagamentos" ? "Pagamento" : "Compra"} por PDF / XML`
+                : authorization.creationSource === "MANUAL"
+                  ? `${authorization.module === "pagamentos" ? "Pagamento" : "Compra"} manual`
+                  : authorization.module === "pagamentos"
+                    ? "Lancamento de pagamento"
+                    : "Compra / cotacao"
+            }
+          />
           <Field label="Solicitacao Fluig" value={safe(authorization.fluigRequestId)} />
           <Field label="Filial" value={safe(authorization.branchLabel || authorization.branchCode)} />
           <Field label="Centro de custo" value={safe(authorization.costCenter)} />
