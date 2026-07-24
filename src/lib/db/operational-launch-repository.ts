@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatCnpj, normalizeCnpj } from "@/lib/cnpj";
-import type { AppActor, FluigJobRecord, FluigJobStatus } from "@/lib/db/app-repository";
+import { resolveAppActorByProfileId, type AppActor, type FluigJobRecord, type FluigJobStatus } from "@/lib/db/app-repository";
+import { saveOperationalSupplierModel } from "@/lib/db/suppliers-repository";
 import {
   operationalLaunchFingerprint,
   type OperationalLaunchAttachment,
@@ -445,6 +446,7 @@ export async function createValidatedOperationalLaunch(actor: AppActor, input: O
       due_date: input.dueDate || null,
       field_overrides: fieldOverrides,
       attachment_metadata: input.attachments,
+      result_payload: input.fiscalDocument ? { fiscalDocument: input.fiscalDocument } : {},
       review_fingerprint: fingerprint,
       progress_stage: "validated",
       progress_label: "Lancamento validado e aguardando confirmacao.",
@@ -555,7 +557,7 @@ export async function markOperationalLaunchFailure(
   const client = assertServiceClient();
   const { data: currentData, error: currentError } = await client
     .from("app_fluig_launches")
-    .select("id,status,app_supplier_id,supplier_name,supplier_cnpj,branch_code,branch_label,amount_cents,due_date")
+    .select("id,status,app_supplier_id,supplier_name,supplier_cnpj,branch_id,branch_code,branch_label,source_request_id,field_overrides,result_payload,amount_cents,due_date")
     .eq("id", launchId)
     .maybeSingle();
   if (currentError) throw currentError;
@@ -624,7 +626,9 @@ export async function completeOperationalLaunchJob(input: {
   const client = assertServiceClient();
   const { data: currentData, error: currentError } = await client
     .from("app_fluig_launches")
-    .select("id,status,app_supplier_id,supplier_name,supplier_cnpj,branch_code,branch_label,amount_cents,due_date")
+    .select(
+      "id,status,app_supplier_id,supplier_name,supplier_cnpj,branch_id,branch_code,branch_label,source_request_id,field_overrides,result_payload,amount_cents,due_date"
+    )
     .eq("id", launchId)
     .maybeSingle();
   if (currentError) throw currentError;
@@ -659,15 +663,68 @@ export async function completeOperationalLaunchJob(input: {
     if (requestUpdateError) throw requestUpdateError;
   }
 
+  let supplierId = currentData.app_supplier_id ? String(currentData.app_supplier_id) : null;
+  if (
+    input.job.module === "pagamentos" &&
+    currentData.supplier_name &&
+    currentData.supplier_cnpj &&
+    currentData.branch_id
+  ) {
+    const actor = await resolveAppActorByProfileId(input.job.requestedByUserId);
+    supplierId = await saveOperationalSupplierModel({
+      actor,
+      supplierId,
+      supplierName: String(currentData.supplier_name),
+      supplierCnpj: String(currentData.supplier_cnpj),
+      branchId: String(currentData.branch_id),
+      sourceRequestId: String(currentData.source_request_id),
+      fieldOverrides: (currentData.field_overrides || {}) as Record<string, string>,
+    });
+
+    const fiscalDocument = ((currentData.result_payload || {}) as JsonRecord).fiscalDocument as JsonRecord | undefined;
+    const takerCnpj = normalizeCnpj(fiscalDocument?.takerCnpj);
+    if (takerCnpj) {
+      const { data: branchData, error: branchError } = await client
+        .from("app_branches")
+        .select("metadata")
+        .eq("id", String(currentData.branch_id))
+        .single();
+      if (branchError) throw branchError;
+      const metadata = (branchData?.metadata || {}) as JsonRecord;
+      const knownCnpjs = Array.isArray(metadata.cnpjs)
+        ? metadata.cnpjs.map(normalizeCnpj).filter(Boolean)
+        : [];
+      if (!knownCnpjs.includes(takerCnpj)) {
+        const { error: branchUpdateError } = await client
+          .from("app_branches")
+          .update({ metadata: { ...metadata, cnpjs: [...knownCnpjs, takerCnpj] } })
+          .eq("id", String(currentData.branch_id));
+        if (branchUpdateError) throw branchUpdateError;
+      }
+    }
+  }
+
+  if (requestRow?.id && supplierId && supplierId !== currentData.app_supplier_id) {
+    const { error: requestSupplierError } = await client
+      .from("fluig_requests")
+      .update({ app_supplier_id: supplierId })
+      .eq("id", requestRow.id);
+    if (requestSupplierError) throw requestSupplierError;
+  }
+
   const { error } = await client
     .from("app_fluig_launches")
     .update({
       status: "ABERTO_NO_FLUIG",
       fluig_request_id: input.generatedRequestId,
       fluig_request_row_id: requestRow?.id || null,
+      app_supplier_id: supplierId,
       progress_stage: "success",
       progress_label: `Solicitacao Fluig ${input.generatedRequestId} aberta.`,
-      result_payload: input.resultPayload,
+      result_payload: {
+        ...((currentData.result_payload || {}) as JsonRecord),
+        ...input.resultPayload,
+      },
       last_error_message: null,
       opened_at: now,
       failed_at: null,

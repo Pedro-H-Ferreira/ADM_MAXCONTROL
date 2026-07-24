@@ -64,6 +64,37 @@ type AttachmentPayload = {
   dataBase64: string;
 };
 
+type FiscalDocumentResponse = {
+  success?: boolean;
+  error?: string;
+  document?: {
+    sourceType: "xml" | "pdf";
+    supplierName: string | null;
+    supplierCnpj: string | null;
+    takerName: string | null;
+    takerCnpj: string | null;
+    invoiceNumber: string | null;
+    issueDate: string | null;
+    dueDate: string | null;
+    amountCents: number | null;
+    description: string | null;
+    warnings: string[];
+  };
+  supplier?: {
+    id: string;
+    name: string;
+    cnpj: string;
+    defaultSourceRequestId: string | null;
+    defaultFields: Record<string, string>;
+    branchIds: string[];
+  } | null;
+  branch?: {
+    id: string;
+    code: string;
+    label: string;
+  } | null;
+};
+
 type CatalogOption = FluigCatalogItem & {
   origin?: "adm" | "fluig";
 };
@@ -119,6 +150,14 @@ const maxAttachmentBytes = 3 * 1024 * 1024;
 
 const dateFieldKeys = new Set(["dataEmissaoNF", "vencPagNota", "dataPedido", "dataPrevSaida"]);
 const fiscalAttachmentExtensions = new Set([".pdf", ".xml"]);
+const supplierModelFieldKeys = new Set([
+  "codigonaturezaC",
+  "naturezaSalva",
+  "centroCusto",
+  "codCentroCusto",
+  "formaPagamento",
+  "contaCentroCusto",
+]);
 
 const launchFields: Record<LaunchModule, LaunchField[]> = {
   pagamentos: [
@@ -401,6 +440,13 @@ function formatMoney(cents: number | null) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
 
+function formatMoneyInput(cents: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
 export function FluigLaunchForm({
   moduleSlug,
   integration,
@@ -431,6 +477,9 @@ export function FluigLaunchForm({
   const [selectedBranchCode, setSelectedBranchCode] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [attachments, setAttachments] = useState<AttachmentPayload[]>([]);
+  const [readingFiscalDocument, setReadingFiscalDocument] = useState(false);
+  const [fiscalDocument, setFiscalDocument] = useState<NonNullable<FiscalDocumentResponse["document"]> | null>(null);
+  const [detectedSourceRequestId, setDetectedSourceRequestId] = useState<string | null>(null);
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>([initialPurchaseItem()]);
   const [recentLaunches, setRecentLaunches] = useState<OperationalLaunchRecord[]>([]);
   const [launchPermissions, setLaunchPermissions] = useState<{ canView: boolean; canCreate: boolean } | null>(null);
@@ -581,6 +630,63 @@ export function FluigLaunchForm({
     setError(null);
   }
 
+  async function readFiscalDocument(attachment: AttachmentPayload) {
+    const response = await fetch("/api/fluig/adm/fiscal-document", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(attachment),
+    });
+    const data = (await response.json()) as FiscalDocumentResponse;
+    if (!response.ok || data.success === false || !data.document) {
+      throw new Error(data.error || "Nao foi possivel interpretar o documento fiscal.");
+    }
+    return data as FiscalDocumentResponse & { document: NonNullable<FiscalDocumentResponse["document"]> };
+  }
+
+  function applyFiscalDocument(data: FiscalDocumentResponse & { document: NonNullable<FiscalDocumentResponse["document"]> }) {
+    const document = data.document;
+    const matchingTemplate = templates.find(
+      (template) =>
+        document.supplierCnpj &&
+        template.supplierCnpj?.replace(/\D/g, "") === document.supplierCnpj.replace(/\D/g, "")
+    );
+    const supplierOption = officialSuppliers.find(
+      (item) => data.supplier?.id && metadataText(item, "appSupplierId") === data.supplier.id
+    );
+    const templateFields = matchingTemplate?.defaultFields || data.supplier?.defaultFields || {};
+
+    setReview(null);
+    setFiscalDocument(document);
+    setSelectedTemplateId(matchingTemplate?.id || "");
+    setDetectedSourceRequestId(matchingTemplate?.sourceRequestId || data.supplier?.defaultSourceRequestId || null);
+    setSelectedSupplierId(
+      data.supplier && (!data.branch || data.supplier.branchIds.includes(data.branch.id)) ? data.supplier.id : null
+    );
+    setSelectedBranchCode(data.branch?.code || null);
+    setFormValues((current) => {
+      const next = { ...current };
+      for (const [key, value] of Object.entries(templateFields)) {
+        if (supplierModelFieldKeys.has(key) && value.trim()) next[key] = displayValueForField(key, value);
+      }
+      next.fornecedorC = data.supplier?.name || document.supplierName || "";
+      next.codCNPJ = document.supplierCnpj || data.supplier?.cnpj || "";
+      next.unidadeFilial = data.branch?.label || "";
+      next.nNotaFiscal = document.invoiceNumber || "";
+      next.dataEmissaoNF = document.issueDate || "";
+      next.vencPagNota = document.dueDate || "";
+      next.valorNF = document.amountCents != null ? formatMoneyInput(document.amountCents) : "";
+      next.descricaoDemandaEnvio = document.description || "";
+      return next;
+    });
+    setMessage(
+      matchingTemplate || data.supplier
+        ? "Nota fiscal lida. Dados do documento e ultima classificacao financeira do fornecedor foram preenchidos."
+        : "Nota fiscal lida. Complete a classificacao financeira; o novo fornecedor e o modelo serao salvos apos a abertura no Fluig."
+    );
+    setError(null);
+    if (supplierOption) setSupplierCatalogWarning(null);
+  }
+
   function handleCatalogSelect(field: LaunchField, item: CatalogOption) {
     setFieldValue(field.key, item.value || item.label);
 
@@ -669,6 +775,21 @@ export function FluigLaunchForm({
     );
     setReview(null);
     setAttachments((current) => [...current, ...payloads]);
+    if (moduleSlug === "pagamentos") {
+      const primaryDocument =
+        payloads.find((attachment) => attachmentExtension(attachment.name) === ".xml") || payloads[0];
+      setReadingFiscalDocument(true);
+      try {
+        applyFiscalDocument(await readFiscalDocument(primaryDocument));
+      } catch (readError) {
+        setFiscalDocument(null);
+        setError(
+          `${readError instanceof Error ? readError.message : "Falha ao ler a nota fiscal"} Os anexos foram mantidos; preencha os campos manualmente.`
+        );
+      } finally {
+        setReadingFiscalDocument(false);
+      }
+    }
   }
 
   async function pollJobUntilDone(jobId: string) {
@@ -706,7 +827,12 @@ export function FluigLaunchForm({
       throw new Error("Anexe ao menos um PDF ou XML da nota fiscal antes de enviar o pagamento ao Fluig.");
     }
 
-    const sourceRequestId = selectedTemplate?.sourceRequestId || templates[0]?.sourceRequestId || syncData?.examples?.[0]?.id || "";
+    const sourceRequestId =
+      selectedTemplate?.sourceRequestId ||
+      detectedSourceRequestId ||
+      templates[0]?.sourceRequestId ||
+      syncData?.examples?.[0]?.id ||
+      "";
     if (!sourceRequestId) {
       throw new Error("Sincronize o historico Fluig para carregar um modelo real antes de abrir novo lancamento.");
     }
@@ -781,6 +907,15 @@ export function FluigLaunchForm({
           dueDate: moduleSlug === "pagamentos" ? formValues.vencPagNota || null : null,
           fieldOverrides: payload.fieldOverrides,
           attachments: attachmentMetadata(attachments),
+          fiscalDocument:
+            moduleSlug === "pagamentos" && fiscalDocument
+              ? {
+                  sourceType: fiscalDocument.sourceType,
+                  supplierCnpj: fiscalDocument.supplierCnpj,
+                  takerName: fiscalDocument.takerName,
+                  takerCnpj: fiscalDocument.takerCnpj,
+                }
+              : null,
           items,
         });
         launchId = validated.launch.id;
@@ -1073,11 +1208,41 @@ export function FluigLaunchForm({
                 className="hidden"
                 multiple
                 accept={attachmentAccept}
-                onChange={(event) => void handleFiles(event.target.files)}
+                onChange={(event) => {
+                  void handleFiles(event.target.files);
+                  event.currentTarget.value = "";
+                }}
+                disabled={readingFiscalDocument}
               />
             </label>
+            {readingFiscalDocument ? (
+              <span className="inline-flex items-center gap-1 text-xs text-primary">
+                <Loader2 className="size-3 animate-spin" />
+                Lendo nota e preenchendo os campos...
+              </span>
+            ) : null}
             <span className="text-xs text-muted-foreground">{attachmentHint}</span>
           </div>
+          {moduleSlug === "pagamentos" && fiscalDocument ? (
+            <div className="mt-3 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs">
+              <div className="flex items-center gap-2 font-semibold text-foreground">
+                <FileCheck2 className="size-4 text-emerald-600" />
+                Dados reconhecidos na nota
+              </div>
+              <p className="mt-1 text-muted-foreground">
+                {[fiscalDocument.supplierName, fiscalDocument.supplierCnpj, fiscalDocument.invoiceNumber ? `NF ${fiscalDocument.invoiceNumber}` : null]
+                  .filter(Boolean)
+                  .join(" - ")}
+              </p>
+              {fiscalDocument.warnings.length ? (
+                <ul className="mt-2 space-y-1 text-amber-700 dark:text-amber-300">
+                  {fiscalDocument.warnings.map((warning) => (
+                    <li key={warning}>• {warning}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
           {attachments.length ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {attachments.map((attachment, index) => (

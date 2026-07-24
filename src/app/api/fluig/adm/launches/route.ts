@@ -58,6 +58,15 @@ const validateSchema = z.object({
   dueDate: z.iso.date().nullable().optional(),
   fieldOverrides: z.record(z.string(), z.string().max(10000)),
   attachments: z.array(attachmentSchema).max(20),
+  fiscalDocument: z
+    .object({
+      sourceType: z.enum(["xml", "pdf"]),
+      supplierCnpj: z.string().trim().max(30).nullable().optional(),
+      takerName: z.string().trim().max(500).nullable().optional(),
+      takerCnpj: z.string().trim().max(30).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   items: z.array(itemSchema).max(100).optional(),
 });
 const submitSchema = z.object({

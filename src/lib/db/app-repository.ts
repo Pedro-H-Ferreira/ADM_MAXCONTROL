@@ -712,6 +712,20 @@ async function hydrateAppActor(client: SupabaseClient, profile: AppUserProfile):
   };
 }
 
+export async function resolveAppActorByProfileId(profileId: string) {
+  const client = assertServiceClient();
+  const { data, error } = await client
+    .from("app_user_profiles")
+    .select("*")
+    .eq("id", profileId)
+    .eq("active", true)
+    .eq("approval_status", "APPROVED")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new AppAuthError("Perfil do usuario do lancamento nao encontrado.", 403, "USER_NOT_FOUND");
+  return hydrateAppActor(client, mapProfile(data as DbProfileRow));
+}
+
 export async function listConfiguredFluigUserActors() {
   const client = assertServiceClient();
   const { data: credentials, error: credentialsError } = await client
