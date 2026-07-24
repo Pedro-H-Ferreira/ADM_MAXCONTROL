@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { FluigJobProgressCard } from "@/components/shared/fluig-job-progress-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
   fluigAdmApi,
@@ -41,7 +42,7 @@ const syncTypeLabels: Record<FluigUserSyncStateRecord["syncType"], string> = {
 
 type DashboardJob = Pick<
   FluigAdmJobSummary,
-  "id" | "module" | "operation" | "status" | "progressLabel" | "errorMessage" | "updatedAt" | "finishedAt"
+  "id" | "module" | "operation" | "status" | "progressStage" | "progressLabel" | "errorMessage" | "updatedAt" | "finishedAt"
 >;
 type SupplierReviewSummary = {
   total: number;
@@ -212,6 +213,7 @@ export function DashboardFluigOperations() {
           module: job.module,
           operation: job.operation,
           status: job.status,
+          progressStage: job.progressStage,
           progressLabel: job.progressLabel,
           errorMessage: job.errorMessage || null,
           updatedAt: job.updatedAt,
@@ -251,6 +253,7 @@ export function DashboardFluigOperations() {
         module: job.module,
         operation: job.operation,
         status: job.status,
+        progressStage: job.progressStage,
         progressLabel: job.progressLabel,
         errorMessage: job.errorMessage || null,
         updatedAt: job.updatedAt,
@@ -297,6 +300,7 @@ export function DashboardFluigOperations() {
         module: data.job.module,
         operation: data.job.operation,
         status: data.job.status,
+        progressStage: data.job.progressStage,
         progressLabel: data.job.progressLabel,
         errorMessage: data.job.errorMessage || null,
         updatedAt: data.job.updatedAt,
@@ -427,17 +431,15 @@ export function DashboardFluigOperations() {
           <div className="rounded-md border bg-muted/20 p-3 text-xs">
             <div className="flex items-center gap-2 font-medium">
               <Loader2 className="size-4 animate-spin" />
-              Execucao em andamento
+              Execução em andamento
             </div>
-            <div className="mt-2 grid gap-2 md:grid-cols-2">
+            <div className="mt-3 grid gap-3">
               {pendingJobs.map((job) => (
-                <div key={job.id} className="rounded bg-background px-2 py-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span>{moduleLabels[job.module]}</span>
-                    <StatusBadge status={normalizeStatus(job.status, "PROCESSANDO")} />
-                  </div>
-                  <p className="mt-1 text-muted-foreground">{job.progressLabel || "Aguardando o executor da VPS."}</p>
-                </div>
+                <FluigJobProgressCard
+                  key={job.id}
+                  job={job}
+                  contextLabel={moduleLabels[job.module]}
+                />
               ))}
             </div>
           </div>

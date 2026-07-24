@@ -34,6 +34,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FluigIntegrationPanel } from "@/components/shared/fluig-integration-panel";
+import { FluigJobProgressCard } from "@/components/shared/fluig-job-progress-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
@@ -680,20 +681,15 @@ function PendingJobs({ jobs }: { jobs: FluigAdmJobSummary[] }) {
     <section className="rounded-md border bg-muted/20 p-3 text-sm">
       <div className="flex items-center gap-2 font-medium">
         <Loader2 className="size-4 animate-spin" />
-        Execucao em andamento
+        Execução em andamento
       </div>
-      <div className="mt-3 grid gap-2 md:grid-cols-2">
+      <div className="mt-3 grid gap-3">
         {jobs.map((job) => (
-          <div key={job.id} className="rounded-md border bg-background p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{job.operation.replaceAll("_", " ")}</p>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{job.id.slice(0, 8)}</p>
-              </div>
-              <StatusBadge status={normalizeJobStatus(job.status)} />
-            </div>
-            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{job.progressLabel || "Aguardando resposta do executor da VPS."}</p>
-          </div>
+          <FluigJobProgressCard
+            key={job.id}
+            job={job}
+            contextLabel={moduleLabels[job.module as OperationalModuleSlug] || job.module}
+          />
         ))}
       </div>
     </section>
