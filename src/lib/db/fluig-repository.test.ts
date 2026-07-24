@@ -12,6 +12,7 @@ import {
   groupFluigStatusRowsForUpsert,
   mergeFluigFieldSettingsWithDiscovered,
   normalizeFluigRequestLifecycle,
+  resolveFluigMineUserId,
 } from "@/lib/db/fluig-repository";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 
@@ -76,6 +77,14 @@ function templateRequest(
 }
 
 describe("buildSupplierCandidates", () => {
+  it("ignora o filtro de solicitacoes proprias para administradores", () => {
+    expect(resolveFluigMineUserId({ isAdmin: true, fluigUserId: "00130" }, true)).toBe("");
+  });
+
+  it("mantem o filtro de solicitacoes proprias para usuarios comuns", () => {
+    expect(resolveFluigMineUserId({ isAdmin: false, fluigUserId: "00991" }, true)).toBe("00991");
+  });
+
   it("preserva mensagem, detalhes e codigo dos erros retornados pelo Supabase", () => {
     expect(describeFluigPersistenceError({
       message: "Falha ao salvar",

@@ -637,7 +637,7 @@ export async function listFluigRequestsForActor(input: {
     const pageSize = Math.min(Math.max(Number(input.pageSize || 30), 1), 100);
     if (!allowedModules.has(input.module)) return { page, pageSize, total: 0, items: [], natures: [] };
     const actorFilter = buildFluigActorPostgrestFilter(input.actor);
-    const mineFluigUserId = input.mine ? String(input.actor.fluigUserId || "").trim() : "";
+    const mineFluigUserId = resolveFluigMineUserId(input.actor, input.mine);
     const search = String(input.search || "").replace(/[%_,()]/g, " ").trim();
     if (input.mine && !mineFluigUserId) return { page, pageSize, total: 0, items: [], natures: [] };
 
@@ -714,6 +714,14 @@ export async function listFluigRequestsForActor(input: {
     const visible = filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[]).map(mapFluigRequestRecord);
     return { page, pageSize, total: count || 0, items: visible, natures };
   }).then(({ result, persistence }) => ({ ...(result || { page: 1, pageSize: 30, total: 0, items: [], natures: [] }), persistence }));
+}
+
+export function resolveFluigMineUserId(
+  actor: Pick<AppActor, "isAdmin" | "fluigUserId">,
+  mine: boolean | undefined
+) {
+  if (!mine || actor.isAdmin) return "";
+  return String(actor.fluigUserId || "").trim();
 }
 
 export async function readMonthlyExpenseDashboardForActor(input: {

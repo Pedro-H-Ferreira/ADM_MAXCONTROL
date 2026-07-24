@@ -17,7 +17,9 @@ export async function GET(request: Request) {
     const actor = await resolveCurrentAppUser();
     const url = new URL(request.url);
     const moduleSlug = moduleOrNull(url.searchParams.get("module") || "");
-    const requestedScope = url.searchParams.get("scope") === "all" ? "all" : "self";
+    const requestedScope = url.searchParams.has("scope")
+      ? url.searchParams.get("scope") === "all" ? "all" : "self"
+      : actor.isAdmin ? "all" : "self";
     const scope = actor.isAdmin ? requestedScope : "self";
     const userId = scope === "all" ? url.searchParams.get("userId") : null;
     const nature = String(url.searchParams.get("nature") || "").trim() || null;

@@ -325,7 +325,7 @@ export function FluigModuleOperationsPage({
           fluigAdmApi.listAgents(),
           fluigAdmApi.listMyTasks(40, moduleSlug),
           loadRequestPage(),
-          fluigAdmApi.listMyOpenRequests(1, moduleSlug),
+          fluigAdmApi.listMyOpenRequests(1, moduleSlug, { scope: "all" }),
           fluigAdmApi.listSyncState(moduleSlug),
           fluigAdmApi.listJobs(30),
           fluigAdmApi.getFieldSettings(moduleSlug),
@@ -335,11 +335,12 @@ export function FluigModuleOperationsPage({
         setTasks(taskData.tasks || []);
         setTaskTotal(Number(taskData.total || 0));
         setNatures(requestData.natures || []);
-        setIsAdmin(Boolean(fieldData.isAdmin || taskData.filters?.isAdmin));
+        const currentIsAdmin = Boolean(fieldData.isAdmin || taskData.filters?.isAdmin || myOpenRequestData.filters?.isAdmin);
+        setIsAdmin(currentIsAdmin);
         setFieldSettings(fieldData.settings || []);
         setRequests(requestData.items || []);
         setRequestTotal(requestData.total || 0);
-        setMyOpenRequestTotal(Number(myOpenRequestData.total || 0));
+        setMyOpenRequestTotal(currentIsAdmin ? Number(requestData.total || 0) : Number(myOpenRequestData.total || 0));
         setStates(syncStateData.states || []);
         setJobs(jobData.jobs || []);
         setReferenceTime(new Date().getTime());
@@ -524,7 +525,12 @@ export function FluigModuleOperationsPage({
       <div className="stitch-animate-in grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <MetricTile icon={Laptop} label="Executor da VPS" value={onlineAgent ? "Pronto" : "Sem credencial"} detail={describeAgent(onlineAgent)} />
         <MetricTile icon={ClipboardList} label="Tarefas abertas" value={String(taskTotal)} detail="Pendencias do usuario neste modulo" />
-        <MetricTile icon={Workflow} label="Minhas solicitacoes abertas" value={String(myOpenRequestTotal)} detail={`Somente suas solicitacoes abertas de ${moduleLabels[moduleSlug]}`} />
+        <MetricTile
+          icon={Workflow}
+          label={isAdmin ? "Solicitacoes abertas" : "Minhas solicitacoes abertas"}
+          value={String(myOpenRequestTotal)}
+          detail={isAdmin ? `Todas as solicitacoes abertas de ${moduleLabels[moduleSlug]}` : `Somente suas solicitacoes abertas de ${moduleLabels[moduleSlug]}`}
+        />
         <MetricTile icon={RefreshCcw} label="Jobs em andamento" value={String(pendingJobs.length)} detail="Execucoes processadas pela VPS" />
         <MetricTile
           icon={AlertTriangle}
@@ -554,7 +560,7 @@ export function FluigModuleOperationsPage({
         </div>
 
         <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setRequestPage(1); }}>
-          <div className="overflow-x-auto border-b"><TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0"><TabsTrigger className="rounded-none px-4 py-3" value="tasks">Minhas tarefas ({taskTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="requests">Minhas solicitacoes ({myOpenRequestTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="errors">Com erro</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="finished">Finalizadas</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="jobs">Jobs e sincronizacoes</TabsTrigger></TabsList></div>
+          <div className="overflow-x-auto border-b"><TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0"><TabsTrigger className="rounded-none px-4 py-3" value="tasks">Minhas tarefas ({taskTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="requests">{isAdmin ? "Todas as solicitacoes" : "Minhas solicitacoes"} ({myOpenRequestTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="errors">Com erro</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="finished">Finalizadas</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="jobs">Jobs e sincronizacoes</TabsTrigger></TabsList></div>
           {activeTab === "jobs" ? (
             <TabsContent value="jobs" className="m-0">
               <JobsTable jobs={moduleJobs} states={states} loading={loading} />
