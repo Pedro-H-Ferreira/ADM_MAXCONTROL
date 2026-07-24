@@ -1,4 +1,8 @@
 import { AppShell } from "@/components/app/app-shell";
+import {
+  formatAppShellUserButtonLabel,
+  formatAppShellUserLabel,
+} from "@/lib/app-shell-user-label";
 import { filterNavigationSectionsForAccess } from "@/lib/navigation";
 import { resolveCurrentAppUserForPage } from "@/lib/page-auth";
 
@@ -10,9 +14,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       navigationSections={filterNavigationSectionsForAccess(actor.pageSlugs)}
       user={{
         name: actor.displayName,
+        displayLabel: formatAppShellUserButtonLabel(
+          actor.displayName,
+          actor.branchCodes,
+          actor.isAdmin,
+        ),
+        accessLabel: formatAppShellUserLabel(
+          actor.displayName,
+          actor.branchCodes,
+          actor.isAdmin,
+        ),
         email: actor.email,
-        role: actor.role,
-        cd: actor.isAdmin ? "Todas as filiais" : actor.branchCodes.join(", ") || "Sem filial",
       }}
     >
       {children}

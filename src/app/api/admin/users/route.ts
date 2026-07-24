@@ -7,6 +7,12 @@ import {
   resolveCurrentAppUser,
   upsertAppUser,
 } from "@/lib/db/app-repository";
+import {
+  deleteFluigCredentials,
+  hasFluigCredentials,
+  listFluigCredentialUserIds,
+  saveFluigCredentials,
+} from "@/lib/fluig/credentials";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,6 +47,8 @@ export const userAccessBodySchema = z.strictObject({
   displayName: z.string().trim().min(1, "Nome do usuario e obrigatorio.").optional(),
   role: appRoleSchema.optional(),
   fluigUsername: z.string().trim().nullable().optional(),
+  fluigPassword: z.string().max(256, "Senha Fluig muito longa.").optional(),
+  clearFluigCredentials: z.boolean().optional(),
   fluigUserId: z.string().trim().nullable().optional(),
   homeBranchId: z.uuid().nullable().optional(),
   branchIds: z.array(z.uuid()).optional(),
@@ -126,6 +134,7 @@ export async function GET() {
     }
 
     const payload = await listUsersWithBranches();
+    const credentialUserIds = await listFluigCredentialUserIds();
     return NextResponse.json({
       success: true,
       actor: {
@@ -134,6 +143,10 @@ export async function GET() {
         isAdmin: actor.isAdmin,
       },
       ...payload,
+      users: payload.users.map((user) => ({
+        ...user,
+        fluigCredentialConfigured: credentialUserIds.has(user.id),
+      })),
     });
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);
@@ -180,9 +193,24 @@ export async function POST(request: Request) {
       rejectionReason: body.rejectionReason,
     });
 
+    const credentialWasConfigured = await hasFluigCredentials(user.id);
+    if (body.clearFluigCredentials) {
+      await deleteFluigCredentials(user.id);
+    } else if (body.fluigPassword !== undefined || (credentialWasConfigured && body.fluigUsername !== undefined)) {
+      await saveFluigCredentials({
+        userId: user.id,
+        username: body.fluigUsername || user.fluigUsername || "",
+        password: body.fluigPassword,
+        updatedByUserId: actor.id,
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      user,
+      user: {
+        ...user,
+        fluigCredentialConfigured: body.clearFluigCredentials ? false : await hasFluigCredentials(user.id),
+      },
     });
   } catch (error) {
     const authResponse = appAuthErrorResponse(error);

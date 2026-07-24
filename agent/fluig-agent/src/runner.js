@@ -4,7 +4,7 @@ const { spawn } = require("node:child_process");
 const { readCredentials } = require("./credentials");
 
 function scriptEnv(config) {
-  const credentials = readCredentials(config);
+  const credentials = config.credentials || readCredentials(config);
   const authDir = path.join(config.configDir, "auth");
   const logsDir = path.join(config.configDir, "logs");
 
@@ -221,6 +221,8 @@ function syncBatchesFromPayload(payload) {
       discovery: batch?.discovery && typeof batch.discovery === "object" ? batch.discovery : payload.discovery || {},
       processMap: batch?.processMap && typeof batch.processMap === "object" ? batch.processMap : null,
       requestIds: Array.isArray(batch?.requestIds) ? batch.requestIds.map((item) => String(item || "").trim()).filter(Boolean) : [],
+      detailFields: Array.isArray(batch?.detailFields) ? batch.detailFields.map((item) => String(item || "").trim()).filter(Boolean) : [],
+      detailConfigHash: String(batch?.detailConfigHash || "").trim(),
     }))
     .filter((batch) => batch.module && batch.syncType && (batch.requestIds.length || batch.discoverRecent));
 }
@@ -306,7 +308,7 @@ function writePayloadAttachments(config, job, attachments) {
 
   const maxFileBytes = positiveInt(process.env.ADM_FLUIG_ATTACHMENT_MAX_BYTES, 15 * 1024 * 1024);
   const maxTotalBytes = positiveInt(process.env.ADM_FLUIG_ATTACHMENTS_MAX_TOTAL_BYTES, 25 * 1024 * 1024);
-  const attachmentsRoot = path.join(config.projectRoot, ".adm-fluig-agent", "attachments");
+  const attachmentsRoot = path.join(/* turbopackIgnore: true */ config.projectRoot, ".adm-fluig-agent", "attachments");
   fs.mkdirSync(attachmentsRoot, { recursive: true });
   const jobPrefix = String(job.id || "job").replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 80) || "job";
   const attachmentRoot = fs.mkdtempSync(path.join(attachmentsRoot, `${jobPrefix}-`));
@@ -363,7 +365,7 @@ async function executeJob(config, job, emitProgress) {
 
   if (job.operation === "sync_history" || job.operation === "sync_initial_history") {
     emitProgress({ stage: "authenticating", label: "Autenticando no Fluig." });
-    const scriptPath = path.join(root, "scripts", "fluig-adm-query-history.cjs");
+    const scriptPath = path.join(/* turbopackIgnore: true */ root, "scripts", "fluig-adm-query-history.cjs");
     const payloadProcessMaps = processMapsFromPayload(payload);
     const historyArgs = [
       `--runner-root=${root}`,
@@ -408,7 +410,7 @@ async function executeJob(config, job, emitProgress) {
     }
 
     emitProgress({ stage: "authenticating", label: "Autenticando no Fluig para consultar fornecedor." });
-    const scriptPath = path.join(root, "scripts", "fluig-adm-query-history.cjs");
+    const scriptPath = path.join(/* turbopackIgnore: true */ root, "scripts", "fluig-adm-query-history.cjs");
     const payloadProcessMaps = processMapsFromPayload(payload);
     if (!payloadProcessMaps.length) {
       throw new Error("Mapeamento dos processos de origem nao informado para consulta de fornecedor.");
@@ -463,11 +465,16 @@ async function executeJob(config, job, emitProgress) {
     if (!requestIds.length) {
       throw new Error("Nenhum numero Fluig aberto conhecido para consulta incremental.");
     }
-    const scriptPath = path.join(root, "scripts", "fluig", "syncFluigStatus.js");
+    const scriptPath = path.join(/* turbopackIgnore: true */ root, "scripts", "fluig", "syncFluigStatus.js");
     const { stdout } = await runNodeScript(
       config,
       scriptPath,
-      [...requestIds, `--task-user-id=${payload.taskUserId || processMap.defaultTaskUserId || config.fluig.taskUserId}`],
+      [
+        ...requestIds,
+        `--task-user-id=${payload.taskUserId || processMap.defaultTaskUserId || config.fluig.taskUserId}`,
+        `--detail-fields-json=${JSON.stringify(Array.isArray(payload.detailFields) ? payload.detailFields : [])}`,
+        `--detail-config-hash=${String(payload.detailConfigHash || "")}`,
+      ],
       { onLine }
     );
     const outputPath = parseTaggedPath(stdout, "SYNC_FLUIG_STATUS_RESULT");
@@ -483,7 +490,7 @@ async function executeJob(config, job, emitProgress) {
       throw new Error("Nenhuma sincronizacao incremental valida foi informada para o agente.");
     }
 
-    const scriptPath = path.join(root, "scripts", "fluig", "syncUserIncremental.js");
+    const scriptPath = path.join(/* turbopackIgnore: true */ root, "scripts", "fluig", "syncUserIncremental.js");
     const taskUserId = payload.taskUserId || batches.find((batch) => batch.taskUserId)?.taskUserId || config.fluig.taskUserId;
     const payloadDir = path.join(config.configDir, "jobs");
     fs.mkdirSync(payloadDir, { recursive: true });
@@ -495,7 +502,9 @@ async function executeJob(config, job, emitProgress) {
           taskUserId,
           discovery: payload.discovery || {},
           userMatch: payload.userMatch || {},
+          monitoredUsers: Array.isArray(payload.monitoredUsers) ? payload.monitoredUsers : [],
           batches,
+          detailState: Array.isArray(payload.detailState) ? payload.detailState : [],
         },
         null,
         2
@@ -521,7 +530,7 @@ async function executeJob(config, job, emitProgress) {
     if (!requestIds.length) {
       throw new Error("Nenhum numero Fluig informado para cancelamento.");
     }
-    const scriptPath = path.join(root, "scripts", "fluig", "cancelViaApi.js");
+    const scriptPath = path.join(/* turbopackIgnore: true */ root, "scripts", "fluig", "cancelViaApi.js");
     const { stdout } = await runNodeScript(
       config,
       scriptPath,
@@ -549,7 +558,7 @@ async function executeJob(config, job, emitProgress) {
       `--attachment-path=${attachment.path}`,
       `--attachment-name=${attachment.name}`,
     ]);
-    const scriptPath = path.join(root, "scripts", "fluig-adm-open-from-source.cjs");
+    const scriptPath = path.join(/* turbopackIgnore: true */ root, "scripts", "fluig-adm-open-from-source.cjs");
     try {
       const { stdout } = await runNodeScript(
         config,
@@ -592,7 +601,7 @@ async function executeJob(config, job, emitProgress) {
       `--attachment-path=${attachment.path}`,
       `--attachment-name=${attachment.name}`,
     ]);
-    const scriptPath = path.join(root, "scripts", "fluig", "attachToRequest.js");
+    const scriptPath = path.join(/* turbopackIgnore: true */ root, "scripts", "fluig", "attachToRequest.js");
     try {
       const { stdout } = await runNodeScript(
         config,
@@ -617,8 +626,8 @@ async function executeJob(config, job, emitProgress) {
   }
 
   if (job.operation === "health_check") {
-    emitProgress({ stage: "authenticating", label: "Autenticando com as credenciais locais no Fluig." });
-    const scriptPath = path.join(root, "scripts", "fluig", "healthCheck.js");
+    emitProgress({ stage: "authenticating", label: "Autenticando com a credencial cadastrada no Fluig." });
+    const scriptPath = path.join(/* turbopackIgnore: true */ root, "scripts", "fluig", "healthCheck.js");
     const { stdout } = await runNodeScript(config, scriptPath, [], { onLine });
     const healthResult = stdout
       .split(/\r?\n/)

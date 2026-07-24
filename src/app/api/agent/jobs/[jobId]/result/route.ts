@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import {
   completeFluigUserSyncStateForJob,
   completeFluigJob,
+  completeServerFluigJob,
   readJobForAgent,
   recordDetectedFluigUserId,
   recordFluigJobEvent,
+  recordServerFluigJobEvent,
+  type FluigJobRecord,
   type FluigUserSyncType,
   type FluigJobStatus,
 } from "@/lib/db/app-repository";
@@ -15,6 +18,7 @@ import {
   persistFluigCatalogItems,
   type PersistenceResult,
   persistHistoryItemsInChunksByModule,
+  persistFluigMonitoredUserSyncResults,
   persistStatusItems,
   persistSupplierCandidates,
 } from "@/lib/db/fluig-repository";
@@ -267,17 +271,47 @@ function batchDefinitions(payload: Record<string, unknown>, resultPayload: Recor
     );
 }
 
-export async function POST(request: Request, context: RouteContext) {
-  const { agent, error } = await requireAgent(request);
-  if (!agent) return error;
+type JobResultExecutor = { type: "agent"; agentId: string } | { type: "server" };
 
-  const { jobId } = await context.params;
-  const job = await readJobForAgent(agent, jobId);
-  if (!job) {
-    return NextResponse.json({ success: false, error: "Job nao pertence a este agente." }, { status: 404 });
-  }
+async function completeResultJob(
+  executor: JobResultExecutor,
+  input: { jobId: string; status: "success" | "error" | "cancelled"; resultPayload?: Record<string, unknown>; errorMessage?: string | null }
+) {
+  return executor.type === "agent"
+    ? completeFluigJob({ ...input, agentId: executor.agentId })
+    : completeServerFluigJob(input);
+}
 
-  const body = (await request.json().catch(() => ({}))) as ResultBody;
+function extractMonitoredUserResults(payload: Record<string, unknown>) {
+  const output = resultOutput(payload);
+  return (Array.isArray(output.monitoredUsers) ? output.monitoredUsers : []) as Array<{
+    id?: string | null;
+    displayName?: string | null;
+    email?: string | null;
+    currentFluigUser?: { code?: string | null; login?: string | null; email?: string | null; fullName?: string | null } | null;
+    centralTaskTotals?: { openTasks?: number; myRequests?: number } | null;
+    syncStartedAt?: string | null;
+    processedAt?: string | null;
+    error?: string | null;
+  }>;
+}
+
+async function recordResultJobEvent(
+  executor: JobResultExecutor,
+  input: { jobId: string; eventType: string; stage?: string | null; label?: string | null; payload?: Record<string, unknown>; status?: FluigJobStatus }
+) {
+  return executor.type === "agent"
+    ? recordFluigJobEvent({ ...input, agentId: executor.agentId })
+    : recordServerFluigJobEvent(input);
+}
+
+export async function persistFluigJobResult(input: {
+  job: FluigJobRecord;
+  body: ResultBody;
+  executor: JobResultExecutor;
+}) {
+  const { job, body, executor } = input;
+  const jobId = job.id;
   const reportedStatus = body.status || "success";
   const resultPayload = body.resultPayload || {};
   const generatedRequestId =
@@ -289,6 +323,7 @@ export async function POST(request: Request, context: RouteContext) {
   const status = missingOpenProtocol ? "error" : reportedStatus;
   const errorMessage = missingOpenProtocol ? MISSING_OPEN_PROTOCOL_ERROR : body.errorMessage;
   const persistenceResults: PersistenceResult[] = [];
+  const monitoredSyncErrors: string[] = [];
   const currentFluigUser = extractCurrentFluigUser(resultPayload);
 
   if (status === "success" && (job.operation === "health_check" || job.operation === "sync_user_incremental_batch")) {
@@ -302,11 +337,10 @@ export async function POST(request: Request, context: RouteContext) {
 
     if (!identity.matched) {
       const identityError = identity.detected
-        ? "A credencial local pertence a outro usuario Fluig. Reinstale ou reconfigure o agente com a credencial correta deste usuario."
-        : "Nao foi possivel confirmar a identidade Fluig da credencial local.";
-      await completeFluigJob({
+        ? "A credencial cadastrada pertence a outro usuario Fluig. Corrija usuario e senha Fluig no cadastro deste usuario."
+        : "Nao foi possivel confirmar a identidade da credencial Fluig cadastrada.";
+      await completeResultJob(executor, {
         jobId,
-        agentId: agent.id,
         status: "error",
         resultPayload: { identityVerified: false },
         errorMessage: identityError,
@@ -318,12 +352,11 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     if (identity.updated) {
-      await recordFluigJobEvent({
+      await recordResultJobEvent(executor, {
         jobId,
-        agentId: agent.id,
         eventType: "profile_updated",
         stage: "syncing_result",
-        label: "Usuario Fluig detectado pelo agente e salvo no perfil.",
+        label: "Usuario Fluig detectado pelo executor e salvo no perfil.",
         payload: { fluigUserId: currentFluigUser?.code },
       });
     }
@@ -395,7 +428,13 @@ export async function POST(request: Request, context: RouteContext) {
     const output = resultOutput(resultPayload);
     const directTaskCentral = output.directTaskCentral === true;
     const syncStartedAt = String(output.syncStartedAt || "").trim();
+    const monitoredUserResults = extractMonitoredUserResults(resultPayload);
     const directPersistenceResults: PersistenceResult[] = [];
+    monitoredSyncErrors.push(
+      ...monitoredUserResults
+        .filter((item) => item.error)
+        .map((item) => `${item.email || item.currentFluigUser?.code || "Usuario Fluig"}: ${item.error}`)
+    );
 
     for (const item of extractStatusItems(resultPayload)) {
       const moduleSlug = moduleFromStatusItem(item, job.module);
@@ -414,18 +453,41 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     persistenceResults.push(...directPersistenceResults);
-    if (
+    if (monitoredUserResults.length) {
+      if (directPersistenceResults.every((item) => item.errors.length === 0)) {
+        for (const monitoredUser of monitoredUserResults.filter((item) => !item.error)) {
+          const targetFluigUserId = String(monitoredUser.currentFluigUser?.code || "").trim();
+          const targetSyncStartedAt = String(monitoredUser.syncStartedAt || syncStartedAt).trim();
+          if (targetFluigUserId && targetSyncStartedAt) {
+            persistenceResults.push(
+              await clearStaleFluigUserTaskMemberships({
+                fluigUserId: targetFluigUserId,
+                syncStartedAt: targetSyncStartedAt,
+              })
+            );
+          }
+        }
+      }
+
+      const membershipPersistenceErrors = persistenceResults.flatMap((item) => item.errors);
+      const monitoredPersistenceResults = membershipPersistenceErrors.length
+        ? monitoredUserResults.map((item) =>
+            item.error
+              ? item
+              : {
+                  ...item,
+                  error: `Fluig consultado, mas houve falha ao gravar as tarefas no ADM: ${membershipPersistenceErrors.join(" | ")}`,
+                }
+          )
+        : monitoredUserResults;
+      persistenceResults.push(await persistFluigMonitoredUserSyncResults(monitoredPersistenceResults));
+    } else if (
       directTaskCentral &&
       currentFluigUser?.code &&
       syncStartedAt &&
       directPersistenceResults.every((item) => item.errors.length === 0)
     ) {
-      persistenceResults.push(
-        await clearStaleFluigUserTaskMemberships({
-          fluigUserId: currentFluigUser.code,
-          syncStartedAt,
-        })
-      );
+      persistenceResults.push(await clearStaleFluigUserTaskMemberships({ fluigUserId: currentFluigUser.code, syncStartedAt }));
     }
   }
 
@@ -481,33 +543,38 @@ export async function POST(request: Request, context: RouteContext) {
   const finalPayload = persistence ? { ...resultPayload, persistence } : resultPayload;
   const syncType = syncTypeForJob(job.operation);
   const batchSyncStates = job.operation === "sync_user_incremental_batch" ? batchDefinitions(job.requestPayload, resultPayload) : [];
+  const completionIssues = [...(persistence?.errors || []), ...monitoredSyncErrors];
+  const completionStatus = status === "success" && completionIssues.length ? "error" : status;
+  const completionErrorMessage =
+    completionStatus === "error" && !errorMessage && completionIssues.length
+      ? `A sincronizacao Fluig nao foi concluida integralmente: ${completionIssues.join(" | ")}`
+      : errorMessage;
 
   if (job.operation === "supplier_lookup_by_cnpj") {
     await markSupplierFluigSyncResult({
       supplierId: String(job.requestPayload.supplierId || ""),
       actorId: job.requestedByUserId,
-      status,
-      historyItems: status === "success" ? extractHistoryItems(resultPayload) : [],
+      status: completionStatus,
+      historyItems: completionStatus === "success" ? extractHistoryItems(resultPayload) : [],
       resultPayload: finalPayload,
-      errorMessage,
+      errorMessage: completionErrorMessage,
       persistence,
     });
   }
 
-  await completeFluigJob({
+  await completeResultJob(executor, {
     jobId,
-    agentId: agent.id,
-    status,
+    status: completionStatus,
     resultPayload: finalPayload,
-    errorMessage,
+    errorMessage: completionErrorMessage,
   });
 
   if (syncType) {
     await completeFluigUserSyncStateForJob({
       job,
       syncType,
-      status: status === "success" ? "success" : "error",
-      errorMessage,
+      status: completionStatus === "success" ? "success" : "error",
+      errorMessage: completionErrorMessage,
       metadata: {
         persistence,
       },
@@ -519,8 +586,8 @@ export async function POST(request: Request, context: RouteContext) {
       job,
       module: batch.module,
       syncType: batch.syncType,
-      status: status === "success" ? "success" : "error",
-      errorMessage,
+      status: completionStatus === "success" ? "success" : "error",
+      errorMessage: completionErrorMessage,
       metadata: {
         persistence,
         batched: true,
@@ -533,9 +600,8 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   if (persistence?.errors.length) {
-    await recordFluigJobEvent({
+    await recordResultJobEvent(executor, {
       jobId,
-      agentId: agent.id,
       eventType: "persistence_warning",
       stage: "syncing_result",
       label: persistence.errors.join(" | "),
@@ -546,5 +612,23 @@ export async function POST(request: Request, context: RouteContext) {
   return NextResponse.json({
     success: true,
     persistence,
+  });
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  const { agent, error } = await requireAgent(request);
+  if (!agent) return error;
+
+  const { jobId } = await context.params;
+  const job = await readJobForAgent(agent, jobId);
+  if (!job) {
+    return NextResponse.json({ success: false, error: "Job nao pertence a este agente." }, { status: 404 });
+  }
+
+  const body = (await request.json().catch(() => ({}))) as ResultBody;
+  return persistFluigJobResult({
+    job,
+    body,
+    executor: { type: "agent", agentId: agent.id },
   });
 }

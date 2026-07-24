@@ -1,190 +1,47 @@
-# ADM Fluig Agent local
+# Agente Fluig local descontinuado
 
-O portal ADM roda na Vercel, mas a automacao do Fluig roda na maquina Windows de cada usuario.
+O agente Windows deixou de fazer parte da arquitetura de producao em
+21/07/2026. O ADM executa as consultas, sincronizacoes, aberturas e
+cancelamentos diretamente no container da VPS.
 
-## Fluxo
+## Fluxo atual
 
-1. O usuario abre uma pagina do ADM e clica em uma acao Fluig.
-2. A Vercel cria um registro em `fluig_jobs`.
-3. O `ADM Fluig Agent` instalado na maquina do usuario faz polling da fila.
-4. O agente abre o Fluig em background com Playwright, usando as credenciais locais do usuario.
-5. O agente envia eventos para `fluig_job_events` e o resultado para a API.
-6. A API persiste os dados em `fluig_requests` e a tela atualiza o status.
+1. O administrador cadastra usuario e senha Fluig em `Usuarios e Perfis`.
+2. A acao do usuario cria um registro em `fluig_jobs`.
+3. O worker interno da VPS assume um job por vez.
+4. O Chromium do container autentica com a credencial criptografada do dono do
+   job.
+5. Eventos, retorno, protocolo e erros sao persistidos no Supabase self-hosted.
+6. A tela acompanha o mesmo job ate o estado terminal.
 
-## Como cada tela sincroniza
+Nao e necessario gerar token, instalar tarefa agendada, manter computador de
+usuario ligado ou abrir a porta local `4777`.
 
-- `/pagamentos`: cria job `sync_initial_history` ou `sync_history` do modulo `pagamentos`; o agente consulta o processo Central de Lancamento e grava pagamentos, fornecedores, filiais, naturezas, centros de custo e modelos mensais.
-- `/compras`: cria job historico do modulo `compras`; o agente consulta o processo de Compra Administrativa e grava requisicoes, modelos, fornecedores e catalogos de compra.
-- `/manutencao`: cria job historico do modulo `manutencao`; o agente consulta o processo de ativo fixo/manutencao e grava OS Fluig, retornos e catalogos da manutencao.
-- `/fornecedores`: cria um unico job `sync_initial_history` do modulo `fornecedores`, mas o payload contem os processos reais de pagamentos, compras e manutencao. O agente faz um login, percorre todos os processos na mesma sessao e cada item volta com `moduleSlug` para ser salvo no modulo correto.
-- `/dashboard` e `/tarefas`: o job `sync_user_incremental_batch` usa um unico login do agente e consulta diretamente a Central de Tarefas pela API oficial do Fluig: resumo, tarefas pendentes e minhas solicitacoes. O backend preserva o total oficial e grava a participacao do usuario em cada item por modulo.
-- Dashboard / botao `Sincronizar meu Fluig`: cria um unico job `sync_user_incremental_batch`. O agente confirma o codigo do colaborador autenticado em `/api/public/2.0/users/getCurrent` e usa esse codigo nas rotas `getResumedTasks`, `findWorkflowTasks` e `findMyRequests`; o id numerico interno do usuario nao e usado como matricula.
-- Endpoints especificos `/api/fluig/adm/sync/open-tasks` e `/api/fluig/adm/sync/my-requests`: continuam criando jobs separados quando for necessario diagnosticar ou executar somente uma parte da sincronizacao.
-- Consulta de status por numero Fluig: cria `sync_request_by_number`; o agente faz uma sessao e consulta todos os numeros enviados no mesmo job.
-- Abertura/cancelamento: criam `open_from_source` ou `cancel_request`; cada job usa a sessao do usuario local e devolve protocolo/status para a tela.
+## Compatibilidade historica
 
-## Isolamento e paralelismo por usuario
+O diretorio `agent/fluig-agent`, as rotas `/api/agent/*` e as colunas com nome
+`agent` permanecem temporariamente para:
 
-- A tela lista somente agentes pareados com o usuario atualmente autenticado, inclusive quando o usuario tem perfil administrativo.
-- A lista operacional de jobs e a consulta de progresso tambem ficam sempre limitadas ao usuario atual. Uma visao administrativa global deve usar endpoint separado e explicito.
-- Um job so e criado quando existe heartbeat recente de ao menos um agente pareado com aquele mesmo usuario. Agente de outro usuario nunca assume o job, pois ele usa outra credencial Fluig local.
-- O mesmo usuario pode parear dois ou mais agentes. Cada agente assume no maximo um job ativo por vez, enquanto agentes adicionais podem reivindicar os proximos jobs da fila em paralelo.
-- O poll e a retomada validam simultaneamente o agente atribuido e o proprietario do job. Tokens vinculados a perfis inativos, rejeitados ou ainda nao aprovados nao autenticam o agente.
-- Quando nenhum agente proprio esta online, a API responde `409` com o codigo `FLUIG_AGENT_OFFLINE`; a interface orienta gerar o token no mesmo login e iniciar o agente antes de tentar novamente.
-- A partir da versao `0.1.3`, a tarefa agendada executa o Node diretamente e o instalador encerra processos antigos do mesmo script antes de iniciar. Isso evita deixar um agente orfao usando token anterior e bloqueando a porta `4777`.
-- Em `/manutencao`, `open_from_source` tambem carrega `maintenanceOrderId`; ao receber o resultado, a API atualiza `app_maintenance_orders` com numero Fluig, etapa, responsavel, `NumLancW` quando existir, e evento de auditoria.
+- reutilizar o executor e os contratos de payload ja validados;
+- interpretar auditoria e jobs criados antes da migracao;
+- permitir rollback de codigo sem alterar dados historicos.
 
-## Controle contra jobs duplicados
-
-As rotas de sincronizacao reaproveitam um job ativo equivalente antes de inserir outro registro em `fluig_jobs`.
-
-O reaproveitamento considera:
-
-- mesmo usuario do ADM;
-- mesmo modulo;
-- mesma operacao;
-- mesma filial resolvida;
-- mesmo payload normalizado;
-- job ainda ativo e nao expirado.
-
-Isso vale para:
-
-- `sync_history`;
-- `sync_initial_history`;
-- `sync_status`;
-- `sync_user_open_tasks`;
-- `sync_user_open_requests`;
-- `sync_user_incremental_batch`;
-- `sync_request_by_number`;
-- `supplier_lookup_by_cnpj`.
-
-Nao vale para `open_from_source` e `cancel_request`, porque repetir essas operacoes pode representar uma acao intencional do usuario.
-
-## Reuso de login
-
-O agente nao deve logar novamente para cada pagina ou item dentro do mesmo job. A regra atual e:
-
-- cada job abre no maximo uma sessao Playwright;
-- dentro de `sync_history`, a mesma pagina consulta todas as janelas, paginas e processos do payload;
-- dentro de `sync_status`, a mesma pagina consulta todos os numeros Fluig do payload;
-- dentro de `sync_user_incremental_batch`, a mesma pagina consulta o resumo e as duas listas da Central de Tarefas, classifica os processos de pagamentos, compras e manutencao e elimina duplicidade entre tarefa e solicitacao;
-- a sessao autenticada fica salva em `%APPDATA%\ADM MaxControl\fluig-agent\auth\fluig.json`, isolada por usuario Windows;
-- o trace fica em `%APPDATA%\ADM MaxControl\fluig-agent\logs\session-trace.log` e mostra `Sessao reutilizada valida: sim` quando o cache foi aceito.
-
-Se aparecer login repetido, conferir primeiro o `session-trace.log`. Quando ele mostra `Sessao reutilizada valida: nao`, o Fluig invalidou o cookie ou a URL base/login esta incorreta.
-
-## Envio de resultados grandes
-
-Historicos grandes e listas extensas da Central de Tarefas nao sao enviados em um unico POST. O agente `0.1.5` divide o retorno em lotes adaptativos e preserva no fechamento a identidade Fluig, os totais oficiais e a data de inicio da sincronizacao:
-
-- limite padrao de 25 registros por lote;
-- limite padrao de aproximadamente 650 KB por POST;
-- campos `raw` redundantes do Fluig sao compactados antes do envio;
-- valores muito grandes de campos do formulario sao truncados para evitar `HTTP 413`;
-- a API grava cada lote em `/api/agent/jobs/[jobId]/chunk` e o fechamento do job envia apenas um resumo.
-
-Variaveis opcionais para diagnostico fino na maquina do usuario:
-
-```text
-ADM_FLUIG_HISTORY_CHUNK_ITEMS=25
-ADM_FLUIG_HISTORY_CHUNK_BYTES=650000
-ADM_FLUIG_HISTORY_FIELD_MAX_CHARS=6000
-ADM_FLUIG_HISTORY_AGGRESSIVE_FIELD_MAX_CHARS=1000
-```
-
-Se ainda ocorrer `Falha HTTP 413`, confira no `/health` local se `agentVersion` esta em `0.1.1` ou superior. Versoes anteriores podem tentar enviar resultados grandes pelo endpoint final.
+Novas tarefas nao dependem de heartbeat ou pareamento. Elas exigem uma linha
+em `fluig_user_credentials` para o usuario solicitante e sao processadas pelas
+RPCs `claim_next_fluig_server_job`, `transition_fluig_server_job` e
+`complete_fluig_server_job`.
 
 ## Seguranca
 
-- A senha do Fluig nao fica na Vercel nem no Supabase.
-- A senha e salva localmente em `%APPDATA%\ADM MaxControl\fluig-agent\fluig-credential.json`.
-- O valor fica criptografado pelo DPAPI do Windows para o usuario logado.
-- O agente autentica na Vercel com um token proprio, salvo em `config.json`.
-- O agente escuta apenas em `127.0.0.1`.
+- A API nunca devolve a senha cadastrada.
+- A tabela de credenciais tem RLS e nao concede acesso a `anon` ou
+  `authenticated`.
+- Username e senha sao cifrados com AES-256-GCM e AAD vinculado ao UUID do
+  perfil.
+- A chave de cifra existe somente nos secrets do Coolify.
+- Cada job usa a credencial do usuario que solicitou a tarefa.
+- Jobs de abertura e cancelamento continuam sem retry automatico para evitar
+  duplicidade.
 
-## Instalar em uma maquina de usuario
-
-1. No ADM, abrir `Usuarios e Perfis` e conferir o usuario/filiais.
-2. Em qualquer painel Fluig, clicar em `Parear agente`.
-3. Copiar o token exibido uma unica vez.
-4. Na maquina do usuario, executar com duplo clique:
-
-```text
-INSTALAR-AGENTE-FLUIG.bat
-```
-
-O instalador vai pedir o token, a URL base do Fluig, usuario e senha.
-
-Alternativa tecnica, se precisar passar parametros manualmente:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\agent\fluig-agent\scripts\install-windows-agent.ps1 `
-  -AgentToken "TOKEN_GERADO_NO_ADM" `
-  -FluigBaseUrl "https://SEU_FLUIG"
-```
-
-O instalador:
-
-- grava `%APPDATA%\ADM MaxControl\fluig-agent\config.json`;
-- pede usuario e senha do Fluig;
-- salva a senha com DPAPI;
-- instala Chromium do Playwright;
-- cria a tarefa agendada `ADM MaxControl Fluig Agent`;
-- inicia o agente.
-
-## Verificar
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:4777/health
-```
-
-Na tela do ADM, o agente deve aparecer como `ONLINE` depois do primeiro heartbeat. O `/health` tambem mostra `agentVersion`, `lastHeartbeatAt`, `lastPollAt`, `lastSuccessfulApiAt` e `lastError` para diagnosticar agente antigo, falha de rede ou erro de polling.
-
-O botao `Testar agente` no dashboard, na Central Fluig e nos paineis Fluig cria um job `health_check`. Esse teste confirma que:
-
-- o portal conseguiu criar o job;
-- o agente local fez polling;
-- o agente local assumiu o job;
-- o agente fez login com a credencial protegida por DPAPI;
-- o Fluig confirmou o usuario autenticado em uma chamada protegida;
-- o agente conseguiu devolver resultado ao ADM.
-
-O resultado nao envia a senha ao portal. O agente devolve apenas o status da verificacao, o identificador confirmado pelo Fluig e dados tecnicos de diagnostico.
-
-Jobs de leitura interrompidos pelo fechamento do agente recebem novas tentativas com espera progressiva. Jobs de abertura ou cancelamento nao sao repetidos automaticamente, evitando lancamentos duplicados. Jobs que ficam sem agente alem do prazo mudam para `EXPIRADO` com uma orientacao legivel para o usuario.
-
-Tambem e possivel conferir pelo duplo clique:
-
-```text
-VERIFICAR-AGENTE-FLUIG.bat
-```
-
-## Remover
-
-Com duplo clique:
-
-```text
-REMOVER-AGENTE-FLUIG.bat
-```
-
-Ou via PowerShell:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\agent\fluig-agent\scripts\uninstall-windows-agent.ps1
-```
-
-Para remover tambem a configuracao local:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\agent\fluig-agent\scripts\uninstall-windows-agent.ps1 -RemoveLocalConfig
-```
-
-## Filiais
-
-As filiais ficam em `app_branches`. O vinculo por usuario fica em `app_user_branch_access`.
-
-Admin (`ADMIN_MASTER` ou `ADMIN`) ve todas as filiais. Os demais usuarios veem:
-
-- solicitacoes da filial marcada no cadastro do usuario;
-- solicitacoes criadas pelo proprio usuario no ADM;
-- solicitacoes cujo solicitante Fluig corresponde ao `fluig_username` do perfil.
+Para operacao, deploy e rollback, consulte
+`docs/IMPLANTACAO_PARALELA_VPS.md`.

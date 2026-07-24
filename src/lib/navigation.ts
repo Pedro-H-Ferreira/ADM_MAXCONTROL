@@ -33,6 +33,12 @@ export const navigationSections: NavigationSection[] = [
         roles: ["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO", "GERENTE_CD", "FINANCEIRO"],
       },
       {
+        title: "Contas mensais",
+        href: "/pagamentos/contas-mensais",
+        icon: "CalendarCheck2",
+        roles: ["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO", "GERENTE_CD", "FINANCEIRO"],
+      },
+      {
         title: "Controle de ADF",
         href: "/adfs",
         icon: "FileCheck2",
@@ -151,7 +157,7 @@ export function pageSlugFromHref(href: string) {
 
 const allRoles = ["ADMIN_MASTER", "ADMIN", "ADMINISTRATIVO", "GERENTE_CD", "FINANCEIRO", "COMPRAS", "MANUTENCAO", "LEITURA"];
 
-export const navigationPageOptions: NavigationPageOption[] = [
+const navigationPageOptionsWithDuplicates: NavigationPageOption[] = [
   ...navigationSections.flatMap((section) =>
     section.items.map((item) => ({
       slug: pageSlugFromHref(item.href),
@@ -169,6 +175,10 @@ export const navigationPageOptions: NavigationPageOption[] = [
     defaultRoles: allRoles,
   },
 ];
+
+export const navigationPageOptions: NavigationPageOption[] = navigationPageOptionsWithDuplicates.filter(
+  (page, index, pages) => pages.findIndex((candidate) => candidate.slug === page.slug) === index
+);
 
 export const allNavigationPageSlugs = navigationPageOptions.map((page) => page.slug);
 

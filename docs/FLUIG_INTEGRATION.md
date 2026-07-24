@@ -80,16 +80,18 @@ Esse endpoint le o snapshot persistido no Supabase e mostra os dados nas paginas
 
 ## Backend operacional implementado
 
-O ADM mantem os scripts tecnicos do Fluig dentro de `scripts/fluig`, mas as operacoes de producao que exigem login no Fluig sao executadas pelo `ADM Fluig Agent` na maquina do usuario. As rotas do Vercel criam jobs em `fluig_jobs`, gravam o andamento no Supabase e aguardam o callback autenticado do agente local.
+O ADM mantem os scripts tecnicos do Fluig dentro de `scripts/fluig`. As operacoes de producao que exigem login sao executadas pelo worker interno do container na VPS. As rotas criam jobs em `fluig_jobs`; o worker usa a credencial criptografada do usuario solicitante e grava andamento e resultado no Supabase self-hosted.
 
-A fila usa RPCs transacionais no Supabase. O claim aplica `FOR UPDATE SKIP LOCKED`, permitindo mais de um agente do mesmo usuario sem entregar o mesmo job duas vezes. Claim, progresso e conclusao atualizam o job e gravam o evento na mesma transacao. O reaper devolve execucoes interrompidas para a fila quando o retry e seguro, expira operacoes esgotadas e propaga o erro para `fluig_user_sync_state` e para o sync de fornecedor associado.
+A fila usa RPCs transacionais no Supabase. O claim aplica `FOR UPDATE SKIP LOCKED` e impede mais de um job interno ativo, preservando o processamento sequencial. Claim, progresso e conclusao atualizam o job e gravam o evento na mesma transacao. O reaper devolve execucoes interrompidas para a fila quando o retry e seguro, expira operacoes esgotadas e propaga o erro para `fluig_user_sync_state` e para o sync de fornecedor associado.
 
 O frontend usa uma projecao unica de estado (`idle`, fila, execucao, retry e estados terminais) e recupera jobs ativos do usuario ao recarregar as telas. O parametro `limit` da listagem restringe somente os terminais recentes; todos os ativos sao paginados. O polling continua enquanto o backend considerar o job ativo, sem encerrar artificialmente em quatro minutos. Um sync iniciado sem `last_success_at` aparece como pendente, nunca como sincronizado.
 
-Configuracao local para desenvolvimento controlado dos scripts:
+Configuracao do executor no Coolify:
 
 - `FLUIG_INTEGRATION_MODE=internal_runner`
-- `FLUIG_BASE_URL`, `FLUIG_USERNAME`, `FLUIG_PASSWORD` e seletores de login/formulario no `.env.local`.
+- `FLUIG_BASE_URL`, caminhos e seletores de login/formulario.
+- `FLUIG_SERVER_WORKER_ENABLED=true` e `FLUIG_CREDENTIALS_ENCRYPTION_KEY`.
+- Usuario e senha Fluig ficam no cadastro de cada usuario; nao existem credenciais globais de producao.
 - `FLUIG_TASK_USER_ID=00130`
 - `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` para persistir no banco.
 
@@ -97,7 +99,7 @@ Rotas novas:
 
 - `GET /api/fluig/adm/map`: retorna o mapa completo por aba e, com `?persist=true`, grava em `fluig_process_mappings`.
 - `POST /api/fluig/adm/history`: consulta historico real por modulo, gera candidatos de fornecedor e grava em `fluig_requests`/`fluig_supplier_candidates` quando Supabase estiver configurado.
-- `POST /api/fluig/adm/sync/historical`: cria jobs de carga historica inicial pelo agente local. Para `fornecedores`, agenda pagamentos, compras e manutencao.
+- `POST /api/fluig/adm/sync/historical`: cria jobs de carga historica inicial para o executor da VPS. Para `fornecedores`, agenda pagamentos, compras e manutencao.
 - `POST /api/fluig/adm/sync/user`: cria um job incremental em lote (`sync_user_incremental_batch`) para o usuario logado; o agente consulta diretamente o resumo, as tarefas pendentes e as solicitacoes abertas da Central de Tarefas, sem varrer o historico completo.
 - `POST /api/fluig/adm/sync/open-tasks`: cria job incremental `sync_user_open_tasks` para consultar status Fluig somente de solicitacoes abertas conhecidas.
 - `POST /api/fluig/adm/sync/my-requests`: cria job incremental `sync_user_open_requests` para consultar status Fluig somente de solicitacoes abertas conhecidas.
@@ -106,9 +108,9 @@ Rotas novas:
 - `GET /api/fluig/adm/requests/my-open`: lista solicitacoes cujo `my_request_fluig_user_id` corresponde ao codigo Fluig do usuario e devolve separadamente o total oficial da Central de Tarefas.
 - `POST /api/fluig/adm/request/lookup`: cria job de consulta sob demanda por numero Fluig, persistindo o status quando o agente retorna.
 - `GET /api/fluig/adm/request/lookup?fluigRequestId=1103651&module=pagamentos`: le o ultimo snapshot persistido do numero Fluig, inclusive quando a solicitacao ja esta finalizada e nao deve voltar para as listas de abertas.
-- `POST /api/fluig/adm/status`: cria job `sync_status` para o agente local consultar etapa, responsavel, SLA, vencimento e cancelabilidade por numero Fluig. O resultado e persistido pelo callback do agente quando `persist` nao for `false`.
+- `POST /api/fluig/adm/status`: cria job `sync_status` para a VPS consultar etapa, responsavel, SLA, vencimento e cancelabilidade por numero Fluig. O resultado e persistido quando `persist` nao for `false`.
 - `POST /api/fluig/adm/open`: abre solicitacao a partir de `sourceRequestId`. Sem `confirm=true`, executa apenas dry-run. Em `mode=test`, abre e cancela em seguida; em `mode=production`, mantem aberta.
-- `POST /api/fluig/adm/cancel`: sem `confirm=true`, retorna dry-run. Com confirmacao, cria job `cancel_request` para o agente local do usuario cancelar no Fluig e persistir o status cancelado quando o resultado voltar.
+- `POST /api/fluig/adm/cancel`: sem `confirm=true`, retorna dry-run. Com confirmacao, cria job `cancel_request` para a VPS cancelar no Fluig com a credencial do usuario e persistir o resultado.
 - `POST /api/fluig/adm/suppliers/preload`: varre historico e cria pre-cadastro de fornecedores por CNPJ/nome normalizado.
 - `GET|POST /api/manutencao`: lista e cria OS manuais ou integradas ao Fluig.
 - `POST /api/manutencao/[id]/fluig/open`: cria job `open_from_source` para uma OS Fluig existente. O payload leva `maintenanceOrderId`; quando o agente finaliza, `/api/agent/jobs/[jobId]/result` grava numero Fluig, `NumLancW`, etapa, responsavel e evento na OS local.
@@ -150,8 +152,8 @@ Abertura de OS Fluig:
 
 - A OS integrada ao Fluig continua sendo um registro local em `app_maintenance_orders`.
 - O usuario informa uma solicitacao modelo real no campo `Solicitacao modelo Fluig`.
-- O botao `Abrir no Fluig` chama `/api/manutencao/[id]/fluig/open`, que cria o job para o agente local do usuario.
-- O callback do agente atualiza a OS local com protocolo, etapa, responsavel e `NumLancW` quando o Fluig devolver esses campos.
+- O botao `Abrir no Fluig` chama `/api/manutencao/[id]/fluig/open`, que cria o job para o executor da VPS.
+- O retorno do executor atualiza a OS local com protocolo, etapa, responsavel e `NumLancW` quando o Fluig devolver esses campos.
 
 Validacoes historicas executadas em 17/06/2026, antes da migracao de status para job do agente local:
 
@@ -230,9 +232,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:3000/api/fluig/adm/open' -Method Post -
 
 ## Proximas etapas tecnicas
 
-- Operar a automacao real por usuario via `ADM Fluig Agent` local. Instalacao e fluxo em `docs/FLUIG_LOCAL_AGENT.md`.
-- Manter o agente online e concluir os jobs enfileirados de cada usuario.
-- Validar em producao uma consulta de status por numero Fluig acompanhando o job `sync_status` ate o callback do agente.
+- Validar em producao uma consulta de status por numero Fluig acompanhando o job `sync_status` ate o retorno da VPS.
 - Preencher `fluig_username` e `fluig_user_id` nos perfis para complementar o escopo por filial com a identidade individual do Fluig.
 - Validar em producao uma abertura controlada de pagamento, compra e manutencao com anexos reais e protocolo retornado.
-- Configurar observabilidade com retencao suficiente para correlacionar digests de erro do Next.js com os logs de runtime da Vercel.
+- Configurar observabilidade com retencao suficiente para correlacionar digests de erro do Next.js com os logs do Coolify.

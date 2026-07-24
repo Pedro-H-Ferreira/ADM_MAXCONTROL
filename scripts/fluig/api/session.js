@@ -153,7 +153,12 @@ async function performLogin(page) {
 
 async function loginWithBrowser({ headless = true } = {}) {
   appendSessionTrace("Abrindo browser");
-  const browser = await chromium.launch({ headless, slowMo: config.browser.slowMo });
+  const launchOptions = { headless, slowMo: config.browser.slowMo };
+  if (config.browser.proxyUrl) {
+    launchOptions.proxy = { server: config.browser.proxyUrl };
+    appendSessionTrace("Proxy de rede dedicado ao Fluig habilitado");
+  }
+  const browser = await chromium.launch(launchOptions);
   const hasStoredAuth = fs.existsSync(config.authFile);
   appendSessionTrace(`Storage auth encontrado: ${hasStoredAuth ? "sim" : "nao"}`);
   let context = await browser.newContext(

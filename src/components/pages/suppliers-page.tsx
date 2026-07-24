@@ -895,7 +895,7 @@ export function SuppliersPage({
         "Falha ao sincronizar fornecedor no Fluig."
       );
       supplierJobTracker.track(data.job);
-      toast.info(`Consulta enviada ao agente Fluig. Job ${data.job.id.slice(0, 8)}.`);
+      toast.info(`Consulta enviada ao executor Fluig da VPS. Job ${data.job.id.slice(0, 8)}.`);
       await supplierJobTracker.wait(data.job);
       toast.success("Fornecedor sincronizado com o Fluig.");
       await loadSuppliers();

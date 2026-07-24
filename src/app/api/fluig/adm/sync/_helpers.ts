@@ -5,7 +5,11 @@ import {
   type FluigJobOperation,
   type FluigUserSyncType,
 } from "@/lib/db/app-repository";
-import { readKnownOpenFluigRequestsForActor } from "@/lib/db/fluig-repository";
+import {
+  readFluigDetailSyncStateForActor,
+  readFluigFieldSettings,
+  readKnownOpenFluigRequestsForActor,
+} from "@/lib/db/fluig-repository";
 import { requireFluigProcessMap } from "@/lib/fluig/process-map";
 import { normalizeRequestIds } from "@/lib/fluig/route-utils";
 import type { FluigModuleSlug } from "@/lib/fluig-data";
@@ -31,6 +35,23 @@ const incrementalSyncPlans: Array<{
   { syncType: "open_tasks", operation: "sync_user_open_tasks" },
   { syncType: "my_requests", operation: "sync_user_open_requests" },
 ];
+
+const requestFieldDependencies: Record<string, string[]> = {
+  supplierName: ["fornecedorC", "fornecedor", "razaoSocial", "unidadeFilial", "codigoFilial", "codFilial"],
+  amountCents: ["valorNF", "valorNFT", "valorTotal"],
+  invoiceNumber: ["nNotaFiscal", "numeroNF", "notaFiscal", "numNota", "numeroNota"],
+  invoiceDueDate: ["vencPagNota", "vencimentoNF", "dataVencimentoNF"],
+  expenseNature: ["codigonaturezaC", "naturezaSalva", "natureza", "codNatureza"],
+  branchLabel: ["unidadeFilial", "filial", "codigoFilial", "codFilial"],
+};
+
+export type MonitoredFluigUserTarget = {
+  id: string;
+  displayName: string;
+  email: string;
+  fluigUserId: string | null;
+  fluigLogin: string | null;
+};
 
 export function modulesForUserSync(module: UserSyncModule | null | undefined): FluigModuleSlug[] {
   if (!module || module === "all" || module === "auto" || module === "fornecedores") {
@@ -115,6 +136,7 @@ export async function createUserIncrementalBatchJob(input: {
   module?: UserSyncModule | null;
   limit?: number;
   discovery?: Partial<DiscoveryWindow>;
+  monitoredUsers?: MonitoredFluigUserTarget[];
 }) {
   const modules = modulesForUserSync(input.module);
   const discovery = {
@@ -137,7 +159,15 @@ export async function createUserIncrementalBatchJob(input: {
       processLabel: string;
       defaultTaskUserId: string;
     };
+    detailFields: string[];
+    detailConfigHash: string;
   }> = [];
+
+  const settingsByModule = new Map<FluigModuleSlug, Awaited<ReturnType<typeof readFluigFieldSettings>>>();
+  for (const moduleSlug of modules) {
+    settingsByModule.set(moduleSlug, await readFluigFieldSettings(moduleSlug));
+  }
+  const detailState = await readFluigDetailSyncStateForActor({ actor: input.actor, modules, limit: 10000 });
 
   for (const moduleSlug of modules) {
     const snapshot = await readKnownOpenFluigRequestsForActor({
@@ -147,6 +177,12 @@ export async function createUserIncrementalBatchJob(input: {
     });
     const requestIds = Array.from(new Set(snapshot.requests.map((request) => request.fluigRequestId).filter(Boolean)));
     const map = requireFluigProcessMap(moduleSlug);
+    const fieldSettings = settingsByModule.get(moduleSlug);
+    const activeSettings = (fieldSettings?.settings || [])
+      .filter((item) => item.active && (item.visibleInList || item.visibleInForm));
+    const detailFields = Array.from(new Set(activeSettings.flatMap((item) =>
+      item.sourceType === "form" ? [item.fieldKey] : requestFieldDependencies[item.fieldKey] || []
+    )));
 
     for (const plan of incrementalSyncPlans) {
       batches.push({
@@ -164,6 +200,8 @@ export async function createUserIncrementalBatchJob(input: {
           processLabel: map.processLabel,
           defaultTaskUserId: map.defaultTaskUserId,
         },
+        detailFields,
+        detailConfigHash: fieldSettings?.configHash || "",
       });
     }
   }
@@ -191,7 +229,9 @@ export async function createUserIncrementalBatchJob(input: {
         displayName: input.actor.displayName,
         branchCodes: input.actor.branchCodes,
       },
+      monitoredUsers: input.monitoredUsers || [],
       taskUserId: batches[0]?.taskUserId,
+      detailState,
     },
   });
 

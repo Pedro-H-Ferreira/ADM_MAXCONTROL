@@ -8,10 +8,15 @@ import {
   ClipboardList,
   Copy,
   ExternalLink,
+  Eye,
+  FileText,
   Filter,
+  GripVertical,
+  History,
   Laptop,
   Loader2,
   Plus,
+  Paperclip,
   RefreshCcw,
   RotateCw,
   Search,
@@ -29,13 +34,17 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FluigIntegrationPanel } from "@/components/shared/fluig-integration-panel";
+import { FluigJobProgressCard } from "@/components/shared/fluig-job-progress-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
   fluigAdmApi,
   type FluigAdmAgent,
   type FluigAdmJobSummary,
+  type FluigFieldSetting,
+  type FluigNatureFacet,
   type FluigOpenRequestRecord,
+  type FluigRequestDetails,
   type FluigUserSyncStateRecord,
 } from "@/lib/fluig-api";
 import { getFluigIntegrationForModule, type FluigModuleSlug } from "@/lib/fluig-data";
@@ -43,6 +52,10 @@ import type { ModuleConfig } from "@/lib/admin-data";
 import { waitForFluigJobs } from "@/lib/use-fluig-job-state";
 import { useVisibleRefresh } from "@/lib/use-visible-refresh";
 import { actionableRecentFluigJobFailures } from "@/lib/fluig-job-errors";
+import {
+  classifyPaymentRequestHealth,
+  type PaymentRequestHealthLevel,
+} from "@/lib/payment-request-health";
 import { cn } from "@/lib/utils";
 
 type OperationalModuleSlug = Extract<FluigModuleSlug, "pagamentos" | "compras">;
@@ -106,10 +119,61 @@ function formatDateTime(value: string | null | undefined) {
   return date.toLocaleString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
-    year: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+  }).replace(",", "");
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "-";
+  const date = new Date(value.length === 10 ? `${value}T12:00:00` : value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("pt-BR");
+}
+
+function formatMoney(value: number | null | undefined, currency = "BRL") {
+  if (value == null) return "-";
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(value / 100);
+}
+
+function formatFileSize(value: number | null | undefined) {
+  if (!value) return "Tamanho nao informado";
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
+}
+
+const fluigFieldLabels: Record<string, string> = {
+  nNotaFiscal: "Numero da NF",
+  valorNF: "Valor da NF",
+  valorNFT: "Valor total da NF",
+  vencPagNota: "Data de vencimento",
+  dataEmissaoNF: "Data de emissao",
+  codigonaturezaC: "Natureza de despesa",
+  fornecedorC: "Fornecedor",
+  codCNPJ: "CNPJ",
+  unidadeFilial: "Filial",
+  centroCusto: "Centro de custo",
+  formaPagamento: "Forma de pagamento",
+  descricaoDemandaEnvio: "Descricao da demanda",
+};
+
+function fieldLabel(name: string) {
+  if (fluigFieldLabels[name]) return fluigFieldLabels[name];
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function requestFluigUrl(row: FluigOpenRequestRecord, details: FluigRequestDetails | null, fallbackUrl: string) {
+  if (details?.sourceUrl) return details.sourceUrl;
+  if (row.sourceUrl) return row.sourceUrl;
+  const url = new URL(fallbackUrl);
+  url.search = "";
+  url.searchParams.set("app_ecm_workflowview_detailsProcessInstanceID", row.fluigRequestId);
+  return url.toString();
 }
 
 function describeHeartbeatAge(seconds: number | null | undefined) {
@@ -144,6 +208,7 @@ export function FluigModuleOperationsPage({
   const [taskTotal, setTaskTotal] = useState(0);
   const [requests, setRequests] = useState<FluigOpenRequestRecord[]>([]);
   const [requestTotal, setRequestTotal] = useState(0);
+  const [myOpenRequestTotal, setMyOpenRequestTotal] = useState(0);
   const [requestPage, setRequestPage] = useState(1);
   const [requestPageSize, setRequestPageSize] = useState(50);
   const [requestsLoading, setRequestsLoading] = useState(false);
@@ -156,12 +221,23 @@ export function FluigModuleOperationsPage({
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [branchFilter, setBranchFilter] = useState("ALL");
+  const [natureFilter, setNatureFilter] = useState("ALL");
+  const [natures, setNatures] = useState<FluigNatureFacet[]>([]);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [activeTab, setActiveTab] = useState("requests");
   const [selectedRequest, setSelectedRequest] = useState<FluigOpenRequestRecord | null>(null);
+  const [selectedDetails, setSelectedDetails] = useState<FluigRequestDetails | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [selectedAttachmentSequence, setSelectedAttachmentSequence] = useState<string | null>(null);
   const [technicalOpen, setTechnicalOpen] = useState(false);
   const [workspaceView, setWorkspaceView] = useState<"launch" | "tools">("launch");
   const [requestRefreshing, setRequestRefreshing] = useState(false);
+  const [fieldSettings, setFieldSettings] = useState<FluigFieldSetting[]>([]);
+  const [fieldSettingsOpen, setFieldSettingsOpen] = useState(false);
+  const [fieldSettingsLoading, setFieldSettingsLoading] = useState(false);
+  const [fieldSettingsSaving, setFieldSettingsSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [referenceTime, setReferenceTime] = useState(0);
   const initialLoadCompleted = useRef(false);
 
@@ -185,11 +261,12 @@ export function FluigModuleOperationsPage({
     return source.filter((row) => {
       if (activeTab === "tasks" && statusFilter !== "ALL" && normalizeStatus(row.normalizedStatus || row.status) !== statusFilter) return false;
       if (activeTab === "tasks" && branchFilter !== "ALL" && row.branchCode !== branchFilter) return false;
+      if (activeTab === "tasks" && natureFilter !== "ALL" && row.expenseNature !== natureFilter) return false;
       if (activeTab === "tasks" && onlyOverdue && (!referenceTime || !row.dueDate || Date.parse(row.dueDate) >= referenceTime)) return false;
       if (!normalizedQuery) return true;
       return [row.fluigRequestId, row.admReference, row.supplierName, row.supplierCnpj, row.requester, row.currentTask, row.taskOwner].some((value) => String(value || "").toLocaleLowerCase("pt-BR").includes(normalizedQuery));
     });
-  }, [activeTab, branchFilter, onlyOverdue, query, referenceTime, sortedRequests, sortedTasks, statusFilter]);
+  }, [activeTab, branchFilter, natureFilter, onlyOverdue, query, referenceTime, sortedRequests, sortedTasks, statusFilter]);
 
   const loadRequestPage = useCallback(
     () =>
@@ -200,11 +277,13 @@ export function FluigModuleOperationsPage({
         search: debouncedQuery || undefined,
         status: statusFilter === "ALL" ? undefined : statusFilter,
         branch: branchFilter === "ALL" ? undefined : branchFilter,
+        nature: natureFilter === "ALL" ? undefined : natureFilter,
         open: activeTab === "finished" ? false : activeTab === "errors" ? null : true,
         overdue: onlyOverdue,
         errorOnly: activeTab === "errors",
+        mine: activeTab === "requests",
       }),
-    [activeTab, branchFilter, debouncedQuery, moduleSlug, onlyOverdue, requestPage, requestPageSize, statusFilter]
+    [activeTab, branchFilter, debouncedQuery, moduleSlug, natureFilter, onlyOverdue, requestPage, requestPageSize, statusFilter]
   );
 
   const refreshRequestTable = useCallback(async () => {
@@ -213,6 +292,7 @@ export function FluigModuleOperationsPage({
       const requestData = await loadRequestPage();
       setRequests(requestData.items || []);
       setRequestTotal(requestData.total || 0);
+      setNatures(requestData.natures || []);
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : "Falha ao carregar solicitacoes Fluig.";
       setError(message);
@@ -241,19 +321,26 @@ export function FluigModuleOperationsPage({
       setError(null);
 
       try {
-        const [nextAgents, taskData, requestData, syncStateData, jobData] = await Promise.all([
+        const [nextAgents, taskData, requestData, myOpenRequestData, syncStateData, jobData, fieldData] = await Promise.all([
           fluigAdmApi.listAgents(),
           fluigAdmApi.listMyTasks(40, moduleSlug),
           loadRequestPage(),
+          fluigAdmApi.listMyOpenRequests(1, moduleSlug, { scope: "all" }),
           fluigAdmApi.listSyncState(moduleSlug),
           fluigAdmApi.listJobs(30),
+          fluigAdmApi.getFieldSettings(moduleSlug),
         ]);
 
         setAgents(nextAgents);
         setTasks(taskData.tasks || []);
         setTaskTotal(Number(taskData.total || 0));
+        setNatures(requestData.natures || []);
+        const currentIsAdmin = Boolean(fieldData.isAdmin || taskData.filters?.isAdmin || myOpenRequestData.filters?.isAdmin);
+        setIsAdmin(currentIsAdmin);
+        setFieldSettings(fieldData.settings || []);
         setRequests(requestData.items || []);
         setRequestTotal(requestData.total || 0);
+        setMyOpenRequestTotal(currentIsAdmin ? Number(requestData.total || 0) : Number(myOpenRequestData.total || 0));
         setStates(syncStateData.states || []);
         setJobs(jobData.jobs || []);
         setReferenceTime(new Date().getTime());
@@ -285,7 +372,7 @@ export function FluigModuleOperationsPage({
 
   async function syncThisModule() {
     if (!onlineAgent) {
-      const message = "Pareie e inicie um agente Fluig para este usuario antes de sincronizar este modulo.";
+      const message = "Cadastre o usuario e a senha Fluig antes de sincronizar este modulo pela VPS.";
       setError(message);
       toast.error(message);
       return;
@@ -320,13 +407,16 @@ export function FluigModuleOperationsPage({
 
   async function refreshSelectedRequest() {
     if (!selectedRequest || requestRefreshing) return;
-    if (!onlineAgent) { toast.error("O agente Fluig precisa estar online para consultar a solicitacao."); return; }
+    if (!onlineAgent) { toast.error("Cadastre o usuario e a senha Fluig antes de consultar a solicitacao pela VPS."); return; }
     setRequestRefreshing(true);
     try {
       const created = await fluigAdmApi.lookupRequest({ module: moduleSlug, fluigRequestId: selectedRequest.fluigRequestId, persist: true });
       await waitForFluigJobs([created.job]);
       const updated = await fluigAdmApi.getLookupRequest({ module: moduleSlug, fluigRequestId: selectedRequest.fluigRequestId });
       if (updated.request) setSelectedRequest(updated.request);
+      const details = await fluigAdmApi.getRequestDetails({ module: moduleSlug, fluigRequestId: selectedRequest.fluigRequestId });
+      setSelectedDetails(details.details);
+      setDetailsError(null);
       await refresh(true);
       toast.success("Status da solicitacao atualizado.");
     } catch (requestError) {
@@ -336,9 +426,54 @@ export function FluigModuleOperationsPage({
     }
   }
 
+  async function openRequestDetails(row: FluigOpenRequestRecord) {
+    setSelectedRequest(row);
+    setSelectedDetails(null);
+    setDetailsError(null);
+    setSelectedAttachmentSequence(null);
+    setDetailsLoading(true);
+    try {
+      const response = await fluigAdmApi.getRequestDetails({ module: moduleSlug, fluigRequestId: row.fluigRequestId });
+      setSelectedDetails(response.details);
+    } catch (detailError) {
+      setDetailsError(detailError instanceof Error ? detailError.message : "Falha ao consultar os detalhes no Fluig.");
+    } finally {
+      setDetailsLoading(false);
+    }
+  }
+
   function openFluigWorkspace(view: "launch" | "tools") {
     setWorkspaceView(view);
     setTechnicalOpen(true);
+  }
+
+  async function openFieldSettings() {
+    if (fieldSettingsLoading) return;
+    setFieldSettingsLoading(true);
+    try {
+      const result = await fluigAdmApi.getFieldSettings(moduleSlug, { discover: true });
+      setFieldSettings(result.settings || []);
+      setIsAdmin(Boolean(result.isAdmin));
+      setFieldSettingsOpen(true);
+    } catch (settingsError) {
+      toast.error(settingsError instanceof Error ? settingsError.message : "Falha ao descobrir os campos Fluig.");
+    } finally {
+      setFieldSettingsLoading(false);
+    }
+  }
+
+  async function saveFieldSettings(settings: FluigFieldSetting[]) {
+    setFieldSettingsSaving(true);
+    try {
+      const result = await fluigAdmApi.saveFieldSettings(moduleSlug, settings);
+      setFieldSettings(result.settings);
+      setFieldSettingsOpen(false);
+      toast.success("Campos e ordem salvos. A proxima sincronizacao atualizará os dados persistidos.");
+    } catch (settingsError) {
+      toast.error(settingsError instanceof Error ? settingsError.message : "Falha ao salvar campos Fluig.");
+    } finally {
+      setFieldSettingsSaving(false);
+    }
   }
 
   if (!integration) {
@@ -357,7 +492,7 @@ export function FluigModuleOperationsPage({
         <div className="grid gap-1 text-sm">
           <span className="font-medium">{integration.processLabel}</span>
           <span className="text-muted-foreground">
-            Abertura, consulta e acompanhamento ficam nesta pagina; o agente local executa o Fluig em segundo plano.
+            Abertura, consulta e acompanhamento ficam nesta pagina; a VPS executa o Fluig em segundo plano.
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -373,6 +508,11 @@ export function FluigModuleOperationsPage({
             {syncing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
             Sincronizar {moduleLabels[moduleSlug].toLowerCase()}
           </Button>
+          {isAdmin ? (
+            <Button type="button" variant="outline" className="stitch-soft-button" onClick={() => void openFieldSettings()} disabled={fieldSettingsLoading}>
+              {fieldSettingsLoading ? <Loader2 className="size-4 animate-spin" /> : <Settings2 className="size-4" />}Configurar campos
+            </Button>
+          ) : null}
           <Button type="button" variant="outline" className="stitch-soft-button" asChild>
             <a href={integration.openUrl} target="_blank" rel="noreferrer">
               <ExternalLink className="size-4" />
@@ -383,10 +523,15 @@ export function FluigModuleOperationsPage({
       </div>
 
       <div className="stitch-animate-in grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-        <MetricTile icon={Laptop} label="Agente local" value={onlineAgent ? "Online" : "Pendente"} detail={describeAgent(onlineAgent)} />
+        <MetricTile icon={Laptop} label="Executor da VPS" value={onlineAgent ? "Pronto" : "Sem credencial"} detail={describeAgent(onlineAgent)} />
         <MetricTile icon={ClipboardList} label="Tarefas abertas" value={String(taskTotal)} detail="Pendencias do usuario neste modulo" />
-        <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requestTotal)} detail="Total acompanhado pelo ADM, nao apenas a pagina atual" />
-        <MetricTile icon={RefreshCcw} label="Jobs em andamento" value={String(pendingJobs.length)} detail="Execucoes aguardando agente local" />
+        <MetricTile
+          icon={Workflow}
+          label={isAdmin ? "Solicitacoes abertas" : "Minhas solicitacoes abertas"}
+          value={String(myOpenRequestTotal)}
+          detail={isAdmin ? `Todas as solicitacoes abertas de ${moduleLabels[moduleSlug]}` : `Somente suas solicitacoes abertas de ${moduleLabels[moduleSlug]}`}
+        />
+        <MetricTile icon={RefreshCcw} label="Jobs em andamento" value={String(pendingJobs.length)} detail="Execucoes processadas pela VPS" />
         <MetricTile
           icon={AlertTriangle}
           label="Erros recentes"
@@ -406,16 +551,33 @@ export function FluigModuleOperationsPage({
       {pendingJobs.length ? <PendingJobs jobs={pendingJobs} /> : null}
 
       <section className="rounded-md border bg-background">
-        <div className="grid gap-2 border-b p-3 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
-          <div className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Numero Fluig, fornecedor, CNPJ, solicitante ou etapa" /></div>
+        <div className="grid gap-2 border-b p-3 xl:grid-cols-[minmax(260px,1fr)_180px_210px_260px_auto]">
+          <div className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Numero Fluig, NF, fornecedor, CNPJ, solicitante ou etapa" /></div>
           <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setRequestPage(1); }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">Todos os status</SelectItem>{Array.from(new Set([...tasks, ...requests].map((row) => normalizeStatus(row.normalizedStatus || row.status)))).sort().map((status) => <SelectItem key={status} value={status}>{status.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select>
           <Select value={branchFilter} onValueChange={(value) => { setBranchFilter(value); setRequestPage(1); }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">Todas as filiais</SelectItem>{branches.map((branch) => <SelectItem key={branch.code || branch.label} value={branch.code}>{branch.code ? `${branch.code} - ${branch.label}` : branch.label}</SelectItem>)}</SelectContent></Select>
+          <Select value={natureFilter} onValueChange={(value) => { setNatureFilter(value); setRequestPage(1); }}><SelectTrigger className="w-full" aria-label="Filtrar por natureza de despesa"><SelectValue placeholder="Natureza de despesa" /></SelectTrigger><SelectContent><SelectItem value="ALL">Todas as naturezas de despesa</SelectItem>{natures.map((nature) => <SelectItem key={nature.value} value={nature.value}>{nature.label} ({nature.count})</SelectItem>)}</SelectContent></Select>
           <label className="flex items-center gap-2 rounded-md border px-3 text-sm"><Checkbox checked={onlyOverdue} onCheckedChange={(checked) => { setOnlyOverdue(checked === true); setRequestPage(1); }} /><Filter className="size-4" />Somente atrasados</label>
         </div>
 
         <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setRequestPage(1); }}>
-          <div className="overflow-x-auto border-b"><TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0"><TabsTrigger className="rounded-none px-4 py-3" value="tasks">Minhas tarefas ({taskTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="requests">Minhas solicitacoes ({requestTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="errors">Com erro</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="finished">Finalizadas</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="jobs">Jobs e sincronizacoes</TabsTrigger></TabsList></div>
-          {activeTab === "jobs" ? <TabsContent value="jobs" className="m-0"><JobsTable jobs={moduleJobs} states={states} loading={loading} /></TabsContent> : <TabsContent value={activeTab} className="m-0"><RequestTable title={activeTab === "tasks" ? "Tarefas sob sua responsabilidade" : activeTab === "errors" ? "Solicitacoes com erro ou canceladas" : activeTab === "finished" ? "Solicitacoes finalizadas" : `Solicitacoes de ${moduleLabels[moduleSlug].toLowerCase()}`} emptyText={loading || requestsLoading ? "Carregando dados persistidos..." : "Nenhum registro encontrado para os filtros informados."} rows={visibleRows} onSelect={setSelectedRequest} /></TabsContent>}
+          <div className="overflow-x-auto border-b"><TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0"><TabsTrigger className="rounded-none px-4 py-3" value="tasks">Minhas tarefas ({taskTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="requests">{isAdmin ? "Todas as solicitacoes" : "Minhas solicitacoes"} ({myOpenRequestTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="errors">Com erro</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="finished">Finalizadas</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="jobs">Jobs e sincronizacoes</TabsTrigger></TabsList></div>
+          {activeTab === "jobs" ? (
+            <TabsContent value="jobs" className="m-0">
+              <JobsTable jobs={moduleJobs} states={states} loading={loading} />
+            </TabsContent>
+          ) : (
+            <TabsContent value={activeTab} className="m-0">
+              <RequestTable
+                title={activeTab === "tasks" ? "Tarefas sob sua responsabilidade" : activeTab === "errors" ? "Solicitacoes com erro ou canceladas" : activeTab === "finished" ? "Solicitacoes finalizadas" : `Solicitacoes de ${moduleLabels[moduleSlug].toLowerCase()}`}
+                emptyText={loading || requestsLoading ? "Carregando dados persistidos..." : "Nenhum registro encontrado para os filtros informados."}
+                rows={visibleRows}
+                fieldSettings={fieldSettings}
+                showPaymentHealth={moduleSlug === "pagamentos" && activeTab !== "errors" && activeTab !== "finished"}
+                referenceTime={referenceTime}
+                onSelect={(row) => void openRequestDetails(row)}
+              />
+            </TabsContent>
+          )}
         </Tabs>
         {requestTabActive ? (
           <div className="flex flex-col gap-3 border-t p-3 sm:flex-row sm:items-center sm:justify-between">
@@ -446,7 +608,7 @@ export function FluigModuleOperationsPage({
             <SheetDescription>
               {workspaceView === "launch"
                 ? "Preencha, valide e envie a solicitacao sem sair desta pagina."
-                : "Sincronize dados, consulte solicitacoes e configure o agente local."}
+                : "Sincronize dados, consulte solicitacoes e configure a credencial Fluig do usuario."}
             </SheetDescription>
             <div className="mt-3 flex w-fit rounded-lg border bg-muted/40 p-1" role="group" aria-label="Area de trabalho Fluig">
               <Button
@@ -487,7 +649,34 @@ export function FluigModuleOperationsPage({
         </SheetContent>
       </Sheet>
 
-      <Sheet open={Boolean(selectedRequest)} onOpenChange={(open) => { if (!open) setSelectedRequest(null); }}><SheetContent className="w-full sm:max-w-2xl"><SheetHeader><SheetTitle>{selectedRequest ? `Fluig ${selectedRequest.fluigRequestId}` : "Solicitacao Fluig"}</SheetTitle><SheetDescription>{selectedRequest?.supplierName || selectedRequest?.requester || "Detalhes sincronizados"}</SheetDescription></SheetHeader>{selectedRequest ? <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pb-6"><div className="grid gap-3 rounded-md border p-3 sm:grid-cols-2"><RequestDetail label="Referencia ADM" value={selectedRequest.admReference || "-"} /><RequestDetail label="Modulo" value={moduleLabels[moduleSlug]} /><RequestDetail label="Status" value={normalizeStatus(selectedRequest.normalizedStatus || selectedRequest.status)} /><RequestDetail label="Etapa atual" value={selectedRequest.currentTask || "-"} /><RequestDetail label="Responsavel" value={selectedRequest.taskOwner || "-"} /><RequestDetail label="Solicitante" value={selectedRequest.requester || "-"} /><RequestDetail label="Fornecedor" value={selectedRequest.supplierName || "-"} /><RequestDetail label="CNPJ" value={selectedRequest.supplierCnpj || "-"} /><RequestDetail label="Filial" value={selectedRequest.branchLabel || selectedRequest.branchCode || "-"} /><RequestDetail label="Prazo" value={formatDateTime(selectedRequest.dueDate)} /><RequestDetail label="Aberta em" value={formatDateTime(selectedRequest.openedAt)} /><RequestDetail label="Ultima sincronizacao" value={formatDateTime(selectedRequest.lastStatusCheckAt || selectedRequest.lastSyncedAt)} /></div><div className="flex flex-wrap gap-2"><Button type="button" onClick={() => void refreshSelectedRequest()} disabled={requestRefreshing}>{requestRefreshing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}Atualizar status</Button><Button type="button" variant="outline" onClick={() => { void navigator.clipboard.writeText(selectedRequest.fluigRequestId); toast.success("Numero Fluig copiado."); }}><Copy className="size-4" />Copiar numero</Button><Button type="button" variant="outline" asChild><a href={integration.openUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" />Abrir no Fluig</a></Button></div><section><h3 className="mb-2 font-medium">Historico operacional</h3><div className="rounded-md border p-3 text-sm text-muted-foreground"><p>Registro persistido em {formatDateTime(selectedRequest.lastSyncedAt)}.</p><p className="mt-1">Ultima consulta de status em {formatDateTime(selectedRequest.lastStatusCheckAt)}.</p>{selectedRequest.syncSource ? <p className="mt-1">Origem: {selectedRequest.syncSource.replaceAll("_", " ")}.</p> : null}</div></section></div> : null}</SheetContent></Sheet>
+      <RequestDetailSheet
+        request={selectedRequest}
+        details={selectedDetails}
+        loading={detailsLoading}
+        error={detailsError}
+        moduleSlug={moduleSlug}
+        fallbackFluigUrl={integration.openUrl}
+        refreshing={requestRefreshing}
+        selectedAttachmentSequence={selectedAttachmentSequence}
+        onSelectedAttachmentSequenceChange={setSelectedAttachmentSequence}
+        onRefresh={() => void refreshSelectedRequest()}
+        onClose={() => {
+          setSelectedRequest(null);
+          setSelectedDetails(null);
+          setDetailsError(null);
+          setSelectedAttachmentSequence(null);
+        }}
+        fieldSettings={fieldSettings}
+      />
+
+      {fieldSettingsOpen ? (
+        <FluigFieldSettingsSheet
+          settings={fieldSettings}
+          saving={fieldSettingsSaving}
+          onOpenChange={setFieldSettingsOpen}
+          onSave={saveFieldSettings}
+        />
+      ) : null}
     </div>
   );
 }
@@ -522,20 +711,15 @@ function PendingJobs({ jobs }: { jobs: FluigAdmJobSummary[] }) {
     <section className="rounded-md border bg-muted/20 p-3 text-sm">
       <div className="flex items-center gap-2 font-medium">
         <Loader2 className="size-4 animate-spin" />
-        Execucao em andamento
+        Execução em andamento
       </div>
-      <div className="mt-3 grid gap-2 md:grid-cols-2">
+      <div className="mt-3 grid gap-3">
         {jobs.map((job) => (
-          <div key={job.id} className="rounded-md border bg-background p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{job.operation.replaceAll("_", " ")}</p>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{job.id.slice(0, 8)}</p>
-              </div>
-              <StatusBadge status={normalizeJobStatus(job.status)} />
-            </div>
-            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{job.progressLabel || "Aguardando resposta do agente local."}</p>
-          </div>
+          <FluigJobProgressCard
+            key={job.id}
+            job={job}
+            contextLabel={moduleLabels[job.module as OperationalModuleSlug] || job.module}
+          />
         ))}
       </div>
     </section>
@@ -546,51 +730,64 @@ function RequestTable({
   title,
   rows,
   emptyText,
+  fieldSettings,
+  showPaymentHealth,
+  referenceTime,
   onSelect,
 }: {
   title: string;
   rows: FluigOpenRequestRecord[];
   emptyText: string;
+  fieldSettings: FluigFieldSetting[];
+  showPaymentHealth: boolean;
+  referenceTime: number;
   onSelect: (row: FluigOpenRequestRecord) => void;
 }) {
+  const columns = fieldSettings
+    .filter((field) => field.active && field.visibleInList)
+    .sort((left, right) => (left.listOrder ?? 9999) - (right.listOrder ?? 9999));
   return (
     <section className="stitch-animate-in rounded-lg border bg-background shadow-none">
-      <header className="flex flex-col gap-1 border-b p-4 md:flex-row md:items-center md:justify-between">
+      <header className="flex flex-col gap-3 border-b p-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-base font-semibold">{title}</h2>
           <p className="text-sm text-muted-foreground">{rows.length} registro(s) sincronizado(s)</p>
         </div>
+        {showPaymentHealth ? <PaymentHealthLegend /> : null}
       </header>
       {rows.length ? (
         <div className="overflow-x-auto"><Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Fluig</TableHead>
-              <TableHead>Fornecedor / solicitante</TableHead>
-              <TableHead>Filial</TableHead>
-              <TableHead>Etapa</TableHead>
-              <TableHead>Responsavel</TableHead>
-              <TableHead>Atualizado</TableHead>
-              <TableHead>Status</TableHead>
+              {columns.map((field) => <TableHead key={field.fieldKey}>{field.label}</TableHead>)}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((row) => (
-              <TableRow key={`${row.module}-${row.fluigRequestId}-${row.id}`} className="cursor-pointer" onClick={() => onSelect(row)}>
-                <TableCell className="font-medium">{row.fluigRequestId}</TableCell>
-                <TableCell className="min-w-[240px] max-w-[360px] whitespace-normal">
-                  <p className="font-medium">{row.supplierName || row.requester || "Solicitacao Fluig"}</p>
-                  <p className="text-xs text-muted-foreground">{row.supplierCnpj || row.admReference || "-"}</p>
-                </TableCell>
-                <TableCell className="min-w-[160px] max-w-[260px] whitespace-normal">{row.branchLabel || row.branchCode || "-"}</TableCell>
-                <TableCell className="min-w-[180px] max-w-[280px] whitespace-normal">{row.currentTask || "-"}</TableCell>
-                <TableCell className="min-w-[160px] max-w-[240px] whitespace-normal">{row.taskOwner || "-"}</TableCell>
-                <TableCell>{formatDateTime(row.lastStatusCheckAt || row.lastSyncedAt || row.lastSeenInUserOpenListAt)}</TableCell>
-                <TableCell>
-                  <StatusBadge status={normalizeStatus(row.normalizedStatus || row.status)} />
-                </TableCell>
-              </TableRow>
-            ))}
+            {rows.map((row) => {
+              const health = showPaymentHealth && referenceTime
+                ? classifyPaymentRequestHealth({
+                    dueDate: row.invoiceDueDate || row.dueDate || row.fieldValues?.vencPagNota,
+                    issueDate: row.fieldValues?.dataEmissaoNF,
+                    referenceTime,
+                  })
+                : null;
+              return (
+                <TableRow
+                  key={`${row.module}-${row.fluigRequestId}-${row.id}`}
+                  className={cn("cursor-pointer border-l-4", health && paymentHealthRowClasses[health.level])}
+                  onClick={() => onSelect(row)}
+                >
+                  {columns.map((field, index) => (
+                    <RequestFieldCell
+                      key={field.fieldKey}
+                      row={row}
+                      field={field}
+                      health={index === 0 ? health : null}
+                    />
+                  ))}
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table></div>
       ) : (
@@ -600,10 +797,457 @@ function RequestTable({
   );
 }
 
+function requestFieldValue(row: FluigOpenRequestRecord, fieldKey: string) {
+  const values: Record<string, string | number | null | undefined> = {
+    fluigRequestId: row.fluigRequestId,
+    admReference: row.admReference,
+    status: row.normalizedStatus || row.status,
+    currentTask: row.currentTask,
+    taskOwner: row.taskOwner,
+    requester: row.requester,
+    branchCode: row.branchCode,
+    branchLabel: row.branchLabel,
+    supplierName: row.supplierName,
+    supplierCnpj: row.supplierCnpj,
+    invoiceNumber: row.invoiceNumber,
+    invoiceDueDate: row.invoiceDueDate,
+    amountCents: row.amountCents,
+    dueDate: row.dueDate,
+    expenseNature: row.expenseNature,
+    openedAt: row.openedAt,
+  };
+  return values[fieldKey] ?? row.fieldValues?.[fieldKey] ?? null;
+}
+
+function requestFieldText(row: FluigOpenRequestRecord, field: FluigFieldSetting) {
+  const value = requestFieldValue(row, field.fieldKey);
+  if (field.fieldKey === "amountCents" || field.fieldKey === "valorNF" || field.fieldKey === "valorNFT") {
+    return field.fieldKey === "amountCents"
+      ? formatMoney(row.amountCents, row.currency || "BRL")
+      : String(value || "-");
+  }
+  if (field.fieldKey === "openedAt") {
+    return formatDate(String(value || ""));
+  }
+  if (["dueDate", "invoiceDueDate", "vencPagNota", "dataEmissaoNF"].includes(field.fieldKey)) {
+    return formatDate(String(value || ""));
+  }
+  return String(value ?? "").trim() || "-";
+}
+
+const paymentHealthRowClasses: Record<PaymentRequestHealthLevel, string> = {
+  outside_competence: "border-l-rose-700 bg-rose-100/80 hover:bg-rose-100 dark:bg-rose-950/35 dark:hover:bg-rose-950/50",
+  overdue: "border-l-red-500 bg-red-50/80 hover:bg-red-100/80 dark:bg-red-950/20 dark:hover:bg-red-950/35",
+  due_soon: "border-l-amber-500 bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/20 dark:hover:bg-amber-950/35",
+  ok: "border-l-emerald-500 bg-emerald-50/50 hover:bg-emerald-100/60 dark:bg-emerald-950/15 dark:hover:bg-emerald-950/25",
+  no_due_date: "border-l-slate-400 bg-slate-50/50 hover:bg-slate-100/60 dark:bg-slate-900/20 dark:hover:bg-slate-900/35",
+};
+
+const paymentHealthBadgeClasses: Record<PaymentRequestHealthLevel, string> = {
+  outside_competence: "border-rose-700 bg-rose-700 text-white",
+  overdue: "border-red-500 bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-100",
+  due_soon: "border-amber-500 bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100",
+  ok: "border-emerald-500 bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100",
+  no_due_date: "border-slate-400 bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100",
+};
+
+function PaymentHealthLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs" aria-label="Legenda da situação do pagamento">
+      <span className="text-muted-foreground">Situação:</span>
+      {([
+        ["outside_competence", "Fora da competência"],
+        ["overdue", "Atrasado"],
+        ["due_soon", "Vence em breve"],
+        ["ok", "Em dia"],
+      ] as const).map(([level, label]) => (
+        <span key={level} className={cn("rounded-full border px-2 py-0.5 font-medium", paymentHealthBadgeClasses[level])}>{label}</span>
+      ))}
+    </div>
+  );
+}
+
+function RequestFieldCell({
+  row,
+  field,
+  health,
+}: {
+  row: FluigOpenRequestRecord;
+  field: FluigFieldSetting;
+  health: ReturnType<typeof classifyPaymentRequestHealth> | null;
+}) {
+  const healthBadge = health ? (
+    <Badge className={cn("mt-1.5 whitespace-nowrap", paymentHealthBadgeClasses[health.level])} title={health.description}>
+      {health.label}
+    </Badge>
+  ) : null;
+  if (field.fieldKey === "status") {
+    return <TableCell>{healthBadge}<div className={healthBadge ? "mt-1.5" : ""}><StatusBadge status={normalizeStatus(row.normalizedStatus || row.status)} /></div></TableCell>;
+  }
+  if (field.fieldKey === "supplierName") {
+    return <TableCell className="min-w-[240px] max-w-[360px] whitespace-normal">{healthBadge}<p className={cn("font-medium", healthBadge && "mt-1.5")}>{requestFieldText(row, field)}</p><p className="text-xs text-muted-foreground">{row.branchLabel || row.branchCode || row.supplierCnpj || "-"}</p></TableCell>;
+  }
+  if (field.fieldKey === "currentTask") {
+    return <TableCell className="min-w-[220px] max-w-[340px] whitespace-normal">{healthBadge}<p className={healthBadge ? "mt-1.5" : ""}>{requestFieldText(row, field)}</p><p className="text-xs text-muted-foreground">{row.taskOwner || "Responsavel nao informado"}</p></TableCell>;
+  }
+  return <TableCell className="max-w-[320px] whitespace-normal">{healthBadge}<div className={healthBadge ? "mt-1.5" : ""}>{requestFieldText(row, field)}</div></TableCell>;
+}
+
+function RequestDetailSheet({
+  request,
+  details,
+  loading,
+  error,
+  moduleSlug,
+  fallbackFluigUrl,
+  refreshing,
+  selectedAttachmentSequence,
+  onSelectedAttachmentSequenceChange,
+  onRefresh,
+  onClose,
+  fieldSettings,
+}: {
+  request: FluigOpenRequestRecord | null;
+  details: FluigRequestDetails | null;
+  loading: boolean;
+  error: string | null;
+  moduleSlug: OperationalModuleSlug;
+  fallbackFluigUrl: string;
+  refreshing: boolean;
+  selectedAttachmentSequence: string | null;
+  onSelectedAttachmentSequenceChange: (sequence: string | null) => void;
+  onRefresh: () => void;
+  onClose: () => void;
+  fieldSettings: FluigFieldSetting[];
+}) {
+  if (!request) return null;
+  const fluigUrl = requestFluigUrl(request, details, fallbackFluigUrl);
+  const formFields = fieldSettings
+    .filter((field) => field.active && field.visibleInForm && field.sourceType === "form")
+    .sort((left, right) => (left.formOrder ?? 9999) - (right.formOrder ?? 9999))
+    .map((field) => [field.fieldKey, details?.formFields?.[field.fieldKey] || "", field.label] as const)
+    .filter(([, value]) => String(value || "").trim());
+  const panelFields = fieldSettings
+    .filter((field) => field.active && field.visibleInList && field.fieldKey !== "status")
+    .sort((left, right) => (left.listOrder ?? 9999) - (right.listOrder ?? 9999));
+  const selectedAttachment = details?.attachments.find((item) => item.sequence === selectedAttachmentSequence) || null;
+  const attachmentUrl = selectedAttachment
+    ? fluigAdmApi.requestAttachmentUrl({ module: moduleSlug, fluigRequestId: request.fluigRequestId, sequence: selectedAttachment.sequence })
+    : null;
+
+  return (
+    <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:max-w-none sm:data-[side=right]:w-[min(1180px,calc(100vw-2rem))] sm:data-[side=right]:max-w-none">
+        <SheetHeader className="shrink-0 border-b pr-14">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <SheetTitle>Solicitacao Fluig {request.fluigRequestId}</SheetTitle>
+              <SheetDescription>{request.supplierName || request.requester || "Detalhes da solicitacao"}</SheetDescription>
+            </div>
+            <StatusBadge status={normalizeStatus(request.normalizedStatus || request.status)} />
+          </div>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button type="button" size="sm" onClick={onRefresh} disabled={refreshing || loading}>
+              {refreshing || loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
+              Sincronizar esta solicitacao
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => { void navigator.clipboard.writeText(request.fluigRequestId); toast.success("Numero Fluig copiado."); }}>
+              <Copy className="size-4" />Copiar numero
+            </Button>
+            <Button type="button" size="sm" variant="outline" asChild>
+              <a href={fluigUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" />Abrir esta solicitacao no Fluig</a>
+            </Button>
+          </div>
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto bg-muted/10 p-4 sm:p-6">
+          {loading ? <div className="mb-4 flex items-center gap-2 rounded-md border bg-background p-3 text-sm"><Loader2 className="size-4 animate-spin" />Carregando formulario, historico e anexos gravados...</div> : null}
+          {error ? <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Os dados locais continuam disponiveis, mas a consulta detalhada ao Fluig falhou: {error}</div> : null}
+          {details?.warnings?.length ? <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{details.warnings.join(" ")}</div> : null}
+
+          <Tabs defaultValue="form" className="gap-4">
+            <div className="overflow-x-auto rounded-md border bg-background">
+              <TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0">
+                <TabsTrigger value="form" className="rounded-none px-4 py-3"><FileText className="size-4" />Formulario</TabsTrigger>
+                <TabsTrigger value="info" className="rounded-none px-4 py-3"><Eye className="size-4" />Informacoes</TabsTrigger>
+                <TabsTrigger value="history" className="rounded-none px-4 py-3"><History className="size-4" />Historico ({details?.history.length || 0})</TabsTrigger>
+                <TabsTrigger value="attachments" className="rounded-none px-4 py-3"><Paperclip className="size-4" />Anexos ({details?.attachments.length || 0})</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="form" className="m-0 space-y-4">
+              <section className="grid gap-3 rounded-md border bg-background p-4 sm:grid-cols-2 lg:grid-cols-4">
+                {panelFields.map((field) => <RequestDetail key={field.fieldKey} label={field.label} value={requestFieldText(request, field)} />)}
+              </section>
+              <section className="rounded-md border bg-background p-4">
+                <h3 className="mb-3 font-medium">Campos do formulario Fluig</h3>
+                {formFields.length ? (
+                  <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {formFields.map(([name, value, label]) => <RequestDetail key={name} label={label || fieldLabel(name)} value={value} />)}
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">Aguardando a consulta do formulario no Fluig.</p>}
+              </section>
+            </TabsContent>
+
+            <TabsContent value="info" className="m-0">
+              <section className="grid gap-4 rounded-md border bg-background p-4 sm:grid-cols-2 lg:grid-cols-3">
+                <RequestDetail label="Numero Fluig" value={request.fluigRequestId} />
+                <RequestDetail label="Referencia ADM" value={request.admReference || "-"} />
+                <RequestDetail label="Modulo" value={moduleLabels[moduleSlug]} />
+                <RequestDetail label="Etapa atual" value={request.currentTask || "-"} />
+                <RequestDetail label="Responsavel" value={request.taskOwner || "-"} />
+                <RequestDetail label="Solicitante" value={request.requester || "-"} />
+                <RequestDetail label="Fornecedor" value={request.supplierName || "-"} />
+                <RequestDetail label="CNPJ" value={request.supplierCnpj || "-"} />
+                <RequestDetail label="Filial" value={request.branchLabel || request.branchCode || "-"} />
+                <RequestDetail label="Aberta em" value={formatDate(request.openedAt)} />
+                <RequestDetail label="Ultima sincronizacao" value={formatDateTime(request.lastStatusCheckAt || request.lastSyncedAt)} />
+                <RequestDetail label="Detalhes sincronizados em" value={formatDateTime(details?.fetchedAt)} />
+              </section>
+            </TabsContent>
+
+            <TabsContent value="history" className="m-0">
+              <section className="rounded-md border bg-background p-4">
+                {details?.history.length ? (
+                  <div className="space-y-0">
+                    {details.history.map((entry, index) => (
+                      <div key={`${entry.sequence}-${index}`} className="relative border-l-2 border-muted pb-6 pl-6 last:pb-0">
+                        <span className="absolute -left-[7px] top-1 size-3 rounded-full border-2 border-background bg-primary" />
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="font-medium">{entry.user}</p>
+                            <p className="text-sm">{entry.activity || entry.detail || "Movimentacao registrada"}{entry.destination ? ` para ${entry.destination}` : ""}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{formatDateTime(entry.date) === "-" ? entry.date || "Data nao informada" : formatDateTime(entry.date)}</span>
+                        </div>
+                        {entry.detail && entry.detail !== entry.activity ? <p className="mt-2 text-sm text-muted-foreground">{entry.detail}</p> : null}
+                        {entry.observation ? <p className="mt-2 rounded-md bg-muted px-3 py-2 text-sm">{entry.observation}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">Nenhum item de historico retornado pelo Fluig.</p>}
+              </section>
+            </TabsContent>
+
+            <TabsContent value="attachments" className="m-0 space-y-4">
+              {details?.attachments.length ? (
+                <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+                  <div className="space-y-2">
+                    {details.attachments.map((attachment) => (
+                      <button
+                        type="button"
+                        key={attachment.sequence}
+                        onClick={() => onSelectedAttachmentSequenceChange(attachment.sequence)}
+                        className={cn("w-full rounded-md border bg-background p-3 text-left transition-colors hover:bg-muted/50", selectedAttachmentSequence === attachment.sequence ? "border-primary bg-primary/5" : "")}
+                      >
+                        <span className="flex items-start gap-3"><Paperclip className="mt-0.5 size-4 shrink-0" /><span className="min-w-0"><span className="block break-words text-sm font-medium">{attachment.name}</span><span className="mt-1 block text-xs text-muted-foreground">{formatFileSize(attachment.size)}{attachment.attachedBy ? ` - ${attachment.attachedBy}` : ""}</span></span></span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="min-h-[520px] overflow-hidden rounded-md border bg-background">
+                    {attachmentUrl && selectedAttachment ? (
+                      <iframe src={attachmentUrl} title={`Anexo ${selectedAttachment.name}`} className="h-[70vh] min-h-[520px] w-full bg-white" />
+                    ) : <div className="flex min-h-[520px] items-center justify-center p-8 text-center text-sm text-muted-foreground">Selecione um anexo para visualizar nesta tela.</div>}
+                  </div>
+                </div>
+              ) : <div className="rounded-md border bg-background p-8 text-center text-sm text-muted-foreground">Nenhum anexo retornado pelo Fluig.</div>}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function FluigFieldSettingsSheet({
+  settings,
+  saving,
+  onOpenChange,
+  onSave,
+}: {
+  settings: FluigFieldSetting[];
+  saving: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (settings: FluigFieldSetting[]) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState<FluigFieldSetting[]>(settings);
+  const [fieldSearch, setFieldSearch] = useState("");
+  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
+
+  function normalizeDisplayOrders(fields: FluigFieldSetting[]) {
+    let listPosition = 0;
+    let formPosition = 0;
+    return fields.map((field) => ({
+      ...field,
+      listOrder: field.active && field.visibleInList ? ++listPosition * 10 : null,
+      formOrder: field.active && field.visibleInForm ? ++formPosition * 10 : null,
+    }));
+  }
+
+  function updateField(id: string, changes: Partial<FluigFieldSetting>) {
+    setDraft((current) => normalizeDisplayOrders(current.map((item) => {
+      if (item.id !== id) return item;
+      const next = { ...item, ...changes };
+      if (changes.active === false) {
+        next.visibleInList = false;
+        next.visibleInForm = false;
+      }
+      if ((changes.visibleInList === true || changes.visibleInForm === true) && !next.active) next.active = true;
+      return next;
+    })));
+  }
+
+  function moveField(fieldId: string, targetFieldId: string) {
+    if (fieldId === targetFieldId) return;
+    setDraft((current) => {
+      const fromIndex = current.findIndex((field) => field.id === fieldId);
+      const targetIndex = current.findIndex((field) => field.id === targetFieldId);
+      if (fromIndex < 0 || targetIndex < 0) return current;
+      const next = [...current];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(targetIndex, 0, moved);
+      return normalizeDisplayOrders(next);
+    });
+  }
+
+  function moveFieldByOffset(fieldId: string, offset: -1 | 1) {
+    setDraft((current) => {
+      const index = current.findIndex((field) => field.id === fieldId);
+      const targetIndex = index + offset;
+      if (index < 0 || targetIndex < 0 || targetIndex >= current.length) return current;
+      const next = [...current];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return normalizeDisplayOrders(next);
+    });
+  }
+
+  function addFormField() {
+    setDraft((current) => normalizeDisplayOrders([...current, {
+      id: `new:${crypto.randomUUID()}`,
+      module: current[0]?.module || "pagamentos",
+      fieldKey: "",
+      label: "",
+      sourceType: "form",
+      active: true,
+      visibleInList: false,
+      listOrder: null,
+      visibleInForm: true,
+      formOrder: null,
+    }]));
+  }
+
+  const normalizedSearch = fieldSearch.trim().toLocaleLowerCase("pt-BR");
+  const formFieldDraft = draft.filter((field) => field.sourceType === "form" || field.fieldKey === "openedAt");
+  const visibleFields = normalizedSearch
+    ? formFieldDraft.filter((field) =>
+        [field.label, field.fieldKey, field.sampleValue || ""].some((value) =>
+          value.toLocaleLowerCase("pt-BR").includes(normalizedSearch),
+        ),
+      )
+    : formFieldDraft;
+  const discoveredCount = formFieldDraft.filter((field) => field.discovered).length;
+  const selectedCount = formFieldDraft.filter((field) => field.active && (field.visibleInList || field.visibleInForm)).length;
+
+  return (
+    <Sheet open onOpenChange={onOpenChange}>
+      <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:max-w-none sm:data-[side=right]:w-[min(980px,calc(100vw-2rem))] sm:data-[side=right]:max-w-none">
+        <SheetHeader className="shrink-0 border-b pr-14">
+          <SheetTitle>Campos disponíveis no painel</SheetTitle>
+          <SheetDescription>Os campos preenchidos na solicitação e a data de abertura podem ser organizados para facilitar a leitura da lista.</SheetDescription>
+        </SheetHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-medium">{formFieldDraft.length} campos disponíveis</p>
+              <p className="text-xs text-muted-foreground">{discoveredCount} encontrados automaticamente no formulário; {selectedCount} selecionados para exibição.</p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative min-w-72"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={fieldSearch} onChange={(event) => setFieldSearch(event.target.value)} placeholder="Buscar nome, campo ou exemplo" /></div>
+              <Button type="button" variant="outline" onClick={addFormField}><Plus className="size-4" />Adicionar campo</Button>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-md border">
+            <Table>
+              <TableHeader><TableRow><TableHead className="w-14"><span className="sr-only">Ordenar</span></TableHead><TableHead className="min-w-[420px]">Nome exibido e identificação</TableHead><TableHead className="w-24 text-center">Ativo</TableHead><TableHead className="w-24 text-center">Na lista</TableHead><TableHead className="w-32 text-center">No formulário</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {visibleFields.map((field) => (
+                  <TableRow
+                    key={field.id}
+                    className={cn("transition-colors", draggedFieldId === field.id && "bg-primary/5 opacity-60")}
+                    onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const sourceId = event.dataTransfer.getData("text/plain") || draggedFieldId;
+                      if (sourceId) moveField(sourceId, field.id);
+                      setDraggedFieldId(null);
+                    }}
+                  >
+                    <TableCell className="align-middle">
+                      <button
+                        type="button"
+                        draggable
+                        className="mx-auto flex size-9 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+                        aria-label={`Arrastar ${field.label} para ordenar`}
+                        title="Arraste para ordenar. Use as setas do teclado para mover."
+                        onDragStart={(event) => {
+                          setDraggedFieldId(field.id);
+                          event.dataTransfer.effectAllowed = "move";
+                          event.dataTransfer.setData("text/plain", field.id);
+                        }}
+                        onDragEnd={() => setDraggedFieldId(null)}
+                        onKeyDown={(event) => {
+                          if (event.key === "ArrowUp") { event.preventDefault(); moveFieldByOffset(field.id, -1); }
+                          if (event.key === "ArrowDown") { event.preventDefault(); moveFieldByOffset(field.id, 1); }
+                        }}
+                      >
+                        <GripVertical className="size-5" />
+                      </button>
+                    </TableCell>
+                    <TableCell className="min-w-[360px] whitespace-normal py-3">
+                      <p className="mb-1 text-xs font-medium text-foreground">Nome que aparecerá no painel</p>
+                      <Input value={field.label} onChange={(event) => updateField(field.id, { label: event.target.value })} placeholder="Digite o nome exibido" />
+                      {field.id.startsWith("new:") ? (
+                        <Input className="mt-2 font-mono text-xs" value={field.fieldKey} onChange={(event) => updateField(field.id, { fieldKey: event.target.value.trim() })} placeholder="nomeDoCampoNoFluig" />
+                      ) : (
+                        <p className="mt-2 break-all text-xs text-muted-foreground">
+                          {field.sourceType === "request" ? "Informação do processo: " : "Campo no Fluig: "}
+                          <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{field.fieldKey}</code>
+                        </p>
+                      )}
+                      <div className="mt-2 rounded-md border border-dashed bg-muted/30 px-3 py-2 text-xs">
+                        <span className="font-medium text-foreground">Exemplo preenchido: </span>
+                        <span className="break-words text-muted-foreground">{field.fieldKey === "openedAt" ? "23/07/2026" : field.sampleValue || "Ainda não há exemplo sincronizado para este campo."}</span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <Badge variant="outline">{field.sourceType === "request" ? "Informação da solicitação" : "Formulário Fluig"}</Badge>
+                        {field.discovered ? <Badge variant="secondary">Detectado automaticamente</Badge> : null}
+                        {field.occurrenceCount ? <span>Preenchido em {field.occurrenceCount.toLocaleString("pt-BR")} solicitação(ões)</span> : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center"><Checkbox checked={field.active} onCheckedChange={(checked) => updateField(field.id, { active: checked === true })} aria-label={`Ativar ${field.label}`} /></TableCell>
+                    <TableCell className="text-center"><Checkbox checked={field.visibleInList} onCheckedChange={(checked) => updateField(field.id, { visibleInList: checked === true })} aria-label={`Mostrar ${field.label} na lista`} /></TableCell>
+                    <TableCell className="text-center"><Checkbox checked={field.visibleInForm} disabled={field.sourceType !== "form"} onCheckedChange={(checked) => updateField(field.id, { visibleInForm: checked === true })} aria-label={`Mostrar ${field.label} no formulario`} /></TableCell>
+                  </TableRow>
+                ))}
+                {!visibleFields.length ? <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">Nenhum campo encontrado para esta busca.</TableCell></TableRow> : null}
+              </TableBody>
+            </Table>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">Os campos internos do Fluig ficam ocultos desta configuração. Histórico e metadados dos anexos continuam sincronizados nas abas detalhadas.</p>
+        </div>
+        <div className="flex shrink-0 justify-end gap-2 border-t p-4">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button type="button" onClick={() => void onSave(draft)} disabled={saving || !draft.some((field) => field.active && field.visibleInList)}>{saving ? <Loader2 className="size-4 animate-spin" /> : <Settings2 className="size-4" />}Salvar configuracao</Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function JobsTable({ jobs, states, loading }: { jobs: FluigAdmJobSummary[]; states: FluigUserSyncStateRecord[]; loading: boolean }) {
   if (loading && !jobs.length) return <EmptyTableText>Carregando jobs e sincronizacoes...</EmptyTableText>;
   if (!jobs.length && !states.length) return <EmptyTableText>Nenhum job ou sincronizacao registrado.</EmptyTableText>;
-  return <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Inicio</TableHead><TableHead>Operacao</TableHead><TableHead>Andamento</TableHead><TableHead>Tentativas</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{jobs.map((job) => <TableRow key={job.id}><TableCell className="whitespace-nowrap">{formatDateTime(job.createdAt)}</TableCell><TableCell><p className="font-medium">{job.operation.replaceAll("_", " ")}</p><p className="text-xs text-muted-foreground">{job.id.slice(0, 8)}</p></TableCell><TableCell className="min-w-72 whitespace-normal">{job.errorMessage || job.progressLabel || job.progressStage || "Aguardando agente local"}</TableCell><TableCell>{job.attempts}/{job.maxAttempts}</TableCell><TableCell><StatusBadge status={normalizeJobStatus(job.status)} /></TableCell></TableRow>)}</TableBody></Table>{states.length ? <div className="border-t p-3"><h3 className="mb-2 text-sm font-medium">Cursores de sincronizacao</h3><div className="grid gap-2 md:grid-cols-2">{states.map((state) => <div key={state.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-xs"><div><p className="font-medium">{syncTypeLabels[state.syncType]}</p><p className="text-muted-foreground">{formatDateTime(state.lastSuccessAt || state.lastErrorAt || state.updatedAt)}</p></div><Badge variant="outline">{state.status}</Badge></div>)}</div></div> : null}</div>;
+  return <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Inicio</TableHead><TableHead>Operacao</TableHead><TableHead>Andamento</TableHead><TableHead>Tentativas</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{jobs.map((job) => <TableRow key={job.id}><TableCell className="whitespace-nowrap">{formatDateTime(job.createdAt)}</TableCell><TableCell><p className="font-medium">{job.operation.replaceAll("_", " ")}</p><p className="text-xs text-muted-foreground">{job.id.slice(0, 8)}</p></TableCell><TableCell className="min-w-72 whitespace-normal">{job.errorMessage || job.progressLabel || job.progressStage || "Aguardando executor da VPS"}</TableCell><TableCell>{job.attempts}/{job.maxAttempts}</TableCell><TableCell><StatusBadge status={normalizeJobStatus(job.status)} /></TableCell></TableRow>)}</TableBody></Table>{states.length ? <div className="border-t p-3"><h3 className="mb-2 text-sm font-medium">Cursores de sincronizacao</h3><div className="grid gap-2 md:grid-cols-2">{states.map((state) => <div key={state.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-xs"><div><p className="font-medium">{syncTypeLabels[state.syncType]}</p><p className="text-muted-foreground">{formatDateTime(state.lastSuccessAt || state.lastErrorAt || state.updatedAt)}</p></div><Badge variant="outline">{state.status}</Badge></div>)}</div></div> : null}</div>;
 }
 
 function RequestDetail({ label, value }: { label: string; value: string }) {

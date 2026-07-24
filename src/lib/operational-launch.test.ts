@@ -14,14 +14,14 @@ function validPayment(overrides: Partial<OperationalLaunchValidateInput> = {}): 
     title: "Pagamento mensal",
     supplierId: "64578ca8-a0e0-42ca-bb44-5df1c5249cc7",
     supplierName: "Fornecedor Exemplo",
-    supplierCnpj: "12345678000199",
+    supplierCnpj: "11444777000161",
     branchCode: "1060",
     branchLabel: "1060 - Matriz",
     amountCents: 123456,
     dueDate: "2026-06-30",
     fieldOverrides: {
       fornecedorC: "Fornecedor Exemplo",
-      codCNPJ: "12345678000199",
+      codCNPJ: "11444777000161",
       unidadeFilial: "1060 - Matriz",
       codigonaturezaC: "Servicos",
       centroCusto: "8111001 - CD LOGISTICA",
@@ -76,7 +76,7 @@ describe("operational launch rules", () => {
     );
   });
 
-  it("exige fornecedor oficial e documento fiscal para pagamentos", () => {
+  it("aceita fornecedor novo identificado por CNPJ e exige documento fiscal", () => {
     expect(validateOperationalLaunch(validPayment())).toEqual([]);
     expect(
       validateOperationalLaunch(
@@ -85,10 +85,16 @@ describe("operational launch rules", () => {
           attachments: [{ name: "foto.jpg", mimeType: "image/jpeg", size: 1024 }],
         })
       )
-    ).toEqual([
-      "Selecione um fornecedor oficial ativo do cadastro ADM.",
-      "Anexe ao menos um PDF ou XML da nota fiscal.",
-    ]);
+    ).toEqual(["Anexe ao menos um PDF ou XML da nota fiscal."]);
+    expect(
+      validateOperationalLaunch(
+        validPayment({
+          supplierId: null,
+          supplierName: null,
+          supplierCnpj: null,
+        })
+      )
+    ).toContain("Informe o fornecedor e um CNPJ valido extraido da nota fiscal.");
   });
 
   it("exige ao menos um item estruturado para compras", () => {

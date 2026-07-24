@@ -70,6 +70,10 @@ async function fetchAttachments(page, processInstanceId) {
   return getJson(page, `/process-management/api/v2/requests/${processInstanceId}/attachments`);
 }
 
+async function fetchHistories(page, processInstanceId) {
+  return getJson(page, `/process-management/api/v2/requests/${processInstanceId}/histories?page=1&pageSize=1000`);
+}
+
 async function fetchDetails(page, processInstanceId, taskUserId) {
   const response = await postJson(page, "/ecm/api/rest/ecm/workflowView/findDetailsMyRequests", {
     processInstanceId: Number(processInstanceId),
@@ -132,10 +136,14 @@ async function downloadAttachment(page, processInstanceId, attachmentSequence, f
 
     return {
       status: response.status,
+      contentType: response.headers.get("content-type") || "application/octet-stream",
       base64: btoa(binary)
     };
   }, { requestId: processInstanceId, sequence: attachmentSequence, requestTimeoutMs: timeoutMs });
 
+  if (!Number.isInteger(result.status) || result.status < 200 || result.status >= 300) {
+    throw new Error(`Download do anexo Fluig falhou com HTTP ${result.status || "desconhecido"}.`);
+  }
   await fs.promises.writeFile(filePath, Buffer.from(result.base64, "base64"));
   return result;
 }
@@ -196,6 +204,7 @@ async function cancelRequest(page, processInstanceId, taskUserId, cancelText) {
 module.exports = {
   fetchRequest,
   fetchAttachments,
+  fetchHistories,
   fetchDetails,
   uploadFile,
   downloadAttachment,

@@ -82,7 +82,7 @@ export function evaluateFluigJobLifecycle(
     if (expiresAtMs && expiresAtMs <= nowMs) {
       return {
         action: "expire",
-        label: "Job expirou aguardando um agente local online. Inicie o agente e tente novamente.",
+        label: "Job expirou aguardando o executor interno da VPS. Tente novamente.",
       };
     }
     return { action: "keep" };
@@ -100,7 +100,7 @@ export function evaluateFluigJobLifecycle(
         : "";
     return {
       action: "expire",
-      label: `Execucao interrompida sem retorno do agente apos ${job.attempts} tentativa(s).${mutationWarning}`,
+      label: `Execucao interrompida sem retorno do executor da VPS apos ${job.attempts} tentativa(s).${mutationWarning}`,
     };
   }
 
@@ -108,7 +108,7 @@ export function evaluateFluigJobLifecycle(
   const newExpiresAt = new Date(nowMs + fluigJobQueueLifetimeMs(job.operation)).toISOString();
   return {
     action: "retry",
-    label: `Agente interrompeu a execucao. Nova tentativa ${job.attempts + 1}/${job.maxAttempts} agendada automaticamente.`,
+    label: `Executor da VPS interrompeu a execucao. Nova tentativa ${job.attempts + 1}/${job.maxAttempts} agendada automaticamente.`,
     nextAttemptAt,
     expiresAt: newExpiresAt,
   };

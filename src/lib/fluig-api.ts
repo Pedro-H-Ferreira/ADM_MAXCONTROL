@@ -90,13 +90,100 @@ export type FluigOpenRequestRecord = {
   branchLabel: string | null;
   supplierName: string | null;
   supplierCnpj: string | null;
+  invoiceNumber: string | null;
+  invoiceDueDate: string | null;
+  amountCents: number | null;
+  currency: string | null;
   dueDate: string | null;
+  expenseNature?: string | null;
+  sourceUrl: string | null;
   openedAt: string | null;
   lastSyncedAt: string | null;
   lastStatusCheckAt: string | null;
   lastSeenInUserOpenListAt: string | null;
   syncOwnerUserId: string | null;
   syncSource: string | null;
+  assignedFluigUserId?: string | null;
+  assignedUserId?: string | null;
+  assignedUserName?: string | null;
+  assignedUserEmail?: string | null;
+  membershipType?: "open_task" | "my_request";
+  membershipLastSeenAt?: string | null;
+  fieldValues?: Record<string, string>;
+  detailSyncedAt?: string | null;
+  detailSyncError?: string | null;
+};
+
+export type FluigFieldSetting = {
+  id: string;
+  module: FluigModuleSlug;
+  fieldKey: string;
+  label: string;
+  sourceType: "request" | "form";
+  active: boolean;
+  visibleInList: boolean;
+  listOrder: number | null;
+  visibleInForm: boolean;
+  formOrder: number | null;
+  discovered?: boolean;
+  occurrenceCount?: number;
+  sampleValue?: string | null;
+};
+
+export type FluigRequestDetails = {
+  requestId: string;
+  taskUserId: string | null;
+  sourceUrl: string;
+  fetchedAt: string;
+  formFields: Record<string, string>;
+  attachments: Array<{
+    sequence: string;
+    name: string;
+    description: string;
+    mimeType: string | null;
+    size: number | null;
+    documentId: string | null;
+    version: string | null;
+    attachedBy: string | null;
+    attachedAt: string | null;
+  }>;
+  history: Array<{
+    sequence: string;
+    user: string;
+    activity: string | null;
+    destination: string | null;
+    detail: string | null;
+    observation: string | null;
+    date: string | null;
+    automatic: boolean;
+  }>;
+  warnings: string[];
+};
+
+export type FluigTaskDashboardFilters = {
+  isAdmin: boolean;
+  users: Array<{
+    id: string;
+    displayName: string;
+    email: string | null;
+    role: string;
+    fluigUsername: string | null;
+    fluigUserId: string | null;
+    credentialConfigured: boolean;
+    taskSyncCompleted: boolean;
+  }>;
+  natures: Array<{ value: string; label: string; count?: number }>;
+  coverage: {
+    totalUsers: number;
+    configuredUsers: number;
+    syncedUsers: number;
+  };
+};
+
+export type FluigNatureFacet = {
+  value: string;
+  label: string;
+  count: number;
 };
 
 export type FluigUserSyncStateRecord = {
@@ -125,6 +212,8 @@ export type FluigUserSyncSkipped = {
 
 export type FluigUserSyncResponse = {
   success: true;
+  scope?: "self" | "all";
+  usersQueued?: number;
   openTasks?: {
     jobs: FluigAdmJobSummary[];
     skipped: FluigUserSyncSkipped[];
@@ -134,7 +223,7 @@ export type FluigUserSyncResponse = {
     skipped: FluigUserSyncSkipped[];
   };
   jobs: FluigAdmJobSummary[];
-  skipped: FluigUserSyncSkipped[];
+  skipped: Array<FluigUserSyncSkipped | { userId: string; displayName: string; reason: string }>;
   batches?: Array<{
     module: FluigModuleSlug;
     operation: Extract<FluigJobOperation, "sync_user_open_tasks" | "sync_user_open_requests">;
@@ -171,6 +260,9 @@ export const fluigAdmApi = {
   syncOpenTasksPath: "/api/fluig/adm/sync/open-tasks",
   syncMyRequestsPath: "/api/fluig/adm/sync/my-requests",
   requestLookupPath: "/api/fluig/adm/request/lookup",
+  requestDetailsPath: "/api/fluig/adm/request/details",
+  requestAttachmentPath: "/api/fluig/adm/request/attachment",
+  fieldSettingsPath: "/api/fluig/adm/field-settings",
   myTasksPath: "/api/fluig/adm/tasks/my",
   myOpenRequestsPath: "/api/fluig/adm/requests/my-open",
   requestsPath: "/api/fluig/adm/requests",
@@ -204,6 +296,16 @@ export const fluigAdmApi = {
       throw new Error(data.error || "Falha ao executar operacao Fluig");
     }
 
+    return data;
+  },
+  async put<TResponse>(path: string, payload: Record<string, unknown>) {
+    const response = await fetch(path, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = (await response.json()) as TResponse & { success?: boolean; error?: string };
+    if (!response.ok || data.success === false) throw new Error(data.error || "Falha ao salvar configuracao Fluig");
     return data;
   },
   async get<TResponse>(path: string) {
@@ -268,7 +370,12 @@ export const fluigAdmApi = {
 
     return data.agents || [];
   },
-  async syncUser(payload: { module?: FluigModuleSlug | "all" | "auto"; limit?: number }) {
+  async syncUser(payload: {
+    module?: FluigModuleSlug | "all" | "auto";
+    limit?: number;
+    scope?: "self" | "all";
+    userId?: string;
+  }) {
     return this.post<FluigUserSyncResponse>(this.syncUserPath, payload);
   },
   async syncHistorical(payload: {
@@ -412,23 +519,66 @@ export const fluigAdmApi = {
       launches: OperationalLaunchRecord[];
     }>(`${this.operationalLaunchesPath}?${params.toString()}`);
   },
-  async listMyTasks(limit = 20, module?: FluigModuleSlug) {
+  async listMyTasks(
+    limit = 20,
+    module?: FluigModuleSlug,
+    options: { scope?: "self" | "all"; userId?: string; nature?: string } = {}
+  ) {
     const params = new URLSearchParams({ limit: String(limit) });
     if (module) params.set("module", module);
+    if (options.scope) params.set("scope", options.scope);
+    if (options.userId) params.set("userId", options.userId);
+    if (options.nature) params.set("nature", options.nature);
     return this.get<{
       success: true;
       tasks: FluigOpenRequestRecord[];
       total: number;
+      scope: "self" | "all";
+      filters: FluigTaskDashboardFilters;
       persistence?: unknown;
     }>(`${this.myTasksPath}?${params.toString()}`);
   },
-  async listMyOpenRequests(limit = 20, module?: FluigModuleSlug) {
+  async getRequestDetails(payload: { module: FluigModuleSlug; fluigRequestId: string }) {
+    const params = new URLSearchParams({ module: payload.module, fluigRequestId: payload.fluigRequestId });
+    return this.get<{ success: true; details: FluigRequestDetails }>(`${this.requestDetailsPath}?${params.toString()}`);
+  },
+  async getFieldSettings(module: FluigModuleSlug, options: { discover?: boolean } = {}) {
+    const params = new URLSearchParams({ module });
+    if (options.discover) params.set("discover", "true");
+    return this.get<{ success: true; settings: FluigFieldSetting[]; configHash: string; discoveredCount: number; isAdmin: boolean }>(
+      `${this.fieldSettingsPath}?${params.toString()}`
+    );
+  },
+  async saveFieldSettings(module: FluigModuleSlug, settings: FluigFieldSetting[]) {
+    return this.put<{ success: true; settings: FluigFieldSetting[]; configHash: string; isAdmin: boolean }>(
+      this.fieldSettingsPath,
+      { module, settings }
+    );
+  },
+  requestAttachmentUrl(payload: { module: FluigModuleSlug; fluigRequestId: string; sequence: string }) {
+    const params = new URLSearchParams({
+      module: payload.module,
+      fluigRequestId: payload.fluigRequestId,
+      sequence: payload.sequence,
+    });
+    return `${this.requestAttachmentPath}?${params.toString()}`;
+  },
+  async listMyOpenRequests(
+    limit = 20,
+    module?: FluigModuleSlug,
+    options: { scope?: "self" | "all"; userId?: string; nature?: string } = {}
+  ) {
     const params = new URLSearchParams({ limit: String(limit) });
     if (module) params.set("module", module);
+    if (options.scope) params.set("scope", options.scope);
+    if (options.userId) params.set("userId", options.userId);
+    if (options.nature) params.set("nature", options.nature);
     return this.get<{
       success: true;
       requests: FluigOpenRequestRecord[];
       total: number;
+      scope: "self" | "all";
+      filters: FluigTaskDashboardFilters;
       persistence?: unknown;
     }>(`${this.myOpenRequestsPath}?${params.toString()}`);
   },
@@ -439,18 +589,29 @@ export const fluigAdmApi = {
     search?: string;
     status?: string;
     branch?: string;
+    nature?: string;
     open?: boolean | null;
     overdue?: boolean;
     errorOnly?: boolean;
+    mine?: boolean;
   }) {
     const params = new URLSearchParams({ module: input.module, page: String(input.page || 1), pageSize: String(input.pageSize || 30) });
     if (input.search) params.set("q", input.search);
     if (input.status) params.set("status", input.status);
     if (input.branch) params.set("branch", input.branch);
+    if (input.nature) params.set("nature", input.nature);
     if (input.open != null) params.set("open", String(input.open));
     if (input.overdue) params.set("overdue", "true");
     if (input.errorOnly) params.set("errorOnly", "true");
-    return this.get<{ success: true; page: number; pageSize: number; total: number; items: FluigOpenRequestRecord[] }>(`${this.requestsPath}?${params.toString()}`);
+    if (input.mine) params.set("mine", "true");
+    return this.get<{
+      success: true;
+      page: number;
+      pageSize: number;
+      total: number;
+      items: FluigOpenRequestRecord[];
+      natures: FluigNatureFacet[];
+    }>(`${this.requestsPath}?${params.toString()}`);
   },
   async listSyncState(module?: FluigModuleSlug) {
     const params = new URLSearchParams();

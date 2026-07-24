@@ -964,6 +964,86 @@ export async function createSupplier(
   return readSupplier(actor, supplierId);
 }
 
+export async function saveOperationalSupplierModel(input: {
+  actor: AppActor;
+  supplierId?: string | null;
+  supplierName: string;
+  supplierCnpj: string;
+  branchId: string;
+  sourceRequestId: string;
+  fieldOverrides: Record<string, string>;
+}) {
+  const client = assertServiceClient();
+  const cnpj = normalizeCnpj(input.supplierCnpj);
+  if (!cnpj || !isValidCnpj(cnpj)) throw new Error("CNPJ do fornecedor da nota fiscal e invalido.");
+
+  let supplierId = cleanText(input.supplierId);
+  if (!supplierId) {
+    const { data, error } = await client
+      .from("app_suppliers")
+      .select("id")
+      .eq("cnpj_normalizado", cnpj)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (error) throw error;
+    supplierId = data?.id ? String(data.id) : null;
+  }
+
+  const defaultPayload = {
+    ...input.fieldOverrides,
+    sourceRequestId: input.sourceRequestId,
+    latestFields: input.fieldOverrides,
+  };
+  if (!supplierId) {
+    const created = await createSupplier(
+      input.actor,
+      {
+        cnpj,
+        razaoSocial: input.supplierName,
+        fluigName: input.fieldOverrides.fornecedorC || input.supplierName,
+        fluigSupplierLabel: input.fieldOverrides.fornecedorC || input.supplierName,
+        defaultSourceRequestId: input.sourceRequestId,
+        defaultPayload,
+        sourceSystem: "LOCAL_FLUIG",
+        syncStatus: "SINCRONIZADO",
+        branchIds: [input.branchId],
+      },
+      {
+        systemManaged: true,
+        eventType: "operational_launch_supplier_created",
+        metadata: { sourceRequestId: input.sourceRequestId },
+      }
+    );
+    return created?.id || null;
+  }
+
+  const { data: links, error: linksError } = await client
+    .from("app_supplier_branch_links")
+    .select("branch_id")
+    .eq("supplier_id", supplierId);
+  if (linksError) throw linksError;
+  const branchIds = Array.from(new Set([...(links || []).map((link) => String(link.branch_id)), input.branchId]));
+  const updated = await updateSupplier(
+    input.actor,
+    supplierId,
+    {
+      defaultSourceRequestId: input.sourceRequestId,
+      defaultPayload,
+      fluigName: input.fieldOverrides.fornecedorC || input.supplierName,
+      fluigSupplierLabel: input.fieldOverrides.fornecedorC || input.supplierName,
+      sourceSystem: "LOCAL_FLUIG",
+      syncStatus: "SINCRONIZADO",
+      branchIds,
+    },
+    {
+      systemManaged: true,
+      eventType: "operational_launch_model_saved",
+      metadata: { sourceRequestId: input.sourceRequestId },
+    }
+  );
+  return updated?.id || supplierId;
+}
+
 export async function readSupplier(actor: AppActor, id: string) {
   const client = assertServiceClient();
   const { data, error } = await client

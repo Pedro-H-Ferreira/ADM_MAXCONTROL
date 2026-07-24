@@ -60,7 +60,7 @@ const terminalStates = new Set<FluigProjectedState>([
 
 const defaultLabels: Record<FluigProjectedState, string> = {
   idle: "Sem sincronizacao",
-  queued: "Aguardando agente local",
+  queued: "Aguardando executor da VPS",
   running: "Execucao em andamento",
   retry_wait: "Nova tentativa agendada",
   succeeded: "Sincronizado",

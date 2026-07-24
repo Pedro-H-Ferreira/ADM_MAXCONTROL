@@ -698,6 +698,54 @@ async function listActorPageAccess(client: SupabaseClient, profile: AppUserProfi
   return normalizePageAccessRows(explicitRows, profile.role);
 }
 
+async function hydrateAppActor(client: SupabaseClient, profile: AppUserProfile): Promise<AppActor> {
+  const branches = await listActorBranches(client, profile);
+  const pageAccess = await listActorPageAccess(client, profile);
+  const pageSlugs = normalizePageSlugs(pageAccess.filter((page) => page.canView).map((page) => page.pageSlug));
+  return {
+    ...profile,
+    isAdmin: isAdminRole(profile.role),
+    branches,
+    branchCodes: branches.map((branch) => branch.code),
+    pageSlugs,
+    pageAccess,
+  };
+}
+
+export async function resolveAppActorByProfileId(profileId: string) {
+  const client = assertServiceClient();
+  const { data, error } = await client
+    .from("app_user_profiles")
+    .select("*")
+    .eq("id", profileId)
+    .eq("active", true)
+    .eq("approval_status", "APPROVED")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new AppAuthError("Perfil do usuario do lancamento nao encontrado.", 403, "USER_NOT_FOUND");
+  return hydrateAppActor(client, mapProfile(data as DbProfileRow));
+}
+
+export async function listConfiguredFluigUserActors() {
+  const client = assertServiceClient();
+  const { data: credentials, error: credentialsError } = await client
+    .from("fluig_user_credentials")
+    .select("user_id");
+  if (credentialsError) throw credentialsError;
+  const userIds = Array.from(new Set((credentials || []).map((row) => String(row.user_id)).filter(Boolean)));
+  if (!userIds.length) return [];
+
+  const { data: profiles, error: profilesError } = await client
+    .from("app_user_profiles")
+    .select("*")
+    .in("id", userIds)
+    .eq("active", true)
+    .eq("approval_status", "APPROVED")
+    .order("display_name", { ascending: true });
+  if (profilesError) throw profilesError;
+  return Promise.all(((profiles || []) as DbProfileRow[]).map((row) => hydrateAppActor(client, mapProfile(row))));
+}
+
 async function resolveCurrentAppUserUncached(
   allowFallback: boolean,
   requireApproved: boolean
@@ -718,18 +766,7 @@ async function resolveCurrentAppUserUncached(
     throw new AppAuthError("Usuario aguardando liberacao do administrador.", 403, profile.approvalStatus);
   }
 
-  const branches = await listActorBranches(client, profile);
-  const pageAccess = await listActorPageAccess(client, profile);
-  const pageSlugs = normalizePageSlugs(pageAccess.filter((page) => page.canView).map((page) => page.pageSlug));
-
-  return {
-    ...profile,
-    isAdmin: isAdminRole(profile.role),
-    branches,
-    branchCodes: branches.map((branch) => branch.code),
-    pageSlugs,
-    pageAccess,
-  };
+  return hydrateAppActor(client, profile);
 }
 
 const resolveCurrentAppUserCached = cache(resolveCurrentAppUserUncached);
@@ -1098,24 +1135,19 @@ export async function listAgentsForActor(actor: AppActor) {
   return ((data || []) as DbAgentRow[]).map(mapAgent);
 }
 
-async function assertOnlineAgentForActor(client: SupabaseClient, actor: AppActor) {
-  const heartbeatCutoff = new Date(Date.now() - agentHeartbeatOnlineWindowMs).toISOString();
+async function assertFluigCredentialsForActor(client: SupabaseClient, actor: AppActor) {
   const { data, error } = await client
-    .from("fluig_user_agents")
-    .select("id")
+    .from("fluig_user_credentials")
+    .select("user_id")
     .eq("user_id", actor.id)
-    .eq("status", "online")
-    .gte("last_heartbeat_at", heartbeatCutoff)
-    .order("last_heartbeat_at", { ascending: false })
-    .limit(1)
     .maybeSingle();
   if (error) throw error;
   if (data) return;
 
   throw new AppAuthError(
-    "Nenhum agente Fluig online esta pareado com este usuario. Gere o token neste mesmo login, inicie o agente local e tente novamente.",
+    "Credenciais Fluig nao cadastradas para este usuario. Solicite ao administrador o preenchimento do usuario e da senha Fluig no cadastro de usuarios.",
     409,
-    "FLUIG_AGENT_OFFLINE"
+    "FLUIG_CREDENTIALS_MISSING"
   );
 }
 
@@ -1298,7 +1330,7 @@ export async function createFluigJob(input: {
 
   const selectedBranch = branchByCode || branchByLabel || input.actor.branches[0];
   await reconcileFluigJobLifecycle(client, input.actor.id);
-  await assertOnlineAgentForActor(client, input.actor);
+  await assertFluigCredentialsForActor(client, input.actor);
 
   const requestPayload = input.requestPayload || {};
   const branchCode = requestedBranchCode || selectedBranch?.code || null;
@@ -1521,6 +1553,59 @@ export async function pollNextAgentJob(agent: { id: string; userId: string }) {
     .maybeSingle();
   if (error) throw error;
   return data ? mapJob(data as DbJobRow) : null;
+}
+
+export async function claimNextServerFluigJob() {
+  const client = assertServiceClient();
+  const { data, error } = await client
+    .rpc("claim_next_fluig_server_job")
+    .maybeSingle();
+  if (error) throw error;
+  return data ? mapJob(data as DbJobRow) : null;
+}
+
+export async function recordServerFluigJobEvent(input: {
+  jobId: string;
+  eventType: string;
+  stage?: string | null;
+  label?: string | null;
+  payload?: JsonRecord;
+  status?: FluigJobStatus;
+}) {
+  const client = assertServiceClient();
+  const { data, error } = await client
+    .rpc("transition_fluig_server_job", {
+      p_job_id: input.jobId,
+      p_event_type: input.eventType,
+      p_stage: input.stage || null,
+      p_label: input.label || null,
+      p_status: input.status || null,
+      p_event_payload: input.payload || {},
+    })
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Job Fluig nao esta mais atribuido ao executor da VPS.");
+  return mapJob(data as DbJobRow);
+}
+
+export async function completeServerFluigJob(input: {
+  jobId: string;
+  status: "success" | "error" | "cancelled";
+  resultPayload?: JsonRecord;
+  errorMessage?: string | null;
+}) {
+  const client = assertServiceClient();
+  const { data, error } = await client
+    .rpc("complete_fluig_server_job", {
+      p_job_id: input.jobId,
+      p_status: input.status,
+      p_result_payload: input.resultPayload || {},
+      p_error_message: input.errorMessage || null,
+    })
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Job Fluig nao esta mais atribuido ao executor da VPS.");
+  return mapJob(data as DbJobRow);
 }
 
 export async function readJobForAgent(agent: { id: string; userId: string }, jobId: string) {

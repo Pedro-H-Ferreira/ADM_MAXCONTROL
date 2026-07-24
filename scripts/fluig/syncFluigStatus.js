@@ -3,7 +3,8 @@ const path = require("path");
 const fs = require("fs");
 const config = require("./config");
 const { loginWithBrowser } = require("./api/session");
-const { fetchDetails, fetchRequest } = require("./api/workflowViewApi");
+const { fetchAttachments, fetchDetails, fetchHistories, fetchRequest } = require("./api/workflowViewApi");
+const { normalizeAttachments, normalizeFormFields, normalizeHistory } = require("./requestDetails").__test;
 
 function nowStamp() {
   return new Date().toISOString().replace(/[:.]/g, "-");
@@ -17,12 +18,17 @@ function parseArgs() {
     .filter((arg) => !arg.startsWith("--"))
     .map((value) => value.trim())
     .filter(Boolean);
+  const fieldsArg = process.argv.find((arg) => arg.startsWith("--detail-fields-json="));
+  const hashArg = process.argv.find((arg) => arg.startsWith("--detail-config-hash="));
+  let detailFields = [];
+  try { detailFields = fieldsArg ? JSON.parse(fieldsArg.slice("--detail-fields-json=".length)) : []; } catch { detailFields = []; }
+  const detailConfigHash = hashArg ? hashArg.slice("--detail-config-hash=".length) : "";
 
   if (requestIds.length === 0) {
     throw new Error("Uso: node src/syncFluigStatus.js <numeroFluig> [outrosNumeros] [--task-user-id=00130]");
   }
 
-  return { taskUserId, requestIds };
+  return { taskUserId, requestIds, detailFields, detailConfigHash };
 }
 
 function emitProgress(payload) {
@@ -45,31 +51,35 @@ function normalizeDateOnly(value) {
   return null;
 }
 
-function buildFieldsMap(formFields = []) {
-  return Object.fromEntries(
-    formFields.map((item) => [String(item.field || "").trim(), item.value == null ? "" : String(item.value)])
-  );
+function requestSourceUrl(requestId, taskUserId) {
+  const url = new URL("/portal/p/1/pageworkflowview", config.urls.base);
+  url.searchParams.set("app_ecm_workflowview_detailsProcessInstanceID", requestId);
+  if (taskUserId) url.searchParams.set("taskUserId", taskUserId);
+  return url.toString();
 }
 
-async function fetchPaymentDueDate(page, requestId) {
-  try {
-    const request = await fetchRequest(page, requestId);
-    const fields = buildFieldsMap(request?.formFields || []);
-    return {
-      raw: fields.vencPagNota || "",
-      normalized: normalizeDateOnly(fields.vencPagNota),
-    };
-  } catch (error) {
-    return {
-      raw: "",
-      normalized: null,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
+async function fetchDetailSnapshot(page, requestId, taskUserId, allowedFields) {
+  const [request, attachments, histories] = await Promise.all([
+    fetchRequest(page, requestId),
+    fetchAttachments(page, requestId).catch((error) => ({ items: [], error: error.message })),
+    fetchHistories(page, requestId).catch((error) => ({ items: [], error: error.message })),
+  ]);
+  const allFields = normalizeFormFields(request);
+  const fieldSet = new Set(allowedFields);
+  return {
+    requestId: String(requestId),
+    taskUserId: taskUserId || null,
+    sourceUrl: requestSourceUrl(requestId, taskUserId),
+    fetchedAt: new Date().toISOString(),
+    formFields: Object.fromEntries(Object.entries(allFields).filter(([name]) => fieldSet.has(name))),
+    attachments: normalizeAttachments(attachments),
+    history: normalizeHistory(histories),
+    warnings: [attachments.error, histories.error].filter(Boolean),
+  };
 }
 
 async function main() {
-  const { taskUserId, requestIds } = parseArgs();
+  const { taskUserId, requestIds, detailFields, detailConfigHash } = parseArgs();
   emitProgress({
     stage: "login",
     label: "Abrindo sessao autenticada no Fluig",
@@ -100,7 +110,11 @@ async function main() {
 
       try {
         const details = await fetchDetails(page, requestId, taskUserId);
-        const paymentDueDate = await fetchPaymentDueDate(page, requestId);
+        const detailSnapshot = await fetchDetailSnapshot(page, requestId, taskUserId, detailFields);
+        const paymentDueDate = {
+          raw: detailSnapshot.formFields.vencPagNota || "",
+          normalized: normalizeDateOnly(detailSnapshot.formFields.vencPagNota),
+        };
         const content = details?.content || {};
         const currentState = Array.isArray(content.currentStates) ? content.currentStates[0] : null;
         const etapaAtual = String(content.stateDescription || currentState?.stateDescription || "");
@@ -133,6 +147,8 @@ async function main() {
           cancelavel: Boolean(content.cancelable),
           prazoTexto: String(content.dateExpires || currentState?.deadlineText || ""),
           dataUltimaConsulta: new Date().toISOString(),
+          detailSnapshot,
+          detailConfigHash,
         });
 
         emitProgress({

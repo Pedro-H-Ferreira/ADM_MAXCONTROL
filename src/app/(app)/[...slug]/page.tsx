@@ -27,6 +27,7 @@ export function generateStaticParams() {
     { slug: ["contratos", "demo"] },
     { slug: ["despesas", "nova"] },
     { slug: ["despesas", "demo"] },
+    { slug: ["pagamentos", "contas-mensais"] },
     { slug: ["compras", "nova"] },
     { slug: ["compras", "demo"] },
     { slug: ["manutencao", "nova"] },

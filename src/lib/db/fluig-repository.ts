@@ -1,5 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { filterRowsForActor, fluigModuleSlugsForActor, type AppActor } from "@/lib/db/app-repository";
+import { createHash } from "node:crypto";
+import {
+  AppAuthError,
+  canActorAccessPage,
+  filterRowsForActor,
+  fluigModuleSlugsForActor,
+  type AppActor,
+} from "@/lib/db/app-repository";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 import type {
@@ -14,6 +21,11 @@ import type {
 import type { FluigProcessMap } from "@/lib/fluig/process-map";
 import { normalizeFluigBranch } from "@/lib/fluig-branch";
 import { buildFluigActorPostgrestFilter } from "@/lib/fluig-visibility";
+import {
+  buildMonthlyExpenseDashboard,
+  isMonthlyExpensePattern,
+  type MonthlyExpenseSourceRow,
+} from "@/lib/monthly-expense-monitor";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -37,6 +49,7 @@ type FluigRequestDbRow = {
   amount_cents: number | null;
   currency: string | null;
   due_date: string | null;
+  expense_nature?: string | null;
   opened_at: string | null;
   last_synced_at: string | null;
   is_open?: boolean | null;
@@ -49,7 +62,42 @@ type FluigRequestDbRow = {
   last_seen_in_user_request_list_at?: string | null;
   sync_owner_user_id?: string | null;
   sync_source?: string | null;
+  source_url?: string | null;
   raw_payload?: JsonRecord;
+  detail_snapshot?: JsonRecord;
+  detail_synced_at?: string | null;
+  detail_movement_sequence?: number | null;
+  detail_config_hash?: string | null;
+  detail_sync_error?: string | null;
+};
+
+export type FluigFieldSetting = {
+  id: string;
+  module: FluigModuleSlug;
+  fieldKey: string;
+  label: string;
+  sourceType: "request" | "form";
+  active: boolean;
+  visibleInList: boolean;
+  listOrder: number | null;
+  visibleInForm: boolean;
+  formOrder: number | null;
+  discovered?: boolean;
+  occurrenceCount?: number;
+  sampleValue?: string | null;
+};
+
+type DiscoveredFluigFieldRow = {
+  field_key: string;
+  occurrence_count: number | string | null;
+  sample_value?: string | null;
+};
+
+type FluigRequestUserMembershipDbRow = {
+  fluig_user_id: string;
+  membership_type: "open_task" | "my_request";
+  last_seen_at: string;
+  request: FluigRequestDbRow | FluigRequestDbRow[];
 };
 
 type FluigSupplierCandidateDbRow = {
@@ -135,6 +183,7 @@ const fluigRequestSelect = [
   "amount_cents",
   "currency",
   "due_date",
+  "expense_nature",
   "opened_at",
   "last_synced_at",
   "is_open",
@@ -147,7 +196,13 @@ const fluigRequestSelect = [
   "last_seen_in_user_request_list_at",
   "sync_owner_user_id",
   "sync_source",
+  "source_url",
   "raw_payload",
+  "detail_snapshot",
+  "detail_synced_at",
+  "detail_movement_sequence",
+  "detail_config_hash",
+  "detail_sync_error",
 ].join(",");
 
 const fluigRequestSummarySelect = [
@@ -170,6 +225,7 @@ const fluigRequestSummarySelect = [
   "amount_cents",
   "currency",
   "due_date",
+  "expense_nature",
   "opened_at",
   "last_synced_at",
   "is_open",
@@ -182,6 +238,23 @@ const fluigRequestSummarySelect = [
   "last_seen_in_user_request_list_at",
   "sync_owner_user_id",
   "sync_source",
+  "source_url",
+  "raw_payload",
+].join(",");
+
+const monthlyExpenseRequestSelect = [
+  "id",
+  "fluig_request_id",
+  "status",
+  "normalized_status",
+  "branch_code",
+  "branch_label",
+  "supplier_name",
+  "supplier_cnpj",
+  "expense_nature",
+  "amount_cents",
+  "opened_at",
+  "last_synced_at",
 ].join(",");
 
 function emptyResult(): PersistenceResult {
@@ -203,6 +276,95 @@ function normalizeName(value: unknown) {
     .replace(/[^a-zA-Z0-9]+/g, " ")
     .trim()
     .toUpperCase();
+}
+
+const fluigFieldLabelOverrides: Record<string, string> = {
+  nNotaFiscal: "Numero da NF",
+  valorNF: "Valor da NF",
+  valorNFT: "Valor total da NF",
+  vencPagNota: "Data de vencimento",
+  dataEmissaoNF: "Data de emissao",
+  codigonaturezaC: "Natureza de despesa",
+  fornecedorC: "Fornecedor",
+  codCNPJ: "CNPJ",
+  unidadeFilial: "Filial",
+  centroCusto: "Centro de custo",
+  formaPagamento: "Forma de pagamento",
+  descricaoDemandaEnvio: "Descricao da demanda",
+};
+
+export function fluigFieldLabelFromKey(fieldKey: string) {
+  if (fluigFieldLabelOverrides[fieldKey]) return fluigFieldLabelOverrides[fieldKey];
+  const [baseKey, rowNumber] = fieldKey.split("___", 2);
+  const label = baseKey
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
+  return rowNumber ? `${label} - linha ${rowNumber}` : label;
+}
+
+export function mergeFluigFieldSettingsWithDiscovered(
+  module: FluigModuleSlug,
+  settings: FluigFieldSetting[],
+  discoveredRows: DiscoveredFluigFieldRow[]
+) {
+  const discoveredByKey = new Map(
+    discoveredRows
+      .map((row) => ({
+        fieldKey: String(row.field_key || "").trim(),
+        occurrenceCount: Math.max(0, Number(row.occurrence_count || 0)),
+        sampleValue: String(row.sample_value || "").trim() || null,
+      }))
+      .filter((row) => row.fieldKey)
+      .map((row) => [row.fieldKey, row])
+  );
+  const configuredKeys = new Set(settings.map((setting) => setting.fieldKey));
+  const configured = settings.map((setting) => ({
+    ...setting,
+    discovered: false,
+    occurrenceCount: discoveredByKey.get(setting.fieldKey)?.occurrenceCount || 0,
+    sampleValue: discoveredByKey.get(setting.fieldKey)?.sampleValue || null,
+  }));
+  const discovered = Array.from(discoveredByKey.values())
+    .filter((row) => !configuredKeys.has(row.fieldKey))
+    .map((row) => ({
+      id: `discovered:${module}:${row.fieldKey}`,
+      module,
+      fieldKey: row.fieldKey,
+      label: fluigFieldLabelFromKey(row.fieldKey),
+      sourceType: "form" as const,
+      active: false,
+      visibleInList: false,
+      listOrder: null,
+      visibleInForm: false,
+      formOrder: null,
+      discovered: true,
+      occurrenceCount: row.occurrenceCount,
+      sampleValue: row.sampleValue,
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label, "pt-BR", { numeric: true, sensitivity: "base" }));
+
+  return [...configured, ...discovered];
+}
+
+export type FluigNatureFacet = {
+  value: string;
+  label: string;
+  count: number;
+};
+
+export function buildFluigNatureFacets(values: Array<string | null | undefined>): FluigNatureFacet[] {
+  const counts = new Map<string, number>();
+
+  for (const value of values) {
+    const normalized = String(value || "").trim();
+    if (!normalized) continue;
+    counts.set(normalized, (counts.get(normalized) || 0) + 1);
+  }
+
+  return Array.from(counts, ([value, count]) => ({ value, label: value, count })).sort((left, right) =>
+    left.label.localeCompare(right.label, "pt-BR", { numeric: true, sensitivity: "base" })
+  );
 }
 
 export function normalizeFluigRequestLifecycle(
@@ -313,6 +475,7 @@ function normalizedCnpjList(values: unknown[]) {
 }
 
 function mapFluigRequestRecord(row: FluigRequestDbRow) {
+  const formFields = formFieldsFromPayload(row.raw_payload || {});
   return {
     id: row.id,
     module: row.module_slug,
@@ -328,14 +491,130 @@ function mapFluigRequestRecord(row: FluigRequestDbRow) {
     branchLabel: row.branch_label,
     supplierName: row.supplier_name,
     supplierCnpj: row.supplier_cnpj,
+    invoiceNumber: firstStringField(formFields, ["nNotaFiscal", "numeroNF", "notaFiscal", "numNota", "numeroNota"]) || null,
+    invoiceDueDate: firstStringField(formFields, ["vencPagNota", "vencimentoNF", "dataVencimentoNF"]) || null,
+    amountCents: row.amount_cents,
+    currency: row.currency || "BRL",
     dueDate: row.due_date,
+    expenseNature: row.expense_nature || null,
+    sourceUrl: row.source_url || null,
     openedAt: row.opened_at,
     lastSyncedAt: row.last_synced_at,
     lastStatusCheckAt: row.last_status_check_at || null,
     lastSeenInUserOpenListAt: row.last_seen_in_user_open_list_at || null,
     syncOwnerUserId: row.sync_owner_user_id || null,
     syncSource: row.sync_source || null,
+    assignedFluigUserId: null as string | null,
+    membershipType: null as "open_task" | "my_request" | null,
+    membershipLastSeenAt: null as string | null,
+    fieldValues: formFields,
+    detailSnapshot: row.detail_snapshot || null,
+    detailSyncedAt: row.detail_synced_at || null,
+    detailSyncError: row.detail_sync_error || null,
   };
+}
+
+function mapFieldSetting(row: Record<string, unknown>): FluigFieldSetting {
+  return {
+    id: String(row.id || ""),
+    module: String(row.module_slug || "pagamentos") as FluigModuleSlug,
+    fieldKey: String(row.field_key || ""),
+    label: String(row.label || row.field_key || "Campo"),
+    sourceType: row.source_type === "request" ? "request" : "form",
+    active: row.active !== false,
+    visibleInList: row.visible_in_list === true,
+    listOrder: row.list_order == null ? null : Number(row.list_order),
+    visibleInForm: row.visible_in_form === true,
+    formOrder: row.form_order == null ? null : Number(row.form_order),
+  };
+}
+
+export function fluigFieldSettingsHash(settings: Array<Pick<FluigFieldSetting, "fieldKey" | "sourceType" | "active" | "visibleInList" | "visibleInForm">>) {
+  const active = settings
+    .filter((item) => item.active && (item.visibleInList || item.visibleInForm))
+    .map((item) => `${item.sourceType}:${item.fieldKey}:${Number(item.visibleInList)}:${Number(item.visibleInForm)}`)
+    .sort();
+  return createHash("sha256").update(JSON.stringify(active)).digest("hex").slice(0, 24);
+}
+
+export async function readFluigFieldSettings(module: FluigModuleSlug) {
+  return runWithDb(async (client) => {
+    const { data, error } = await client
+      .from("fluig_field_settings")
+      .select("id,module_slug,field_key,label,source_type,active,visible_in_list,list_order,visible_in_form,form_order")
+      .eq("module_slug", module)
+      .order("list_order", { ascending: true, nullsFirst: false })
+      .order("form_order", { ascending: true, nullsFirst: false })
+      .order("label", { ascending: true });
+    if (error) throw error;
+    const settings = (data || []).map((row) => mapFieldSetting(row as Record<string, unknown>));
+    return { settings, configHash: fluigFieldSettingsHash(settings) };
+  }).then(({ result, persistence }) => ({ ...(result || { settings: [], configHash: "" }), persistence }));
+}
+
+export async function readFluigFieldSettingsForConfiguration(module: FluigModuleSlug) {
+  return runWithDb(async (client) => {
+    const [settingsResult, discoveredResult] = await Promise.all([
+      client
+        .from("fluig_field_settings")
+        .select("id,module_slug,field_key,label,source_type,active,visible_in_list,list_order,visible_in_form,form_order")
+        .eq("module_slug", module)
+        .order("list_order", { ascending: true, nullsFirst: false })
+        .order("form_order", { ascending: true, nullsFirst: false })
+        .order("label", { ascending: true }),
+      client.rpc("list_fluig_form_field_keys", { p_module_slug: module }),
+    ]);
+    if (settingsResult.error) throw settingsResult.error;
+    if (discoveredResult.error) throw discoveredResult.error;
+
+    const storedSettings = (settingsResult.data || []).map((row) => mapFieldSetting(row as Record<string, unknown>));
+    const settings = mergeFluigFieldSettingsWithDiscovered(
+      module,
+      storedSettings,
+      (discoveredResult.data || []) as DiscoveredFluigFieldRow[]
+    );
+    return {
+      settings,
+      configHash: fluigFieldSettingsHash(storedSettings),
+      discoveredCount: settings.filter((setting) => setting.discovered).length,
+    };
+  }).then(({ result, persistence }) => ({
+    ...(result || { settings: [], configHash: "", discoveredCount: 0 }),
+    persistence,
+  }));
+}
+
+export async function replaceFluigFieldSettings(input: {
+  actor: AppActor;
+  module: FluigModuleSlug;
+  settings: Array<Omit<FluigFieldSetting, "id" | "module"> & { id?: string }>;
+}) {
+  return runWithDb(async (client) => {
+    if (!input.actor.isAdmin) throw new Error("Somente administradores podem configurar os campos Fluig.");
+    const rows = input.settings.map((item) => ({
+      module_slug: input.module,
+      field_key: String(item.fieldKey || "").trim(),
+      label: String(item.label || "").trim(),
+      source_type: item.sourceType,
+      active: Boolean(item.active),
+      visible_in_list: Boolean(item.active && item.visibleInList),
+      list_order: item.active && item.visibleInList ? item.listOrder : null,
+      visible_in_form: Boolean(item.active && item.visibleInForm),
+      form_order: item.active && item.visibleInForm ? item.formOrder : null,
+      updated_by_user_id: input.actor.id,
+      updated_at: new Date().toISOString(),
+    })).filter((item) => item.field_key && item.label);
+    if (!rows.length) throw new Error("Configure ao menos um campo Fluig.");
+    const { error } = await client.from("fluig_field_settings").upsert(rows, { onConflict: "module_slug,field_key" });
+    if (error) throw error;
+    const { data, error: readError } = await client
+      .from("fluig_field_settings")
+      .select("id,module_slug,field_key,label,source_type,active,visible_in_list,list_order,visible_in_form,form_order")
+      .eq("module_slug", input.module);
+    if (readError) throw readError;
+    const settings = (data || []).map((row) => mapFieldSetting(row as Record<string, unknown>));
+    return { settings, configHash: fluigFieldSettingsHash(settings) };
+  }).then(({ result, persistence }) => ({ ...(result || { settings: [], configHash: "" }), persistence }));
 }
 
 export async function listFluigRequestsForActor(input: {
@@ -346,15 +625,65 @@ export async function listFluigRequestsForActor(input: {
   search?: string | null;
   status?: string | null;
   branch?: string | null;
+  nature?: string | null;
   open?: boolean | null;
   overdue?: boolean;
   errorOnly?: boolean;
+  mine?: boolean;
 }) {
   return runWithDb(async (client) => {
     const allowedModules = new Set(fluigModuleSlugsForActor(input.actor));
     const page = Math.max(1, Number(input.page || 1));
     const pageSize = Math.min(Math.max(Number(input.pageSize || 30), 1), 100);
-    if (!allowedModules.has(input.module)) return { page, pageSize, total: 0, items: [] };
+    if (!allowedModules.has(input.module)) return { page, pageSize, total: 0, items: [], natures: [] };
+    const actorFilter = buildFluigActorPostgrestFilter(input.actor);
+    const scopeRequestsToMine = shouldScopeFluigRequestsToMine(input.actor, input.mine);
+    const mineFluigUserId = resolveFluigMineUserId(input.actor, input.mine);
+    const search = String(input.search || "").replace(/[%_,()]/g, " ").trim();
+    if (scopeRequestsToMine && !mineFluigUserId) {
+      return { page, pageSize, total: 0, items: [], natures: [] };
+    }
+
+    const loadNatureFacets = async () => {
+      const values: Array<string | null | undefined> = [];
+      const facetPageSize = 1000;
+
+      for (let offset = 0; ; offset += facetPageSize) {
+        let facetQuery = client
+          .from("fluig_requests")
+          .select("id,expense_nature,branch_code,created_by_user_id,sync_owner_user_id,fluig_requester_login,fluig_requester_code,requester")
+          .eq("module_slug", input.module)
+          .not("fluig_request_id", "is", null);
+        if (mineFluigUserId) {
+          facetQuery = facetQuery.eq("my_request_fluig_user_id", mineFluigUserId);
+        } else if (actorFilter) {
+          facetQuery = facetQuery.or(actorFilter);
+        }
+        if (input.open != null) facetQuery = facetQuery.eq("is_open", input.open);
+        if (input.status) facetQuery = facetQuery.ilike("normalized_status", input.status);
+        if (input.branch) facetQuery = facetQuery.eq("branch_code", input.branch);
+        if (input.overdue) facetQuery = facetQuery.eq("is_open", true).lt("due_date", new Date().toISOString());
+        if (input.errorOnly) {
+          facetQuery = facetQuery.in("normalized_status", ["erro", "error", "falha", "failed", "cancelado", "cancelled"]);
+        }
+        if (search) {
+          const pattern = `%${search}%`;
+          facetQuery = facetQuery.or(`fluig_request_id.ilike.${pattern},adm_reference.ilike.${pattern},supplier_name.ilike.${pattern},supplier_cnpj.ilike.${pattern},requester.ilike.${pattern},current_task.ilike.${pattern},task_owner.ilike.${pattern},raw_payload->formFields->>nNotaFiscal.ilike.${pattern}`);
+        }
+
+        const { data, error } = await facetQuery
+          .order("id", { ascending: true })
+          .range(offset, offset + facetPageSize - 1);
+        if (error) throw error;
+
+        const rows = filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[]);
+        values.push(...rows.map((row) => row.expense_nature));
+        if ((data || []).length < facetPageSize) break;
+      }
+
+      return buildFluigNatureFacets(values);
+    };
+
     let query = client
       .from("fluig_requests")
       .select(fluigRequestSummarySelect, { count: "exact" })
@@ -362,26 +691,113 @@ export async function listFluigRequestsForActor(input: {
       .not("fluig_request_id", "is", null)
       .order("last_status_check_at", { ascending: false, nullsFirst: false })
       .order("last_synced_at", { ascending: false, nullsFirst: false });
-    const actorFilter = buildFluigActorPostgrestFilter(input.actor);
-    if (actorFilter) query = query.or(actorFilter);
+    if (mineFluigUserId) {
+      query = query.eq("my_request_fluig_user_id", mineFluigUserId);
+    } else if (actorFilter) {
+      query = query.or(actorFilter);
+    }
     if (input.open != null) query = query.eq("is_open", input.open);
     if (input.status) query = query.ilike("normalized_status", input.status);
     if (input.branch) query = query.eq("branch_code", input.branch);
+    if (input.nature) query = query.eq("expense_nature", input.nature);
     if (input.overdue) query = query.eq("is_open", true).lt("due_date", new Date().toISOString());
     if (input.errorOnly) {
       query = query.in("normalized_status", ["erro", "error", "falha", "failed", "cancelado", "cancelled"]);
     }
-    const search = String(input.search || "").replace(/[%_,()]/g, " ").trim();
     if (search) {
       const pattern = `%${search}%`;
-      query = query.or(`fluig_request_id.ilike.${pattern},adm_reference.ilike.${pattern},supplier_name.ilike.${pattern},supplier_cnpj.ilike.${pattern},requester.ilike.${pattern},current_task.ilike.${pattern},task_owner.ilike.${pattern}`);
+      query = query.or(`fluig_request_id.ilike.${pattern},adm_reference.ilike.${pattern},supplier_name.ilike.${pattern},supplier_cnpj.ilike.${pattern},requester.ilike.${pattern},current_task.ilike.${pattern},task_owner.ilike.${pattern},raw_payload->formFields->>nNotaFiscal.ilike.${pattern}`);
     }
     const from = (page - 1) * pageSize;
-    const { data, error, count } = await query.range(from, from + pageSize - 1);
+    const [{ data, error, count }, natures] = await Promise.all([
+      query.range(from, from + pageSize - 1),
+      loadNatureFacets(),
+    ]);
     if (error) throw error;
     const visible = filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[]).map(mapFluigRequestRecord);
-    return { page, pageSize, total: count || 0, items: visible };
-  }).then(({ result, persistence }) => ({ ...(result || { page: 1, pageSize: 30, total: 0, items: [] }), persistence }));
+    return { page, pageSize, total: count || 0, items: visible, natures };
+  }).then(({ result, persistence }) => ({ ...(result || { page: 1, pageSize: 30, total: 0, items: [], natures: [] }), persistence }));
+}
+
+export function resolveFluigMineUserId(
+  actor: Pick<AppActor, "isAdmin" | "fluigUserId">,
+  mine: boolean | undefined
+) {
+  if (!shouldScopeFluigRequestsToMine(actor, mine)) return "";
+  return String(actor.fluigUserId || "").trim();
+}
+
+export function shouldScopeFluigRequestsToMine(
+  actor: Pick<AppActor, "isAdmin">,
+  mine: boolean | undefined
+) {
+  return Boolean(mine && !actor.isAdmin);
+}
+
+export async function readMonthlyExpenseDashboardForActor(input: {
+  actor: AppActor;
+  selectedMonth: string;
+  currentMonth: string;
+}) {
+  if (!canActorAccessPage(input.actor, "pagamentos")) {
+    throw new AppAuthError(
+      "Usuario sem acesso ao acompanhamento de contas mensais.",
+      403,
+      "MONTHLY_EXPENSE_ACCESS_DENIED"
+    );
+  }
+
+  return runWithDb(async (client) => {
+    const branchCodes = input.actor.branches.map((branch) => branch.code.trim()).filter(Boolean);
+    if (!input.actor.isAdmin && !branchCodes.length) {
+      return buildMonthlyExpenseDashboard([], {
+        selectedMonth: input.selectedMonth,
+        currentMonth: input.currentMonth,
+        historyLength: 6,
+      });
+    }
+    const rows: FluigRequestDbRow[] = [];
+    const pageSize = 1000;
+
+    for (let offset = 0; ; offset += pageSize) {
+      let query = client
+        .from("fluig_requests")
+        .select(monthlyExpenseRequestSelect)
+        .eq("module_slug", "pagamentos")
+        .not("fluig_request_id", "is", null)
+        .not("supplier_name", "is", null)
+        .not("expense_nature", "is", null)
+        .order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (!input.actor.isAdmin) query = query.in("branch_code", branchCodes);
+      const { data, error } = await query;
+      if (error) throw error;
+      rows.push(
+        ...((data || []) as unknown as FluigRequestDbRow[]).filter(
+          (row) => input.actor.isAdmin || Boolean(row.branch_code && branchCodes.includes(row.branch_code))
+        )
+      );
+      if ((data || []).length < pageSize) break;
+    }
+
+    return buildMonthlyExpenseDashboard(rows as MonthlyExpenseSourceRow[], {
+      selectedMonth: input.selectedMonth,
+      currentMonth: input.currentMonth,
+      historyLength: 6,
+    });
+  }).then(({ result, persistence }) => ({
+    ...(result ||
+      buildMonthlyExpenseDashboard([], {
+        selectedMonth: input.selectedMonth,
+        currentMonth: input.currentMonth,
+        historyLength: 6,
+      })),
+    persistence,
+    scope: {
+      allBranches: input.actor.isAdmin,
+      branchCodes: input.actor.branches.map((branch) => branch.code),
+    },
+  }));
 }
 
 function compareOpenRequestPriority(left: FluigRequestDbRow, right: FluigRequestDbRow) {
@@ -867,7 +1283,7 @@ function monthKey(value: string | null | undefined) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function templateDefaultFields(module: FluigModuleSlug, fields: Record<string, string>) {
+function templateDefaultFields(module: FluigModuleSlug, fields: Record<string, string>): Record<string, string> {
   const paymentFields = [
     "fornecedorC",
     "codCNPJ",
@@ -878,6 +1294,7 @@ function templateDefaultFields(module: FluigModuleSlug, fields: Record<string, s
     "naturezaSalva",
     "formaPagamento",
     "contaCentroCusto",
+    "descricaoDemandaEnvio",
   ];
   const otherModuleFields = [
     ...paymentFields,
@@ -891,7 +1308,9 @@ function templateDefaultFields(module: FluigModuleSlug, fields: Record<string, s
   ];
   const keep = module === "pagamentos" ? paymentFields : otherModuleFields;
 
-  return Object.fromEntries(keep.map((fieldName) => [fieldName, fields[fieldName] || ""]).filter(([, value]) => value));
+  return Object.fromEntries(
+    keep.map((fieldName) => [fieldName, fields[fieldName] || ""] as const).filter(([, value]) => Boolean(value))
+  );
 }
 
 function requestTimestamp(row: FluigRequestDbRow) {
@@ -900,11 +1319,12 @@ function requestTimestamp(row: FluigRequestDbRow) {
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
-function paymentTemplateFieldsAreComplete(fields: Record<string, string>) {
+function paymentTemplateHasReusableFields(fields: Record<string, string>) {
   return Boolean(
-    firstStringField(fields, catalogFieldMap.natureza.fields) &&
-      firstStringField(fields, catalogFieldMap.cost_center.fields) &&
-      firstStringField(fields, catalogFieldMap.payment_method.fields)
+    firstStringField(fields, catalogFieldMap.natureza.fields) ||
+      firstStringField(fields, catalogFieldMap.cost_center.fields) ||
+      firstStringField(fields, catalogFieldMap.payment_method.fields) ||
+      stringField(fields, "descricaoDemandaEnvio")
   );
 }
 
@@ -939,32 +1359,52 @@ export function buildFluigLaunchTemplatesFromRequests(rows: FluigRequestDbRow[])
 
   return Array.from(grouped.entries())
     .map(([key, group]) => {
-      const latest = [...group.rows]
+      const reusableRows = [...group.rows]
         .filter((row) => {
           if (row.module_slug !== "pagamentos") return true;
-          return paymentTemplateFieldsAreComplete(formFieldsFromPayload(row.raw_payload || {}));
+          return paymentTemplateHasReusableFields(formFieldsFromPayload(row.raw_payload || {}));
         })
-        .sort((a, b) => requestTimestamp(b) - requestTimestamp(a))[0];
+        .sort((a, b) => requestTimestamp(b) - requestTimestamp(a));
+      const latest = reusableRows[0];
       if (!latest) return null;
       const fields = formFieldsFromPayload(latest.raw_payload || {});
+      const defaultFields: Record<string, string> = {};
+      for (const row of reusableRows) {
+        for (const [fieldName, value] of Object.entries(
+          templateDefaultFields(row.module_slug, formFieldsFromPayload(row.raw_payload || {}))
+        )) {
+          if (!defaultFields[fieldName] && value) defaultFields[fieldName] = value;
+        }
+      }
       const supplier = supplierFromFields(fields);
       const supplierName = latest.supplier_name || supplier.name || firstStringField(fields, catalogFieldMap.supplier.fields) || null;
       const sourceRequestId = latest.fluig_request_id || latest.id;
+      const countsByMonth = new Map<string, number>();
+      for (const row of group.rows) {
+        const rowMonth = monthKey(row.opened_at || row.last_synced_at);
+        if (rowMonth) countsByMonth.set(rowMonth, (countsByMonth.get(rowMonth) || 0) + 1);
+      }
 
       return {
         id: key,
         module: latest.module_slug,
         title: supplierName ? `Padrao ${supplierName}` : `Modelo ${sourceRequestId}`,
-        recurrence: group.months.size >= 2 ? "monthly" : "model",
+        recurrence: isMonthlyExpensePattern({
+          nature: latest.expense_nature,
+          occurrenceCount: group.rows.length,
+          monthCounts: [...countsByMonth.values()],
+        })
+          ? "monthly"
+          : "model",
         sourceRequestId,
         supplierName,
         supplierCnpj: latest.supplier_cnpj || supplier.cnpj,
         branchCode: latest.branch_code || extractBranchCode(fields),
         branchLabel: latest.branch_label || extractBranchLabel(fields) || null,
-        defaultFields: templateDefaultFields(latest.module_slug, fields),
+        defaultFields,
         occurrenceCount: group.rows.length,
         monthCount: group.months.size,
-        lastSeenAt: latest.last_synced_at || latest.opened_at,
+        lastSeenAt: latest.opened_at || latest.last_synced_at,
       } satisfies FluigLaunchTemplate;
     })
     .filter((template): template is FluigLaunchTemplate => Boolean(template))
@@ -1026,6 +1466,7 @@ export function buildFluigHistoryRequestRow(
     amount_cents: amount,
     currency: "BRL",
     due_date: parseDateOnly(fields.vencPagNota || fields.vencimento || fields.dataPrevRetorno),
+    expense_nature: firstStringField(fields, catalogFieldMap.natureza.fields) || null,
     opened_at: item.startDate,
     normalized_status: lifecycle.normalizedStatus,
     is_open: lifecycle.isOpen,
@@ -1061,6 +1502,7 @@ export function buildFluigStatusRequestRow(
       | "requester"
       | "fluig_requester_code"
       | "due_date"
+      | "expense_nature"
       | "opened_at"
       | "raw_payload"
     >
@@ -1079,6 +1521,19 @@ export function buildFluigStatusRequestRow(
   const fluigUserId = String(item.syncFluigUserId || options.fluigUserId || "").trim() || null;
   const seenAsTask = open && Boolean(fluigUserId) && syncTypes.includes("open_tasks");
   const seenAsRequest = open && Boolean(fluigUserId) && syncTypes.includes("my_requests");
+  const detailSnapshot = item.detailSnapshot && typeof item.detailSnapshot === "object" ? item.detailSnapshot : null;
+  const detailFields = detailSnapshot?.formFields || {};
+  const detailBranch = normalizeFluigBranch({
+    label: detailFields.unidadeFilial || detailFields.filial,
+    explicitCode: detailFields.codigoFilial || detailFields.codFilial,
+  });
+  const detailSupplierName = firstStringField(detailFields, ["fornecedorC", "fornecedor", "razaoSocial"]);
+  const detailSupplierCnpj = firstStringField(detailFields, ["codCNPJ", "cnpj", "cnpjFornecedor"]);
+  const detailAmount = parseMoneyToCents(firstStringField(detailFields, ["valorNF", "valorNFT", "valorTotal"]));
+  const detailDueDate = parseDateOnly(firstStringField(detailFields, ["vencPagNota", "vencimentoNF", "dataVencimentoNF"]));
+  const detailNature = firstStringField(detailFields, ["codigonaturezaC", "naturezaSalva", "natureza", "codNatureza"]);
+  const statusSnapshot = { ...item } as FluigStatusItem & { detailSnapshot?: never };
+  delete statusSnapshot.detailSnapshot;
 
   return {
     module_slug: module,
@@ -1089,7 +1544,14 @@ export function buildFluigStatusRequestRow(
     task_owner: taskOwner,
     requester: item.requesterName || existing?.requester || undefined,
     fluig_requester_code: item.requesterId || existing?.fluig_requester_code || undefined,
-    due_date: item.dueDate || item.vencimentoPagamento || existing?.due_date || null,
+    supplier_name: detailSupplierName || undefined,
+    supplier_cnpj: detailSupplierCnpj || undefined,
+    amount_cents: detailAmount ?? undefined,
+    currency: "BRL",
+    branch_code: detailBranch.code || undefined,
+    branch_label: detailBranch.label || undefined,
+    due_date: detailDueDate || item.dueDate || item.vencimentoPagamento || existing?.due_date || null,
+    expense_nature: detailNature || existing?.expense_nature || undefined,
     opened_at: item.openedAt || existing?.opened_at || undefined,
     normalized_status: lifecycle.normalizedStatus,
     is_open: lifecycle.isOpen,
@@ -1106,11 +1568,47 @@ export function buildFluigStatusRequestRow(
     sync_owner_user_id: options.ownerUserId || null,
     last_synced_at: checkedAt,
     updated_at: syncedAt,
+    source_url: detailSnapshot?.sourceUrl || undefined,
+    detail_snapshot: detailSnapshot || undefined,
+    detail_synced_at: detailSnapshot?.fetchedAt || undefined,
+    detail_movement_sequence: detailSnapshot ? item.movementSequence ?? null : undefined,
+    detail_config_hash: detailSnapshot ? item.detailConfigHash || null : undefined,
+    detail_sync_error: detailSnapshot ? null : item.detailSyncError || undefined,
     raw_payload: {
       ...(existing?.raw_payload || {}),
-      statusSnapshot: item as unknown as JsonRecord,
+      ...(detailSnapshot ? { formFields: detailFields } : {}),
+      statusSnapshot: statusSnapshot as unknown as JsonRecord,
     },
   };
+}
+
+export function describeFluigPersistenceError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const row = error as Record<string, unknown>;
+    const summary = [row.message, row.details, row.hint, row.code]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+    if (summary.length) return Array.from(new Set(summary)).join(" | ");
+    try {
+      return JSON.stringify(row);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
+}
+
+export function groupFluigStatusRowsForUpsert<T extends Record<string, unknown>>(rows: T[]) {
+  const groups = new Map<string, Array<Record<string, unknown>>>();
+
+  for (const row of rows) {
+    const compactRow = Object.fromEntries(Object.entries(row).filter(([, value]) => value !== undefined));
+    const signature = Object.keys(compactRow).sort().join("|");
+    groups.set(signature, [...(groups.get(signature) || []), compactRow]);
+  }
+
+  return Array.from(groups.values());
 }
 
 async function runWithDb<T>(callback: (client: SupabaseClient) => Promise<T>) {
@@ -1126,7 +1624,7 @@ async function runWithDb<T>(callback: (client: SupabaseClient) => Promise<T>) {
     const result = await callback(client);
     return { result, persistence };
   } catch (error) {
-    persistence.errors.push(error instanceof Error ? error.message : String(error));
+    persistence.errors.push(describeFluigPersistenceError(error));
     return { result: null, persistence };
   }
 }
@@ -1160,7 +1658,25 @@ export async function persistProcessMaps(processMaps: FluigProcessMap[]) {
 
 export async function persistHistoryItems(module: FluigModuleSlug, items: FluigHistoryItem[], actor?: Pick<AppActor, "id"> | null) {
   return runWithDb(async (client) => {
-    const rows = items.map((item) => buildFluigHistoryRequestRow(module, item, actor)).filter((item) => item.fluig_request_id);
+    const { data: configuredFields, error: configuredFieldsError } = await client
+      .from("fluig_field_settings")
+      .select("field_key")
+      .eq("module_slug", module)
+      .eq("source_type", "form")
+      .eq("active", true)
+      .or("visible_in_list.eq.true,visible_in_form.eq.true");
+    if (configuredFieldsError) throw configuredFieldsError;
+    const activeFieldKeys = new Set((configuredFields || []).map((row) => String(row.field_key || "")).filter(Boolean));
+    const rows = items.map((item) => {
+      const row = buildFluigHistoryRequestRow(module, item, actor);
+      return {
+        ...row,
+        raw_payload: {
+          ...row.raw_payload,
+          formFields: Object.fromEntries(Object.entries(item.formFields || {}).filter(([key]) => activeFieldKeys.has(key))),
+        },
+      };
+    }).filter((item) => item.fluig_request_id);
     if (!rows.length) return { requests: 0, supplierRequestLinks: 0 };
 
     const branches = Array.from(
@@ -1291,42 +1807,90 @@ export async function persistStatusItems(
     const statusItems = items.filter(
       (item) => item.numeroFluig && !(item as FluigStatusItem & { error?: unknown }).error
     );
-    if (!statusItems.length) return 0;
+    if (!statusItems.length) return { requests: 0, memberships: 0 };
 
     const requestIds = Array.from(new Set(statusItems.map((item) => String(item.numeroFluig))));
-    const { data: existingRows, error: existingError } = await client
-      .from("fluig_requests")
-      .select("fluig_request_id,process_id,status,current_task,task_owner,requester,fluig_requester_code,due_date,opened_at,raw_payload")
-      .eq("module_slug", module)
-      .in("fluig_request_id", requestIds);
-    if (existingError) throw existingError;
+    const existingRows: Array<
+      Pick<
+        FluigRequestDbRow,
+        | "fluig_request_id"
+        | "process_id"
+        | "status"
+        | "current_task"
+        | "task_owner"
+        | "requester"
+        | "fluig_requester_code"
+        | "due_date"
+        | "expense_nature"
+        | "opened_at"
+        | "raw_payload"
+      >
+    > = [];
+    for (let index = 0; index < requestIds.length; index += 100) {
+      const { data, error } = await client
+        .from("fluig_requests")
+        .select("fluig_request_id,process_id,status,current_task,task_owner,requester,fluig_requester_code,due_date,expense_nature,opened_at,raw_payload")
+        .eq("module_slug", module)
+        .in("fluig_request_id", requestIds.slice(index, index + 100));
+      if (error) throw error;
+      existingRows.push(...((data || []) as typeof existingRows));
+    }
 
     const existingByRequestId = new Map(
-      ((existingRows || []) as Array<
-        Pick<
-          FluigRequestDbRow,
-          | "fluig_request_id"
-          | "process_id"
-          | "status"
-          | "current_task"
-          | "task_owner"
-          | "requester"
-          | "fluig_requester_code"
-          | "due_date"
-          | "opened_at"
-          | "raw_payload"
-        >
-      >).map((row) => [String(row.fluig_request_id || ""), row])
+      existingRows.map((row) => [String(row.fluig_request_id || ""), row])
     );
     const rows = statusItems.map((item) =>
       buildFluigStatusRequestRow(module, item, options, existingByRequestId.get(String(item.numeroFluig)))
     );
-    if (!rows.length) return 0;
-    const { error } = await client.from("fluig_requests").upsert(rows, { onConflict: "module_slug,fluig_request_id" });
-    if (error) throw error;
-    return rows.length;
+    if (!rows.length) return { requests: 0, memberships: 0 };
+    const savedRequests: Array<{ id: string; fluig_request_id: string | null }> = [];
+    for (const rowGroup of groupFluigStatusRowsForUpsert(rows)) {
+      const { data, error } = await client
+        .from("fluig_requests")
+        .upsert(rowGroup, { onConflict: "module_slug,fluig_request_id" })
+        .select("id,fluig_request_id");
+      if (error) throw error;
+      savedRequests.push(...((data || []) as Array<{ id: string; fluig_request_id: string | null }>));
+    }
+    const requestIdByFluigId = new Map(
+      savedRequests.map((row) => [String(row.fluig_request_id || ""), String(row.id)])
+    );
+    const membershipRows = statusItems.flatMap((item) => {
+      const requestId = requestIdByFluigId.get(String(item.numeroFluig || ""));
+      const fluigUserId = String(item.syncFluigUserId || options.fluigUserId || "").trim();
+      if (!requestId || !fluigUserId || item.active === false) return [];
+      const observedAt = String(item.dataUltimaConsulta || new Date().toISOString());
+      const syncTypes = Array.isArray(item.syncTypes) ? item.syncTypes : [];
+      return syncTypes.flatMap((syncType) => {
+        const membershipType = syncType === "open_tasks"
+          ? "open_task"
+          : syncType === "my_requests"
+            ? "my_request"
+            : null;
+        return membershipType
+          ? [{
+              request_id: requestId,
+              fluig_user_id: fluigUserId,
+              membership_type: membershipType,
+              synced_by_user_id: options.ownerUserId || null,
+              last_seen_at: observedAt,
+              updated_at: new Date().toISOString(),
+            }]
+          : [];
+      });
+    });
+    if (membershipRows.length) {
+      const { error: membershipsError } = await client
+        .from("fluig_request_user_memberships")
+        .upsert(membershipRows, { onConflict: "request_id,fluig_user_id,membership_type" });
+      if (membershipsError) throw membershipsError;
+    }
+    return { requests: rows.length, memberships: membershipRows.length };
   }).then(({ result, persistence }) => {
-    if (result !== null) persistence.saved.requests = result;
+    if (result !== null) {
+      persistence.saved.requests = result.requests;
+      if (result.memberships) persistence.saved.userMemberships = result.memberships;
+    }
     return persistence;
   });
 }
@@ -1338,6 +1902,14 @@ export async function clearStaleFluigUserTaskMemberships(input: {
   return runWithDb(async (client) => {
     const fluigUserId = String(input.fluigUserId || "").trim();
     if (!fluigUserId || !input.syncStartedAt) return 0;
+
+    const { data: staleMemberships, error: staleMembershipsError } = await client
+      .from("fluig_request_user_memberships")
+      .delete()
+      .eq("fluig_user_id", fluigUserId)
+      .lt("last_seen_at", input.syncStartedAt)
+      .select("request_id");
+    if (staleMembershipsError) throw staleMembershipsError;
 
     const { data: staleTasks, error: staleTasksError } = await client
       .from("fluig_requests")
@@ -1355,7 +1927,7 @@ export async function clearStaleFluigUserTaskMemberships(input: {
       .select("id");
     if (staleRequestsError) throw staleRequestsError;
 
-    return (staleTasks || []).length + (staleRequests || []).length;
+    return (staleMemberships || []).length + (staleTasks || []).length + (staleRequests || []).length;
   }).then(({ result, persistence }) => {
     if (result !== null) persistence.saved.staleUserMembershipsCleared = result;
     return persistence;
@@ -1367,6 +1939,10 @@ export async function readKnownOpenFluigRequestsForActor(input: {
   module?: FluigModuleSlug | null;
   limit?: number;
   onlyTasks?: boolean;
+  membershipType?: "open_task" | "my_request";
+  scope?: "self" | "all";
+  userId?: string | null;
+  nature?: string | null;
 }) {
   return runWithDb(async (client) => {
     const allowedModules = new Set(fluigModuleSlugsForActor(input.actor));
@@ -1376,12 +1952,86 @@ export async function readKnownOpenFluigRequestsForActor(input: {
     const modules = requestedModules.filter((moduleSlug) => allowedModules.has(moduleSlug));
     if (!modules.length) return { requests: [], total: 0 };
     const limit = Math.min(Math.max(Number(input.limit || 50), 1), 200);
+    const adminAllScope = input.actor.isAdmin && input.scope === "all";
+    let targetFluigUserId = adminAllScope ? null : String(input.actor.fluigUserId || "").trim() || null;
+
+    if (adminAllScope && input.userId) {
+      const [profileResult, monitoredResult] = await Promise.all([
+        client
+          .from("app_user_profiles")
+          .select("fluig_user_id")
+          .eq("id", input.userId)
+          .eq("active", true)
+          .eq("approval_status", "APPROVED")
+          .maybeSingle(),
+        client
+          .from("fluig_monitored_users")
+          .select("fluig_user_id")
+          .eq("id", input.userId)
+          .eq("active", true)
+          .maybeSingle(),
+      ]);
+      if (profileResult.error) throw profileResult.error;
+      if (monitoredResult.error) throw monitoredResult.error;
+      targetFluigUserId = String(monitoredResult.data?.fluig_user_id || profileResult.data?.fluig_user_id || "").trim() || null;
+      if (!targetFluigUserId) return { requests: [], total: 0 };
+    }
+
+    if (targetFluigUserId || adminAllScope) {
+      const membershipTypes = input.membershipType
+        ? [input.membershipType]
+        : input.onlyTasks
+          ? ["open_task" as const]
+          : (["open_task", "my_request"] as const);
+      let membershipQuery = client
+        .from("fluig_request_user_memberships")
+        .select(
+          `fluig_user_id,membership_type,last_seen_at,request:fluig_requests!inner(${fluigRequestSelect})`,
+          { count: "exact" }
+        )
+        .in("membership_type", membershipTypes)
+        .eq("request.is_open", true)
+        .in("request.module_slug", modules);
+      if (targetFluigUserId) membershipQuery = membershipQuery.eq("fluig_user_id", targetFluigUserId);
+      if (input.nature) membershipQuery = membershipQuery.eq("request.expense_nature", input.nature);
+
+      const { data, error, count } = await membershipQuery
+        .order("last_seen_at", { ascending: false })
+        .limit(Math.min(limit * membershipTypes.length, 400));
+      if (error) throw error;
+
+      const unique = new Map<string, ReturnType<typeof mapFluigRequestRecord> & {
+        assignedFluigUserId: string;
+        membershipType: "open_task" | "my_request";
+        membershipLastSeenAt: string;
+      }>();
+      for (const membership of (data || []) as unknown as FluigRequestUserMembershipDbRow[]) {
+        const request = Array.isArray(membership.request) ? membership.request[0] : membership.request;
+        if (!request) continue;
+        const key = `${membership.fluig_user_id}:${request.id}`;
+        if (unique.has(key)) continue;
+        unique.set(key, {
+          ...mapFluigRequestRecord(request),
+          assignedFluigUserId: membership.fluig_user_id,
+          membershipType: membership.membership_type,
+          membershipLastSeenAt: membership.last_seen_at,
+        });
+      }
+      const requests = Array.from(unique.values()).slice(0, limit);
+      return {
+        requests,
+        total: membershipTypes.length === 1 ? count || 0 : requests.length,
+      };
+    }
+
     let query = client
       .from("fluig_requests")
       .select(fluigRequestSelect, { count: "exact" })
       .in("module_slug", modules)
       .eq("is_open", true)
       .not("fluig_request_id", "is", null);
+
+    if (input.nature) query = query.eq("expense_nature", input.nature);
 
     const fluigUserId = String(input.actor.fluigUserId || "").trim();
     if (fluigUserId) {
@@ -1412,6 +2062,320 @@ export async function readKnownOpenFluigRequestsForActor(input: {
   }).then(({ result, persistence }) => ({
     requests: result?.requests || [],
     total: result?.total || 0,
+    persistence,
+  }));
+}
+
+export async function readFluigDetailSyncStateForActor(input: {
+  actor: AppActor;
+  modules: FluigModuleSlug[];
+  limit?: number;
+}) {
+  return runWithDb(async (client) => {
+    const allowedModules = new Set(fluigModuleSlugsForActor(input.actor));
+    const modules = input.modules.filter((moduleSlug) => allowedModules.has(moduleSlug));
+    if (!modules.length) return [];
+    const limit = Math.min(Math.max(Number(input.limit || 5000), 1), 10000);
+    let query = client
+      .from("fluig_requests")
+      .select("module_slug,fluig_request_id,detail_movement_sequence,detail_config_hash,detail_synced_at")
+      .in("module_slug", modules)
+      .not("fluig_request_id", "is", null)
+      .order("last_synced_at", { ascending: false, nullsFirst: false })
+      .limit(limit);
+    const actorFilter = buildFluigActorPostgrestFilter(input.actor);
+    if (actorFilter) query = query.or(actorFilter);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map((row) => ({
+      module: String(row.module_slug) as FluigModuleSlug,
+      requestId: String(row.fluig_request_id || ""),
+      movementSequence: row.detail_movement_sequence == null ? null : Number(row.detail_movement_sequence),
+      configHash: row.detail_config_hash ? String(row.detail_config_hash) : null,
+      syncedAt: row.detail_synced_at ? String(row.detail_synced_at) : null,
+    }));
+  }).then(({ result }) => result || []);
+}
+
+type FluigAccountIdentityInput = {
+  id: string;
+  email: string | null;
+  fluigUsername: string | null;
+  fluigUserId: string | null;
+};
+
+export type FluigMonitoredUser = {
+  id: string;
+  displayName: string;
+  email: string;
+  fluigUsername: string | null;
+  fluigUserId: string | null;
+  appUserId: string | null;
+  role: string;
+  credentialConfigured: boolean;
+  taskSyncCompleted: boolean;
+  lastSuccessAt: string | null;
+  taskCount: number;
+  requestCount: number;
+};
+
+function normalizeFluigAccountIdentity(value: string | null | undefined) {
+  return String(value || "").trim().toLowerCase();
+}
+
+export function countDistinctFluigAccounts(users: FluigAccountIdentityInput[]) {
+  const groups: Array<Set<string>> = [];
+
+  for (const user of users) {
+    const identities = new Set(
+      [user.fluigUserId, user.fluigUsername, user.email]
+        .map(normalizeFluigAccountIdentity)
+        .filter(Boolean)
+    );
+    if (!identities.size) identities.add(`profile:${user.id}`);
+
+    const matchingIndexes = groups
+      .map((group, index) => Array.from(identities).some((identity) => group.has(identity)) ? index : -1)
+      .filter((index) => index >= 0);
+    if (!matchingIndexes.length) {
+      groups.push(identities);
+      continue;
+    }
+
+    const primary = groups[matchingIndexes[0]];
+    for (const identity of identities) primary.add(identity);
+    for (const index of matchingIndexes.slice(1).reverse()) {
+      for (const identity of groups[index]) primary.add(identity);
+      groups.splice(index, 1);
+    }
+  }
+
+  return groups.length;
+}
+
+async function loadFluigDashboardUsers(client: SupabaseClient, actor: AppActor) {
+  let profilesQuery = client
+    .from("app_user_profiles")
+    .select("id,display_name,email,fluig_username,fluig_user_id,role")
+    .eq("active", true)
+    .eq("approval_status", "APPROVED")
+    .order("display_name", { ascending: true });
+  if (!actor.isAdmin) profilesQuery = profilesQuery.eq("id", actor.id);
+
+  const [profilesResult, monitoredResult, credentialsResult, syncStatesResult] = await Promise.all([
+    profilesQuery,
+    actor.isAdmin
+      ? client
+          .from("fluig_monitored_users")
+          .select("id,display_name,email,fluig_user_id,fluig_login,app_user_id,last_success_at,task_count,request_count")
+          .eq("active", true)
+          .order("display_name", { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
+    client.from("fluig_user_credentials").select("user_id"),
+    client
+      .from("fluig_user_sync_state")
+      .select("user_id,fluig_user_id,last_success_at")
+      .eq("sync_type", "open_tasks")
+      .not("last_success_at", "is", null),
+  ]);
+  if (profilesResult.error) throw profilesResult.error;
+  if (monitoredResult.error) throw monitoredResult.error;
+  if (credentialsResult.error) throw credentialsResult.error;
+  if (syncStatesResult.error) throw syncStatesResult.error;
+
+  const credentialUserIds = new Set((credentialsResult.data || []).map((row) => String(row.user_id)));
+  const syncedUserIds = new Set((syncStatesResult.data || []).map((row) => String(row.user_id)));
+  const syncedFluigUserIds = new Set(
+    (syncStatesResult.data || []).map((row) => String(row.fluig_user_id || "").trim()).filter(Boolean)
+  );
+  const users: FluigMonitoredUser[] = (monitoredResult.data || []).map((row) => ({
+    id: String(row.id),
+    displayName: String(row.display_name || row.email || "Usuario Fluig"),
+    email: String(row.email || "").trim().toLowerCase(),
+    fluigUsername: row.fluig_login ? String(row.fluig_login) : null,
+    fluigUserId: row.fluig_user_id ? String(row.fluig_user_id) : null,
+    appUserId: row.app_user_id ? String(row.app_user_id) : null,
+    role: "MONITORED",
+    credentialConfigured: row.app_user_id ? credentialUserIds.has(String(row.app_user_id)) : false,
+    taskSyncCompleted: Boolean(row.last_success_at),
+    lastSuccessAt: row.last_success_at ? String(row.last_success_at) : null,
+    taskCount: Number(row.task_count || 0),
+    requestCount: Number(row.request_count || 0),
+  }));
+  const byEmail = new Map(users.map((user) => [normalizeFluigAccountIdentity(user.email), user]));
+  const byFluigId = new Map(
+    users.filter((user) => user.fluigUserId).map((user) => [normalizeFluigAccountIdentity(user.fluigUserId), user])
+  );
+
+  for (const row of profilesResult.data || []) {
+    const profileId = String(row.id);
+    const email = String(row.email || "").trim().toLowerCase();
+    const fluigUserId = row.fluig_user_id ? String(row.fluig_user_id).trim() : null;
+    const existing = byEmail.get(normalizeFluigAccountIdentity(email)) || byFluigId.get(normalizeFluigAccountIdentity(fluigUserId));
+    if (existing) {
+      existing.appUserId ||= profileId;
+      existing.credentialConfigured ||= credentialUserIds.has(profileId);
+      existing.taskSyncCompleted ||= syncedUserIds.has(profileId) || Boolean(fluigUserId && syncedFluigUserIds.has(fluigUserId));
+      existing.fluigUserId ||= fluigUserId;
+      existing.fluigUsername ||= row.fluig_username ? String(row.fluig_username) : null;
+      continue;
+    }
+    const profileUser: FluigMonitoredUser = {
+      id: profileId,
+      displayName: String(row.display_name || row.email || "Usuario"),
+      email,
+      fluigUsername: row.fluig_username ? String(row.fluig_username) : null,
+      fluigUserId,
+      appUserId: profileId,
+      role: String(row.role || "LEITURA"),
+      credentialConfigured: credentialUserIds.has(profileId),
+      taskSyncCompleted: syncedUserIds.has(profileId) || Boolean(fluigUserId && syncedFluigUserIds.has(fluigUserId)),
+      lastSuccessAt: null,
+      taskCount: 0,
+      requestCount: 0,
+    };
+    users.push(profileUser);
+    byEmail.set(normalizeFluigAccountIdentity(email), profileUser);
+    if (fluigUserId) byFluigId.set(normalizeFluigAccountIdentity(fluigUserId), profileUser);
+  }
+
+  return users.sort((left, right) => left.displayName.localeCompare(right.displayName, "pt-BR", { sensitivity: "base" }));
+}
+
+export async function listFluigMonitoredUsersForSync(actor: AppActor) {
+  return runWithDb(async (client) => loadFluigDashboardUsers(client, actor)).then(({ result, persistence }) => ({
+    users: result || [],
+    persistence,
+  }));
+}
+
+export async function persistFluigMonitoredUserSyncResults(results: Array<{
+  id?: string | null;
+  displayName?: string | null;
+  email?: string | null;
+  currentFluigUser?: { code?: string | null; login?: string | null; email?: string | null; fullName?: string | null } | null;
+  centralTaskTotals?: { openTasks?: number; myRequests?: number } | null;
+  processedAt?: string | null;
+  error?: string | null;
+}>) {
+  return runWithDb(async (client) => {
+    const normalized = results
+      .map((result) => ({ ...result, email: String(result.email || result.currentFluigUser?.email || "").trim().toLowerCase() }))
+      .filter((result) => result.email);
+    if (!normalized.length) return 0;
+    const emails = Array.from(new Set(normalized.map((result) => result.email)));
+    const [profilesResult, existingResult] = await Promise.all([
+      client.from("app_user_profiles").select("id,email").in("email", emails),
+      client
+        .from("fluig_monitored_users")
+        .select("email,source,last_success_at,task_count,request_count")
+        .in("email", emails),
+    ]);
+    const { data: profiles, error: profilesError } = profilesResult;
+    if (profilesError) throw profilesError;
+    if (existingResult.error) throw existingResult.error;
+    const profileByEmail = new Map((profiles || []).map((profile) => [String(profile.email || "").trim().toLowerCase(), String(profile.id)]));
+    const existingByEmail = new Map((existingResult.data || []).map((row) => [String(row.email), row]));
+    const rows = normalized.map((result) => {
+      const timestamp = String(result.processedAt || new Date().toISOString());
+      const errorMessage = String(result.error || "").trim() || null;
+      const existing = existingByEmail.get(result.email);
+      return {
+        email: result.email,
+        display_name: String(result.displayName || result.currentFluigUser?.fullName || result.email).trim(),
+        fluig_user_id: String(result.currentFluigUser?.code || "").trim() || null,
+        fluig_login: String(result.currentFluigUser?.login || "").trim() || null,
+        app_user_id: profileByEmail.get(result.email) || null,
+        active: true,
+        source: String(existing?.source || "app_profile"),
+        last_sync_at: timestamp,
+        last_success_at: errorMessage ? existing?.last_success_at || null : timestamp,
+        last_error_at: errorMessage ? timestamp : null,
+        last_error_message: errorMessage,
+        task_count: errorMessage ? Number(existing?.task_count || 0) : Math.max(0, Number(result.centralTaskTotals?.openTasks || 0)),
+        request_count: errorMessage ? Number(existing?.request_count || 0) : Math.max(0, Number(result.centralTaskTotals?.myRequests || 0)),
+        metadata: { syncSource: "bulk_monitored_users" },
+        updated_at: timestamp,
+      };
+    });
+    const { error } = await client.from("fluig_monitored_users").upsert(rows, { onConflict: "email" });
+    if (error) throw error;
+    return rows.length;
+  }).then(({ result, persistence }) => {
+    if (result) persistence.saved.monitoredUsers = result;
+    return persistence;
+  });
+}
+
+async function loadDashboardNatureFacets(client: SupabaseClient, actor: AppActor, modules: FluigModuleSlug[]) {
+  const values: Array<string | null | undefined> = [];
+  const pageSize = 1000;
+  const fluigUserId = String(actor.fluigUserId || "").trim();
+  for (let offset = 0; ; offset += pageSize) {
+    if (!actor.isAdmin && fluigUserId) {
+      const { data, error } = await client
+        .from("fluig_request_user_memberships")
+        .select("request:fluig_requests!inner(expense_nature,module_slug,is_open)")
+        .eq("fluig_user_id", fluigUserId)
+        .eq("request.is_open", true)
+        .in("request.module_slug", modules)
+        .order("last_seen_at", { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      for (const membership of data || []) {
+        const request = Array.isArray(membership.request) ? membership.request[0] : membership.request;
+        values.push((request as { expense_nature?: string | null } | null)?.expense_nature);
+      }
+      if ((data || []).length < pageSize) break;
+      continue;
+    }
+
+    let query = client
+      .from("fluig_requests")
+      .select("expense_nature,module_slug,is_open,created_by_user_id,sync_owner_user_id,fluig_requester_login,fluig_requester_code,requester")
+      .eq("is_open", true)
+      .in("module_slug", modules)
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    const actorFilter = buildFluigActorPostgrestFilter(actor);
+    if (actorFilter) query = query.or(actorFilter);
+    const { data, error } = await query;
+    if (error) throw error;
+    values.push(...filterRowsForActor(actor, (data || []) as unknown as FluigRequestDbRow[]).map((row) => row.expense_nature));
+    if ((data || []).length < pageSize) break;
+  }
+  return buildFluigNatureFacets(values);
+}
+
+export async function listFluigTaskDashboardFilters(
+  actor: AppActor,
+  input: { module?: FluigModuleSlug | null } = {}
+) {
+  return runWithDb(async (client) => {
+    const allowedModules = fluigModuleSlugsForActor(actor);
+    const modules = input.module && allowedModules.includes(input.module) ? [input.module] : allowedModules;
+    const [users, natures] = await Promise.all([
+      loadFluigDashboardUsers(client, actor),
+      loadDashboardNatureFacets(client, actor, modules),
+    ]);
+
+    return {
+      isAdmin: actor.isAdmin,
+      users,
+      natures,
+      coverage: {
+        totalUsers: countDistinctFluigAccounts(users),
+        configuredUsers: countDistinctFluigAccounts(users.filter((user) => user.credentialConfigured)),
+        syncedUsers: countDistinctFluigAccounts(users.filter((user) => user.taskSyncCompleted)),
+      },
+    };
+  }).then(({ result, persistence }) => ({
+    ...(result || {
+      isAdmin: actor.isAdmin,
+      users: [],
+      natures: [],
+      coverage: { totalUsers: 0, configuredUsers: 0, syncedUsers: 0 },
+    }),
     persistence,
   }));
 }

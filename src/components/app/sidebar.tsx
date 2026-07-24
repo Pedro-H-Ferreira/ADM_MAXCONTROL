@@ -7,6 +7,7 @@ import {
   Bell,
   Boxes,
   Building2,
+  CalendarCheck2,
   ChartNoAxesColumn,
   ClipboardCheck,
   FileCheck2,
@@ -36,6 +37,7 @@ const icons: Record<string, LucideIcon> = {
   Bell,
   Boxes,
   Building2,
+  CalendarCheck2,
   ChartNoAxesColumn,
   ClipboardCheck,
   FileCheck2,
@@ -64,6 +66,10 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   const showLabels = !collapsed || mobile;
+  const activeHref = sections
+    .flatMap((section) => section.items)
+    .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
+    .sort((left, right) => right.href.length - left.href.length)[0]?.href;
 
   return (
     <aside
@@ -76,13 +82,10 @@ export function AppSidebar({
       <div className="flex h-16 items-center px-4">
         <Link href="/dashboard" className="flex min-w-0 items-center gap-2" onClick={onNavigate}>
           <div
-            className={cn(
-              "grid size-9 shrink-0 place-items-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground transition-transform duration-300",
-              showLabels ? "rotate-12" : "rotate-0",
-            )}
-          >
-            MC
-          </div>
+            aria-hidden="true"
+            className="size-9 shrink-0 rounded-lg bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: 'url("/favicon.ico")' }}
+          />
           <div
             className={cn(
               "min-w-0 overflow-hidden whitespace-nowrap transition-[opacity,transform,width] duration-300",
@@ -90,12 +93,11 @@ export function AppSidebar({
             )}
           >
             <p className="truncate text-sm font-semibold">MaxControLADM</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">CD Principal</p>
           </div>
         </Link>
       </div>
       <Separator className="bg-sidebar-border" />
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {sections.map((section) => (
           <div key={section.title} className="mb-5">
             <p
@@ -109,7 +111,7 @@ export function AppSidebar({
             <div className="space-y-1">
               {section.items.map((item) => {
                 const Icon = icons[item.icon] ?? LayoutDashboard;
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const active = activeHref === item.href;
                 const link = (
                   <Link
                     href={item.href}
@@ -150,16 +152,6 @@ export function AppSidebar({
           </div>
         ))}
       </nav>
-      <div className="border-t border-sidebar-border p-3 text-xs text-sidebar-foreground/50">
-        <span
-          className={cn(
-            "block overflow-hidden whitespace-nowrap transition-[opacity,transform,width] duration-300",
-            showLabels ? "w-40 translate-x-0 opacity-100" : "w-8 translate-x-0 opacity-100",
-          )}
-        >
-          {showLabels ? "CD Principal" : "CD"}
-        </span>
-      </div>
     </aside>
   );
 }

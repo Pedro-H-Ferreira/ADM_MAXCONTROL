@@ -43,7 +43,7 @@ export function UserMenu({ user }: { user: AppShellUser }) {
         <Avatar className="size-7">
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
-        <span className="hidden max-w-36 truncate md:block">{user.name}</span>
+        <span className="hidden max-w-[20rem] truncate md:block">{user.displayLabel}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel>
@@ -52,7 +52,7 @@ export function UserMenu({ user }: { user: AppShellUser }) {
             <span className="block truncate text-xs font-normal text-muted-foreground">{user.email}</span>
           ) : null}
           <span className="block truncate text-xs font-normal text-muted-foreground">
-            {user.role} - {user.cd}
+            {user.accessLabel}
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

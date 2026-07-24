@@ -11,6 +11,7 @@ import {
   Loader2,
   MapPin,
   Paperclip,
+  Plus,
   Printer,
   RefreshCw,
   Search,
@@ -29,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/shared/page-header";
+import { AdfCreateSheet } from "@/components/adf/adf-create-sheet";
 import {
   expenseAuthorizationStatusLabels,
   expenseAuthorizationStatuses,
@@ -38,10 +40,18 @@ import {
 } from "@/lib/expense-authorization";
 import { parseCurrencyToCents } from "@/lib/operational-launch";
 
-type Permissions = { canUpdate: boolean; canApprove: boolean };
+type Permissions = { canCreate: boolean; canUpdate: boolean; canApprove: boolean };
+type BranchOption = { id: string; code: string; label: string };
 
 type AuthorizationForm = {
+  module: "pagamentos" | "compras";
+  branchId: string;
   issueDate: string;
+  invoiceNumber: string;
+  invoiceDueDate: string;
+  supplierName: string;
+  supplierTaxId: string;
+  fluigRequestId: string;
   expenseType: string;
   description: string;
   expenseAccount: string;
@@ -74,7 +84,14 @@ function moneyInput(cents: number | null) {
 
 function formFromAuthorization(item: ExpenseAuthorizationRecord): AuthorizationForm {
   return {
+    module: item.module,
+    branchId: item.branchId || "",
     issueDate: item.issueDate || "",
+    invoiceNumber: item.invoiceNumber || "",
+    invoiceDueDate: item.invoiceDueDate || "",
+    supplierName: item.supplierName || "",
+    supplierTaxId: item.supplierTaxId || "",
+    fluigRequestId: item.fluigRequestId || "",
     expenseType: item.expenseType || "",
     description: item.description || "",
     expenseAccount: item.expenseAccount || "",
@@ -146,7 +163,9 @@ function DetailSection({ title, description, children }: { title: string; descri
 
 export function AdfControlPage() {
   const [items, setItems] = useState<ExpenseAuthorizationRecord[]>([]);
-  const [permissions, setPermissions] = useState<Permissions>({ canUpdate: false, canApprove: false });
+  const [permissions, setPermissions] = useState<Permissions>({ canCreate: false, canUpdate: false, canApprove: false });
+  const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
@@ -166,9 +185,11 @@ export function AdfControlPage() {
         success: true;
         authorizations: ExpenseAuthorizationRecord[];
         permissions: Permissions;
+        branches: BranchOption[];
       }>(await fetch("/api/adfs", { cache: "no-store" }));
       setItems(data.authorizations);
       setPermissions(data.permissions);
+      setBranches(data.branches);
       setSelected((current) => {
         if (!current) return null;
         return data.authorizations.find((item) => item.id === current.id) || current;
@@ -251,15 +272,40 @@ export function AdfControlPage() {
       : null;
     await patchSelected(
       {
-        ...form,
+        module: form.module,
+        branchId: form.branchId || null,
+        issueDate: form.issueDate,
+        invoiceNumber: form.invoiceNumber || null,
+        invoiceDueDate: form.invoiceDueDate || null,
+        supplierName: form.supplierName || null,
+        supplierTaxId: form.supplierTaxId || null,
+        fluigRequestId: form.fluigRequestId || null,
+        expenseType: form.expenseType,
+        description: form.description,
+        expenseAccount: form.expenseAccount,
+        financialAccount: form.financialAccount,
+        costCenter: form.costCenter,
+        amountWords: form.amountWords,
+        beneficiaryCategory: form.beneficiaryCategory,
+        beneficiaryName: form.beneficiaryName,
+        beneficiaryTaxId: form.beneficiaryTaxId,
+        beneficiaryPhone: form.beneficiaryPhone,
+        paymentMethod: form.paymentMethod,
+        bankName: form.bankName,
+        bankOperation: form.bankOperation,
+        bankAgency: form.bankAgency,
+        bankAccount: form.bankAccount,
+        pixKey: form.pixKey,
+        requesterName: form.requesterName,
+        requesterRole: form.requesterRole,
+        additionalInfo: form.additionalInfo,
+        physicalLocation: form.physicalLocation,
+        deliveredTo: form.deliveredTo,
         amountCents: parseCurrencyToCents(form.amount),
         budgetPlannedCents,
         budgetRealizedCents,
         budgetDeviationCents,
         budgetDeviationPercent,
-        amount: undefined,
-        budgetPlanned: undefined,
-        budgetRealized: undefined,
       },
       "ADF atualizada."
     );
@@ -296,7 +342,7 @@ export function AdfControlPage() {
       setSelected(data.authorization);
       setForm(formFromAuthorization(data.authorization));
       setItems((current) => current.map((item) => (item.id === data.authorization.id ? data.authorization : item)));
-      toast.success("Envio para o Fluig colocado na fila do agente local.");
+      toast.success("Envio para o Fluig colocado na fila do executor da VPS.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao anexar no Fluig.");
     } finally {
@@ -314,7 +360,7 @@ export function AdfControlPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "ADFs controladas", value: metrics.total, helper: "Documentos vinculados a lancamentos", icon: FileSignature },
+          { label: "ADFs controladas", value: metrics.total, helper: "Criadas manualmente ou por lancamentos", icon: FileSignature },
           { label: "Aguardando assinatura", value: metrics.signature, helper: "Impressas e ainda sem retorno", icon: Clock3 },
           { label: "Assinadas a encaminhar", value: metrics.signed, helper: "Prontas para entrega ou Fluig", icon: FileCheck2 },
           { label: "Confirmadas no Fluig", value: metrics.fluig, helper: "Anexo validado na solicitacao", icon: CheckCircle2 },
@@ -337,6 +383,12 @@ export function AdfControlPage() {
       <Card>
         <CardContent className="p-0">
           <div className="flex flex-col gap-3 border-b p-4 lg:flex-row lg:items-center">
+            {permissions.canCreate ? (
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus className="size-4" aria-hidden="true" />
+                Nova ADF
+              </Button>
+            ) : null}
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
@@ -389,7 +441,16 @@ export function AdfControlPage() {
                         <p className="font-semibold">{item.documentNumber}</p>
                         <p className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("pt-BR").format(new Date(`${item.issueDate}T12:00:00`))}</p>
                       </TableCell>
-                      <TableCell>{item.module === "pagamentos" ? "Pagamento" : "Compra / cotacao"}</TableCell>
+                      <TableCell>
+                        <p>{item.module === "pagamentos" ? "Pagamento" : "Compra / cotacao"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.creationSource === "DOCUMENTO_FISCAL"
+                            ? "PDF / XML"
+                            : item.creationSource === "MANUAL"
+                              ? "Criacao manual"
+                              : "Lancamento"}
+                        </p>
+                      </TableCell>
                       <TableCell className="max-w-[240px] truncate">{item.beneficiaryName || item.supplierName || "Nao informado"}</TableCell>
                       <TableCell>{item.branchLabel || item.branchCode || "—"}</TableCell>
                       <TableCell className="text-right font-medium">{formatAuthorizationMoney(item.amountCents)}</TableCell>
@@ -409,7 +470,9 @@ export function AdfControlPage() {
             <div className="px-6 py-14 text-center">
               <FileSignature className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
               <p className="mt-3 text-sm font-semibold">Nenhuma ADF encontrada</p>
-              <p className="mt-1 text-sm text-muted-foreground">A ADF sera criada automaticamente ao validar um novo Pagamento ou Compra.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Crie uma ADF manualmente, importe uma nota em PDF/XML ou valide um novo Pagamento ou Compra.
+              </p>
             </div>
           )}
           <div className="border-t px-4 py-3 text-xs text-muted-foreground">
@@ -417,6 +480,16 @@ export function AdfControlPage() {
           </div>
         </CardContent>
       </Card>
+
+      <AdfCreateSheet
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        branches={branches}
+        onCreated={(authorization) => {
+          setItems((current) => [authorization, ...current.filter((item) => item.id !== authorization.id)]);
+          openAuthorization(authorization);
+        }}
+      />
 
       <Sheet open={Boolean(selected)} onOpenChange={(open) => { if (!open) { setSelected(null); setForm(null); } }}>
         <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:max-w-none sm:data-[side=right]:w-[min(1180px,calc(100vw-2rem))] sm:data-[side=right]:max-w-none">
@@ -459,6 +532,60 @@ export function AdfControlPage() {
               <div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-5 py-5 sm:px-6">
                 <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_330px]">
                   <div className="space-y-4">
+                    <DetailSection
+                      title="Origem, filial e nota fiscal"
+                      description="Dados de identificacao que tambem podem ser complementados depois da criacao."
+                    >
+                      <FormField label="Modulo">
+                        <Select
+                          value={form.module}
+                          onValueChange={(value) => updateForm("module", value as AuthorizationForm["module"])}
+                          disabled={!permissions.canUpdate}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pagamentos">Pagamento</SelectItem>
+                            <SelectItem value="compras">Compra / cotacao</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormField>
+                      <FormField label="Filial">
+                        <Select
+                          value={form.branchId || "__NONE__"}
+                          onValueChange={(value) => updateForm("branchId", value === "__NONE__" ? "" : value)}
+                          disabled={!permissions.canUpdate}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Selecione a filial" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__NONE__">Sem filial definida</SelectItem>
+                            {branches.map((branch) => (
+                              <SelectItem key={branch.id} value={branch.id}>{branch.code} - {branch.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormField>
+                      <FormField label="Numero Fluig">
+                        <Input
+                          value={form.fluigRequestId}
+                          onChange={(event) => updateForm("fluigRequestId", event.target.value)}
+                          disabled={!permissions.canUpdate}
+                          placeholder="Se ja existir"
+                        />
+                      </FormField>
+                      <FormField label="Numero da nota">
+                        <Input value={form.invoiceNumber} onChange={(event) => updateForm("invoiceNumber", event.target.value)} disabled={!permissions.canUpdate} />
+                      </FormField>
+                      <FormField label="Vencimento da nota">
+                        <Input type="date" value={form.invoiceDueDate} onChange={(event) => updateForm("invoiceDueDate", event.target.value)} disabled={!permissions.canUpdate} />
+                      </FormField>
+                      <FormField label="Fornecedor / razao social">
+                        <Input value={form.supplierName} onChange={(event) => updateForm("supplierName", event.target.value)} disabled={!permissions.canUpdate} />
+                      </FormField>
+                      <FormField label="CNPJ do fornecedor">
+                        <Input value={form.supplierTaxId} onChange={(event) => updateForm("supplierTaxId", event.target.value)} disabled={!permissions.canUpdate} />
+                      </FormField>
+                    </DetailSection>
+
                     <DetailSection title="Identificacao da despesa" description="Dados mantidos no padrao da ADF atual e preenchidos a partir do lancamento.">
                       <FormField label="Data de emissao"><Input type="date" value={form.issueDate} onChange={(event) => updateForm("issueDate", event.target.value)} disabled={!permissions.canUpdate} /></FormField>
                       <FormField label="Tipo de despesa"><Input value={form.expenseType} onChange={(event) => updateForm("expenseType", event.target.value)} disabled={!permissions.canUpdate} placeholder="Contrato, aquisicao, manutencao..." /></FormField>
@@ -539,7 +666,7 @@ export function AdfControlPage() {
                         </div>
                         <Button className="w-full" onClick={() => void attachToFluig()} disabled={!permissions.canUpdate || attaching || !selected.signedDocumentName || !selected.fluigRequestId || selected.status === "ANEXO_NA_FILA" || selected.status === "ANEXADA_FLUIG"}>
                           {attaching ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Paperclip className="size-4" aria-hidden="true" />}
-                          {selected.status === "ANEXADA_FLUIG" ? "Confirmada no Fluig" : selected.status === "ANEXO_NA_FILA" ? "Aguardando agente" : "Anexar no Fluig aberto"}
+                          {selected.status === "ANEXADA_FLUIG" ? "Confirmada no Fluig" : selected.status === "ANEXO_NA_FILA" ? "Aguardando executor da VPS" : "Anexar no Fluig aberto"}
                         </Button>
                         {!selected.fluigRequestId ? <p className="text-xs text-amber-700">A solicitacao pode ser aberta primeiro; este botao sera liberado quando o numero Fluig retornar.</p> : null}
                         {selected.lastErrorMessage ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">{selected.lastErrorMessage}</p> : null}

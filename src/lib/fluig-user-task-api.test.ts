@@ -5,18 +5,41 @@ const require = createRequire(import.meta.url);
 const { __test } = require("../../scripts/fluig/api/userTaskApi.js") as {
   __test: {
     currentUserIdentity: (payload: unknown) => Record<string, unknown> | null;
+    datasetRows: (payload: unknown) => Array<Record<string, unknown>>;
+    mapFallbackWorkflowTask: (item: Record<string, unknown>) => Record<string, unknown>;
+    mapProcessTaskDatasetRow: (
+      task: Record<string, unknown>,
+      process: Record<string, unknown>
+    ) => Record<string, unknown>;
     mapCentralTaskItem: (item: Record<string, unknown>, input: Record<string, unknown>) => Record<string, unknown> | null;
     membershipSummary: (
       items: Array<Record<string, unknown>>,
       totals: { openTasks: number; myRequests: number }
     ) => Record<string, unknown>;
     mergeCentralItems: (items: Array<Record<string, unknown>>) => Array<Record<string, unknown>>;
+    normalizeDate: (value: unknown) => string | null;
     normalizeKey: (value: unknown) => string;
+    pickColleague: (
+      rows: Array<Record<string, unknown>>,
+      email: string,
+      localPart: string
+    ) => Record<string, unknown> | null;
     totalsFromSummary: (payload: unknown) => { openTasks: number; myRequests: number };
+    userListItems: (payload: unknown) => Array<Record<string, unknown>>;
+    workflowEnvelope: (payload: unknown) => { items: Array<Record<string, unknown>>; hasNext: boolean | null };
   };
 };
 
 describe("Fluig Central de Tarefas API", () => {
+  it("interpreta data e hora do Fluig na ordem brasileira", () => {
+    expect(__test.normalizeDate("10/06/2026 13:56")).toBe("2026-06-10T13:56:00-03:00");
+    expect(__test.normalizeDate("9/7/2026 08:05:04")).toBe("2026-07-09T08:05:04-03:00");
+  });
+
+  it("rejeita uma data brasileira inexistente", () => {
+    expect(__test.normalizeDate("31/02/2026 13:56")).toBeNull();
+  });
+
   it("usa o codigo do colaborador e nao o id numerico interno", () => {
     expect(
       __test.currentUserIdentity({
@@ -40,6 +63,86 @@ describe("Fluig Central de Tarefas API", () => {
         ],
       })
     ).toEqual({ openTasks: 45, myRequests: 600 });
+  });
+
+  it("le o retorno do dataset de colaboradores usado para resolver os usuarios monitorados", () => {
+    expect(
+      __test.datasetRows({
+        content: {
+          values: [{ "colleaguePK.colleagueId": "00189", mail: "administrativo.agc@atacadaodiaadia.com.br" }],
+        },
+      })
+    ).toEqual([{ "colleaguePK.colleagueId": "00189", mail: "administrativo.agc@atacadaodiaadia.com.br" }]);
+  });
+
+  it("encontra o colaborador por login quando o e-mail cadastrado no Fluig diverge", () => {
+    expect(
+      __test.pickColleague(
+        [
+          {
+            "colleaguePK.colleagueId": "00144",
+            login: "administrativo.qnm11.atacadaodiaadia.com.br.1",
+            mail: "administrativo.ceilandia@atacadaodiaadia.com.br",
+          },
+        ],
+        "administrativo.qnm11@atacadaodiaadia.com.br",
+        "administrativo.qnm11"
+      )
+    ).toMatchObject({ "colleaguePK.colleagueId": "00144" });
+  });
+
+  it("normaliza a resposta paginada da API alternativa de tarefas", () => {
+    const envelope = __test.workflowEnvelope({
+      content: {
+        items: [
+          {
+            processInstanceId: 179529,
+            processId: "Solicitacao de Compra Administrativa",
+            requesterCode: "00189",
+            stateName: "Analisar solicitacao",
+          },
+        ],
+        hasNext: false,
+      },
+    });
+
+    expect(envelope.hasNext).toBe(false);
+    expect(__test.mapFallbackWorkflowTask(envelope.items[0])).toMatchObject({
+      processInstanceId: 179529,
+      requesterId: "00189",
+      stateDescription: "Analisar solicitacao",
+      active: true,
+    });
+  });
+
+  it("monta a tarefa a partir dos datasets internos sem depender da referencia orfa", () => {
+    expect(
+      __test.mapProcessTaskDatasetRow(
+        {
+          "processTask.processInstanceId": "1184954",
+          "processTask.movementSequence": "7",
+          choosedSequence: "12",
+          choosedColleagueId: "00144",
+          status: "0",
+          active: "true",
+        },
+        {
+          processId: "Solicitacao de Compra Administrativa",
+          requesterId: "00189",
+          startDateProcess: "2026-07-20 10:00:00",
+        }
+      )
+    ).toMatchObject({
+      processInstanceId: "1184954",
+      processId: "Solicitacao de Compra Administrativa",
+      movementSequence: 7,
+      stateId: 12,
+      active: true,
+    });
+  });
+
+  it("le usuarios quando o Fluig retorna a lista dentro de content.users", () => {
+    expect(__test.userListItems({ content: { users: [{ code: "00189" }] } })).toEqual([{ code: "00189" }]);
   });
 
   it("classifica, une e contabiliza a mesma solicitacao sem duplicar", () => {

@@ -1,3 +1,5 @@
+import { isValidCnpj, normalizeCnpj } from "@/lib/cnpj";
+
 export type OperationalLaunchModule = "pagamentos" | "compras";
 
 export type OperationalLaunchStatus =
@@ -83,6 +85,12 @@ export type OperationalLaunchValidateInput = {
   dueDate?: string | null;
   fieldOverrides: Record<string, string>;
   attachments: OperationalLaunchAttachment[];
+  fiscalDocument?: {
+    sourceType: "xml" | "pdf";
+    supplierCnpj?: string | null;
+    takerName?: string | null;
+    takerCnpj?: string | null;
+  } | null;
   items?: OperationalLaunchItemInput[];
 };
 
@@ -147,7 +155,10 @@ export function validateOperationalLaunch(input: OperationalLaunchValidateInput)
   if (!input.branchCode?.trim() && !input.branchLabel?.trim()) errors.push("Filial nao informada.");
 
   if (input.module === "pagamentos") {
-    if (!input.supplierId) errors.push("Selecione um fornecedor oficial ativo do cadastro ADM.");
+    const supplierCnpj = normalizeCnpj(input.supplierCnpj);
+    if (!input.supplierId && (!input.supplierName?.trim() || !supplierCnpj || !isValidCnpj(supplierCnpj))) {
+      errors.push("Informe o fornecedor e um CNPJ valido extraido da nota fiscal.");
+    }
     if (!input.attachments.some(isFiscalLaunchAttachment)) {
       errors.push("Anexe ao menos um PDF ou XML da nota fiscal.");
     }

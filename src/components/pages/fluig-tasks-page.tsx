@@ -34,6 +34,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FluigJobProgressCard } from "@/components/shared/fluig-job-progress-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
@@ -186,7 +187,7 @@ function isCancelableRequest(row: FluigOpenRequestRecord | null | undefined) {
 }
 
 function describeAgent(agent: FluigAdmAgent | null) {
-  if (!agent) return "Nenhum agente online para o usuario atual.";
+  if (!agent) return "Credenciais Fluig nao cadastradas para o usuario atual.";
   return `${agent.display_name}${agent.machine_name ? ` em ${agent.machine_name}` : ""} - ${describeHeartbeatAge(agent.heartbeat_age_seconds)}`;
 }
 
@@ -291,7 +292,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
   async function syncMyFluig() {
     if (!onlineAgent) {
       const message =
-        "Nenhum agente Fluig online esta pareado com este usuario. Gere o token em Pagamentos, Compras ou Manutencao e inicie o agente nesta maquina.";
+        "Credenciais Fluig nao cadastradas para este usuario. Solicite o cadastro em Gestao de usuarios.";
       setError(message);
       toast.error(message);
       return;
@@ -326,7 +327,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
 
   async function lookupFluigRequest() {
     if (!onlineAgent) {
-      const message = "Inicie um agente Fluig pareado com este usuario antes de consultar uma solicitacao.";
+      const message = "Cadastre o usuario e a senha Fluig antes de consultar uma solicitacao pela VPS.";
       setError(message);
       toast.error(message);
       return;
@@ -371,7 +372,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
 
   async function testAgentConnection() {
     if (!onlineAgent) {
-      const message = "Nenhum agente local online para testar. Abra o agente nesta maquina e clique em Atualizar.";
+      const message = "Credenciais Fluig nao cadastradas para este usuario.";
       setError(message);
       toast.error(message);
       return;
@@ -392,7 +393,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
       await refresh(true);
       toast.success("Conexao autenticada com o Fluig validada.");
     } catch (testError) {
-      const message = testError instanceof Error ? testError.message : "Falha ao testar o agente local.";
+      const message = testError instanceof Error ? testError.message : "Falha ao testar a conexao Fluig na VPS.";
       setError(message);
       toast.error(message);
     } finally {
@@ -402,7 +403,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
 
   async function cancelFluigRequest(record: FluigOpenRequestRecord) {
     if (!onlineAgent) {
-      const message = "Inicie um agente Fluig pareado com este usuario antes de cancelar a solicitacao.";
+      const message = "Cadastre o usuario e a senha Fluig antes de cancelar a solicitacao pela VPS.";
       setError(message);
       toast.error(message);
       return;
@@ -459,10 +460,10 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
       />
 
       <div className="stitch-animate-in grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-        <MetricTile icon={Laptop} label="Agente local" value={onlineAgent ? "Online" : "Pendente"} detail={describeAgent(onlineAgent)} />
+        <MetricTile icon={Laptop} label="Executor da VPS" value={onlineAgent ? "Pronto" : "Sem credencial"} detail={describeAgent(onlineAgent)} />
         <MetricTile icon={ClipboardList} label="Minhas tarefas" value={String(taskTotal)} detail="Pendencias abertas no Fluig" />
         <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requestTotal)} detail="Itens ainda acompanhados pelo ADM" />
-        <MetricTile icon={Activity} label="Jobs em andamento" value={String(pendingJobs.length)} detail="Execucoes aguardando agente local" />
+        <MetricTile icon={Activity} label="Jobs em andamento" value={String(pendingJobs.length)} detail="Execucoes processadas pela VPS" />
         <MetricTile icon={AlertTriangle} label="Erros recentes" value={String(failedJobs.length + syncErrors.length)} detail="Falhas acionaveis das ultimas 24h" tone={failedJobs.length + syncErrors.length ? "danger" : "default"} />
         <MetricTile
           icon={RefreshCcw}
@@ -508,7 +509,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
               disabled={loading || syncing || lookingUp || testingAgent || !onlineAgent}
             >
               {testingAgent ? <Loader2 className="size-4 animate-spin" /> : <Laptop className="size-4" />}
-              Testar agente
+              Testar conexao VPS
             </Button>
             <Button
               type="button"
@@ -609,7 +610,7 @@ export function FluigTasksPage({ config }: { config: ModuleConfig }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar solicitacao Fluig?</AlertDialogTitle>
             <AlertDialogDescription>
-              O agente local vai entrar no Fluig com o seu usuario e cancelar a solicitacao {cancelTarget?.fluigRequestId}. Esta acao nao e
+              A VPS vai entrar no Fluig com o seu usuario e cancelar a solicitacao {cancelTarget?.fluigRequestId}. Esta acao nao e
               repetida automaticamente.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -660,20 +661,15 @@ function PendingJobs({ jobs }: { jobs: FluigAdmJobSummary[] }) {
     <section className="rounded-md border bg-muted/20 p-3 text-sm">
       <div className="flex items-center gap-2 font-medium">
         <Loader2 className="size-4 animate-spin" />
-        Execucao em andamento
+        Execução em andamento
       </div>
-      <div className="mt-3 grid gap-2 md:grid-cols-2">
+      <div className="mt-3 grid gap-3">
         {jobs.map((job) => (
-          <div key={job.id} className="rounded-md border bg-background p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{moduleLabels[job.module]}</p>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{operationLabels[job.operation] || job.operation}</p>
-              </div>
-              <StatusBadge status={normalizeJobStatus(job.status)} />
-            </div>
-            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{job.progressLabel || "Aguardando resposta do agente local."}</p>
-          </div>
+          <FluigJobProgressCard
+            key={job.id}
+            job={job}
+            contextLabel={moduleLabels[job.module]}
+          />
         ))}
       </div>
     </section>
@@ -702,7 +698,7 @@ function LookupResult({
         <div>
           <p className="text-sm font-medium">Consulta Fluig {requestNumber}</p>
           <p className="text-xs text-muted-foreground">
-            {loading ? "Consultando diretamente no Fluig pelo agente local." : record ? "Registro encontrado na base sincronizada." : "Consulta finalizada; atualize a lista se o job ainda estiver processando."}
+            {loading ? "Consultando diretamente no Fluig pela VPS." : record ? "Registro encontrado na base sincronizada." : "Consulta finalizada; atualize a lista se o job ainda estiver processando."}
           </p>
         </div>
         {record ? (
@@ -894,7 +890,7 @@ function RequestTable({
 
 function AgentPanel({ agents, loading }: { agents: FluigAdmAgent[]; loading: boolean }) {
   return (
-    <SidePanel icon={Laptop} title="Agentes locais">
+    <SidePanel icon={Laptop} title="Executor Fluig da VPS">
       {agents.length ? (
         <div className="space-y-2">
           {agents.slice(0, 5).map((agent) => (
@@ -916,7 +912,7 @@ function AgentPanel({ agents, loading }: { agents: FluigAdmAgent[]; loading: boo
           ))}
         </div>
       ) : (
-        <EmptyPanelText>{loading ? "Carregando agentes..." : "Nenhum agente local pareado para este usuario."}</EmptyPanelText>
+        <EmptyPanelText>{loading ? "Verificando credencial..." : "Credenciais Fluig nao cadastradas para este usuario."}</EmptyPanelText>
       )}
     </SidePanel>
   );

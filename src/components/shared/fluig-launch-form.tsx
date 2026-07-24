@@ -3,7 +3,6 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CheckCircle2,
   FileCheck2,
   FileUp,
   History,
@@ -19,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FluigBatchLaunch } from "@/components/shared/fluig-batch-launch";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { fluigAdmApi } from "@/lib/fluig-api";
 import {
@@ -26,7 +26,6 @@ import {
   type FluigCatalogItem,
   type FluigCatalogType,
   type FluigIntegrationModule,
-  type FluigLaunchTemplate,
   type FluigModuleSlug,
 } from "@/lib/fluig-data";
 import {
@@ -36,6 +35,7 @@ import {
   type OperationalLaunchItemInput,
   type OperationalLaunchRecord,
 } from "@/lib/operational-launch";
+import { selectSupplierTemplate } from "@/lib/fluig-template-selection";
 import { cn } from "@/lib/utils";
 import { useFluigJobState } from "@/lib/use-fluig-job-state";
 
@@ -62,6 +62,38 @@ type AttachmentPayload = {
   mimeType: string;
   size: number;
   dataBase64: string;
+};
+
+type FiscalDocumentResponse = {
+  success?: boolean;
+  error?: string;
+  document?: {
+    sourceType: "xml" | "pdf";
+    documentType: "nfe" | "nfse" | "cte" | "invoice" | "rental" | "unknown";
+    supplierName: string | null;
+    supplierCnpj: string | null;
+    takerName: string | null;
+    takerCnpj: string | null;
+    invoiceNumber: string | null;
+    issueDate: string | null;
+    dueDate: string | null;
+    amountCents: number | null;
+    description: string | null;
+    warnings: string[];
+  };
+  supplier?: {
+    id: string;
+    name: string;
+    cnpj: string;
+    defaultSourceRequestId: string | null;
+    defaultFields: Record<string, string>;
+    branchIds: string[];
+  } | null;
+  branch?: {
+    id: string;
+    code: string;
+    label: string;
+  } | null;
 };
 
 type CatalogOption = FluigCatalogItem & {
@@ -119,6 +151,16 @@ const maxAttachmentBytes = 3 * 1024 * 1024;
 
 const dateFieldKeys = new Set(["dataEmissaoNF", "vencPagNota", "dataPedido", "dataPrevSaida"]);
 const fiscalAttachmentExtensions = new Set([".pdf", ".xml"]);
+const supplierModelFieldKeys = new Set([
+  "codigonaturezaC",
+  "naturezaSalva",
+  "centroCusto",
+  "codCentroCusto",
+  "formaPagamento",
+  "contaCentroCusto",
+  "descricaoDemandaEnvio",
+]);
+const supplierVariableFieldKeys = ["nNotaFiscal", "dataEmissaoNF", "vencPagNota", "valorNF"];
 
 const launchFields: Record<LaunchModule, LaunchField[]> = {
   pagamentos: [
@@ -279,16 +321,6 @@ function readFileAsBase64(file: File) {
   });
 }
 
-function templateMatchesCatalog(template: FluigLaunchTemplate, item: FluigCatalogItem) {
-  const cnpj = metadataText(item, "cnpj");
-  if (cnpj && template.supplierCnpj && cnpj.replace(/\D/g, "") === template.supplierCnpj.replace(/\D/g, "")) {
-    return true;
-  }
-
-  const supplier = normalizeText(template.supplierName || "");
-  return supplier ? catalogSearchText(item).includes(supplier) : false;
-}
-
 function catalogDedupeKey(item: FluigCatalogItem) {
   const cnpj = metadataText(item, "cnpj").replace(/\D/g, "");
   const code = normalizeText(item.code || "");
@@ -401,6 +433,13 @@ function formatMoney(cents: number | null) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
 
+function formatMoneyInput(cents: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
 export function FluigLaunchForm({
   moduleSlug,
   integration,
@@ -431,6 +470,9 @@ export function FluigLaunchForm({
   const [selectedBranchCode, setSelectedBranchCode] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [attachments, setAttachments] = useState<AttachmentPayload[]>([]);
+  const [readingFiscalDocument, setReadingFiscalDocument] = useState(false);
+  const [fiscalDocument, setFiscalDocument] = useState<NonNullable<FiscalDocumentResponse["document"]> | null>(null);
+  const [detectedSourceRequestId, setDetectedSourceRequestId] = useState<string | null>(null);
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>([initialPurchaseItem()]);
   const [recentLaunches, setRecentLaunches] = useState<OperationalLaunchRecord[]>([]);
   const [launchPermissions, setLaunchPermissions] = useState<{ canView: boolean; canCreate: boolean } | null>(null);
@@ -464,7 +506,6 @@ export function FluigLaunchForm({
     () => (syncData?.launchTemplates || []).filter((template) => template.module === moduleSlug),
     [moduleSlug, syncData?.launchTemplates]
   );
-  const monthlyTemplates = templates.filter((template) => template.recurrence === "monthly");
   const selectedTemplate = templates.find((template) => template.id === selectedTemplateId) || null;
   const attachmentAccept = moduleSlug === "pagamentos" ? ".pdf,.xml" : ".pdf,.xml,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx";
   const attachmentHint =
@@ -551,54 +592,117 @@ export function FluigLaunchForm({
     setFormValues((current) => ({ ...current, [key]: value }));
   }
 
-  function applyTemplate(template: FluigLaunchTemplate) {
+  function applySupplierTemplate(item: CatalogOption) {
+    const cnpj = metadataText(item, "cnpj");
+    const supplierName = item.value || item.label;
+    const selection = selectSupplierTemplate(templates, { cnpj, name: supplierName });
+    const template = selection.template;
+    const automaticBranch = selection.automaticBranch;
+
     setReview(null);
-    setSelectedTemplateId(template.id);
-    setSelectedBranchCode(template.branchCode || null);
-    const matchingSupplier = officialSuppliers.find((supplier) => templateMatchesCatalog(template, supplier));
-    setSelectedSupplierId(matchingSupplier ? metadataText(matchingSupplier, "appSupplierId") || null : null);
+    setFiscalDocument(null);
+    setSelectedTemplateId(template?.id || "");
+    setSelectedBranchCode(automaticBranch?.code || null);
+    setSelectedSupplierId(item.origin === "adm" ? metadataText(item, "appSupplierId") || null : null);
     setFormValues((current) => {
       const next = { ...current };
-      for (const [key, value] of Object.entries(template.defaultFields)) {
-        if (typeof value === "string" && value.trim()) {
+
+      for (const key of supplierModelFieldKeys) next[key] = "";
+      for (const key of supplierVariableFieldKeys) next[key] = "";
+      next.unidadeFilial = "";
+      next.codFilialPedido = "";
+      next.filial = "";
+
+      for (const [key, value] of Object.entries(template?.defaultFields || {})) {
+        if (supplierModelFieldKeys.has(key) && typeof value === "string" && value.trim()) {
           next[key] = displayValueForField(key, value);
         }
       }
-      if (template.supplierName) next.fornecedorC = template.defaultFields.fornecedorC || template.supplierName;
-      if (template.supplierCnpj) next.codCNPJ = template.supplierCnpj;
-      if (template.branchLabel) {
-        next.unidadeFilial = template.branchLabel;
-        next.codFilialPedido = template.branchLabel;
-        next.filial = template.branchLabel;
+      next.fornecedorC = supplierName;
+      next.codCNPJ = cnpj || template?.supplierCnpj || "";
+      if (automaticBranch?.label) {
+        next.unidadeFilial = automaticBranch.label;
+        next.codFilialPedido = automaticBranch.label;
+        next.filial = automaticBranch.label;
       }
       return next;
     });
     setMessage(
-      template.recurrence === "monthly"
-        ? "Padrao mensal aplicado. Revise competencia, valor e anexe a nota fiscal."
-        : "Modelo real aplicado a partir do historico Fluig."
+      template
+        ? automaticBranch
+          ? "Ultimo modelo do fornecedor aplicado. A filial unica tambem foi preenchida; informe os dados da nova nota."
+          : "Ultimo modelo do fornecedor aplicado. Selecione a filial e informe os dados da nova nota."
+        : "Fornecedor selecionado. Nenhum modelo anterior foi encontrado; complete a classificacao financeira."
     );
     setError(null);
   }
 
-  function handleCatalogSelect(field: LaunchField, item: CatalogOption) {
-    setFieldValue(field.key, item.value || item.label);
+  async function readFiscalDocument(attachment: AttachmentPayload) {
+    const response = await fetch("/api/fluig/adm/fiscal-document", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(attachment),
+    });
+    const data = (await response.json()) as FiscalDocumentResponse;
+    if (!response.ok || data.success === false || !data.document) {
+      throw new Error(data.error || "Nao foi possivel interpretar o documento fiscal.");
+    }
+    return data as FiscalDocumentResponse & { document: NonNullable<FiscalDocumentResponse["document"]> };
+  }
 
-    if (field.catalogType === "supplier") {
-      setSelectedSupplierId(item.origin === "adm" ? metadataText(item, "appSupplierId") || null : null);
-      const cnpj = metadataText(item, "cnpj");
-      if (cnpj) setFieldValue("codCNPJ", cnpj);
-      const branchCode = metadataText(item, "branchCode");
-      const branchLabel = metadataText(item, "branchLabel");
-      if (branchLabel) {
-        setFieldValue("unidadeFilial", branchLabel);
-        setFieldValue("codFilialPedido", branchLabel);
-        setSelectedBranchCode(branchCode || null);
+  function applyFiscalDocument(data: FiscalDocumentResponse & { document: NonNullable<FiscalDocumentResponse["document"]> }) {
+    const document = data.document;
+    const matchingTemplate = templates.find(
+      (template) =>
+        document.supplierCnpj &&
+        template.supplierCnpj?.replace(/\D/g, "") === document.supplierCnpj.replace(/\D/g, "")
+    );
+    const supplierOption = officialSuppliers.find(
+      (item) => data.supplier?.id && metadataText(item, "appSupplierId") === data.supplier.id
+    );
+    const templateFields = matchingTemplate?.defaultFields || data.supplier?.defaultFields || {};
+
+    setReview(null);
+    setFiscalDocument(document);
+    setSelectedTemplateId(matchingTemplate?.id || "");
+    setDetectedSourceRequestId(matchingTemplate?.sourceRequestId || data.supplier?.defaultSourceRequestId || null);
+    setSelectedSupplierId(
+      data.supplier && (!data.branch || data.supplier.branchIds.includes(data.branch.id)) ? data.supplier.id : null
+    );
+    setSelectedBranchCode(data.branch?.code || null);
+    setFormValues((current) => {
+      const next = { ...current };
+      for (const [key, value] of Object.entries(templateFields)) {
+        if (supplierModelFieldKeys.has(key) && value.trim()) next[key] = displayValueForField(key, value);
       }
-      const template = templates.find((candidate) => templateMatchesCatalog(candidate, item));
-      if (template) applyTemplate(template);
+      next.fornecedorC = data.supplier?.name || document.supplierName || "";
+      next.codCNPJ = document.supplierCnpj || data.supplier?.cnpj || "";
+      next.unidadeFilial = data.branch?.label || "";
+      next.nNotaFiscal = document.invoiceNumber || "";
+      next.dataEmissaoNF = document.issueDate || "";
+      next.vencPagNota = document.dueDate || "";
+      next.valorNF = document.amountCents != null ? formatMoneyInput(document.amountCents) : "";
+      next.descricaoDemandaEnvio =
+        document.description || templateFields.descricaoDemandaEnvio || "";
+      return next;
+    });
+    setMessage(
+      matchingTemplate || data.supplier
+        ? "Nota fiscal lida. Dados do documento e ultima classificacao financeira do fornecedor foram preenchidos."
+        : "Nota fiscal lida. Complete a classificacao financeira; o novo fornecedor e o modelo serao salvos apos a abertura no Fluig."
+    );
+    setError(null);
+    if (supplierOption) setSupplierCatalogWarning(null);
+  }
+
+  function handleCatalogSelect(field: LaunchField, item: CatalogOption) {
+    if (field.catalogType === "supplier") {
+      applySupplierTemplate(item);
     } else if (field.catalogType === "branch") {
+      setFieldValue(field.key, item.value || item.label);
       setSelectedBranchCode(item.code || metadataText(item, "branchCode") || null);
+    } else {
+      setFieldValue(field.key, item.value || item.label);
     }
   }
 
@@ -669,6 +773,21 @@ export function FluigLaunchForm({
     );
     setReview(null);
     setAttachments((current) => [...current, ...payloads]);
+    if (moduleSlug === "pagamentos") {
+      const primaryDocument =
+        payloads.find((attachment) => attachmentExtension(attachment.name) === ".xml") || payloads[0];
+      setReadingFiscalDocument(true);
+      try {
+        applyFiscalDocument(await readFiscalDocument(primaryDocument));
+      } catch (readError) {
+        setFiscalDocument(null);
+        setError(
+          `${readError instanceof Error ? readError.message : "Falha ao ler a nota fiscal"} Os anexos foram mantidos; preencha os campos manualmente.`
+        );
+      } finally {
+        setReadingFiscalDocument(false);
+      }
+    }
   }
 
   async function pollJobUntilDone(jobId: string) {
@@ -706,7 +825,12 @@ export function FluigLaunchForm({
       throw new Error("Anexe ao menos um PDF ou XML da nota fiscal antes de enviar o pagamento ao Fluig.");
     }
 
-    const sourceRequestId = selectedTemplate?.sourceRequestId || templates[0]?.sourceRequestId || syncData?.examples?.[0]?.id || "";
+    const sourceRequestId =
+      selectedTemplate?.sourceRequestId ||
+      detectedSourceRequestId ||
+      templates[0]?.sourceRequestId ||
+      syncData?.examples?.[0]?.id ||
+      "";
     if (!sourceRequestId) {
       throw new Error("Sincronize o historico Fluig para carregar um modelo real antes de abrir novo lancamento.");
     }
@@ -781,6 +905,15 @@ export function FluigLaunchForm({
           dueDate: moduleSlug === "pagamentos" ? formValues.vencPagNota || null : null,
           fieldOverrides: payload.fieldOverrides,
           attachments: attachmentMetadata(attachments),
+          fiscalDocument:
+            moduleSlug === "pagamentos" && fiscalDocument
+              ? {
+                  sourceType: fiscalDocument.sourceType,
+                  supplierCnpj: fiscalDocument.supplierCnpj,
+                  takerName: fiscalDocument.takerName,
+                  takerCnpj: fiscalDocument.takerCnpj,
+                }
+              : null,
           items,
         });
         launchId = validated.launch.id;
@@ -854,7 +987,7 @@ export function FluigLaunchForm({
         setMessage(
           launch?.fluigRequestId
             ? `Solicitacao Fluig ${launch.fluigRequestId} aberta, vinculada ao lancamento e disponivel para receber a ADF assinada.`
-            : "Lancamento executado pelo agente. Atualize o historico para consultar o numero Fluig."
+            : "Lancamento executado pela VPS. Atualize o historico para consultar o numero Fluig."
         );
         await refreshOperationalLaunches();
       } else {
@@ -890,43 +1023,27 @@ export function FluigLaunchForm({
               <span className="font-mono text-muted-foreground">{jobState.id.slice(0, 8)}</span>
             </div>
             <p className="mt-1 max-w-sm text-muted-foreground">
-              {jobState.progressLabel || "Aguardando agente local assumir a tarefa."}
+              {jobState.progressLabel || "Aguardando o executor da VPS assumir a tarefa."}
             </p>
           </div>
         ) : null}
       </header>
 
       <div className={cn("space-y-4", focused ? "p-5" : "p-3")}>
-        {monthlyTemplates.length ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <CheckCircle2 className="size-4 text-emerald-600" />
-              Contas mensais reconhecidas
+        {moduleSlug === "pagamentos" ? (
+          <>
+            <FluigBatchLaunch
+              templates={templates}
+              fallbackSourceRequestId={templates[0]?.sourceRequestId || syncData?.examples?.[0]?.id || ""}
+              canCreate={launchPermissions?.canCreate === true}
+              onCompleted={refreshOperationalLaunches}
+            />
+            <div className="flex items-center gap-3 py-1">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs font-medium text-muted-foreground">OU PREENCHA UMA NOTA INDIVIDUALMENTE</span>
+              <div className="h-px flex-1 bg-border" />
             </div>
-            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-              {monthlyTemplates.slice(0, 6).map((template) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  className={cn(
-                    "rounded-md border bg-muted/20 p-3 text-left text-xs transition hover:border-primary/60 hover:bg-primary/5",
-                    selectedTemplateId === template.id ? "border-primary bg-primary/10" : ""
-                  )}
-                  onClick={() => applyTemplate(template)}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="line-clamp-2 font-semibold text-foreground">{template.title}</span>
-                    <span className="shrink-0 rounded border bg-background px-2 py-1 text-[11px] text-muted-foreground">
-                      {template.occurrenceCount} usos
-                    </span>
-                  </div>
-                  <p className="mt-2 text-muted-foreground">
-                    {template.branchLabel || "Filial do historico"} - modelo {template.sourceRequestId}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
+          </>
         ) : null}
 
         {supplierCatalogWarning ? (
@@ -1073,11 +1190,53 @@ export function FluigLaunchForm({
                 className="hidden"
                 multiple
                 accept={attachmentAccept}
-                onChange={(event) => void handleFiles(event.target.files)}
+                onChange={(event) => {
+                  void handleFiles(event.target.files);
+                  event.currentTarget.value = "";
+                }}
+                disabled={readingFiscalDocument}
               />
             </label>
+            {readingFiscalDocument ? (
+              <span className="inline-flex items-center gap-1 text-xs text-primary">
+                <Loader2 className="size-3 animate-spin" />
+                Lendo nota e preenchendo os campos...
+              </span>
+            ) : null}
             <span className="text-xs text-muted-foreground">{attachmentHint}</span>
           </div>
+          {moduleSlug === "pagamentos" && fiscalDocument ? (
+            <div className="mt-3 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs">
+              <div className="flex items-center gap-2 font-semibold text-foreground">
+                <FileCheck2 className="size-4 text-emerald-600" />
+                Dados reconhecidos na nota
+              </div>
+              <p className="mt-1 text-muted-foreground">
+                {[
+                  {
+                    nfe: "NF-e / DANFE",
+                    nfse: "NFS-e",
+                    cte: "CT-e / DACTE",
+                    invoice: "Fatura",
+                    rental: "Nota de locação",
+                    unknown: "Documento não identificado",
+                  }[fiscalDocument.documentType],
+                  fiscalDocument.supplierName,
+                  fiscalDocument.supplierCnpj,
+                  fiscalDocument.invoiceNumber ? `Nº ${fiscalDocument.invoiceNumber}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" - ")}
+              </p>
+              {fiscalDocument.warnings.length ? (
+                <ul className="mt-2 space-y-1 text-amber-700 dark:text-amber-300">
+                  {fiscalDocument.warnings.map((warning) => (
+                    <li key={warning}>• {warning}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
           {attachments.length ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {attachments.map((attachment, index) => (

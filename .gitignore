@@ -12,9 +12,9 @@
 
 # testing
 /coverage
-/output/playwright/.auth/
-/output/playwright/report/
-/output/playwright/results/
+/.playwright-cli/
+/output/
+/tmp/
 
 # next.js
 /.next/
@@ -27,6 +27,7 @@
 .DS_Store
 *.pem
 /.codex/
+/.adm-fluig-runtime/
 /logs/
 /storage/
 /supabase/.temp/
@@ -39,6 +40,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+
+# private database dumps used only during the parallel VPS migration
+.migration-private/
 
 # vercel
 .vercel
