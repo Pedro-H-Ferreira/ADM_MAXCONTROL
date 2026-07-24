@@ -7,9 +7,8 @@ import type { NavigationSection } from "@/lib/navigation";
 
 export type AppShellUser = {
   name: string;
+  displayLabel: string;
   email: string | null;
-  role: string;
-  cd: string;
 };
 
 export function AppShell({

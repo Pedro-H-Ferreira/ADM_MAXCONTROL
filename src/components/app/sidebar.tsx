@@ -76,13 +76,10 @@ export function AppSidebar({
       <div className="flex h-16 items-center px-4">
         <Link href="/dashboard" className="flex min-w-0 items-center gap-2" onClick={onNavigate}>
           <div
-            className={cn(
-              "grid size-9 shrink-0 place-items-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground transition-transform duration-300",
-              showLabels ? "rotate-12" : "rotate-0",
-            )}
-          >
-            MC
-          </div>
+            aria-hidden="true"
+            className="size-9 shrink-0 rounded-lg bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: 'url("/favicon.ico")' }}
+          />
           <div
             className={cn(
               "min-w-0 overflow-hidden whitespace-nowrap transition-[opacity,transform,width] duration-300",
@@ -90,7 +87,6 @@ export function AppSidebar({
             )}
           >
             <p className="truncate text-sm font-semibold">MaxControLADM</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">CD Principal</p>
           </div>
         </Link>
       </div>
@@ -150,16 +146,6 @@ export function AppSidebar({
           </div>
         ))}
       </nav>
-      <div className="border-t border-sidebar-border p-3 text-xs text-sidebar-foreground/50">
-        <span
-          className={cn(
-            "block overflow-hidden whitespace-nowrap transition-[opacity,transform,width] duration-300",
-            showLabels ? "w-40 translate-x-0 opacity-100" : "w-8 translate-x-0 opacity-100",
-          )}
-        >
-          {showLabels ? "CD Principal" : "CD"}
-        </span>
-      </div>
     </aside>
   );
 }
