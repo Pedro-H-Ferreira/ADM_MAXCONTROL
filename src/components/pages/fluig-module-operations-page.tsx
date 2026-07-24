@@ -52,6 +52,10 @@ import type { ModuleConfig } from "@/lib/admin-data";
 import { waitForFluigJobs } from "@/lib/use-fluig-job-state";
 import { useVisibleRefresh } from "@/lib/use-visible-refresh";
 import { actionableRecentFluigJobFailures } from "@/lib/fluig-job-errors";
+import {
+  classifyPaymentRequestHealth,
+  type PaymentRequestHealthLevel,
+} from "@/lib/payment-request-health";
 import { cn } from "@/lib/utils";
 
 type OperationalModuleSlug = Extract<FluigModuleSlug, "pagamentos" | "compras">;
@@ -547,7 +551,23 @@ export function FluigModuleOperationsPage({
 
         <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setRequestPage(1); }}>
           <div className="overflow-x-auto border-b"><TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0"><TabsTrigger className="rounded-none px-4 py-3" value="tasks">Minhas tarefas ({taskTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="requests">Minhas solicitacoes ({requestTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="errors">Com erro</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="finished">Finalizadas</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="jobs">Jobs e sincronizacoes</TabsTrigger></TabsList></div>
-          {activeTab === "jobs" ? <TabsContent value="jobs" className="m-0"><JobsTable jobs={moduleJobs} states={states} loading={loading} /></TabsContent> : <TabsContent value={activeTab} className="m-0"><RequestTable title={activeTab === "tasks" ? "Tarefas sob sua responsabilidade" : activeTab === "errors" ? "Solicitacoes com erro ou canceladas" : activeTab === "finished" ? "Solicitacoes finalizadas" : `Solicitacoes de ${moduleLabels[moduleSlug].toLowerCase()}`} emptyText={loading || requestsLoading ? "Carregando dados persistidos..." : "Nenhum registro encontrado para os filtros informados."} rows={visibleRows} fieldSettings={fieldSettings} onSelect={(row) => void openRequestDetails(row)} /></TabsContent>}
+          {activeTab === "jobs" ? (
+            <TabsContent value="jobs" className="m-0">
+              <JobsTable jobs={moduleJobs} states={states} loading={loading} />
+            </TabsContent>
+          ) : (
+            <TabsContent value={activeTab} className="m-0">
+              <RequestTable
+                title={activeTab === "tasks" ? "Tarefas sob sua responsabilidade" : activeTab === "errors" ? "Solicitacoes com erro ou canceladas" : activeTab === "finished" ? "Solicitacoes finalizadas" : `Solicitacoes de ${moduleLabels[moduleSlug].toLowerCase()}`}
+                emptyText={loading || requestsLoading ? "Carregando dados persistidos..." : "Nenhum registro encontrado para os filtros informados."}
+                rows={visibleRows}
+                fieldSettings={fieldSettings}
+                showPaymentHealth={moduleSlug === "pagamentos" && activeTab !== "errors" && activeTab !== "finished"}
+                referenceTime={referenceTime}
+                onSelect={(row) => void openRequestDetails(row)}
+              />
+            </TabsContent>
+          )}
         </Tabs>
         {requestTabActive ? (
           <div className="flex flex-col gap-3 border-t p-3 sm:flex-row sm:items-center sm:justify-between">
@@ -701,12 +721,16 @@ function RequestTable({
   rows,
   emptyText,
   fieldSettings,
+  showPaymentHealth,
+  referenceTime,
   onSelect,
 }: {
   title: string;
   rows: FluigOpenRequestRecord[];
   emptyText: string;
   fieldSettings: FluigFieldSetting[];
+  showPaymentHealth: boolean;
+  referenceTime: number;
   onSelect: (row: FluigOpenRequestRecord) => void;
 }) {
   const columns = fieldSettings
@@ -714,11 +738,12 @@ function RequestTable({
     .sort((left, right) => (left.listOrder ?? 9999) - (right.listOrder ?? 9999));
   return (
     <section className="stitch-animate-in rounded-lg border bg-background shadow-none">
-      <header className="flex flex-col gap-1 border-b p-4 md:flex-row md:items-center md:justify-between">
+      <header className="flex flex-col gap-3 border-b p-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-base font-semibold">{title}</h2>
           <p className="text-sm text-muted-foreground">{rows.length} registro(s) sincronizado(s)</p>
         </div>
+        {showPaymentHealth ? <PaymentHealthLegend /> : null}
       </header>
       {rows.length ? (
         <div className="overflow-x-auto"><Table>
@@ -728,11 +753,31 @@ function RequestTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((row) => (
-              <TableRow key={`${row.module}-${row.fluigRequestId}-${row.id}`} className="cursor-pointer" onClick={() => onSelect(row)}>
-                {columns.map((field) => <RequestFieldCell key={field.fieldKey} row={row} field={field} />)}
-              </TableRow>
-            ))}
+            {rows.map((row) => {
+              const health = showPaymentHealth && referenceTime
+                ? classifyPaymentRequestHealth({
+                    dueDate: row.invoiceDueDate || row.dueDate || row.fieldValues?.vencPagNota,
+                    issueDate: row.fieldValues?.dataEmissaoNF,
+                    referenceTime,
+                  })
+                : null;
+              return (
+                <TableRow
+                  key={`${row.module}-${row.fluigRequestId}-${row.id}`}
+                  className={cn("cursor-pointer border-l-4", health && paymentHealthRowClasses[health.level])}
+                  onClick={() => onSelect(row)}
+                >
+                  {columns.map((field, index) => (
+                    <RequestFieldCell
+                      key={field.fieldKey}
+                      row={row}
+                      field={field}
+                      health={index === 0 ? health : null}
+                    />
+                  ))}
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table></div>
       ) : (
@@ -759,6 +804,7 @@ function requestFieldValue(row: FluigOpenRequestRecord, fieldKey: string) {
     amountCents: row.amountCents,
     dueDate: row.dueDate,
     expenseNature: row.expenseNature,
+    openedAt: row.openedAt,
   };
   return values[fieldKey] ?? row.fieldValues?.[fieldKey] ?? null;
 }
@@ -770,23 +816,71 @@ function requestFieldText(row: FluigOpenRequestRecord, field: FluigFieldSetting)
       ? formatMoney(row.amountCents, row.currency || "BRL")
       : String(value || "-");
   }
+  if (field.fieldKey === "openedAt") {
+    return formatDateTime(String(value || ""));
+  }
   if (["dueDate", "invoiceDueDate", "vencPagNota", "dataEmissaoNF"].includes(field.fieldKey)) {
     return formatDate(String(value || ""));
   }
   return String(value ?? "").trim() || "-";
 }
 
-function RequestFieldCell({ row, field }: { row: FluigOpenRequestRecord; field: FluigFieldSetting }) {
+const paymentHealthRowClasses: Record<PaymentRequestHealthLevel, string> = {
+  outside_competence: "border-l-rose-700 bg-rose-100/80 hover:bg-rose-100 dark:bg-rose-950/35 dark:hover:bg-rose-950/50",
+  overdue: "border-l-red-500 bg-red-50/80 hover:bg-red-100/80 dark:bg-red-950/20 dark:hover:bg-red-950/35",
+  due_soon: "border-l-amber-500 bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/20 dark:hover:bg-amber-950/35",
+  ok: "border-l-emerald-500 bg-emerald-50/50 hover:bg-emerald-100/60 dark:bg-emerald-950/15 dark:hover:bg-emerald-950/25",
+  no_due_date: "border-l-slate-400 bg-slate-50/50 hover:bg-slate-100/60 dark:bg-slate-900/20 dark:hover:bg-slate-900/35",
+};
+
+const paymentHealthBadgeClasses: Record<PaymentRequestHealthLevel, string> = {
+  outside_competence: "border-rose-700 bg-rose-700 text-white",
+  overdue: "border-red-500 bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-100",
+  due_soon: "border-amber-500 bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100",
+  ok: "border-emerald-500 bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100",
+  no_due_date: "border-slate-400 bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100",
+};
+
+function PaymentHealthLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs" aria-label="Legenda da situação do pagamento">
+      <span className="text-muted-foreground">Situação:</span>
+      {([
+        ["outside_competence", "Fora da competência"],
+        ["overdue", "Atrasado"],
+        ["due_soon", "Vence em breve"],
+        ["ok", "Em dia"],
+      ] as const).map(([level, label]) => (
+        <span key={level} className={cn("rounded-full border px-2 py-0.5 font-medium", paymentHealthBadgeClasses[level])}>{label}</span>
+      ))}
+    </div>
+  );
+}
+
+function RequestFieldCell({
+  row,
+  field,
+  health,
+}: {
+  row: FluigOpenRequestRecord;
+  field: FluigFieldSetting;
+  health: ReturnType<typeof classifyPaymentRequestHealth> | null;
+}) {
+  const healthBadge = health ? (
+    <Badge className={cn("mt-1.5 whitespace-nowrap", paymentHealthBadgeClasses[health.level])} title={health.description}>
+      {health.label}
+    </Badge>
+  ) : null;
   if (field.fieldKey === "status") {
-    return <TableCell><StatusBadge status={normalizeStatus(row.normalizedStatus || row.status)} /></TableCell>;
+    return <TableCell>{healthBadge}<div className={healthBadge ? "mt-1.5" : ""}><StatusBadge status={normalizeStatus(row.normalizedStatus || row.status)} /></div></TableCell>;
   }
   if (field.fieldKey === "supplierName") {
-    return <TableCell className="min-w-[240px] max-w-[360px] whitespace-normal"><p className="font-medium">{requestFieldText(row, field)}</p><p className="text-xs text-muted-foreground">{row.branchLabel || row.branchCode || row.supplierCnpj || "-"}</p></TableCell>;
+    return <TableCell className="min-w-[240px] max-w-[360px] whitespace-normal">{healthBadge}<p className={cn("font-medium", healthBadge && "mt-1.5")}>{requestFieldText(row, field)}</p><p className="text-xs text-muted-foreground">{row.branchLabel || row.branchCode || row.supplierCnpj || "-"}</p></TableCell>;
   }
   if (field.fieldKey === "currentTask") {
-    return <TableCell className="min-w-[220px] max-w-[340px] whitespace-normal"><p>{requestFieldText(row, field)}</p><p className="text-xs text-muted-foreground">{row.taskOwner || "Responsavel nao informado"}</p></TableCell>;
+    return <TableCell className="min-w-[220px] max-w-[340px] whitespace-normal">{healthBadge}<p className={healthBadge ? "mt-1.5" : ""}>{requestFieldText(row, field)}</p><p className="text-xs text-muted-foreground">{row.taskOwner || "Responsavel nao informado"}</p></TableCell>;
   }
-  return <TableCell className="max-w-[320px] whitespace-normal">{requestFieldText(row, field)}</TableCell>;
+  return <TableCell className="max-w-[320px] whitespace-normal">{healthBadge}<div className={healthBadge ? "mt-1.5" : ""}>{requestFieldText(row, field)}</div></TableCell>;
 }
 
 function RequestDetailSheet({
@@ -1033,7 +1127,7 @@ function FluigFieldSettingsSheet({
   }
 
   const normalizedSearch = fieldSearch.trim().toLocaleLowerCase("pt-BR");
-  const formFieldDraft = draft.filter((field) => field.sourceType === "form");
+  const formFieldDraft = draft.filter((field) => field.sourceType === "form" || field.fieldKey === "openedAt");
   const visibleFields = normalizedSearch
     ? formFieldDraft.filter((field) =>
         [field.label, field.fieldKey, field.sampleValue || ""].some((value) =>
@@ -1048,13 +1142,13 @@ function FluigFieldSettingsSheet({
     <Sheet open onOpenChange={onOpenChange}>
       <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:max-w-none sm:data-[side=right]:w-[min(980px,calc(100vw-2rem))] sm:data-[side=right]:max-w-none">
         <SheetHeader className="shrink-0 border-b pr-14">
-          <SheetTitle>Campos preenchidos no formulário</SheetTitle>
-          <SheetDescription>Somente os campos utilizados na solicitação aparecem aqui. O nome exibido e um exemplo ajudam a identificar cada campo antes de ativá-lo.</SheetDescription>
+          <SheetTitle>Campos disponíveis no painel</SheetTitle>
+          <SheetDescription>Os campos preenchidos na solicitação e a data de abertura podem ser organizados para facilitar a leitura da lista.</SheetDescription>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-medium">{formFieldDraft.length} campos preenchidos disponíveis</p>
+              <p className="text-sm font-medium">{formFieldDraft.length} campos disponíveis</p>
               <p className="text-xs text-muted-foreground">{discoveredCount} encontrados automaticamente no formulário; {selectedCount} selecionados para exibição.</p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -1106,15 +1200,16 @@ function FluigFieldSettingsSheet({
                         <Input className="mt-2 font-mono text-xs" value={field.fieldKey} onChange={(event) => updateField(field.id, { fieldKey: event.target.value.trim() })} placeholder="nomeDoCampoNoFluig" />
                       ) : (
                         <p className="mt-2 break-all text-xs text-muted-foreground">
-                          Campo no Fluig: <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{field.fieldKey}</code>
+                          {field.sourceType === "request" ? "Informação do processo: " : "Campo no Fluig: "}
+                          <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{field.fieldKey}</code>
                         </p>
                       )}
                       <div className="mt-2 rounded-md border border-dashed bg-muted/30 px-3 py-2 text-xs">
                         <span className="font-medium text-foreground">Exemplo preenchido: </span>
-                        <span className="break-words text-muted-foreground">{field.sampleValue || "Ainda não há exemplo sincronizado para este campo."}</span>
+                        <span className="break-words text-muted-foreground">{field.fieldKey === "openedAt" ? "23/07/2026 14:35" : field.sampleValue || "Ainda não há exemplo sincronizado para este campo."}</span>
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="outline">Formulário Fluig</Badge>
+                        <Badge variant="outline">{field.sourceType === "request" ? "Informação da solicitação" : "Formulário Fluig"}</Badge>
                         {field.discovered ? <Badge variant="secondary">Detectado automaticamente</Badge> : null}
                         {field.occurrenceCount ? <span>Preenchido em {field.occurrenceCount.toLocaleString("pt-BR")} solicitação(ões)</span> : null}
                       </div>
