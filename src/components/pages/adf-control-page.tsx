@@ -360,7 +360,7 @@ export function AdfControlPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "ADFs controladas", value: metrics.total, helper: "Documentos vinculados a lancamentos", icon: FileSignature },
+          { label: "ADFs controladas", value: metrics.total, helper: "Criadas manualmente ou por lancamentos", icon: FileSignature },
           { label: "Aguardando assinatura", value: metrics.signature, helper: "Impressas e ainda sem retorno", icon: Clock3 },
           { label: "Assinadas a encaminhar", value: metrics.signed, helper: "Prontas para entrega ou Fluig", icon: FileCheck2 },
           { label: "Confirmadas no Fluig", value: metrics.fluig, helper: "Anexo validado na solicitacao", icon: CheckCircle2 },

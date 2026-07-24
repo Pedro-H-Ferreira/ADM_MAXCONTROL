@@ -26,7 +26,11 @@ function jsonError(error: string, status = 400) {
 export async function POST(request: Request) {
   try {
     const actor = await resolveCurrentAppUser();
-    if (!canActorPerformPageAction(actor, "adfs", "canCreate")) {
+    if (
+      !actor.isAdmin &&
+      !canActorPerformPageAction(actor, "adfs", "canCreate") &&
+      !canActorPerformPageAction(actor, "adfs", "canUpdate")
+    ) {
       return jsonError("Usuario sem permissao para criar ADF.", 403);
     }
     const parsed = payloadSchema.safeParse(await request.json().catch(() => ({})));

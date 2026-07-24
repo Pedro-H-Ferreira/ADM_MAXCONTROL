@@ -123,7 +123,11 @@ function assertUpdateAccess(actor: AppActor) {
 
 function assertCreateAccess(actor: AppActor) {
   assertViewAccess(actor);
-  if (!canActorPerformPageAction(actor, "adfs", "canCreate")) {
+  if (
+    !actor.isAdmin &&
+    !canActorPerformPageAction(actor, "adfs", "canCreate") &&
+    !canActorPerformPageAction(actor, "adfs", "canUpdate")
+  ) {
     throw new AppAuthError("Usuario sem permissao para criar ADF.", 403, "ADF_CREATE_DENIED");
   }
 }

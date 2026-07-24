@@ -32,7 +32,10 @@ export async function GET(request: Request) {
       success: true,
       authorizations,
       permissions: {
-        canCreate: canActorPerformPageAction(actor, "adfs", "canCreate"),
+        canCreate:
+          actor.isAdmin ||
+          canActorPerformPageAction(actor, "adfs", "canCreate") ||
+          canActorPerformPageAction(actor, "adfs", "canUpdate"),
         canUpdate: canActorPerformPageAction(actor, "adfs", "canUpdate"),
         canApprove: canActorPerformPageAction(actor, "adfs", "canApprove"),
       },
