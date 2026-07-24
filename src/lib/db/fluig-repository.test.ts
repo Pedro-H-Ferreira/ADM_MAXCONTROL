@@ -13,6 +13,7 @@ import {
   mergeFluigFieldSettingsWithDiscovered,
   normalizeFluigRequestLifecycle,
   resolveFluigMineUserId,
+  shouldScopeFluigRequestsToMine,
 } from "@/lib/db/fluig-repository";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 
@@ -78,10 +79,12 @@ function templateRequest(
 
 describe("buildSupplierCandidates", () => {
   it("ignora o filtro de solicitacoes proprias para administradores", () => {
+    expect(shouldScopeFluigRequestsToMine({ isAdmin: true }, true)).toBe(false);
     expect(resolveFluigMineUserId({ isAdmin: true, fluigUserId: "00130" }, true)).toBe("");
   });
 
   it("mantem o filtro de solicitacoes proprias para usuarios comuns", () => {
+    expect(shouldScopeFluigRequestsToMine({ isAdmin: false }, true)).toBe(true);
     expect(resolveFluigMineUserId({ isAdmin: false, fluigUserId: "00991" }, true)).toBe("00991");
   });
 

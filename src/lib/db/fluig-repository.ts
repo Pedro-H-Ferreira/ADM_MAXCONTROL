@@ -637,9 +637,12 @@ export async function listFluigRequestsForActor(input: {
     const pageSize = Math.min(Math.max(Number(input.pageSize || 30), 1), 100);
     if (!allowedModules.has(input.module)) return { page, pageSize, total: 0, items: [], natures: [] };
     const actorFilter = buildFluigActorPostgrestFilter(input.actor);
+    const scopeRequestsToMine = shouldScopeFluigRequestsToMine(input.actor, input.mine);
     const mineFluigUserId = resolveFluigMineUserId(input.actor, input.mine);
     const search = String(input.search || "").replace(/[%_,()]/g, " ").trim();
-    if (input.mine && !mineFluigUserId) return { page, pageSize, total: 0, items: [], natures: [] };
+    if (scopeRequestsToMine && !mineFluigUserId) {
+      return { page, pageSize, total: 0, items: [], natures: [] };
+    }
 
     const loadNatureFacets = async () => {
       const values: Array<string | null | undefined> = [];
@@ -720,8 +723,15 @@ export function resolveFluigMineUserId(
   actor: Pick<AppActor, "isAdmin" | "fluigUserId">,
   mine: boolean | undefined
 ) {
-  if (!mine || actor.isAdmin) return "";
+  if (!shouldScopeFluigRequestsToMine(actor, mine)) return "";
   return String(actor.fluigUserId || "").trim();
+}
+
+export function shouldScopeFluigRequestsToMine(
+  actor: Pick<AppActor, "isAdmin">,
+  mine: boolean | undefined
+) {
+  return Boolean(mine && !actor.isAdmin);
 }
 
 export async function readMonthlyExpenseDashboardForActor(input: {
