@@ -20,6 +20,7 @@ import { AdfControlPage } from "@/components/pages/adf-control-page";
 import { FluigModuleOperationsPage } from "@/components/pages/fluig-module-operations-page";
 import { FluigTasksPage } from "@/components/pages/fluig-tasks-page";
 import { MaintenancePage } from "@/components/maintenance/maintenance-workspace-page";
+import { MonthlyExpensesPage } from "@/components/pages/monthly-expenses-page";
 import { ProductsPage } from "@/components/pages/products-page";
 import { SuppliersPage } from "@/components/pages/suppliers-page";
 import type { ModuleConfig } from "@/lib/admin-data";
@@ -100,6 +101,10 @@ export function ModulePage({
 
   if ((config.slug === "pagamentos" || config.slug === "compras") && mode === "list") {
     return <FluigModuleOperationsPage config={clientConfig} moduleSlug={config.slug} />;
+  }
+
+  if (config.slug === "pagamentos" && mode === "detail" && recordId === "contas-mensais") {
+    return <MonthlyExpensesPage />;
   }
 
   if (mode === "new") {

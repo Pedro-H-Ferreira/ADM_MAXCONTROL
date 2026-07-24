@@ -55,6 +55,7 @@ function templateRequest(
     fluig_request_id: id,
     supplier_name: "FORNECEDOR MODELO",
     supplier_cnpj: "00801587000138",
+    expense_nature: "5030103 - ENERGIA ELETRICA - REDE GERAL",
     branch_code: "1016",
     branch_label: "1016 - 1016-SAD",
     opened_at: openedAt,
@@ -376,6 +377,25 @@ describe("buildSupplierCandidates", () => {
 });
 
 describe("buildFluigLaunchTemplatesFromRequests", () => {
+  it("nao classifica frete de transferencia DANFE como conta mensal", () => {
+    const templates = buildFluigLaunchTemplatesFromRequests([
+      templateRequest("frete-abril-1", "2026-04-01T10:00:00.000Z", {
+        expense_nature: "4010210 - FRETE TRANSFERENCIA DE PRODUTOS - DANFE",
+      }),
+      templateRequest("frete-abril-2", "2026-04-08T10:00:00.000Z", {
+        expense_nature: "4010210 - FRETE TRANSFERENCIA DE PRODUTOS - DANFE",
+      }),
+      templateRequest("frete-maio-1", "2026-05-01T10:00:00.000Z", {
+        expense_nature: "4010210 - FRETE TRANSFERENCIA DE PRODUTOS - DANFE",
+      }),
+      templateRequest("frete-junho-1", "2026-06-01T10:00:00.000Z", {
+        expense_nature: "4010210 - FRETE TRANSFERENCIA DE PRODUTOS - DANFE",
+      }),
+    ]);
+
+    expect(templates[0]?.recurrence).toBe("model");
+  });
+
   it("reconhece recorrencia que ficaria fora das 50 solicitacoes mais recentes", () => {
     const recentOneOffs = Array.from({ length: 50 }, (_, index) =>
       templateRequest(`2000${index}`, `2026-07-${String((index % 28) + 1).padStart(2, "0")}T10:00:00.000Z`, {

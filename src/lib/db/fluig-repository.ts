@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
-import { filterRowsForActor, fluigModuleSlugsForActor, type AppActor } from "@/lib/db/app-repository";
+import {
+  AppAuthError,
+  canActorAccessPage,
+  filterRowsForActor,
+  fluigModuleSlugsForActor,
+  type AppActor,
+} from "@/lib/db/app-repository";
 import { getSupabaseServiceClient, getSupabaseServiceStatus } from "@/lib/supabase/service";
 import type { FluigHistoryItem, FluigStatusItem } from "@/lib/fluig/server-client";
 import type {
@@ -15,6 +21,11 @@ import type {
 import type { FluigProcessMap } from "@/lib/fluig/process-map";
 import { normalizeFluigBranch } from "@/lib/fluig-branch";
 import { buildFluigActorPostgrestFilter } from "@/lib/fluig-visibility";
+import {
+  buildMonthlyExpenseDashboard,
+  isMonthlyExpensePattern,
+  type MonthlyExpenseSourceRow,
+} from "@/lib/monthly-expense-monitor";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -229,6 +240,21 @@ const fluigRequestSummarySelect = [
   "sync_source",
   "source_url",
   "raw_payload",
+].join(",");
+
+const monthlyExpenseRequestSelect = [
+  "id",
+  "fluig_request_id",
+  "status",
+  "normalized_status",
+  "branch_code",
+  "branch_label",
+  "supplier_name",
+  "supplier_cnpj",
+  "expense_nature",
+  "amount_cents",
+  "opened_at",
+  "last_synced_at",
 ].join(",");
 
 function emptyResult(): PersistenceResult {
@@ -677,6 +703,72 @@ export async function listFluigRequestsForActor(input: {
     const visible = filterRowsForActor(input.actor, (data || []) as unknown as FluigRequestDbRow[]).map(mapFluigRequestRecord);
     return { page, pageSize, total: count || 0, items: visible, natures };
   }).then(({ result, persistence }) => ({ ...(result || { page: 1, pageSize: 30, total: 0, items: [], natures: [] }), persistence }));
+}
+
+export async function readMonthlyExpenseDashboardForActor(input: {
+  actor: AppActor;
+  selectedMonth: string;
+  currentMonth: string;
+}) {
+  if (!canActorAccessPage(input.actor, "pagamentos")) {
+    throw new AppAuthError(
+      "Usuario sem acesso ao acompanhamento de contas mensais.",
+      403,
+      "MONTHLY_EXPENSE_ACCESS_DENIED"
+    );
+  }
+
+  return runWithDb(async (client) => {
+    const branchCodes = input.actor.branches.map((branch) => branch.code.trim()).filter(Boolean);
+    if (!input.actor.isAdmin && !branchCodes.length) {
+      return buildMonthlyExpenseDashboard([], {
+        selectedMonth: input.selectedMonth,
+        currentMonth: input.currentMonth,
+        historyLength: 6,
+      });
+    }
+    const rows: FluigRequestDbRow[] = [];
+    const pageSize = 1000;
+
+    for (let offset = 0; ; offset += pageSize) {
+      let query = client
+        .from("fluig_requests")
+        .select(monthlyExpenseRequestSelect)
+        .eq("module_slug", "pagamentos")
+        .not("fluig_request_id", "is", null)
+        .not("supplier_name", "is", null)
+        .not("expense_nature", "is", null)
+        .order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (!input.actor.isAdmin) query = query.in("branch_code", branchCodes);
+      const { data, error } = await query;
+      if (error) throw error;
+      rows.push(
+        ...((data || []) as unknown as FluigRequestDbRow[]).filter(
+          (row) => input.actor.isAdmin || Boolean(row.branch_code && branchCodes.includes(row.branch_code))
+        )
+      );
+      if ((data || []).length < pageSize) break;
+    }
+
+    return buildMonthlyExpenseDashboard(rows as MonthlyExpenseSourceRow[], {
+      selectedMonth: input.selectedMonth,
+      currentMonth: input.currentMonth,
+      historyLength: 6,
+    });
+  }).then(({ result, persistence }) => ({
+    ...(result ||
+      buildMonthlyExpenseDashboard([], {
+        selectedMonth: input.selectedMonth,
+        currentMonth: input.currentMonth,
+        historyLength: 6,
+      })),
+    persistence,
+    scope: {
+      allBranches: input.actor.isAdmin,
+      branchCodes: input.actor.branches.map((branch) => branch.code),
+    },
+  }));
 }
 
 function compareOpenRequestPriority(left: FluigRequestDbRow, right: FluigRequestDbRow) {
@@ -1245,12 +1337,23 @@ export function buildFluigLaunchTemplatesFromRequests(rows: FluigRequestDbRow[])
       const supplier = supplierFromFields(fields);
       const supplierName = latest.supplier_name || supplier.name || firstStringField(fields, catalogFieldMap.supplier.fields) || null;
       const sourceRequestId = latest.fluig_request_id || latest.id;
+      const countsByMonth = new Map<string, number>();
+      for (const row of group.rows) {
+        const rowMonth = monthKey(row.opened_at || row.last_synced_at);
+        if (rowMonth) countsByMonth.set(rowMonth, (countsByMonth.get(rowMonth) || 0) + 1);
+      }
 
       return {
         id: key,
         module: latest.module_slug,
         title: supplierName ? `Padrao ${supplierName}` : `Modelo ${sourceRequestId}`,
-        recurrence: group.months.size >= 2 ? "monthly" : "model",
+        recurrence: isMonthlyExpensePattern({
+          nature: latest.expense_nature,
+          occurrenceCount: group.rows.length,
+          monthCounts: [...countsByMonth.values()],
+        })
+          ? "monthly"
+          : "model",
         sourceRequestId,
         supplierName,
         supplierCnpj: latest.supplier_cnpj || supplier.cnpj,

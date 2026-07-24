@@ -7,6 +7,7 @@ import {
   Bell,
   Boxes,
   Building2,
+  CalendarCheck2,
   ChartNoAxesColumn,
   ClipboardCheck,
   FileCheck2,
@@ -36,6 +37,7 @@ const icons: Record<string, LucideIcon> = {
   Bell,
   Boxes,
   Building2,
+  CalendarCheck2,
   ChartNoAxesColumn,
   ClipboardCheck,
   FileCheck2,
@@ -64,6 +66,10 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   const showLabels = !collapsed || mobile;
+  const activeHref = sections
+    .flatMap((section) => section.items)
+    .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
+    .sort((left, right) => right.href.length - left.href.length)[0]?.href;
 
   return (
     <aside
@@ -105,7 +111,7 @@ export function AppSidebar({
             <div className="space-y-1">
               {section.items.map((item) => {
                 const Icon = icons[item.icon] ?? LayoutDashboard;
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const active = activeHref === item.href;
                 const link = (
                   <Link
                     href={item.href}

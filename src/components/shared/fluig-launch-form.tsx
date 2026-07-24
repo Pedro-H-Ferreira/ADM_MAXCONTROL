@@ -3,7 +3,6 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CheckCircle2,
   FileCheck2,
   FileUp,
   History,
@@ -514,7 +513,6 @@ export function FluigLaunchForm({
     () => (syncData?.launchTemplates || []).filter((template) => template.module === moduleSlug),
     [moduleSlug, syncData?.launchTemplates]
   );
-  const monthlyTemplates = templates.filter((template) => template.recurrence === "monthly");
   const selectedTemplate = templates.find((template) => template.id === selectedTemplateId) || null;
   const attachmentAccept = moduleSlug === "pagamentos" ? ".pdf,.xml" : ".pdf,.xml,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx";
   const attachmentHint =
@@ -1047,38 +1045,6 @@ export function FluigLaunchForm({
               <div className="h-px flex-1 bg-border" />
             </div>
           </>
-        ) : null}
-
-        {monthlyTemplates.length ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <CheckCircle2 className="size-4 text-emerald-600" />
-              Contas mensais reconhecidas
-            </div>
-            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-              {monthlyTemplates.slice(0, 6).map((template) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  className={cn(
-                    "rounded-md border bg-muted/20 p-3 text-left text-xs transition hover:border-primary/60 hover:bg-primary/5",
-                    selectedTemplateId === template.id ? "border-primary bg-primary/10" : ""
-                  )}
-                  onClick={() => applyTemplate(template)}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="line-clamp-2 font-semibold text-foreground">{template.title}</span>
-                    <span className="shrink-0 rounded border bg-background px-2 py-1 text-[11px] text-muted-foreground">
-                      {template.occurrenceCount} usos
-                    </span>
-                  </div>
-                  <p className="mt-2 text-muted-foreground">
-                    {template.branchLabel || "Filial do historico"} - modelo {template.sourceRequestId}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
         ) : null}
 
         {supplierCatalogWarning ? (
