@@ -1375,7 +1375,7 @@ export function buildFluigLaunchTemplatesFromRequests(rows: FluigRequestDbRow[])
         defaultFields,
         occurrenceCount: group.rows.length,
         monthCount: group.months.size,
-        lastSeenAt: latest.last_synced_at || latest.opened_at,
+        lastSeenAt: latest.opened_at || latest.last_synced_at,
       } satisfies FluigLaunchTemplate;
     })
     .filter((template): template is FluigLaunchTemplate => Boolean(template))

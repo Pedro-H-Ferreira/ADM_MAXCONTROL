@@ -471,6 +471,7 @@ describe("buildFluigLaunchTemplatesFromRequests", () => {
 
     expect(templates[0]).toMatchObject({
       sourceRequestId: "1164402",
+      lastSeenAt: "2026-07-01T10:00:00.000Z",
       defaultFields: {
         centroCusto: "INCOMPLETO",
         codigonaturezaC: "NATUREZA NOVA",
