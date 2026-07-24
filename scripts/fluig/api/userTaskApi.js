@@ -447,6 +447,27 @@ function inferModule(item, processModules, knownRequestModules) {
 function normalizeDate(value) {
   const raw = normalizeText(value);
   if (!raw) return null;
+  const brazilianDate = raw.match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (brazilianDate) {
+    const day = Number(brazilianDate[1]);
+    const month = Number(brazilianDate[2]);
+    const year = Number(brazilianDate[3]);
+    const validationDate = new Date(Date.UTC(year, month - 1, day));
+    if (
+      validationDate.getUTCFullYear() !== year ||
+      validationDate.getUTCMonth() !== month - 1 ||
+      validationDate.getUTCDate() !== day
+    ) {
+      return null;
+    }
+
+    const hour = String(Number(brazilianDate[4] || 0)).padStart(2, "0");
+    const minute = brazilianDate[5] || "00";
+    const second = brazilianDate[6] || "00";
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${hour}:${minute}:${second}-03:00`;
+  }
   const sqlDate = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
   if (sqlDate) {
     return `${sqlDate[1]}-${sqlDate[2]}-${sqlDate[3]}T${sqlDate[4]}:${sqlDate[5]}:${sqlDate[6]}-03:00`;

@@ -821,7 +821,7 @@ function requestFieldText(row: FluigOpenRequestRecord, field: FluigFieldSetting)
       : String(value || "-");
   }
   if (field.fieldKey === "openedAt") {
-    return formatDateTime(String(value || ""));
+    return formatDate(String(value || ""));
   }
   if (["dueDate", "invoiceDueDate", "vencPagNota", "dataEmissaoNF"].includes(field.fieldKey)) {
     return formatDate(String(value || ""));
@@ -994,7 +994,7 @@ function RequestDetailSheet({
                 <RequestDetail label="Fornecedor" value={request.supplierName || "-"} />
                 <RequestDetail label="CNPJ" value={request.supplierCnpj || "-"} />
                 <RequestDetail label="Filial" value={request.branchLabel || request.branchCode || "-"} />
-                <RequestDetail label="Aberta em" value={formatDateTime(request.openedAt)} />
+                <RequestDetail label="Aberta em" value={formatDate(request.openedAt)} />
                 <RequestDetail label="Ultima sincronizacao" value={formatDateTime(request.lastStatusCheckAt || request.lastSyncedAt)} />
                 <RequestDetail label="Detalhes sincronizados em" value={formatDateTime(details?.fetchedAt)} />
               </section>
@@ -1210,7 +1210,7 @@ function FluigFieldSettingsSheet({
                       )}
                       <div className="mt-2 rounded-md border border-dashed bg-muted/30 px-3 py-2 text-xs">
                         <span className="font-medium text-foreground">Exemplo preenchido: </span>
-                        <span className="break-words text-muted-foreground">{field.fieldKey === "openedAt" ? "23/07/2026 14:35" : field.sampleValue || "Ainda não há exemplo sincronizado para este campo."}</span>
+                        <span className="break-words text-muted-foreground">{field.fieldKey === "openedAt" ? "23/07/2026" : field.sampleValue || "Ainda não há exemplo sincronizado para este campo."}</span>
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <Badge variant="outline">{field.sourceType === "request" ? "Informação da solicitação" : "Formulário Fluig"}</Badge>

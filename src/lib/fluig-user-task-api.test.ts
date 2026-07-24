@@ -17,6 +17,7 @@ const { __test } = require("../../scripts/fluig/api/userTaskApi.js") as {
       totals: { openTasks: number; myRequests: number }
     ) => Record<string, unknown>;
     mergeCentralItems: (items: Array<Record<string, unknown>>) => Array<Record<string, unknown>>;
+    normalizeDate: (value: unknown) => string | null;
     normalizeKey: (value: unknown) => string;
     pickColleague: (
       rows: Array<Record<string, unknown>>,
@@ -30,6 +31,15 @@ const { __test } = require("../../scripts/fluig/api/userTaskApi.js") as {
 };
 
 describe("Fluig Central de Tarefas API", () => {
+  it("interpreta data e hora do Fluig na ordem brasileira", () => {
+    expect(__test.normalizeDate("10/06/2026 13:56")).toBe("2026-06-10T13:56:00-03:00");
+    expect(__test.normalizeDate("9/7/2026 08:05:04")).toBe("2026-07-09T08:05:04-03:00");
+  });
+
+  it("rejeita uma data brasileira inexistente", () => {
+    expect(__test.normalizeDate("31/02/2026 13:56")).toBeNull();
+  });
+
   it("usa o codigo do colaborador e nao o id numerico interno", () => {
     expect(
       __test.currentUserIdentity({
