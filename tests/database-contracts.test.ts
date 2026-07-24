@@ -76,7 +76,10 @@ describe("database and API contracts", () => {
     expect(repository).toContain('.range(from, from + pageSize - 1)');
     expect(repository).toContain('.eq("branch_code", input.branch)');
     expect(repository).toContain('.lt("due_date", new Date().toISOString())');
+    expect(repository).toContain('.eq("my_request_fluig_user_id", mineFluigUserId)');
     expect(route).toContain('url.searchParams.get("errorOnly")');
+    expect(route).toContain('url.searchParams.get("mine")');
+    expect(page).toContain("myOpenRequestTotal");
     expect(page).toContain("20 por pagina");
     expect(page).toContain("100 por pagina");
     expect(page).toContain("debouncedQuery");

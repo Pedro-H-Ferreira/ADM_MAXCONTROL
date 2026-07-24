@@ -18,7 +18,8 @@ test("Fluig abre sem duplicar recursos e pagina no servidor", async ({ page }, t
   const initialResources = [
     "/api/fluig/adm/agent/pair",
     "/api/fluig/adm/tasks/my?limit=40&module=pagamentos",
-    "/api/fluig/adm/requests?module=pagamentos&page=1&pageSize=50&open=true",
+    "/api/fluig/adm/requests?module=pagamentos&page=1&pageSize=50&open=true&mine=true",
+    "/api/fluig/adm/requests/my-open?limit=1&module=pagamentos",
     "/api/fluig/adm/sync/state?module=pagamentos",
     "/api/fluig/adm/jobs?limit=50",
   ];

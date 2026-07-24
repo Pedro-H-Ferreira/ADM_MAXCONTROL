@@ -18,6 +18,7 @@ const schema = z.object({
   open: z.enum(["true", "false"]).nullable(),
   overdue: z.enum(["true", "false"]).nullable(),
   errorOnly: z.enum(["true", "false"]).nullable(),
+  mine: z.enum(["true", "false"]).nullable(),
 });
 
 export async function GET(request: Request) {
@@ -34,6 +35,7 @@ export async function GET(request: Request) {
       open: url.searchParams.get("open"),
       overdue: url.searchParams.get("overdue"),
       errorOnly: url.searchParams.get("errorOnly"),
+      mine: url.searchParams.get("mine"),
     });
     if (!parsed.success) return NextResponse.json({ success: false, error: parsed.error.issues[0]?.message || "Filtros invalidos." }, { status: 400 });
     const actor = await resolveCurrentAppUser();
@@ -43,6 +45,7 @@ export async function GET(request: Request) {
       open: parsed.data.open == null ? null : parsed.data.open === "true",
       overdue: parsed.data.overdue === "true",
       errorOnly: parsed.data.errorOnly === "true",
+      mine: parsed.data.mine === "true",
     });
     return NextResponse.json({ success: true, ...data });
   } catch (error) {

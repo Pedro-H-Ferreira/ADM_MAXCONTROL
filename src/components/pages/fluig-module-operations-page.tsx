@@ -208,6 +208,7 @@ export function FluigModuleOperationsPage({
   const [taskTotal, setTaskTotal] = useState(0);
   const [requests, setRequests] = useState<FluigOpenRequestRecord[]>([]);
   const [requestTotal, setRequestTotal] = useState(0);
+  const [myOpenRequestTotal, setMyOpenRequestTotal] = useState(0);
   const [requestPage, setRequestPage] = useState(1);
   const [requestPageSize, setRequestPageSize] = useState(50);
   const [requestsLoading, setRequestsLoading] = useState(false);
@@ -280,6 +281,7 @@ export function FluigModuleOperationsPage({
         open: activeTab === "finished" ? false : activeTab === "errors" ? null : true,
         overdue: onlyOverdue,
         errorOnly: activeTab === "errors",
+        mine: activeTab === "requests",
       }),
     [activeTab, branchFilter, debouncedQuery, moduleSlug, natureFilter, onlyOverdue, requestPage, requestPageSize, statusFilter]
   );
@@ -319,10 +321,11 @@ export function FluigModuleOperationsPage({
       setError(null);
 
       try {
-        const [nextAgents, taskData, requestData, syncStateData, jobData, fieldData] = await Promise.all([
+        const [nextAgents, taskData, requestData, myOpenRequestData, syncStateData, jobData, fieldData] = await Promise.all([
           fluigAdmApi.listAgents(),
           fluigAdmApi.listMyTasks(40, moduleSlug),
           loadRequestPage(),
+          fluigAdmApi.listMyOpenRequests(1, moduleSlug),
           fluigAdmApi.listSyncState(moduleSlug),
           fluigAdmApi.listJobs(30),
           fluigAdmApi.getFieldSettings(moduleSlug),
@@ -336,6 +339,7 @@ export function FluigModuleOperationsPage({
         setFieldSettings(fieldData.settings || []);
         setRequests(requestData.items || []);
         setRequestTotal(requestData.total || 0);
+        setMyOpenRequestTotal(Number(myOpenRequestData.total || 0));
         setStates(syncStateData.states || []);
         setJobs(jobData.jobs || []);
         setReferenceTime(new Date().getTime());
@@ -520,7 +524,7 @@ export function FluigModuleOperationsPage({
       <div className="stitch-animate-in grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <MetricTile icon={Laptop} label="Executor da VPS" value={onlineAgent ? "Pronto" : "Sem credencial"} detail={describeAgent(onlineAgent)} />
         <MetricTile icon={ClipboardList} label="Tarefas abertas" value={String(taskTotal)} detail="Pendencias do usuario neste modulo" />
-        <MetricTile icon={Workflow} label="Solicitacoes abertas" value={String(requestTotal)} detail="Total acompanhado pelo ADM, nao apenas a pagina atual" />
+        <MetricTile icon={Workflow} label="Minhas solicitacoes abertas" value={String(myOpenRequestTotal)} detail={`Somente suas solicitacoes abertas de ${moduleLabels[moduleSlug]}`} />
         <MetricTile icon={RefreshCcw} label="Jobs em andamento" value={String(pendingJobs.length)} detail="Execucoes processadas pela VPS" />
         <MetricTile
           icon={AlertTriangle}
@@ -550,7 +554,7 @@ export function FluigModuleOperationsPage({
         </div>
 
         <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setRequestPage(1); }}>
-          <div className="overflow-x-auto border-b"><TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0"><TabsTrigger className="rounded-none px-4 py-3" value="tasks">Minhas tarefas ({taskTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="requests">Minhas solicitacoes ({requestTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="errors">Com erro</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="finished">Finalizadas</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="jobs">Jobs e sincronizacoes</TabsTrigger></TabsList></div>
+          <div className="overflow-x-auto border-b"><TabsList className="h-auto w-max min-w-full justify-start rounded-none bg-transparent p-0"><TabsTrigger className="rounded-none px-4 py-3" value="tasks">Minhas tarefas ({taskTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="requests">Minhas solicitacoes ({myOpenRequestTotal})</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="errors">Com erro</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="finished">Finalizadas</TabsTrigger><TabsTrigger className="rounded-none px-4 py-3" value="jobs">Jobs e sincronizacoes</TabsTrigger></TabsList></div>
           {activeTab === "jobs" ? (
             <TabsContent value="jobs" className="m-0">
               <JobsTable jobs={moduleJobs} states={states} loading={loading} />

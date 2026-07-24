@@ -629,6 +629,7 @@ export async function listFluigRequestsForActor(input: {
   open?: boolean | null;
   overdue?: boolean;
   errorOnly?: boolean;
+  mine?: boolean;
 }) {
   return runWithDb(async (client) => {
     const allowedModules = new Set(fluigModuleSlugsForActor(input.actor));
@@ -636,7 +637,9 @@ export async function listFluigRequestsForActor(input: {
     const pageSize = Math.min(Math.max(Number(input.pageSize || 30), 1), 100);
     if (!allowedModules.has(input.module)) return { page, pageSize, total: 0, items: [], natures: [] };
     const actorFilter = buildFluigActorPostgrestFilter(input.actor);
+    const mineFluigUserId = input.mine ? String(input.actor.fluigUserId || "").trim() : "";
     const search = String(input.search || "").replace(/[%_,()]/g, " ").trim();
+    if (input.mine && !mineFluigUserId) return { page, pageSize, total: 0, items: [], natures: [] };
 
     const loadNatureFacets = async () => {
       const values: Array<string | null | undefined> = [];
@@ -648,7 +651,11 @@ export async function listFluigRequestsForActor(input: {
           .select("id,expense_nature,branch_code,created_by_user_id,sync_owner_user_id,fluig_requester_login,fluig_requester_code,requester")
           .eq("module_slug", input.module)
           .not("fluig_request_id", "is", null);
-        if (actorFilter) facetQuery = facetQuery.or(actorFilter);
+        if (mineFluigUserId) {
+          facetQuery = facetQuery.eq("my_request_fluig_user_id", mineFluigUserId);
+        } else if (actorFilter) {
+          facetQuery = facetQuery.or(actorFilter);
+        }
         if (input.open != null) facetQuery = facetQuery.eq("is_open", input.open);
         if (input.status) facetQuery = facetQuery.ilike("normalized_status", input.status);
         if (input.branch) facetQuery = facetQuery.eq("branch_code", input.branch);
@@ -681,7 +688,11 @@ export async function listFluigRequestsForActor(input: {
       .not("fluig_request_id", "is", null)
       .order("last_status_check_at", { ascending: false, nullsFirst: false })
       .order("last_synced_at", { ascending: false, nullsFirst: false });
-    if (actorFilter) query = query.or(actorFilter);
+    if (mineFluigUserId) {
+      query = query.eq("my_request_fluig_user_id", mineFluigUserId);
+    } else if (actorFilter) {
+      query = query.or(actorFilter);
+    }
     if (input.open != null) query = query.eq("is_open", input.open);
     if (input.status) query = query.ilike("normalized_status", input.status);
     if (input.branch) query = query.eq("branch_code", input.branch);

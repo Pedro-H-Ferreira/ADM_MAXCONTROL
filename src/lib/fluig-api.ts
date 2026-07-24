@@ -593,6 +593,7 @@ export const fluigAdmApi = {
     open?: boolean | null;
     overdue?: boolean;
     errorOnly?: boolean;
+    mine?: boolean;
   }) {
     const params = new URLSearchParams({ module: input.module, page: String(input.page || 1), pageSize: String(input.pageSize || 30) });
     if (input.search) params.set("q", input.search);
@@ -602,6 +603,7 @@ export const fluigAdmApi = {
     if (input.open != null) params.set("open", String(input.open));
     if (input.overdue) params.set("overdue", "true");
     if (input.errorOnly) params.set("errorOnly", "true");
+    if (input.mine) params.set("mine", "true");
     return this.get<{
       success: true;
       page: number;
